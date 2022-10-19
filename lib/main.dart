@@ -3,6 +3,7 @@ import 'package:navigator_test/appella_router_delegate.dart';
 import 'package:navigator_test/my_route_information_parser.dart';
 import 'package:navigator_test/my_router.dart';
 import 'package:navigator_test/platform_modal/platform_modal_page.dart';
+import 'package:navigator_test/responsive.dart';
 
 import 'locations/a_location.dart';
 import 'locations/ab_location.dart';
@@ -25,17 +26,51 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  final myRouter = MyRouter();
+
+  @override
+  Widget build(BuildContext context) {
+    return MyRouterProvider(
+      myRouter: myRouter,
+      child: Responsive(
+        builder: (context, size) => _DependentMaterialApp(
+          router: myRouter,
+          screenSize: size,
+        ),
+      ),
+    );
+  }
+}
+
+class _DependentMaterialApp extends StatefulWidget {
+  final MyRouter router;
+  final ScreenSize screenSize;
+
+  const _DependentMaterialApp({
+    required this.router,
+    required this.screenSize,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<_DependentMaterialApp> createState() => _DependentMaterialAppState();
+}
+
+class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   final splashPage = const MaterialPage(child: Text("Splash screen"));
   final nestedPage =
       MaterialPage(key: UniqueKey(), child: const NestedScreen());
   final dialogPage = PlatformModalPage(
       child: Container(color: Colors.white, width: 300, height: 300));
+  final fullScreenDialogPage = MaterialPage(
+      child: Container(color: Colors.white, width: 300, height: 300));
   final notFoundPage = const MaterialPage(child: Text("Not found"));
 
-  final myRouter = MyRouter();
-  late final routerDelegate = AppellaRouterDelegate(
+  final routeInformationParser = MyRouteInformationParser();
+
+  late final _routerDelegate = AppellaRouterDelegate(
     isRootRouter: true,
-    myRouter: myRouter,
+    myRouter: widget.router,
     buildPages: (location) {
       if (location is SplashLocation) {
         return [splashPage];
@@ -46,7 +81,14 @@ class _MyAppState extends State<MyApp> {
         return [nestedPage];
       }
       if (location is ABCLocation || location is ADCLocation) {
-        return [nestedPage, dialogPage];
+        return [
+          nestedPage,
+          if (widget.screenSize == ScreenSize.Large) ...[
+            dialogPage
+          ] else ...[
+            fullScreenDialogPage
+          ],
+        ];
       }
 
       if (location is NotFoundLocation) {
@@ -56,16 +98,20 @@ class _MyAppState extends State<MyApp> {
       throw Exception("Unknown location");
     },
   );
-  final routeInformationParser = MyRouteInformationParser();
+
+  @override
+  void didUpdateWidget(covariant _DependentMaterialApp oldWidget) {
+    if (oldWidget.screenSize != widget.screenSize) {
+      _routerDelegate.refresh();
+    }
+    super.didUpdateWidget(oldWidget);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MyRouterProvider(
-      myRouter: myRouter,
-      child: MaterialApp.router(
-        routerDelegate: routerDelegate,
-        routeInformationParser: routeInformationParser,
-      ),
+    return MaterialApp.router(
+      routerDelegate: _routerDelegate,
+      routeInformationParser: routeInformationParser,
     );
   }
 }

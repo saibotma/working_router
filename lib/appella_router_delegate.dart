@@ -23,11 +23,8 @@ class AppellaRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
     required this.myRouter,
     required this.buildPages,
   }) {
-    pages = buildPages(myRouter.currentLocation);
-    myRouter.addListener(() {
-      pages = buildPages(myRouter.currentLocation);
-      notifyListeners();
-    });
+    refresh();
+    myRouter.addListener(refresh);
   }
 
   @override
@@ -58,5 +55,10 @@ class AppellaRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
       myRouter.routeToUri(configuration);
     }
     return SynchronousFuture(null);
+  }
+
+  void refresh() {
+    pages = buildPages(myRouter.currentLocation);
+    notifyListeners();
   }
 }
