@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:navigator_test/locations/ab_location.dart';
 import 'package:navigator_test/locations/abc_location.dart';
+import 'package:navigator_test/locations/not_found_location.dart';
 import 'package:navigator_test/platform_modal/platform_modal_page.dart';
 
 import 'locations/a_location.dart';
@@ -37,7 +38,8 @@ class MyRouter with ChangeNotifier {
           }))
         : {};
 
-    currentLocation = pathToLocation[path]!(path, queryParameters);
+    currentLocation =
+        pathToLocation[path]?.call(path, queryParameters) ?? NotFoundLocation();
     currentPath = uri;
     notifyListeners();
   }
