@@ -4,6 +4,8 @@ import 'package:navigator_test/locations/abc_location.dart';
 import 'package:navigator_test/platform_modal/platform_modal_page.dart';
 
 import 'locations/a_location.dart';
+import 'locations/ad_location.dart';
+import 'locations/adc_location.dart';
 import 'locations/location.dart';
 import 'locations/splash_location.dart';
 import 'nested_screen.dart';
@@ -19,6 +21,8 @@ class MyRouter with ChangeNotifier {
     "/a": (_, __) => ALocation(),
     "/a/b": (_, __) => ABLocation(),
     "/a/b/c": (_, __) => ABCLocation(),
+    "/a/d": (_, __) => ADLocation(),
+    "/a/d/c": (_, __) => ADCLocation(),
   };
 
   void routeToUri(String uri) {
@@ -49,12 +53,16 @@ class MyRouter with ChangeNotifier {
       currentPath = "/a/b";
     } else if (location is ABCLocation) {
       currentPath = "/a/b/c";
+    } else if (location is ADLocation) {
+      currentPath = "/a/d";
+    } else if (location is ADCLocation) {
+      currentPath = "/a/d/c";
     }
     notifyListeners();
   }
 
   void pop() {
-    routeToLocation(currentLocation!.pop());
+    routeToLocation(currentLocation.pop());
     notifyListeners();
   }
 }

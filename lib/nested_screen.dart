@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:navigator_test/locations/a_location.dart';
 import 'package:navigator_test/locations/ab_location.dart';
+import 'package:navigator_test/locations/adc_location.dart';
 import 'package:navigator_test/locations/location.dart';
 import 'package:navigator_test/my_router.dart';
 
 import 'locations/abc_location.dart';
+import 'locations/ad_location.dart';
 
 class NestedScreen extends StatefulWidget {
   const NestedScreen({Key? key}) : super(key: key);
@@ -46,6 +48,18 @@ class _NestedScreenState extends State<NestedScreen> {
                 child: Text("/a/b/c"),
                 onPressed: () {
                   MyRouterProvider.of(context).routeToLocation(ABCLocation());
+                },
+              ),
+              MaterialButton(
+                child: Text("/a/d"),
+                onPressed: () {
+                  MyRouterProvider.of(context).routeToLocation(ADLocation());
+                },
+              ),
+              MaterialButton(
+                child: Text("/a/d/c"),
+                onPressed: () {
+                  MyRouterProvider.of(context).routeToLocation(ADCLocation());
                 },
               ),
             ],
@@ -103,12 +117,22 @@ class NestedRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
   }
 
   final emptyPage = MaterialPage(
-      child: Container(color: Colors.white, child: Text("Empty page")));
+    child: Container(color: Colors.white, child: Text("Empty page")),
+  );
   final filledPage = MaterialPage(
     child: Scaffold(
       body: Container(
         color: Colors.blueGrey,
-        child: const BackButton(),
+        child: Center(
+          child: Column(
+            children: [
+              MaterialButton(onPressed: () {
+
+              }),
+              const BackButton(),
+            ],
+          ),
+        ),
       ),
     ),
   );
@@ -116,7 +140,10 @@ class NestedRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
   List<Page<dynamic>> routeTo(Location location) {
     if (location is ALocation) {
       return [emptyPage];
-    } else if (location is ABLocation || location is ABCLocation) {
+    } else if (location is ABLocation ||
+        location is ABCLocation ||
+        location is ADLocation ||
+        location is ADCLocation) {
       return [emptyPage, filledPage];
     }
 

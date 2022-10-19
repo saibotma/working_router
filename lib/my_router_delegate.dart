@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:navigator_test/locations/a_location.dart';
 import 'package:navigator_test/locations/ab_location.dart';
 import 'package:navigator_test/locations/abc_location.dart';
+import 'package:navigator_test/locations/ad_location.dart';
+import 'package:navigator_test/locations/adc_location.dart';
 import 'package:navigator_test/locations/location.dart';
 import 'package:navigator_test/locations/not_found_location.dart';
 import 'package:navigator_test/locations/splash_location.dart';
@@ -61,10 +63,10 @@ class MyRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
     if (location is SplashLocation) {
       return [splashPage];
     }
-    if (location is ALocation || location is ABLocation) {
+    if (location is ALocation || location is ABLocation || location is ADLocation) {
       return [nestedPage];
     }
-    if (location is ABCLocation) {
+    if (location is ABCLocation || location is ADCLocation) {
       return [nestedPage, dialogPage];
     }
 
