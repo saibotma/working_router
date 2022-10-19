@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:navigator_test/appella_router_delegate.dart';
 import 'package:navigator_test/locations/a_location.dart';
 import 'package:navigator_test/locations/ab_location.dart';
 import 'package:navigator_test/locations/adc_location.dart';
@@ -17,6 +18,25 @@ class NestedScreen extends StatefulWidget {
 }
 
 class _NestedScreenState extends State<NestedScreen> {
+  final emptyPage = MaterialPage(
+    child: Container(color: Colors.white, child: Text("Empty page")),
+  );
+  final filledPage = MaterialPage(
+    child: Scaffold(
+      body: Container(
+        color: Colors.blueGrey,
+        child: Center(
+          child: Column(
+            children: [
+              MaterialButton(onPressed: () {}),
+              const BackButton(),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -68,85 +88,26 @@ class _NestedScreenState extends State<NestedScreen> {
         Expanded(
           child: ClipRect(
             child: Router(
-              routerDelegate: NestedRouterDelegate(
+              routerDelegate: AppellaRouterDelegate(
+                isRootRouter: false,
                 myRouter: MyRouterProvider.of(context),
+                buildPages: (Location location) {
+                  if (location is ALocation) {
+                    return [emptyPage];
+                  } else if (location is ABLocation ||
+                      location is ABCLocation ||
+                      location is ADLocation ||
+                      location is ADCLocation) {
+                    return [emptyPage, filledPage];
+                  }
+
+                  throw Exception("Unknown location");
+                },
               ),
             ),
           ),
         ),
       ],
     );
-  }
-}
-
-class NestedRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
-  final MyRouter myRouter;
-  late List<Page<dynamic>> pages;
-
-  NestedRouterDelegate({required this.myRouter}) {
-    pages = routeTo(myRouter.currentLocation);
-    myRouter.addListener(() {
-      pages = routeTo(myRouter.currentLocation);
-      notifyListeners();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Navigator(
-      pages: pages,
-      onPopPage: (route, result) {
-        print("onPopPage");
-        final didPop = route.didPop(result);
-        if (didPop) {
-          myRouter.pop();
-        }
-        return didPop;
-      },
-    );
-  }
-
-  @override
-  Future<bool> popRoute() {
-    return SynchronousFuture(true);
-  }
-
-  @override
-  Future<void> setNewRoutePath(String configuration) {
-    return SynchronousFuture(null);
-  }
-
-  final emptyPage = MaterialPage(
-    child: Container(color: Colors.white, child: Text("Empty page")),
-  );
-  final filledPage = MaterialPage(
-    child: Scaffold(
-      body: Container(
-        color: Colors.blueGrey,
-        child: Center(
-          child: Column(
-            children: [
-              MaterialButton(onPressed: () {
-
-              }),
-              const BackButton(),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-
-  List<Page<dynamic>> routeTo(Location location) {
-    if (location is ALocation) {
-      return [emptyPage];
-    } else if (location is ABLocation ||
-        location is ABCLocation ||
-        location is ADLocation ||
-        location is ADCLocation) {
-      return [emptyPage, filledPage];
-    }
-
-    throw Exception("Unknown location");
   }
 }
