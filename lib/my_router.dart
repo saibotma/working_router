@@ -9,8 +9,8 @@ import 'locations/splash_location.dart';
 import 'nested_screen.dart';
 
 class MyRouter with ChangeNotifier {
-  Location? currentLocation;
-  String? currentPath;
+  Location currentLocation = SplashLocation();
+  String currentPath = "/";
 
   Map<String,
           Location Function(String path, Map<String, String> queryParameters)>

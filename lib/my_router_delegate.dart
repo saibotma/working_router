@@ -12,12 +12,10 @@ import 'package:navigator_test/platform_modal/platform_modal_page.dart';
 
 class MyRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
   final MyRouter myRouter;
-
-  List<Page<dynamic>> pages = [
-    MaterialPage(child: Container(color: Colors.blue))
-  ];
+  late List<Page<dynamic>> pages;
 
   MyRouterDelegate({required this.myRouter}) {
+    pages = routeTo(myRouter.currentLocation!);
     myRouter.addListener(() {
       pages = routeTo(myRouter.currentLocation!);
       notifyListeners();
@@ -54,7 +52,7 @@ class MyRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
 
   final splashPage =
       MaterialPage(child: Container(child: Text("Splash screen")));
-  final nestedPage = const MaterialPage(child: NestedScreen());
+  final nestedPage = MaterialPage(key: UniqueKey(), child: NestedScreen());
   final dialogPage = PlatformModalPage(
       child: Container(color: Colors.white, width: 300, height: 300));
   final notFoundPage = MaterialPage(child: Container(child: Text("Not found")));

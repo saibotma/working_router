@@ -4,6 +4,7 @@ import 'package:navigator_test/locations/location.dart';
 class ABLocation extends Location {
   @override
   Location pop() {
+    print("did call");
     return ALocation();
   }
 }
