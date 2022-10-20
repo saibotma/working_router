@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:navigator_test/appella_router_delegate.dart';
+import 'package:navigator_test/location_guard.dart';
+import 'package:navigator_test/locations/adc_location.dart';
 import 'package:navigator_test/my_route_information_parser.dart';
 import 'package:navigator_test/my_router.dart';
 import 'package:navigator_test/platform_modal/platform_modal_page.dart';
 import 'package:navigator_test/responsive.dart';
 
-import 'locations/a_location.dart';
-import 'locations/ab_location.dart';
-import 'locations/abc_location.dart';
-import 'locations/ad_location.dart';
-import 'locations/adc_location.dart';
-import 'locations/not_found_location.dart';
-import 'locations/splash_location.dart';
 import 'nested_screen.dart';
 
 void main() {
@@ -65,22 +60,53 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   final fullScreenDialogPage = MaterialPage(
       child: Container(color: Colors.white, width: 300, height: 300));
   final notFoundPage = const MaterialPage(child: Text("Not found"));
+  final conditionalDialogPage = PlatformModalPage(
+    child: Builder(builder: (context) {
+      return LocationGuard(
+        guard: (location) => location is ADCLocation,
+        mayLeave: () async {
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return Center(
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  color: Colors.white,
+                  child: MaterialButton(onPressed: () {
+                    Navigator.of(context).pop(true);
+                  }),
+                ),
+              );
+            },
+          );
+          return result ?? false;
+        },
+        child: Container(color: Colors.black, width: 300, height: 300),
+      );
+    }),
+  );
 
   final routeInformationParser = MyRouteInformationParser();
 
   late final _routerDelegate = AppellaRouterDelegate(
     isRootRouter: true,
     myRouter: widget.router,
-    buildPages: (location) {
-      if (location is SplashLocation) {
+    buildPages: (locations) {
+      if (locations.isEmpty) {
+        return [notFoundPage];
+      }
+
+      final location = locations.last;
+      if (location.id == LocationId.splash) {
         return [splashPage];
       }
-      if (location is ALocation ||
-          location is ABLocation ||
-          location is ADLocation) {
+      if (location.id == LocationId.a ||
+          location.id == LocationId.ab ||
+          location.id == LocationId.ad) {
         return [nestedPage];
       }
-      if (location is ABCLocation || location is ADCLocation) {
+      if (location.id == LocationId.abc) {
         return [
           nestedPage,
           if (widget.screenSize == ScreenSize.Large) ...[
@@ -91,8 +117,8 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         ];
       }
 
-      if (location is NotFoundLocation) {
-        return [notFoundPage];
+      if (location.id == LocationId.adc) {
+        return [nestedPage, conditionalDialogPage];
       }
 
       throw Exception("Unknown location");

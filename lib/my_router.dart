@@ -1,32 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:navigator_test/location_guard.dart';
 import 'package:navigator_test/locations/ab_location.dart';
 import 'package:navigator_test/locations/abc_location.dart';
-import 'package:navigator_test/locations/not_found_location.dart';
-import 'package:navigator_test/platform_modal/platform_modal_page.dart';
 
 import 'locations/a_location.dart';
 import 'locations/ad_location.dart';
 import 'locations/adc_location.dart';
 import 'locations/location.dart';
 import 'locations/splash_location.dart';
-import 'nested_screen.dart';
+
+enum LocationId { splash, a, ab, abc, ad, adc }
 
 class MyRouter with ChangeNotifier {
-  Location currentLocation = SplashLocation();
+  late List<Location> currentLocations = [locationTree];
   String currentPath = "/";
 
-  Map<String,
-          Location Function(String path, Map<String, String> queryParameters)>
-      pathToLocation = {
-    "/": (_, __) => SplashLocation(),
-    "/a": (_, __) => ALocation(),
-    "/a/b": (_, __) => ABLocation(),
-    "/a/b/c": (_, __) => ABCLocation(),
-    "/a/d": (_, __) => ADLocation(),
-    "/a/d/c": (_, __) => ADCLocation(),
-  };
+  final Location locationTree = SplashLocation(
+    id: LocationId.splash,
+    children: [
+      ALocation(
+        id: LocationId.a,
+        children: [
+          ABLocation(
+            id: LocationId.ab,
+            children: [
+              ABCLocation(id: LocationId.abc, children: []),
+            ],
+          ),
+          ADLocation(
+            id: LocationId.ad,
+            children: [
+              ADCLocation(id: LocationId.adc, children: []),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
 
-  void routeToUri(String uri) {
+  Future<void> routeToUri(String uri) async {
     print("routeToUri: $uri");
     final splitUri = uri.split("?");
     assert(splitUri.isNotEmpty);
@@ -38,15 +50,26 @@ class MyRouter with ChangeNotifier {
           }))
         : {};
 
-    currentLocation =
-        pathToLocation[path]?.call(path, queryParameters) ?? NotFoundLocation();
+    final matches = locationTree.match(path);
+
+    for (final guard in guards) {
+      if (currentLocations.any(guard.widget.guard) &&
+          !matches.any(guard.widget.guard)) {
+        if (!(await guard.widget.mayLeave())) {
+          return;
+        }
+      }
+    }
+
+    currentLocations = matches;
     currentPath = uri;
     notifyListeners();
   }
 
+  /*
   void routeToLocation(Location location) {
     print("routeToLocation: $location");
-    currentLocation = location;
+    currentLocations = location;
     if (location is SplashLocation) {
       currentPath = "/";
     } else if (location is ALocation) {
@@ -61,11 +84,21 @@ class MyRouter with ChangeNotifier {
       currentPath = "/a/d/c";
     }
     notifyListeners();
-  }
+  }*/
 
   void pop() {
-    routeToLocation(currentLocation.pop());
+    //routeToLocation(currentLocations.pop());
     notifyListeners();
+  }
+
+  final List<LocationGuardState> guards = [];
+
+  void addGuard(LocationGuardState guard) {
+    guards.add(guard);
+  }
+
+  void removeGuard(LocationGuardState guard) {
+    guards.remove(guard);
   }
 }
 
@@ -73,9 +106,11 @@ class MyRouterProvider extends StatelessWidget {
   final MyRouter myRouter;
   final Widget child;
 
-  const MyRouterProvider(
-      {required this.myRouter, required this.child, Key? key})
-      : super(key: key);
+  const MyRouterProvider({
+    required this.myRouter,
+    required this.child,
+    Key? key,
+  }) : super(key: key);
 
   static MyRouter of(BuildContext context) {
     final MyRouterProvider? routerProvider =
@@ -85,6 +120,15 @@ class MyRouterProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return child;
+    return NotificationListener(
+      child: child,
+      onNotification: (notification) {
+        if (notification is AddLocationGuardMessage) {
+          myRouter.addGuard(notification.state);
+          return true;
+        }
+        return false;
+      },
+    );
   }
 }

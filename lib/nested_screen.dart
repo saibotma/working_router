@@ -55,31 +55,31 @@ class _NestedScreenState extends State<NestedScreen> {
               MaterialButton(
                 child: Text("/a"),
                 onPressed: () {
-                  MyRouterProvider.of(context).routeToLocation(ALocation());
+                  MyRouterProvider.of(context).routeToUri("/a");
                 },
               ),
               MaterialButton(
                 child: Text("/a/b"),
                 onPressed: () {
-                  MyRouterProvider.of(context).routeToLocation(ABLocation());
+                  MyRouterProvider.of(context).routeToUri("/a/b");
                 },
               ),
               MaterialButton(
                 child: Text("/a/b/c"),
                 onPressed: () {
-                  MyRouterProvider.of(context).routeToLocation(ABCLocation());
+                  MyRouterProvider.of(context).routeToUri("/a/b/c");
                 },
               ),
               MaterialButton(
                 child: Text("/a/d"),
                 onPressed: () {
-                  MyRouterProvider.of(context).routeToLocation(ADLocation());
+                  MyRouterProvider.of(context).routeToUri("/a/d");
                 },
               ),
               MaterialButton(
                 child: Text("/a/d/c"),
                 onPressed: () {
-                  MyRouterProvider.of(context).routeToLocation(ADCLocation());
+                  MyRouterProvider.of(context).routeToUri("/a/d/c");
                 },
               ),
             ],
@@ -91,7 +91,8 @@ class _NestedScreenState extends State<NestedScreen> {
               routerDelegate: AppellaRouterDelegate(
                 isRootRouter: false,
                 myRouter: MyRouterProvider.of(context),
-                buildPages: (Location location) {
+                buildPages: (locations) {
+                  final location = locations.last;
                   if (location is ALocation) {
                     return [emptyPage];
                   } else if (location is ABLocation ||
