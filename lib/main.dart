@@ -55,8 +55,17 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   final splashPage = const MaterialPage(child: Text("Splash screen"));
   final nestedPage =
       MaterialPage(key: UniqueKey(), child: const NestedScreen());
-  final dialogPage = PlatformModalPage(
-      child: Container(color: Colors.white, width: 300, height: 300));
+  final dialogPage = PlatformModalPage(child: Builder(builder: (context) {
+    final myRouter = MyRouterProvider.of(context);
+    return Container(
+      color: Colors.white,
+      width: 300,
+      height: 300,
+      child: Text(
+        "${myRouter.currentQueryParameters["b"]}, ${myRouter.currentQueryParameters["c"]}",
+      ),
+    );
+  }));
   final fullScreenDialogPage = MaterialPage(
       child: Container(color: Colors.white, width: 300, height: 300));
   final notFoundPage = const MaterialPage(child: Text("Not found"));

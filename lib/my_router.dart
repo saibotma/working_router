@@ -1,3 +1,4 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:navigator_test/location_guard.dart';
 import 'package:navigator_test/locations/ab_location.dart';
@@ -14,6 +15,7 @@ enum LocationId { splash, a, ab, abc, ad, adc }
 class MyRouter with ChangeNotifier {
   late List<Location> currentLocations = [locationTree];
   String currentPath = "/";
+  Map<String, String> currentQueryParameters = {};
 
   final Location locationTree = SplashLocation(
     id: LocationId.splash,
@@ -38,19 +40,9 @@ class MyRouter with ChangeNotifier {
     ],
   );
 
-  Future<void> routeToUri(String uri) async {
-    print("routeToUri: $uri");
-    final splitUri = uri.split("?");
-    assert(splitUri.isNotEmpty);
-    final path = splitUri.first;
-    final Map<String, String> queryParameters = splitUri.length > 1
-        ? Map.fromEntries(splitUri[1].split("&").map((e) {
-            final split = e.split("=");
-            return MapEntry(split[0], split[1]);
-          }))
-        : {};
-
-    final matches = locationTree.match(path);
+  Future<void> routeToUri(String uriString) async {
+    final uri = Uri.parse(uriString);
+    final matches = locationTree.match(uri.pathSegments.toIList());
 
     for (final guard in guards) {
       if (currentLocations.any(guard.widget.guard) &&
@@ -62,7 +54,8 @@ class MyRouter with ChangeNotifier {
     }
 
     currentLocations = matches;
-    currentPath = uri;
+    currentPath = uriString;
+    currentQueryParameters = uri.queryParameters;
     notifyListeners();
   }
 
@@ -87,7 +80,11 @@ class MyRouter with ChangeNotifier {
   }*/
 
   void pop() {
-    //routeToLocation(currentLocations.pop());
+    currentQueryParameters =
+        currentLocations.last.selectQueryParameters(currentQueryParameters);
+    currentLocations.removeLast();
+    currentPath =
+        "/${Uri.parse(currentLocations.map((e) => e.pathSegments).expand((element) => element).join("/")).path}";
     notifyListeners();
   }
 
