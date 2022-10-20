@@ -62,7 +62,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
       width: 300,
       height: 300,
       child: Text(
-        "${myRouter.currentPath.queryParameters["b"]}, ${myRouter.currentPath.queryParameters["c"]}",
+        "${myRouter.currentPath!.queryParameters["b"]}, ${myRouter.currentPath!.queryParameters["c"]}",
       ),
     );
   }));

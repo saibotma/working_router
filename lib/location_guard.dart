@@ -26,7 +26,7 @@ class LocationGuardState extends State<LocationGuard> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.child;
+    return WillPopScope(onWillPop: widget.mayLeave, child: widget.child);
   }
 
   @override

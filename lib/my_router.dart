@@ -13,8 +13,8 @@ import 'locations/splash_location.dart';
 enum LocationId { splash, a, ab, abc, ad, adc }
 
 class MyRouter with ChangeNotifier {
-  late IList<Location> currentLocations = [locationTree].toIList();
-  Uri currentPath = Uri.parse("/");
+  late IList<Location> currentLocations = IList();
+  Uri? currentPath;
 
   final Location locationTree = SplashLocation(
     id: LocationId.splash,
@@ -82,24 +82,21 @@ class MyRouter with ChangeNotifier {
     notifyListeners();
   }*/
 
-  Future<void> pop() async {
-    final newLocations = currentLocations.removeLast();
-    final newQueryParameters = newLocations.last
-        .selectQueryParameters(currentPath.queryParameters);
+  void pop() {
+    if (currentPath != null) {
+      final newLocations = currentLocations.removeLast();
+      final newQueryParameters =
+          newLocations.last.selectQueryParameters(currentPath!.queryParameters);
 
-    // TODO(saibotma): Does still pop.
-    if (await _guard(newLocations)) {
-      return;
+      currentLocations = newLocations;
+      currentPath = Uri(
+        pathSegments: currentLocations
+            .map((e) => e.pathSegments)
+            .expand((element) => element),
+        queryParameters: newQueryParameters.isEmpty ? null : newQueryParameters,
+      );
+      notifyListeners();
     }
-
-    currentLocations = newLocations;
-    currentPath = Uri(
-      pathSegments: currentLocations
-          .map((e) => e.pathSegments)
-          .expand((element) => element),
-      queryParameters: newQueryParameters.isEmpty ? null : newQueryParameters,
-    );
-    notifyListeners();
   }
 
   Future<bool> _guard(IList<Location> newLocations) async {
@@ -183,7 +180,7 @@ class _MyRouterDataProviderState extends State<MyRouterDataProvider> {
 class _MyRouterDataProvider extends InheritedWidget {
   final MyRouter myRouter;
   final IList<Location> currentLocations;
-  final Uri currentPath;
+  final Uri? currentPath;
 
   const _MyRouterDataProvider({
     required this.myRouter,

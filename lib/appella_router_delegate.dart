@@ -9,12 +9,14 @@ class AppellaRouterDelegate extends RouterDelegate<Uri> with ChangeNotifier {
   final MyRouter myRouter;
   final List<Page<dynamic>> Function(IList<Location> location) buildPages;
   late List<Page<dynamic>> pages;
+  late final GlobalKey<NavigatorState> navigatorKey;
 
   AppellaRouterDelegate({
     required this.isRootRouter,
     required this.myRouter,
     required this.buildPages,
   }) {
+    navigatorKey = GlobalKey<NavigatorState>();
     refresh();
     myRouter.addListener(refresh);
   }
@@ -24,7 +26,12 @@ class AppellaRouterDelegate extends RouterDelegate<Uri> with ChangeNotifier {
 
   @override
   Widget build(BuildContext context) {
+    if (pages.isEmpty) {
+      // A Navigator may not have empty pages.
+      return Container();
+    }
     return Navigator(
+      key: navigatorKey,
       pages: pages,
       onPopPage: (route, result) {
         final didPop = route.didPop(result);
