@@ -25,7 +25,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MyRouterProvider(
+    return MyRouterDataProvider(
       myRouter: myRouter,
       child: Responsive(
         builder: (context, size) => _DependentMaterialApp(
@@ -56,13 +56,13 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   final nestedPage =
       MaterialPage(key: UniqueKey(), child: const NestedScreen());
   final dialogPage = PlatformModalPage(child: Builder(builder: (context) {
-    final myRouter = MyRouterProvider.of(context);
+    final myRouter = MyRouter.of(context);
     return Container(
       color: Colors.white,
       width: 300,
       height: 300,
       child: Text(
-        "${myRouter.currentQueryParameters["b"]}, ${myRouter.currentQueryParameters["c"]}",
+        "${myRouter.currentPath.queryParameters["b"]}, ${myRouter.currentPath.queryParameters["c"]}",
       ),
     );
   }));

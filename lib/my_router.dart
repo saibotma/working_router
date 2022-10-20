@@ -13,9 +13,8 @@ import 'locations/splash_location.dart';
 enum LocationId { splash, a, ab, abc, ad, adc }
 
 class MyRouter with ChangeNotifier {
-  late List<Location> currentLocations = [locationTree];
-  String currentPath = "/";
-  Map<String, String> currentQueryParameters = {};
+  late IList<Location> currentLocations = [locationTree].toIList();
+  Uri currentPath = Uri.parse("/");
 
   final Location locationTree = SplashLocation(
     id: LocationId.splash,
@@ -40,22 +39,26 @@ class MyRouter with ChangeNotifier {
     ],
   );
 
-  Future<void> routeToUri(String uriString) async {
-    final uri = Uri.parse(uriString);
+  static MyRouter of(BuildContext context) {
+    final _MyRouterDataProvider? myRouter =
+        context.dependOnInheritedWidgetOfExactType<_MyRouterDataProvider>();
+    return myRouter!.myRouter;
+  }
+
+  Future<void> routeToUriString(String uriString) async {
+    routeToUri(Uri.parse(uriString));
+  }
+
+  Future<void> routeToUri(Uri uri) async {
+    print("routeToUri: $uri");
     final matches = locationTree.match(uri.pathSegments.toIList());
 
-    for (final guard in guards) {
-      if (currentLocations.any(guard.widget.guard) &&
-          !matches.any(guard.widget.guard)) {
-        if (!(await guard.widget.mayLeave())) {
-          return;
-        }
-      }
+    if (await _guard(matches)) {
+      return;
     }
 
     currentLocations = matches;
-    currentPath = uriString;
-    currentQueryParameters = uri.queryParameters;
+    currentPath = uri;
     notifyListeners();
   }
 
@@ -79,13 +82,36 @@ class MyRouter with ChangeNotifier {
     notifyListeners();
   }*/
 
-  void pop() {
-    currentQueryParameters =
-        currentLocations.last.selectQueryParameters(currentQueryParameters);
-    currentLocations.removeLast();
-    currentPath =
-        "/${Uri.parse(currentLocations.map((e) => e.pathSegments).expand((element) => element).join("/")).path}";
+  Future<void> pop() async {
+    final newLocations = currentLocations.removeLast();
+    final newQueryParameters = newLocations.last
+        .selectQueryParameters(currentPath.queryParameters);
+
+    // TODO(saibotma): Does still pop.
+    if (await _guard(newLocations)) {
+      return;
+    }
+
+    currentLocations = newLocations;
+    currentPath = Uri(
+      pathSegments: currentLocations
+          .map((e) => e.pathSegments)
+          .expand((element) => element),
+      queryParameters: newQueryParameters.isEmpty ? null : newQueryParameters,
+    );
     notifyListeners();
+  }
+
+  Future<bool> _guard(IList<Location> newLocations) async {
+    for (final guard in guards) {
+      if (currentLocations.any(guard.widget.guard) &&
+          !newLocations.any(guard.widget.guard)) {
+        if (!(await guard.widget.mayLeave())) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   final List<LocationGuardState> guards = [];
@@ -99,33 +125,76 @@ class MyRouter with ChangeNotifier {
   }
 }
 
-class MyRouterProvider extends StatelessWidget {
+class MyRouterDataProvider extends StatefulWidget {
   final MyRouter myRouter;
   final Widget child;
 
-  const MyRouterProvider({
+  const MyRouterDataProvider({
     required this.myRouter,
     required this.child,
     Key? key,
   }) : super(key: key);
 
-  static MyRouter of(BuildContext context) {
-    final MyRouterProvider? routerProvider =
-        context.findAncestorWidgetOfExactType<MyRouterProvider>();
-    return routerProvider!.myRouter;
+  @override
+  State<MyRouterDataProvider> createState() => _MyRouterDataProviderState();
+}
+
+class _MyRouterDataProviderState extends State<MyRouterDataProvider> {
+  @override
+  void initState() {
+    super.initState();
+    widget.myRouter.addListener(handleMyRouterNotify);
   }
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener(
-      child: child,
-      onNotification: (notification) {
-        if (notification is AddLocationGuardMessage) {
-          myRouter.addGuard(notification.state);
-          return true;
-        }
-        return false;
-      },
+    return _MyRouterDataProvider(
+      myRouter: widget.myRouter,
+      currentLocations: widget.myRouter.currentLocations,
+      currentPath: widget.myRouter.currentPath,
+      child: NotificationListener(
+        child: widget.child,
+        onNotification: (notification) {
+          if (notification is AddLocationGuardMessage) {
+            widget.myRouter.addGuard(notification.state);
+            return true;
+          }
+          if (notification is RemoveLocationGuardMessage) {
+            widget.myRouter.removeGuard(notification.state);
+            return true;
+          }
+          return false;
+        },
+      ),
     );
+  }
+
+  void handleMyRouterNotify() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.myRouter.removeListener(handleMyRouterNotify);
+    super.dispose();
+  }
+}
+
+class _MyRouterDataProvider extends InheritedWidget {
+  final MyRouter myRouter;
+  final IList<Location> currentLocations;
+  final Uri currentPath;
+
+  const _MyRouterDataProvider({
+    required this.myRouter,
+    required this.currentLocations,
+    required this.currentPath,
+    required Widget child,
+  }) : super(child: child);
+
+  @override
+  bool updateShouldNotify(covariant _MyRouterDataProvider oldWidget) {
+    return oldWidget.currentLocations != currentLocations ||
+        oldWidget.currentPath != currentPath;
   }
 }

@@ -1,12 +1,13 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:navigator_test/locations/location.dart';
 import 'package:navigator_test/my_router.dart';
 
-class AppellaRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
+class AppellaRouterDelegate extends RouterDelegate<Uri> with ChangeNotifier {
   final bool isRootRouter;
   final MyRouter myRouter;
-  final List<Page<dynamic>> Function(List<Location> location) buildPages;
+  final List<Page<dynamic>> Function(IList<Location> location) buildPages;
   late List<Page<dynamic>> pages;
 
   AppellaRouterDelegate({
@@ -19,7 +20,7 @@ class AppellaRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
   }
 
   @override
-  String? get currentConfiguration => myRouter.currentPath;
+  Uri? get currentConfiguration => myRouter.currentPath;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +42,7 @@ class AppellaRouterDelegate extends RouterDelegate<String> with ChangeNotifier {
   }
 
   @override
-  Future<void> setNewRoutePath(String configuration) {
+  Future<void> setNewRoutePath(Uri configuration) {
     if (isRootRouter) {
       myRouter.routeToUri(configuration);
     }

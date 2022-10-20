@@ -12,7 +12,7 @@ abstract class Location<ID> {
 
   List<String> get pathSegments => _uri.pathSegments;
 
-  List<Location> match(IList<String> pathSegments) {
+  IList<Location> match(IList<String> pathSegments) {
     final List<Location> matches = [];
     final thisPathSegments = _uri.pathSegments.toIList();
     if (startsWith(pathSegments, thisPathSegments)) {
@@ -30,11 +30,11 @@ abstract class Location<ID> {
       }
 
       if (matches.length == 1 && nextPathSegments.isNotEmpty) {
-        return [];
+        return IList();
       }
     }
 
-    return matches;
+    return matches.toIList();
   }
 
   Map<String, String> selectQueryParameters(Map<String, String> source) {
