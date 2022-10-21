@@ -13,6 +13,6 @@ class ABLocation extends Location {
 
   @override
   Map<String, String> selectQueryParameters(Map<String, String> source) {
-    return {"b": source["b"]!};
+    return {};
   }
 }

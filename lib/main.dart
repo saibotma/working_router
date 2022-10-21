@@ -52,7 +52,17 @@ class _DependentMaterialApp extends StatefulWidget {
 }
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
-  final splashPage = const MaterialPage(child: Text("Splash screen"));
+  final splashPage =
+      MaterialPage(child: Scaffold(body: Builder(builder: (context) {
+    return Center(
+      child: MaterialButton(
+        child: Text("Splash screen"),
+        onPressed: () {
+          MyRouter.of(context).routeToId(LocationId.a);
+        },
+      ),
+    );
+  })));
   final nestedPage =
       MaterialPage(key: UniqueKey(), child: const NestedScreen());
   final dialogPage = PlatformModalPage(child: Builder(builder: (context) {

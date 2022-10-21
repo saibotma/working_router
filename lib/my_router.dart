@@ -50,7 +50,6 @@ class MyRouter with ChangeNotifier {
   }
 
   Future<void> routeToUri(Uri uri) async {
-    print("routeToUri: $uri");
     final matches = locationTree.match(uri.pathSegments.toIList());
 
     if (await _guard(matches)) {
@@ -62,25 +61,25 @@ class MyRouter with ChangeNotifier {
     notifyListeners();
   }
 
-  /*
-  void routeToLocation(Location location) {
-    print("routeToLocation: $location");
-    currentLocations = location;
-    if (location is SplashLocation) {
-      currentPath = "/";
-    } else if (location is ALocation) {
-      currentPath = "/a";
-    } else if (location is ABLocation) {
-      currentPath = "/a/b";
-    } else if (location is ABCLocation) {
-      currentPath = "/a/b/c";
-    } else if (location is ADLocation) {
-      currentPath = "/a/d";
-    } else if (location is ADCLocation) {
-      currentPath = "/a/d/c";
+  void routeToId(
+    LocationId id,
+      {Map<String, String> queryParameters = const {},
+  }) {
+    final matches = locationTree.matchId(id);
+    final uri =
+        _uriFromLocations(locations: matches, queryParameters: queryParameters);
+    _routeTo(matches, uri);
+  }
+
+  Future<void> _routeTo(IList<Location> matches, Uri uri) async {
+    if (await _guard(matches)) {
+      return;
     }
+
+    currentLocations = matches;
+    currentPath = uri;
     notifyListeners();
-  }*/
+  }
 
   void pop() {
     if (currentPath != null) {
@@ -89,14 +88,24 @@ class MyRouter with ChangeNotifier {
           newLocations.last.selectQueryParameters(currentPath!.queryParameters);
 
       currentLocations = newLocations;
-      currentPath = Uri(
-        pathSegments: currentLocations
-            .map((e) => e.pathSegments)
-            .expand((element) => element),
-        queryParameters: newQueryParameters.isEmpty ? null : newQueryParameters,
+      currentPath = _uriFromLocations(
+        locations: currentLocations,
+        queryParameters: newQueryParameters,
       );
       notifyListeners();
     }
+  }
+
+  Uri _uriFromLocations({
+    required IList<Location> locations,
+    required Map<String, String> queryParameters,
+  }) {
+    return Uri(
+      pathSegments: currentLocations
+          .map((e) => e.pathSegments)
+          .expand((element) => element),
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+    );
   }
 
   Future<bool> _guard(IList<Location> newLocations) async {

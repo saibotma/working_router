@@ -1,5 +1,7 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
+import '../my_router.dart';
+
 abstract class Location<ID> {
   final ID id;
   final List<Location> children;
@@ -31,6 +33,24 @@ abstract class Location<ID> {
 
       if (matches.length == 1 && nextPathSegments.isNotEmpty) {
         return IList();
+      }
+    }
+
+    return matches.toIList();
+  }
+
+  IList<Location> matchId(ID id) {
+    final List<Location> matches = [];
+    if (this.id == id) {
+      matches.add(this);
+    } else {
+      for (final child in children) {
+        final childMatches = child.matchId(id);
+        if (childMatches.isNotEmpty) {
+          matches.add(this);
+          matches.addAll(childMatches);
+          break;
+        }
       }
     }
 
