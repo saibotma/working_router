@@ -89,13 +89,11 @@ class MyRouter with ChangeNotifier {
       final newQueryParameters =
           newLocations.last.selectQueryParameters(currentPath!.queryParameters);
 
-      _routeTo(
-        newLocations,
-        _uriFromLocations(
-          locations: currentLocations,
-          queryParameters: newQueryParameters,
-        ),
+      final uri = _uriFromLocations(
+        locations: newLocations,
+        queryParameters: newQueryParameters,
       );
+      _routeTo(newLocations, uri);
 
       notifyListeners();
     }
@@ -106,7 +104,7 @@ class MyRouter with ChangeNotifier {
     required Map<String, String> queryParameters,
   }) {
     return Uri(
-      pathSegments: currentLocations.map((e) => e.pathSegments).flattened,
+      pathSegments: locations.map((e) => e.pathSegments).flattened,
       queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
   }

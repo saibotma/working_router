@@ -9,6 +9,12 @@ class MyRouteInformationParser extends RouteInformationParser<Uri> {
 
   @override
   RouteInformation? restoreRouteInformation(Uri configuration) {
-    return RouteInformation(location: configuration.toString());
+    String uriString = configuration.toString();
+    // Required, because Uri does not add a leading slash when
+    // creating Uri from path segments.
+    if (!uriString.startsWith("/")) {
+      uriString = "/$uriString";
+    }
+    return RouteInformation(location: uriString);
   }
 }

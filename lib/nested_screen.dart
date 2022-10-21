@@ -93,9 +93,6 @@ class _NestedScreenState extends State<NestedScreen> {
                 isRootRouter: false,
                 myRouter: MyRouter.of(context),
                 buildPages: (location, topLocation) {
-                  if (location is ALocation) {
-                    return [emptyPage];
-                  }
                   if (location is ABLocation ||
                       location is ABCLocation ||
                       location is ADLocation ||
@@ -103,7 +100,7 @@ class _NestedScreenState extends State<NestedScreen> {
                     return [filledPage];
                   }
 
-                  return [];
+                  return [emptyPage];
                 },
               ),
             ),
