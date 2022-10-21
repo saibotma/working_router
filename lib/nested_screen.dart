@@ -91,18 +91,18 @@ class _NestedScreenState extends State<NestedScreen> {
               routerDelegate: AppellaRouterDelegate(
                 isRootRouter: false,
                 myRouter: MyRouter.of(context),
-                buildPages: (locations) {
-                  final location = locations.last;
+                buildPages: (location, topLocation) {
                   if (location is ALocation) {
                     return [emptyPage];
-                  } else if (location is ABLocation ||
+                  }
+                  if (location is ABLocation ||
                       location is ABCLocation ||
                       location is ADLocation ||
                       location is ADCLocation) {
-                    return [emptyPage, filledPage];
+                    return [filledPage];
                   }
 
-                  throw Exception("Unknown location");
+                  return [];
                 },
               ),
             ),

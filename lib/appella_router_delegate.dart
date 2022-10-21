@@ -7,7 +7,8 @@ import 'package:navigator_test/my_router.dart';
 class AppellaRouterDelegate extends RouterDelegate<Uri> with ChangeNotifier {
   final bool isRootRouter;
   final MyRouter myRouter;
-  final List<Page<dynamic>> Function(IList<Location> location) buildPages;
+  final List<Page<dynamic>> Function(Location location, Location topLocation)
+      buildPages;
   late List<Page<dynamic>> pages;
   late final GlobalKey<NavigatorState> navigatorKey;
 
@@ -34,6 +35,7 @@ class AppellaRouterDelegate extends RouterDelegate<Uri> with ChangeNotifier {
       key: navigatorKey,
       pages: pages,
       onPopPage: (route, result) {
+        //print(route.settings is Page);
         final didPop = route.didPop(result);
         if (didPop) {
           myRouter.pop();
@@ -57,7 +59,10 @@ class AppellaRouterDelegate extends RouterDelegate<Uri> with ChangeNotifier {
   }
 
   void refresh() {
-    pages = buildPages(myRouter.currentLocations);
+    pages = myRouter.currentLocations
+        .map((location) => buildPages(location, myRouter.currentLocations.last))
+        .expand((pages) => pages)
+        .toList();
     notifyListeners();
   }
 }

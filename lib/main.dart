@@ -111,36 +111,27 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final _routerDelegate = AppellaRouterDelegate(
     isRootRouter: true,
     myRouter: widget.router,
-    buildPages: (locations) {
-      if (locations.isEmpty) {
-        return [notFoundPage];
-      }
-
-      final location = locations.last;
-      if (location.id == LocationId.splash) {
+    buildPages: (location, topLocation) {
+      if (location.id == LocationId.splash &&
+          topLocation.id == LocationId.splash) {
         return [splashPage];
       }
-      if (location.id == LocationId.a ||
-          location.id == LocationId.ab ||
-          location.id == LocationId.ad) {
+      if (location.id == LocationId.a) {
         return [nestedPage];
       }
       if (location.id == LocationId.abc) {
-        return [
-          nestedPage,
-          if (widget.screenSize == ScreenSize.Large) ...[
-            dialogPage
-          ] else ...[
-            fullScreenDialogPage
-          ],
-        ];
+        if (widget.screenSize == ScreenSize.Large) {
+          return [dialogPage];
+        } else {
+          return [fullScreenDialogPage];
+        }
       }
 
       if (location.id == LocationId.adc) {
-        return [nestedPage, conditionalDialogPage];
+        return [conditionalDialogPage];
       }
 
-      throw Exception("Unknown location");
+      return [];
     },
   );
 
