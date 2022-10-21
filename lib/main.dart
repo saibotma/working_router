@@ -7,6 +7,7 @@ import 'package:navigator_test/my_router.dart';
 import 'package:navigator_test/platform_modal/platform_modal_page.dart';
 import 'package:navigator_test/responsive.dart';
 
+import 'locations/location.dart';
 import 'nested_screen.dart';
 
 void main() {
@@ -52,58 +53,78 @@ class _DependentMaterialApp extends StatefulWidget {
 }
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
-  final splashPage =
-      MaterialPage(child: Scaffold(body: Builder(builder: (context) {
-    return Center(
-      child: MaterialButton(
-        child: Text("Splash screen"),
-        onPressed: () {
-          MyRouter.of(context).routeToId(LocationId.a);
-        },
-      ),
-    );
-  })));
-  final nestedPage =
-      MaterialPage(key: UniqueKey(), child: const NestedScreen());
-  final dialogPage = PlatformModalPage(child: Builder(builder: (context) {
-    final myRouter = MyRouter.of(context);
-    return Container(
-      color: Colors.white,
-      width: 300,
-      height: 300,
-      child: Text(
-        "${myRouter.currentPath!.queryParameters["b"]}, ${myRouter.currentPath!.queryParameters["c"]}",
-      ),
-    );
-  }));
-  final fullScreenDialogPage = MaterialPage(
-      child: Container(color: Colors.white, width: 300, height: 300));
-  final notFoundPage = const MaterialPage(child: Text("Not found"));
-  final conditionalDialogPage = PlatformModalPage(
-    child: Builder(builder: (context) {
-      return LocationGuard(
-        guard: (location) => location is ADCLocation,
-        mayLeave: () async {
-          final result = await showDialog<bool>(
-            context: context,
-            builder: (context) {
-              return Center(
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  color: Colors.white,
-                  child: MaterialButton(onPressed: () {
-                    Navigator.of(context).pop(true);
-                  }),
-                ),
-              );
-            },
+  final splashPage = LocationPageSkeleton(
+    child: Scaffold(
+      body: Builder(
+        builder: (context) {
+          return Center(
+            child: MaterialButton(
+              child: const Text("Splash screen"),
+              onPressed: () {
+                MyRouter.of(context).routeToId(LocationId.a);
+              },
+            ),
           );
-          return result ?? false;
         },
-        child: Container(color: Colors.black, width: 300, height: 300),
-      );
-    }),
+      ),
+    ),
+  );
+
+  final nestedPage = LocationPageSkeleton(
+    buildPage: (key, child) => MaterialPage(key: key, child: child),
+    buildKey: (location) => ValueKey(location),
+    child: const NestedScreen(),
+  );
+
+  final dialogPage = LocationPageSkeleton(
+    buildPage: (_, child) => PlatformModalPage(child: child),
+    child: Builder(
+      builder: (context) {
+        final myRouter = MyRouter.of(context);
+        return Container(
+          color: Colors.white,
+          width: 300,
+          height: 300,
+          child: Text(
+            "${myRouter.currentPath!.queryParameters["b"]}, ${myRouter.currentPath!.queryParameters["c"]}",
+          ),
+        );
+      },
+    ),
+  );
+
+  final fullScreenDialogPage = LocationPageSkeleton(
+    child: Container(color: Colors.white, width: 300, height: 300),
+  );
+
+  final conditionalDialogPage = LocationPageSkeleton(
+    buildPage: (_, child) => PlatformModalPage(child: child),
+    child: Builder(
+      builder: (context) {
+        return LocationGuard(
+          guard: (location) => location is ADCLocation,
+          mayLeave: () async {
+            final result = await showDialog<bool>(
+              context: context,
+              builder: (context) {
+                return Center(
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    color: Colors.white,
+                    child: MaterialButton(onPressed: () {
+                      Navigator.of(context).pop(true);
+                    }),
+                  ),
+                );
+              },
+            );
+            return result ?? false;
+          },
+          child: Container(color: Colors.black, width: 300, height: 300),
+        );
+      },
+    ),
   );
 
   final routeInformationParser = MyRouteInformationParser();

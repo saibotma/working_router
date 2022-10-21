@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:navigator_test/location_guard.dart';
@@ -62,8 +63,8 @@ class MyRouter with ChangeNotifier {
   }
 
   void routeToId(
-    LocationId id,
-      {Map<String, String> queryParameters = const {},
+    LocationId id, {
+    Map<String, String> queryParameters = const {},
   }) {
     final matches = locationTree.matchId(id);
     final uri =
@@ -101,9 +102,7 @@ class MyRouter with ChangeNotifier {
     required Map<String, String> queryParameters,
   }) {
     return Uri(
-      pathSegments: currentLocations
-          .map((e) => e.pathSegments)
-          .expand((element) => element),
+      pathSegments: currentLocations.map((e) => e.pathSegments).flattened,
       queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
   }

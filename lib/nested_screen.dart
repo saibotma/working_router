@@ -18,10 +18,11 @@ class NestedScreen extends StatefulWidget {
 }
 
 class _NestedScreenState extends State<NestedScreen> {
-  final emptyPage = MaterialPage(
+  final emptyPage = LocationPageSkeleton(
     child: Container(color: Colors.white, child: Text("Empty page")),
   );
-  final filledPage = MaterialPage(
+
+  final filledPage = LocationPageSkeleton(
     child: Scaffold(
       body: Container(
         color: Colors.blueGrey,
