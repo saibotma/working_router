@@ -59,6 +59,7 @@ class MyRouter with ChangeNotifier {
 
     _routeTo(
       locations: matches,
+      fallback: uri,
       pathParameters: pathParameters,
       queryParameters: uri.queryParameters.toIMap(),
     );
@@ -72,6 +73,7 @@ class MyRouter with ChangeNotifier {
     final matches = locationTree.matchId(id);
     _routeTo(
       locations: matches,
+      fallback: null,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
     );
@@ -79,6 +81,7 @@ class MyRouter with ChangeNotifier {
 
   Future<void> _routeTo({
     required IList<Location> locations,
+    required Uri? fallback,
     required IMap<String, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) async {
@@ -87,11 +90,17 @@ class MyRouter with ChangeNotifier {
     }
 
     currentLocations = locations;
-    currentPath = _uriFromLocations(
-      locations: locations,
-      queryParameters: queryParameters,
-      pathParameters: pathParameters,
-    );
+    // Set the path to fallback when locations are empty.
+    // When locations are empty, then not found should be shown, but
+    // the path in the browser URL bar should stay at the not found path value
+    // entered by the user.
+    currentPath = locations.isEmpty
+        ? fallback!
+        : _uriFromLocations(
+            locations: locations,
+            queryParameters: queryParameters,
+            pathParameters: pathParameters,
+          );
     currentPathParameters = pathParameters;
     notifyListeners();
   }
@@ -106,6 +115,7 @@ class MyRouter with ChangeNotifier {
 
       _routeTo(
           locations: newLocations,
+          fallback: null,
           queryParameters: newQueryParameters,
           pathParameters: newPathParameters);
 
