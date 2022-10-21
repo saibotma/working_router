@@ -82,7 +82,7 @@ Map<String, String>? startsWith(
     return null;
   }
 
-  Map<String, String> pathParameters = {};
+  final Map<String, String> pathParameters = {};
 
   for (int i = 0; i < startsWith.length; i++) {
     final listItem = list[i];

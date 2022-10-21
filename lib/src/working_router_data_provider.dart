@@ -13,7 +13,7 @@ class WorkingRouterDataProvider<ID> extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<WorkingRouterDataProvider> createState() {
+  State<WorkingRouterDataProvider<ID>> createState() {
     return _WorkingRouterDataProviderState<ID>();
   }
 }

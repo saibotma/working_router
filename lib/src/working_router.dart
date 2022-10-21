@@ -1,10 +1,10 @@
 import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
-import 'package:working_router/src/location.dart';
-import 'package:working_router/src/widgets/location_guard.dart';
-import 'package:working_router/src/widgets/nearest_location.dart';
-import 'package:working_router/src/working_router_data_provider.dart';
+import 'location.dart';
+import 'widgets/location_guard.dart';
+import 'widgets/nearest_location.dart';
+import 'working_router_data_provider.dart';
 
 class WorkingRouter<ID> with ChangeNotifier {
   final Location<ID> locationTree;
@@ -23,7 +23,7 @@ class WorkingRouter<ID> with ChangeNotifier {
   }
 
   Future<void> routeToUriString(String uriString) async {
-    routeToUri(Uri.parse(uriString));
+    await routeToUri(Uri.parse(uriString));
   }
 
   Future<void> routeToUri(Uri uri) async {
@@ -31,7 +31,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     final matches = matchResult.first;
     final pathParameters = matchResult.second;
 
-    _routeTo(
+    await _routeTo(
       locations: matches,
       fallback: uri,
       pathParameters: pathParameters,
@@ -98,7 +98,7 @@ class WorkingRouter<ID> with ChangeNotifier {
   }
 
   Uri _uriFromLocations({
-    required IList<Location> locations,
+    required IList<Location<ID>> locations,
     required IMap<String, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
@@ -116,7 +116,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     );
   }
 
-  Future<bool> _guard(IList<Location> newLocations) async {
+  Future<bool> _guard(IList<Location<ID>> newLocations) async {
     for (final guard in guards) {
       final guardedLocation = NearestLocation.of<ID>(guard.context);
       if (currentLocations.contains(guardedLocation) &&

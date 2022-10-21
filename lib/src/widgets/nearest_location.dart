@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:working_router/src/location.dart';
+import '../location.dart';
 
 class NearestLocation<ID> extends InheritedWidget {
   final Location<ID> location;
@@ -17,7 +17,7 @@ class NearestLocation<ID> extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(covariant NearestLocation oldWidget) {
+  bool updateShouldNotify(covariant NearestLocation<ID> oldWidget) {
     return oldWidget.location != location;
   }
 }
