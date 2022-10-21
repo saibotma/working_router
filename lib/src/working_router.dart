@@ -22,6 +22,10 @@ class WorkingRouter<ID> with ChangeNotifier {
     return myRouter!.myRouter;
   }
 
+  bool isIdActive(ID id) {
+    return currentLocations.any((element) => element.id == id);
+  }
+
   Future<void> routeToUriString(String uriString) async {
     await routeToUri(Uri.parse(uriString));
   }
