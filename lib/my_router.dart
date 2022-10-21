@@ -17,6 +17,7 @@ enum LocationId { splash, a, ab, abc, ad, adc }
 class MyRouter with ChangeNotifier {
   late IList<Location> currentLocations = IList();
   Uri? currentPath;
+  IMap<String, String> currentPathParameters = IMap();
 
   final Location locationTree = SplashLocation(
     id: LocationId.splash,
@@ -52,48 +53,61 @@ class MyRouter with ChangeNotifier {
   }
 
   Future<void> routeToUri(Uri uri) async {
-    final matches = locationTree.match(uri.pathSegments.toIList());
+    final matchResult = locationTree.match(uri.pathSegments.toIList());
+    final matches = matchResult.first;
+    final pathParameters = matchResult.second;
 
-    if (await _guard(matches)) {
-      return;
-    }
-
-    currentLocations = matches;
-    currentPath = uri;
-    notifyListeners();
+    _routeTo(
+      locations: matches,
+      pathParameters: pathParameters,
+      queryParameters: uri.queryParameters.toIMap(),
+    );
   }
 
   void routeToId(
     LocationId id, {
-    Map<String, String> queryParameters = const {},
+    IMap<String, String> pathParameters = const IMapConst({}),
+    IMap<String, String> queryParameters = const IMapConst({}),
   }) {
     final matches = locationTree.matchId(id);
-    final uri =
-        _uriFromLocations(locations: matches, queryParameters: queryParameters);
-    _routeTo(matches, uri);
+    _routeTo(
+      locations: matches,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
   }
 
-  Future<void> _routeTo(IList<Location> matches, Uri uri) async {
-    if (await _guard(matches)) {
+  Future<void> _routeTo({
+    required IList<Location> locations,
+    required IMap<String, String> pathParameters,
+    required IMap<String, String> queryParameters,
+  }) async {
+    if (await _guard(locations)) {
       return;
     }
 
-    currentLocations = matches;
-    currentPath = uri;
+    currentLocations = locations;
+    currentPath = _uriFromLocations(
+      locations: locations,
+      queryParameters: queryParameters,
+      pathParameters: pathParameters,
+    );
+    currentPathParameters = pathParameters;
     notifyListeners();
   }
 
   void pop() {
     if (currentPath != null) {
       final newLocations = currentLocations.removeLast();
-      final newQueryParameters =
-          newLocations.last.selectQueryParameters(currentPath!.queryParameters);
+      final newPathParameters =
+          newLocations.last.selectPathParameters(currentPathParameters);
+      final newQueryParameters = newLocations.last
+          .selectQueryParameters(currentPath!.queryParameters.toIMap());
 
-      final uri = _uriFromLocations(
-        locations: newLocations,
-        queryParameters: newQueryParameters,
-      );
-      _routeTo(newLocations, uri);
+      _routeTo(
+          locations: newLocations,
+          queryParameters: newQueryParameters,
+          pathParameters: newPathParameters);
 
       notifyListeners();
     }
@@ -101,11 +115,20 @@ class MyRouter with ChangeNotifier {
 
   Uri _uriFromLocations({
     required IList<Location> locations,
-    required Map<String, String> queryParameters,
+    required IMap<String, String> pathParameters,
+    required IMap<String, String> queryParameters,
   }) {
     return Uri(
-      pathSegments: locations.map((e) => e.pathSegments).flattened,
-      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+      pathSegments: locations
+          .map((location) => location.pathSegments)
+          .flattened
+          .map((pathSegment) {
+        if (pathSegment.startsWith(":")) {
+          return pathParameters[pathSegment.replaceRange(0, 1, "")]!;
+        }
+        return pathSegment;
+      }),
+      queryParameters: queryParameters.isEmpty ? null : queryParameters.unlock,
     );
   }
 
@@ -158,8 +181,10 @@ class _MyRouterDataProviderState extends State<MyRouterDataProvider> {
   Widget build(BuildContext context) {
     return _MyRouterDataProvider(
       myRouter: widget.myRouter,
-      currentLocations: widget.myRouter.currentLocations,
-      currentPath: widget.myRouter.currentPath,
+      locations: widget.myRouter.currentLocations,
+      pathParameters: widget.myRouter.currentPathParameters,
+      queryParameters:
+          widget.myRouter.currentPath?.queryParameters.toIMap() ?? IMap(),
       child: NotificationListener(
         child: widget.child,
         onNotification: (notification) {
@@ -190,19 +215,22 @@ class _MyRouterDataProviderState extends State<MyRouterDataProvider> {
 
 class _MyRouterDataProvider extends InheritedWidget {
   final MyRouter myRouter;
-  final IList<Location> currentLocations;
-  final Uri? currentPath;
+  final IList<Location> locations;
+  final IMap<String, String> queryParameters;
+  final IMap<String, String> pathParameters;
 
   const _MyRouterDataProvider({
     required this.myRouter,
-    required this.currentLocations,
-    required this.currentPath,
+    required this.locations,
+    required this.queryParameters,
+    required this.pathParameters,
     required Widget child,
   }) : super(child: child);
 
   @override
   bool updateShouldNotify(covariant _MyRouterDataProvider oldWidget) {
-    return oldWidget.currentLocations != currentLocations ||
-        oldWidget.currentPath != currentPath;
+    return oldWidget.locations != locations ||
+        oldWidget.queryParameters != queryParameters ||
+        oldWidget.pathParameters != pathParameters;
   }
 }

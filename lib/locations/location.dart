@@ -1,7 +1,5 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
-import '../my_router.dart';
-
 abstract class Location<ID> {
   final ID id;
   final List<Location> children;
@@ -14,29 +12,35 @@ abstract class Location<ID> {
 
   List<String> get pathSegments => _uri.pathSegments;
 
-  IList<Location> match(IList<String> pathSegments) {
+  Tuple2<IList<Location>, IMap<String, String>> match(
+      IList<String> pathSegments) {
     final List<Location> matches = [];
+    final Map<String, String> pathParameters = {};
+
     final thisPathSegments = _uri.pathSegments.toIList();
-    if (startsWith(pathSegments, thisPathSegments)) {
+    final thisPathParameters = startsWith(pathSegments, thisPathSegments);
+    if (thisPathParameters != null) {
       matches.add(this);
+      pathParameters.addAll(thisPathParameters);
 
       final nextPathSegments = thisPathSegments.isEmpty
           ? pathSegments
           : pathSegments.sublist(thisPathSegments.length);
       for (final child in children) {
         final childMatches = child.match(nextPathSegments);
-        if (childMatches.isNotEmpty) {
-          matches.addAll(childMatches);
+        if (childMatches.first.isNotEmpty) {
+          matches.addAll(childMatches.first);
+          pathParameters.addAll(childMatches.second.unlock);
           break;
         }
       }
 
       if (matches.length == 1 && nextPathSegments.isNotEmpty) {
-        return IList();
+        return Tuple2(IList(), IMap());
       }
     }
 
-    return matches.toIList();
+    return Tuple2(matches.toIList(), pathParameters.toIMap());
   }
 
   IList<Location> matchId(ID id) {
@@ -57,16 +61,39 @@ abstract class Location<ID> {
     return matches.toIList();
   }
 
-  Map<String, String> selectQueryParameters(Map<String, String> source) {
-    return {};
+  IMap<String, String> selectQueryParameters(IMap<String, String> source) {
+    return IMap();
+  }
+
+  IMap<String, String> selectPathParameters(IMap<String, String> source) {
+    return IMap();
   }
 
   Location? pop();
 }
 
-bool startsWith<T>(IList<T> list, IList<T> startsWith) {
+Map<String, String>? startsWith(
+  IList<String> list,
+  IList<String> startsWith,
+) {
   if (list.length < startsWith.length) {
-    return false;
+    return null;
   }
-  return list.sublist(0, startsWith.length) == startsWith;
+
+  Map<String, String> pathParameters = {};
+
+  for (int i = 0; i < startsWith.length; i++) {
+    final listItem = list[i];
+    final startsWithItem = startsWith[i];
+
+    if (!startsWithItem.startsWith(":")) {
+      if (listItem != startsWithItem) {
+        return null;
+      }
+    } else {
+      pathParameters[startsWithItem.replaceRange(0, 1, "")] = listItem;
+    }
+  }
+
+  return pathParameters;
 }

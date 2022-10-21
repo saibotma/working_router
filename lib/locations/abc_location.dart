@@ -1,7 +1,5 @@
 import 'package:navigator_test/locations/location.dart';
 
-import 'ab_location.dart';
-
 class ABCLocation extends Location {
   ABCLocation({required super.id, required super.children});
 
@@ -11,5 +9,5 @@ class ABCLocation extends Location {
   }
 
   @override
-  String get path => "/c";
+  String get path => "/c/:id";
 }

@@ -10,9 +10,4 @@ class ABLocation extends Location {
 
   @override
   String get path => "/b";
-
-  @override
-  Map<String, String> selectQueryParameters(Map<String, String> source) {
-    return {};
-  }
 }
