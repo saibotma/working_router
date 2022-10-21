@@ -61,6 +61,36 @@ abstract class Location<ID> {
     return matches.toIList();
   }
 
+  IList<Location<ID>> matchRelative(
+    bool Function(Location<ID> location) matches,
+  ) {
+    for (final child in children) {
+      final childMatches = child._matchRelative(matches);
+      if (childMatches.isNotEmpty) {
+        return [this, ...childMatches].toIList();
+      }
+    }
+
+    return IList();
+  }
+
+  IList<Location<ID>> _matchRelative(
+    bool Function(Location<ID> location) matches,
+  ) {
+    if (matches(this)) {
+      return [this].toIList();
+    }
+
+    for (final child in children) {
+      final childMatches = child.matchRelative(matches);
+      if (childMatches.isNotEmpty) {
+        return [this, ...childMatches].toIList();
+      }
+    }
+
+    return IList();
+  }
+
   IMap<String, String> selectQueryParameters(IMap<String, String> source) {
     return IMap();
   }

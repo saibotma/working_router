@@ -57,6 +57,24 @@ class WorkingRouter<ID> with ChangeNotifier {
     );
   }
 
+  void routeToRelative(
+    bool Function(Location<ID> location) match, {
+    IMap<String, String> pathParameters = const IMapConst({}),
+    IMap<String, String> queryParameters = const IMapConst({}),
+  }) {
+    final relativeMatches = currentLocations.last.matchRelative(match);
+    if (relativeMatches.isEmpty) {
+      return;
+    }
+
+    _routeTo(
+      locations: currentLocations.addAll(relativeMatches),
+      fallback: null,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
+  }
+
   Future<void> _routeTo({
     required IList<Location<ID>> locations,
     required Uri? fallback,
