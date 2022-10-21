@@ -5,6 +5,7 @@ import 'package:navigator_test/location_guard.dart';
 import 'package:navigator_test/locations/ab_location.dart';
 import 'package:navigator_test/locations/abc_location.dart';
 
+import 'appella_router_delegate.dart';
 import 'locations/a_location.dart';
 import 'locations/ad_location.dart';
 import 'locations/adc_location.dart';
@@ -88,11 +89,14 @@ class MyRouter with ChangeNotifier {
       final newQueryParameters =
           newLocations.last.selectQueryParameters(currentPath!.queryParameters);
 
-      currentLocations = newLocations;
-      currentPath = _uriFromLocations(
-        locations: currentLocations,
-        queryParameters: newQueryParameters,
+      _routeTo(
+        newLocations,
+        _uriFromLocations(
+          locations: currentLocations,
+          queryParameters: newQueryParameters,
+        ),
       );
+
       notifyListeners();
     }
   }
@@ -109,8 +113,9 @@ class MyRouter with ChangeNotifier {
 
   Future<bool> _guard(IList<Location> newLocations) async {
     for (final guard in guards) {
-      if (currentLocations.any(guard.widget.guard) &&
-          !newLocations.any(guard.widget.guard)) {
+      final guardedLocation = NearestLocation.of(guard.context);
+      if (currentLocations.contains(guardedLocation) &&
+          !newLocations.contains(guardedLocation)) {
         if (!(await guard.widget.mayLeave())) {
           return true;
         }

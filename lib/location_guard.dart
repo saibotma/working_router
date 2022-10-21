@@ -3,12 +3,10 @@ import 'package:navigator_test/locations/location.dart';
 
 class LocationGuard extends StatefulWidget {
   final Widget child;
-  final bool Function(Location location) guard;
   final Future<bool> Function() mayLeave;
 
   const LocationGuard({
     required this.child,
-    required this.guard,
     required this.mayLeave,
     Key? key,
   }) : super(key: key);
@@ -26,7 +24,7 @@ class LocationGuardState extends State<LocationGuard> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(onWillPop: widget.mayLeave, child: widget.child);
+    return widget.child;
   }
 
   @override

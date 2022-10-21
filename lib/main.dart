@@ -102,7 +102,6 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     child: Builder(
       builder: (context) {
         return LocationGuard(
-          guard: (location) => location is ADCLocation,
           mayLeave: () async {
             final result = await showDialog<bool>(
               context: context,

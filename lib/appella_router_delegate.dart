@@ -39,12 +39,16 @@ class AppellaRouterDelegate extends RouterDelegate<Uri> with ChangeNotifier {
       key: navigatorKey,
       pages: pages,
       onPopPage: (route, result) {
-        //print(route.settings is Page);
-        final didPop = route.didPop(result);
-        if (didPop) {
-          myRouter.pop();
+        // In case of Navigator 1 route.
+        if (route.settings is! Page) {
+          return route.didPop(result);
         }
-        return didPop;
+
+        // Need to execute in new cycle, because otherwise would try
+        // to push onto navigator while the pop is still running
+        // causing debug lock in navigator pop to assert false.
+        Future.delayed(Duration.zero).then((_) => myRouter.pop());
+        return false;
       },
     );
   }
@@ -99,8 +103,11 @@ class LocationPage {
 class NearestLocation extends InheritedWidget {
   final Location location;
 
-  const NearestLocation(
-      {required this.location, required super.child, super.key});
+  const NearestLocation({
+    required this.location,
+    required super.child,
+    super.key,
+  });
 
   static Location of(BuildContext context) {
     final NearestLocation? nearestLocation =
