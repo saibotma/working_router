@@ -23,7 +23,11 @@ class WorkingRouter<ID> with ChangeNotifier {
   }
 
   bool isIdActive(ID id) {
-    return currentLocations.any((element) => element.id == id);
+    return isActive((location) => location.id == id);
+  }
+
+  bool isActive(bool Function(Location<ID> location) match) {
+    return currentLocations.any(match);
   }
 
   Future<void> routeToUriString(String uriString) async {
