@@ -72,8 +72,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   void refresh() {
-    pages = router.currentLocations
-        .map((location) => buildPages(location, router.currentLocations.last)
+    pages = router.data.locations
+        .map((location) => buildPages(location, router.data.locations.last)
             .map((e) => e.inflate(location)))
         .flattened
         .map((e) => e.page)

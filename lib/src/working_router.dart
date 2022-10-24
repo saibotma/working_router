@@ -4,30 +4,29 @@ import 'package:flutter/material.dart';
 import 'location.dart';
 import 'widgets/location_guard.dart';
 import 'widgets/nearest_location.dart';
+import 'working_router_data.dart';
 import 'working_router_data_provider.dart';
 
 class WorkingRouter<ID> with ChangeNotifier {
   final Location<ID> locationTree;
+  WorkingRouterData<ID>? _data;
 
-  late IList<Location<ID>> currentLocations = IList();
   Uri? currentPath;
-  IMap<String, String> currentPathParameters = IMap();
 
-  WorkingRouter({required this.locationTree});
+  bool Function(
+    WorkingRouterData<ID> oldData,
+    WorkingRouterData<ID> newData,
+  )? beforeRouting;
+
+  WorkingRouter({required this.locationTree, this.beforeRouting});
+
+  WorkingRouterData<ID> get data => _data!;
 
   static WorkingRouter<ID> of<ID>(BuildContext context) {
     final WorkingRouterDataProviderInherited<ID>? myRouter =
         context.dependOnInheritedWidgetOfExactType<
             WorkingRouterDataProviderInherited<ID>>();
-    return myRouter!.myRouter;
-  }
-
-  bool isIdActive(ID id) {
-    return isActive((location) => location.id == id);
-  }
-
-  bool isActive(bool Function(Location<ID> location) match) {
-    return currentLocations.any(match);
+    return myRouter!.router;
   }
 
   Future<void> routeToUriString(String uriString) async {
@@ -66,13 +65,13 @@ class WorkingRouter<ID> with ChangeNotifier {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
   }) {
-    final relativeMatches = currentLocations.last.matchRelative(match);
+    final relativeMatches = data.locations.last.matchRelative(match);
     if (relativeMatches.isEmpty) {
       return;
     }
 
     _routeTo(
-      locations: currentLocations.addAll(relativeMatches),
+      locations: data.locations.addAll(relativeMatches),
       fallback: null,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
@@ -85,31 +84,46 @@ class WorkingRouter<ID> with ChangeNotifier {
     required IMap<String, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) async {
+    assert(
+      locations.isEmpty != (fallback == null),
+      "Either locations or fallback must be set",
+    );
+
+    final newData = WorkingRouterData(
+      locations: locations,
+      pathParameters: locations.isEmpty ? const IMapConst({}) : pathParameters,
+      queryParameters: locations.isEmpty
+          ? fallback!.queryParameters.toIMap()
+          : queryParameters,
+    );
+    if (!(beforeRouting?.call(data, newData) ?? true)) {
+      return;
+    }
+
     if (await _guard(locations)) {
       return;
     }
 
-    currentLocations = locations;
     // Set the path to fallback when locations are empty.
     // When locations are empty, then not found should be shown, but
     // the path in the browser URL bar should stay at the not found path value
     // entered by the user.
-    currentPath = locations.isEmpty
+    currentPath = newData.locations.isEmpty
         ? fallback!
         : _uriFromLocations(
-            locations: locations,
-            queryParameters: queryParameters,
-            pathParameters: pathParameters,
+            locations: newData.locations,
+            queryParameters: newData.queryParameters,
+            pathParameters: newData.pathParameters,
           );
-    currentPathParameters = pathParameters;
+    _data = newData;
     notifyListeners();
   }
 
   void pop() {
     if (currentPath != null) {
-      final newLocations = currentLocations.removeLast();
+      final newLocations = data.locations.removeLast();
       final newPathParameters =
-          newLocations.last.selectPathParameters(currentPathParameters);
+          newLocations.last.selectPathParameters(data.pathParameters);
       final newQueryParameters = newLocations.last
           .selectQueryParameters(currentPath!.queryParameters.toIMap());
 
@@ -145,7 +159,7 @@ class WorkingRouter<ID> with ChangeNotifier {
   Future<bool> _guard(IList<Location<ID>> newLocations) async {
     for (final guard in guards) {
       final guardedLocation = NearestLocation.of<ID>(guard.context);
-      if (currentLocations.contains(guardedLocation) &&
+      if (data.locations.contains(guardedLocation) &&
           !newLocations.contains(guardedLocation)) {
         if (!(await guard.widget.mayLeave())) {
           return true;

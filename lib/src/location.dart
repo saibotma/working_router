@@ -102,6 +102,15 @@ abstract class Location<ID> {
   Location<ID>? pop() {
     return null;
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is Location && runtimeType == other.runtimeType && id == other.id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 Map<String, String>? startsWith(
