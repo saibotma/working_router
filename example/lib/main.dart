@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
 import 'location_id.dart';
-import 'locations/a_location.dart';
-import 'locations/ab_location.dart';
-import 'locations/abc_location.dart';
-import 'locations/ad_location.dart';
-import 'locations/adc_location.dart';
-import 'locations/splash_location.dart';
-import 'nested_screen.dart';
-import 'platform_modal/platform_modal_page.dart';
+import '../locations/a_location.dart';
+import '../locations/ab_location.dart';
+import '../locations/abc_location.dart';
+import '../locations/ad_location.dart';
+import '../locations/adc_location.dart';
+import '../locations/splash_location.dart';
+import '../nested_screen.dart';
+import '../platform_modal/platform_modal_page.dart';
 import 'responsive.dart';
 
 void main() {
