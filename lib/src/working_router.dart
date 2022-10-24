@@ -11,8 +11,10 @@ class WorkingRouter<ID> with ChangeNotifier {
   final Location<ID> locationTree;
   WorkingRouterData<ID>? _data;
 
+  /// oldData is null when the route from the OS is set for the first
+  /// time at router start up.
   Future<bool> Function(
-    WorkingRouterData<ID> oldData,
+    WorkingRouterData<ID>? oldData,
     WorkingRouterData<ID> newData,
   )? beforeRouting;
 
