@@ -16,15 +16,33 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return Responsive(
+      builder: (context, size) {
+        return _DependentMaterialApp(screenSize: size);
+      },
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
-  late final myRouter = WorkingRouter<LocationId>(
+class _DependentMaterialApp extends StatefulWidget {
+  final ScreenSize screenSize;
+
+  const _DependentMaterialApp({
+    required this.screenSize,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<_DependentMaterialApp> createState() => _DependentMaterialAppState();
+}
+
+class _DependentMaterialAppState extends State<_DependentMaterialApp> {
+  late final router = WorkingRouter<LocationId>(
       locationTree: SplashLocation(
     id: LocationId.splash,
     children: [
@@ -48,35 +66,6 @@ class _MyAppState extends State<MyApp> {
     ],
   ));
 
-  @override
-  Widget build(BuildContext context) {
-    return WorkingRouterDataProvider<LocationId>(
-      router: myRouter,
-      child: Responsive(
-        builder: (context, size) => _DependentMaterialApp(
-          router: myRouter,
-          screenSize: size,
-        ),
-      ),
-    );
-  }
-}
-
-class _DependentMaterialApp extends StatefulWidget {
-  final WorkingRouter<LocationId> router;
-  final ScreenSize screenSize;
-
-  const _DependentMaterialApp({
-    required this.router,
-    required this.screenSize,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  State<_DependentMaterialApp> createState() => _DependentMaterialAppState();
-}
-
-class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   final splashPage = LocationPageSkeleton<LocationId>(
     child: Scaffold(
       body: Builder(
@@ -156,7 +145,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
 
   late final _routerDelegate = WorkingRouterDelegate(
     isRootRouter: true,
-    router: widget.router,
+    router: router,
     buildPages: (location, topLocation) {
       if (location.id == LocationId.splash &&
           topLocation.id == LocationId.splash) {
