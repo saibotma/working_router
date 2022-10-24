@@ -11,8 +11,6 @@ class WorkingRouter<ID> with ChangeNotifier {
   final Location<ID> locationTree;
   WorkingRouterData<ID>? _data;
 
-  Uri? currentPath;
-
   bool Function(
     WorkingRouterData<ID> oldData,
     WorkingRouterData<ID> newData,
@@ -90,6 +88,17 @@ class WorkingRouter<ID> with ChangeNotifier {
     );
 
     final newData = WorkingRouterData(
+      // Set the uri to fallback when locations are empty.
+      // When locations are empty, then not found should be shown, but
+      // the path in the browser URL bar should stay at the not found path value
+      // entered by the user.
+      uri: locations.isEmpty
+          ? fallback!
+          : _uriFromLocations(
+              locations: locations,
+              queryParameters: queryParameters,
+              pathParameters: pathParameters,
+            ),
       locations: locations,
       pathParameters: locations.isEmpty ? const IMapConst({}) : pathParameters,
       queryParameters: locations.isEmpty
@@ -104,37 +113,24 @@ class WorkingRouter<ID> with ChangeNotifier {
       return;
     }
 
-    // Set the path to fallback when locations are empty.
-    // When locations are empty, then not found should be shown, but
-    // the path in the browser URL bar should stay at the not found path value
-    // entered by the user.
-    currentPath = newData.locations.isEmpty
-        ? fallback!
-        : _uriFromLocations(
-            locations: newData.locations,
-            queryParameters: newData.queryParameters,
-            pathParameters: newData.pathParameters,
-          );
     _data = newData;
     notifyListeners();
   }
 
   void pop() {
-    if (currentPath != null) {
-      final newLocations = data.locations.removeLast();
-      final newPathParameters =
-          newLocations.last.selectPathParameters(data.pathParameters);
-      final newQueryParameters = newLocations.last
-          .selectQueryParameters(currentPath!.queryParameters.toIMap());
+    final newLocations = data.locations.removeLast();
+    final newPathParameters =
+        newLocations.last.selectPathParameters(data.pathParameters);
+    final newQueryParameters =
+        newLocations.last.selectQueryParameters(data.queryParameters);
 
-      _routeTo(
-          locations: newLocations,
-          fallback: null,
-          queryParameters: newQueryParameters,
-          pathParameters: newPathParameters);
+    _routeTo(
+        locations: newLocations,
+        fallback: null,
+        queryParameters: newQueryParameters,
+        pathParameters: newPathParameters);
 
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
   Uri _uriFromLocations({

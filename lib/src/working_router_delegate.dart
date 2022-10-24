@@ -28,7 +28,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   @override
-  Uri? get currentConfiguration => router.currentPath;
+  Uri? get currentConfiguration => router.data.uri;
 
   @override
   Widget build(BuildContext context) {
