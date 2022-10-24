@@ -107,7 +107,7 @@ class WorkingRouter<ID> with ChangeNotifier {
           ? fallback!.queryParameters.toIMap()
           : queryParameters,
     );
-    if (!(await beforeRouting?.call(data!, newData) ?? true)) {
+    if (!(await beforeRouting?.call(data, newData) ?? true)) {
       return;
     }
 
