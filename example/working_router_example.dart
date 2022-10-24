@@ -110,9 +110,9 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
           width: 300,
           height: 300,
           child: Text(
-            "${router.data.pathParameters["id"]}, "
-            "${router.data.queryParameters["b"]}, "
-            "${router.data.queryParameters["c"]}",
+            "${router.data!.pathParameters["id"]}, "
+            "${router.data!.queryParameters["b"]}, "
+            "${router.data!.queryParameters["c"]}",
           ),
         );
       },

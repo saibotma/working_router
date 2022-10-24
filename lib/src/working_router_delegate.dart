@@ -27,7 +27,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   @override
-  Uri? get currentConfiguration => router.data.uri;
+  Uri? get currentConfiguration => router.data?.uri;
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +70,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   void refresh() {
-    pages = router.data.locations
-        .map((location) => buildPages(location, router.data.locations.last)
+    final locations = router.data!.locations;
+    pages = locations
+        .map((location) => buildPages(location, locations.last)
             .map((e) => e.inflate(location)))
         .flattened
         .map((e) => e.page)

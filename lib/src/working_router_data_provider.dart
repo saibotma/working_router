@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../working_router.dart';
-import 'working_router_data.dart';
 
 class WorkingRouterDataProvider<ID> extends StatefulWidget {
   final WorkingRouter<ID> router;
@@ -63,7 +62,7 @@ class WorkingRouterDataProviderInherited<ID> extends InheritedWidget {
   final WorkingRouter<ID> router;
 
   // Just pass the data, to know when to notify.
-  final WorkingRouterData<ID> data;
+  final WorkingRouterData<ID>? data;
 
   const WorkingRouterDataProviderInherited({
     required this.router,

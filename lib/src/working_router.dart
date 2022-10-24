@@ -18,7 +18,7 @@ class WorkingRouter<ID> with ChangeNotifier {
 
   WorkingRouter({required this.locationTree, this.beforeRouting});
 
-  WorkingRouterData<ID> get data => _data!;
+  WorkingRouterData<ID>? get data => _data;
 
   static WorkingRouter<ID> of<ID>(BuildContext context) {
     final WorkingRouterDataProviderInherited<ID>? myRouter =
@@ -63,13 +63,13 @@ class WorkingRouter<ID> with ChangeNotifier {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
   }) {
-    final relativeMatches = data.locations.last.matchRelative(match);
+    final relativeMatches = data!.locations.last.matchRelative(match);
     if (relativeMatches.isEmpty) {
       return;
     }
 
     _routeTo(
-      locations: data.locations.addAll(relativeMatches),
+      locations: data!.locations.addAll(relativeMatches),
       fallback: null,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
@@ -105,7 +105,7 @@ class WorkingRouter<ID> with ChangeNotifier {
           ? fallback!.queryParameters.toIMap()
           : queryParameters,
     );
-    if (!(await beforeRouting?.call(data, newData) ?? true)) {
+    if (!(await beforeRouting?.call(data!, newData) ?? true)) {
       return;
     }
 
@@ -118,11 +118,11 @@ class WorkingRouter<ID> with ChangeNotifier {
   }
 
   void pop() {
-    final newLocations = data.locations.removeLast();
+    final newLocations = data!.locations.removeLast();
     final newPathParameters =
-        newLocations.last.selectPathParameters(data.pathParameters);
+        newLocations.last.selectPathParameters(data!.pathParameters);
     final newQueryParameters =
-        newLocations.last.selectQueryParameters(data.queryParameters);
+        newLocations.last.selectQueryParameters(data!.queryParameters);
 
     _routeTo(
         locations: newLocations,
@@ -155,7 +155,7 @@ class WorkingRouter<ID> with ChangeNotifier {
   Future<bool> _guard(IList<Location<ID>> newLocations) async {
     for (final guard in guards) {
       final guardedLocation = NearestLocation.of<ID>(guard.context);
-      if (data.locations.contains(guardedLocation) &&
+      if (data!.locations.contains(guardedLocation) &&
           !newLocations.contains(guardedLocation)) {
         if (!(await guard.widget.mayLeave())) {
           return true;
