@@ -18,14 +18,22 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   final WorkingRouter<ID> router;
   final BuildPages<ID> buildPages;
   late final GlobalKey<NavigatorState> navigatorKey;
+  final Widget? noContentWidget;
+  final Widget? navigatorInitializingWidget;
 
-  List<Page<dynamic>> pages = [];
+  List<Page<dynamic>>? pages;
 
   WorkingRouterDelegate({
     required this.isRootDelegate,
     required this.router,
     required this.buildPages,
-  }) {
+    this.noContentWidget,
+    this.navigatorInitializingWidget,
+  }) : assert(
+          isRootDelegate == (noContentWidget != null),
+          "noContentWidget must be set for the root delegate, "
+          "but must not be set for nested delegates.",
+        ) {
     navigatorKey = GlobalKey<NavigatorState>();
     // A root router may not refresh, because the data will still be null.
     // A nested router must refresh, because otherwise it will not have the
@@ -39,30 +47,41 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   @override
   Widget build(BuildContext context) {
-    if (pages.isEmpty) {
-      return Material(
-        child: Container(
-          color: Colors.red,
-          child: const Center(child: Text("Not found")),
-        ),
-      );
+    if (pages == null) {
+      return navigatorInitializingWidget ??
+          const Material(child: Center(child: CircularProgressIndicator()));
     }
-    return WorkingRouterDataProvider<ID>(
-      router: router,
-      child: Navigator(
-        key: navigatorKey,
-        pages: pages,
-        onPopPage: (route, dynamic result) {
-          // In case of Navigator 1 route.
-          if (route.settings is! Page) {
-            return route.didPop(result);
-          }
 
-          // Need to execute in new cycle, because otherwise would try
-          // to push onto navigator while the pop is still running
-          // causing debug lock in navigator pop to assert false.
-          Future<void>.delayed(Duration.zero).then((_) => router.pop());
-          return false;
+    return WorkingRouterDataProvider(
+      router: router,
+      child: Builder(
+        builder: (context) {
+          if (pages!.isEmpty) {
+            assert(
+              isRootDelegate,
+              "buildPages of nested routers must not return empty pages.",
+            );
+            return noContentWidget!;
+          }
+          return WorkingRouterDataProvider<ID>(
+            router: router,
+            child: Navigator(
+              key: navigatorKey,
+              pages: pages!,
+              onPopPage: (route, dynamic result) {
+                // In case of Navigator 1 route.
+                if (route.settings is! Page) {
+                  return route.didPop(result);
+                }
+
+                // Need to execute in new cycle, because otherwise would try
+                // to push onto navigator while the pop is still running
+                // causing debug lock in navigator pop to assert false.
+                Future<void>.delayed(Duration.zero).then((_) => router.pop());
+                return false;
+              },
+            ),
+          );
         },
       ),
     );
@@ -74,16 +93,17 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   @override
-  Future<void> setNewRoutePath(Uri configuration) async {
+  Future<void> setNewRoutePath(Uri configuration) {
     if (isRootDelegate) {
-      await router.routeToUri(configuration);
+      return router.routeToUri(configuration);
     }
+    return SynchronousFuture(null);
   }
 
   void refresh() {
-    final locations = router.data!.locations;
+    final locations = router.data?.locations;
     pages = locations
-        .map((location) => buildPages(location, locations.last)
+        ?.map((location) => buildPages(location, locations.last)
             .map((e) => e.inflate(location)))
         .flattened
         .map((e) => e.page)

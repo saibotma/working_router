@@ -38,6 +38,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
   WorkingRouter({
     required Location<ID> locationTree,
     required BuildPages<ID> buildRootPages,
+    required Widget noContentWidget,
     BeforeRouting<ID>? beforeRouting,
   })  : _locationTree = locationTree,
         _beforeRouting = beforeRouting {
@@ -45,6 +46,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
       isRootDelegate: true,
       router: this,
       buildPages: buildRootPages,
+      noContentWidget: noContentWidget,
     );
   }
 

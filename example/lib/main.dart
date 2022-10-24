@@ -43,6 +43,7 @@ class _DependentMaterialApp extends StatefulWidget {
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
+    noContentWidget: const Text("No content"),
     locationTree: SplashLocation(
       id: LocationId.splash,
       children: [
