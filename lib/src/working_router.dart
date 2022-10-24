@@ -14,6 +14,7 @@ class WorkingRouter<ID> with ChangeNotifier {
   /// oldData is null when the route from the OS is set for the first
   /// time at router start up.
   Future<bool> Function(
+    WorkingRouter<ID> router,
     WorkingRouterData<ID>? oldData,
     WorkingRouterData<ID> newData,
   )? beforeRouting;
@@ -107,7 +108,7 @@ class WorkingRouter<ID> with ChangeNotifier {
           ? fallback!.queryParameters.toIMap()
           : queryParameters,
     );
-    if (!(await beforeRouting?.call(data, newData) ?? true)) {
+    if (!(await beforeRouting?.call(this, data, newData) ?? true)) {
       return;
     }
 
