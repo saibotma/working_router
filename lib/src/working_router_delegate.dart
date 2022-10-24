@@ -52,39 +52,45 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           const Material(child: Center(child: CircularProgressIndicator()));
     }
 
-    return WorkingRouterDataProvider(
-      router: router,
-      child: Builder(
-        builder: (context) {
-          if (pages!.isEmpty) {
-            assert(
-              isRootDelegate,
-              "buildPages of nested routers must not return empty pages.",
-            );
-            return noContentWidget!;
-          }
-          return WorkingRouterDataProvider<ID>(
-            router: router,
-            child: Navigator(
-              key: navigatorKey,
-              pages: pages!,
-              onPopPage: (route, dynamic result) {
-                // In case of Navigator 1 route.
-                if (route.settings is! Page) {
-                  return route.didPop(result);
-                }
-
-                // Need to execute in new cycle, because otherwise would try
-                // to push onto navigator while the pop is still running
-                // causing debug lock in navigator pop to assert false.
-                Future<void>.delayed(Duration.zero).then((_) => router.pop());
-                return false;
-              },
-            ),
+    final child = Builder(
+      builder: (context) {
+        if (pages!.isEmpty) {
+          assert(
+            isRootDelegate,
+            "buildPages of nested routers must not return empty pages.",
           );
-        },
-      ),
+          return noContentWidget!;
+        }
+        return WorkingRouterDataProvider<ID>(
+          router: router,
+          child: Navigator(
+            key: navigatorKey,
+            pages: pages!,
+            onPopPage: (route, dynamic result) {
+              // In case of Navigator 1 route.
+              if (route.settings is! Page) {
+                return route.didPop(result);
+              }
+
+              // Need to execute in new cycle, because otherwise would try
+              // to push onto navigator while the pop is still running
+              // causing debug lock in navigator pop to assert false.
+              Future<void>.delayed(Duration.zero).then((_) => router.pop());
+              return false;
+            },
+          ),
+        );
+      },
     );
+
+    if (isRootDelegate) {
+      return WorkingRouterDataProvider(
+        router: router,
+        child: child,
+      );
+    }
+
+    return child;
   }
 
   @override
