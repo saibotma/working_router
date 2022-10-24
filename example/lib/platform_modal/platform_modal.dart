@@ -76,7 +76,7 @@ class _PlatformModalState<T> extends State<PlatformModal<T>> {
 
     return Responsive(
       builder: (context, size) {
-        if (isMobile && size == ScreenSize.Small) {
+        if (isMobile && size == ScreenSize.small) {
           return AnimatedBuilder(
             animation: widget.animation,
             child: BottomSheet(

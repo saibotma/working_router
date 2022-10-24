@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum ScreenSize { Small, Medium, Large }
+enum ScreenSize { small, medium, large }
 
 const smallToMediumBreakpoint = 600;
 const mediumToLargeBreakpoint = 900;
@@ -15,11 +15,11 @@ class Responsive extends StatelessWidget {
 
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
-      ScreenSize size = ScreenSize.Small;
+      ScreenSize size = ScreenSize.small;
       if (width > smallToMediumBreakpoint && width <= mediumToLargeBreakpoint) {
-        size = ScreenSize.Medium;
+        size = ScreenSize.medium;
       } else if (width > mediumToLargeBreakpoint) {
-        size = ScreenSize.Large;
+        size = ScreenSize.large;
       }
 
       return builder(context, size);

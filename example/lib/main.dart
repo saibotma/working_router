@@ -166,7 +166,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         return [nestedPage];
       }
       if (location.id == LocationId.abc) {
-        if (widget.screenSize == ScreenSize.Large) {
+        if (widget.screenSize == ScreenSize.large) {
           return [dialogPage];
         } else {
           return [fullScreenDialogPage];

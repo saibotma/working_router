@@ -58,7 +58,6 @@ class PlatformModalRoute<T> extends PopupRoute<T> {
                 Theme.of(context).bottomSheetTheme;
 
             return PlatformModal<T>(
-              child: _page.child,
               animation: animation,
               animationController: _animationController,
               isScrollControlled: isScrollControlled,
@@ -67,6 +66,7 @@ class PlatformModalRoute<T> extends PopupRoute<T> {
                   sheetTheme.modalBackgroundColor ?? sheetTheme.backgroundColor,
               bottomSheetConstraints: bottomSheetConstraints,
               dialogConstraints: dialogConstraints,
+              child: _page.child,
             );
           }),
         ),
