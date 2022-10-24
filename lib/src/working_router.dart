@@ -11,7 +11,7 @@ class WorkingRouter<ID> with ChangeNotifier {
   final Location<ID> locationTree;
   WorkingRouterData<ID>? _data;
 
-  bool Function(
+  Future<bool> Function(
     WorkingRouterData<ID> oldData,
     WorkingRouterData<ID> newData,
   )? beforeRouting;
@@ -105,7 +105,7 @@ class WorkingRouter<ID> with ChangeNotifier {
           ? fallback!.queryParameters.toIMap()
           : queryParameters,
     );
-    if (!(beforeRouting?.call(data, newData) ?? true)) {
+    if (!(await beforeRouting?.call(data, newData) ?? true)) {
       return;
     }
 
