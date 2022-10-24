@@ -9,6 +9,7 @@ export 'src/location_page_skeleton.dart';
 export 'src/widgets/location_guard.dart';
 export 'src/widgets/nearest_location.dart';
 export 'src/working_router.dart';
+export 'src/working_router_data.dart';
 export 'src/working_router_data_provider.dart';
 export 'src/working_router_delegate.dart';
 export 'src/working_router_information_parser.dart';
