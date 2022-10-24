@@ -39,6 +39,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
     required Location<ID> locationTree,
     required BuildPages<ID> buildRootPages,
     required Widget noContentWidget,
+    Widget Function(BuildContext context, Widget child)? wrapNavigator,
     BeforeRouting<ID>? beforeRouting,
   })  : _locationTree = locationTree,
         _beforeRouting = beforeRouting {
@@ -47,6 +48,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
       router: this,
       buildPages: buildRootPages,
       noContentWidget: noContentWidget,
+      wrapNavigator: wrapNavigator,
     );
   }
 

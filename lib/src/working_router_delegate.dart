@@ -20,6 +20,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   late final GlobalKey<NavigatorState> navigatorKey;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
+  final Widget Function(BuildContext context, Widget child)? wrapNavigator;
 
   List<Page<dynamic>>? pages;
 
@@ -29,6 +30,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     required this.buildPages,
     this.noContentWidget,
     this.navigatorInitializingWidget,
+    this.wrapNavigator,
   }) : assert(
           isRootDelegate == (noContentWidget != null),
           "noContentWidget must be set for the root delegate, "
@@ -63,21 +65,24 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         }
         return WorkingRouterDataProvider<ID>(
           router: router,
-          child: Navigator(
-            key: navigatorKey,
-            pages: pages!,
-            onPopPage: (route, dynamic result) {
-              // In case of Navigator 1 route.
-              if (route.settings is! Page) {
-                return route.didPop(result);
-              }
+          child: (wrapNavigator ?? (_, child) => child)(
+            context,
+            Navigator(
+              key: navigatorKey,
+              pages: pages!,
+              onPopPage: (route, dynamic result) {
+                // In case of Navigator 1 route.
+                if (route.settings is! Page) {
+                  return route.didPop(result);
+                }
 
-              // Need to execute in new cycle, because otherwise would try
-              // to push onto navigator while the pop is still running
-              // causing debug lock in navigator pop to assert false.
-              Future<void>.delayed(Duration.zero).then((_) => router.pop());
-              return false;
-            },
+                // Need to execute in new cycle, because otherwise would try
+                // to push onto navigator while the pop is still running
+                // causing debug lock in navigator pop to assert false.
+                Future<void>.delayed(Duration.zero).then((_) => router.pop());
+                return false;
+              },
+            ),
           ),
         );
       },
