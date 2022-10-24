@@ -43,28 +43,51 @@ class _DependentMaterialApp extends StatefulWidget {
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
-      locationTree: SplashLocation(
-    id: LocationId.splash,
-    children: [
-      ALocation(
-        id: LocationId.a,
-        children: [
-          ABLocation(
-            id: LocationId.ab,
-            children: [
-              ABCLocation(id: LocationId.abc, children: []),
-            ],
-          ),
-          ADLocation(
-            id: LocationId.ad,
-            children: [
-              ADCLocation(id: LocationId.adc, children: []),
-            ],
-          ),
-        ],
-      ),
-    ],
-  ));
+    locationTree: SplashLocation(
+      id: LocationId.splash,
+      children: [
+        ALocation(
+          id: LocationId.a,
+          children: [
+            ABLocation(
+              id: LocationId.ab,
+              children: [
+                ABCLocation(id: LocationId.abc, children: []),
+              ],
+            ),
+            ADLocation(
+              id: LocationId.ad,
+              children: [
+                ADCLocation(id: LocationId.adc, children: []),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+    buildRootPages: (location, topLocation) {
+      if (location.id == LocationId.splash &&
+          topLocation.id == LocationId.splash) {
+        return [splashPage];
+      }
+      if (location.id == LocationId.a) {
+        return [nestedPage];
+      }
+      if (location.id == LocationId.abc) {
+        if (widget.screenSize == ScreenSize.large) {
+          return [dialogPage];
+        } else {
+          return [fullScreenDialogPage];
+        }
+      }
+
+      if (location.id == LocationId.adc) {
+        return [conditionalDialogPage];
+      }
+
+      return [];
+    },
+  );
 
   final splashPage = LocationPageSkeleton<LocationId>(
     child: Scaffold(
@@ -141,48 +164,16 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     ),
   );
 
-  final routeInformationParser = MyRouteInformationParser();
-
-  late final _routerDelegate = WorkingRouterDelegate(
-    isRootRouter: true,
-    router: router,
-    buildPages: (location, topLocation) {
-      if (location.id == LocationId.splash &&
-          topLocation.id == LocationId.splash) {
-        return [splashPage];
-      }
-      if (location.id == LocationId.a) {
-        return [nestedPage];
-      }
-      if (location.id == LocationId.abc) {
-        if (widget.screenSize == ScreenSize.large) {
-          return [dialogPage];
-        } else {
-          return [fullScreenDialogPage];
-        }
-      }
-
-      if (location.id == LocationId.adc) {
-        return [conditionalDialogPage];
-      }
-
-      return [];
-    },
-  );
-
   @override
   void didUpdateWidget(covariant _DependentMaterialApp oldWidget) {
     if (oldWidget.screenSize != widget.screenSize) {
-      _routerDelegate.refresh();
+      router.refresh();
     }
     super.didUpdateWidget(oldWidget);
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      routerDelegate: _routerDelegate,
-      routeInformationParser: routeInformationParser,
-    );
+    return MaterialApp.router(routerConfig: router);
   }
 }

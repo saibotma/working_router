@@ -91,7 +91,7 @@ class _NestedScreenState extends State<NestedScreen> {
           child: ClipRect(
             child: Router(
               routerDelegate: WorkingRouterDelegate(
-                isRootRouter: false,
+                isRootDelegate: false,
                 router: WorkingRouter.of<LocationId>(context),
                 buildPages: (location, topLocation) {
                   if (location is ABLocation ||

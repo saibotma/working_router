@@ -1,34 +1,70 @@
 import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
-import 'location.dart';
-import 'widgets/location_guard.dart';
-import 'widgets/nearest_location.dart';
-import 'working_router_data.dart';
-import 'working_router_data_provider.dart';
+import '../working_router.dart';
 
-class WorkingRouter<ID> with ChangeNotifier {
-  final Location<ID> locationTree;
-  WorkingRouterData<ID>? _data;
+typedef BeforeRouting<ID> = Future<bool> Function(
+  WorkingRouter<ID> router,
+  WorkingRouterData<ID>? oldData,
+  WorkingRouterData<ID> newData,
+);
 
-  /// oldData is null when the route from the OS is set for the first
-  /// time at router start up.
-  Future<bool> Function(
-    WorkingRouter<ID> router,
-    WorkingRouterData<ID>? oldData,
-    WorkingRouterData<ID> newData,
-  )? beforeRouting;
-
-  WorkingRouter({required this.locationTree, this.beforeRouting});
-
-  WorkingRouterData<ID>? get data => _data;
-
+class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
   static WorkingRouter<ID> of<ID>(BuildContext context) {
     final WorkingRouterDataProviderInherited<ID>? myRouter =
         context.dependOnInheritedWidgetOfExactType<
             WorkingRouterDataProviderInherited<ID>>();
     return myRouter!.router;
   }
+
+  late final WorkingRouterDelegate<ID> _rootDelegate;
+  final WorkingRouteInformationParser _informationParser =
+      WorkingRouteInformationParser();
+  final RouteInformationProvider _informationProvider =
+      PlatformRouteInformationProvider(
+    initialRouteInformation: RouteInformation(
+      location: WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+    ),
+  );
+
+  final Location<ID> _locationTree;
+  final List<LocationGuardState> _guards = [];
+  WorkingRouterData<ID>? _data;
+
+  /// oldData is null when the route from the OS is set for the first
+  /// time at router start up.
+  final BeforeRouting<ID>? _beforeRouting;
+
+  WorkingRouter({
+    required Location<ID> locationTree,
+    required BuildPages<ID> buildRootPages,
+    BeforeRouting<ID>? beforeRouting,
+  })  : _locationTree = locationTree,
+        _beforeRouting = beforeRouting {
+    _rootDelegate = WorkingRouterDelegate<ID>(
+      isRootDelegate: true,
+      router: this,
+      buildPages: buildRootPages,
+    );
+  }
+
+  WorkingRouterData<ID>? get data => _data;
+
+  @override
+  BackButtonDispatcher? get backButtonDispatcher => null;
+
+  @override
+  RouteInformationParser<Uri>? get routeInformationParser => _informationParser;
+
+  @override
+  RouteInformationProvider? get routeInformationProvider {
+    return _informationProvider;
+  }
+
+  @override
+  RouterDelegate<Uri> get routerDelegate => _rootDelegate;
+
+  void refresh() => notifyListeners();
 
   Future<void> routeToUriString(
     String uriString, {
@@ -41,7 +77,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     Uri uri, {
     bool isRedirect = false,
   }) async {
-    final matchResult = locationTree.match(uri.pathSegments.toIList());
+    final matchResult = _locationTree.match(uri.pathSegments.toIList());
     final matches = matchResult.first;
     final pathParameters = matchResult.second;
 
@@ -60,7 +96,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
   }) async {
-    final matches = locationTree.matchId(id);
+    final matches = _locationTree.matchId(id);
     await _routeTo(
       locations: matches,
       fallback: null,
@@ -122,7 +158,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     );
 
     if (!isRedirect) {
-      if (!(await beforeRouting?.call(this, data, newData) ?? true)) {
+      if (!(await _beforeRouting?.call(this, data, newData) ?? true)) {
         return;
       }
 
@@ -151,6 +187,14 @@ class WorkingRouter<ID> with ChangeNotifier {
     );
   }
 
+  void addGuard(LocationGuardState guard) {
+    _guards.add(guard);
+  }
+
+  void removeGuard(LocationGuardState guard) {
+    _guards.remove(guard);
+  }
+
   Uri _uriFromLocations({
     required IList<Location<ID>> locations,
     required IMap<String, String> pathParameters,
@@ -171,7 +215,7 @@ class WorkingRouter<ID> with ChangeNotifier {
   }
 
   Future<bool> _guard(IList<Location<ID>> newLocations) async {
-    for (final guard in guards) {
+    for (final guard in _guards) {
       final guardedLocation = NearestLocation.of<ID>(guard.context);
       if (data!.locations.contains(guardedLocation) &&
           !newLocations.contains(guardedLocation)) {
@@ -181,15 +225,5 @@ class WorkingRouter<ID> with ChangeNotifier {
       }
     }
     return false;
-  }
-
-  final List<LocationGuardState> guards = [];
-
-  void addGuard(LocationGuardState guard) {
-    guards.add(guard);
-  }
-
-  void removeGuard(LocationGuardState guard) {
-    guards.remove(guard);
   }
 }

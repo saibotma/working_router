@@ -7,20 +7,22 @@ import 'location_page_skeleton.dart';
 import 'working_router.dart';
 import 'working_router_data_provider.dart';
 
+typedef BuildPages<ID> = List<LocationPageSkeleton<ID>> Function(
+  Location<ID> location,
+  Location<ID> topLocation,
+);
+
 class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     with ChangeNotifier {
-  final bool isRootRouter;
+  final bool isRootDelegate;
   final WorkingRouter<ID> router;
-  final List<LocationPageSkeleton<ID>> Function(
-    Location<ID> location,
-    Location<ID> topLocation,
-  ) buildPages;
+  final BuildPages<ID> buildPages;
   late final GlobalKey<NavigatorState> navigatorKey;
 
   List<Page<dynamic>> pages = [];
 
   WorkingRouterDelegate({
-    required this.isRootRouter,
+    required this.isRootDelegate,
     required this.router,
     required this.buildPages,
   }) {
@@ -28,7 +30,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     // A root router may not refresh, because the data will still be null.
     // A nested router must refresh, because otherwise it will not have the
     // pages set.
-    if (!isRootRouter) refresh();
+    if (!isRootDelegate) refresh();
     router.addListener(refresh);
   }
 
@@ -73,7 +75,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   @override
   Future<void> setNewRoutePath(Uri configuration) async {
-    if (isRootRouter) {
+    if (isRootDelegate) {
       await router.routeToUri(configuration);
     }
   }
