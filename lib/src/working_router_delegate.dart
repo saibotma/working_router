@@ -14,8 +14,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     Location<ID> location,
     Location<ID> topLocation,
   ) buildPages;
-  late List<Page<dynamic>> pages;
   late final GlobalKey<NavigatorState> navigatorKey;
+
+  List<Page<dynamic>> pages = [];
 
   WorkingRouterDelegate({
     required this.isRootRouter,

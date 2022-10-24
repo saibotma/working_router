@@ -83,8 +83,8 @@ class WorkingRouter<ID> with ChangeNotifier {
     required IMap<String, String> queryParameters,
   }) async {
     assert(
-      locations.isEmpty != (fallback == null),
-      "Either locations or fallback must be set",
+      locations.isNotEmpty || (fallback != null),
+      "Fallback must not be null when locations are empty.",
     );
 
     final newData = WorkingRouterData(
