@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'location.dart';
-import 'location_page.dart';
-import 'widgets/nearest_location.dart';
+import '../working_router.dart';
 
 class LocationPageSkeleton<ID> {
   final Widget child;

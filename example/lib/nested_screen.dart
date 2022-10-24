@@ -2,38 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
 import 'location_id.dart';
-import '../locations/ab_location.dart';
-import '../locations/abc_location.dart';
-import '../locations/ad_location.dart';
-import '../locations/adc_location.dart';
 
-class NestedScreen extends StatefulWidget {
-  const NestedScreen({Key? key}) : super(key: key);
+class NestedScreen extends StatelessWidget {
+  final Widget child;
 
-  @override
-  State<NestedScreen> createState() => _NestedScreenState();
-}
-
-class _NestedScreenState extends State<NestedScreen> {
-  final emptyPage = LocationPageSkeleton<LocationId>(
-    child: Container(color: Colors.white, child: const Text("Empty page")),
-  );
-
-  final filledPage = LocationPageSkeleton<LocationId>(
-    child: Scaffold(
-      body: Container(
-        color: Colors.blueGrey,
-        child: Center(
-          child: Column(
-            children: [
-              MaterialButton(onPressed: () {}),
-              const BackButton(),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
+  const NestedScreen({required this.child, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -89,22 +62,7 @@ class _NestedScreenState extends State<NestedScreen> {
         ),
         Expanded(
           child: ClipRect(
-            child: Router(
-              routerDelegate: WorkingRouterDelegate(
-                isRootDelegate: false,
-                router: WorkingRouter.of<LocationId>(context),
-                buildPages: (location, topLocation) {
-                  if (location is ABLocation ||
-                      location is ABCLocation ||
-                      location is ADLocation ||
-                      location is ADCLocation) {
-                    return [filledPage];
-                  }
-
-                  return [emptyPage];
-                },
-              ),
-            ),
+            child: child,
           ),
         ),
       ],

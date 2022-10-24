@@ -106,10 +106,42 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     ),
   );
 
-  final nestedPage = LocationPageSkeleton<LocationId>(
+  final emptyPage = LocationPageSkeleton<LocationId>(
+    child: Container(color: Colors.white, child: const Text("Empty page")),
+  );
+
+  final filledPage = LocationPageSkeleton<LocationId>(
+    child: Scaffold(
+      body: Container(
+        color: Colors.blueGrey,
+        child: Center(
+          child: Column(
+            children: [
+              MaterialButton(onPressed: () {}),
+              const BackButton(),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  late final LocationPageSkeleton<LocationId> nestedPage =
+      NestedLocationPageSkeleton<LocationId>(
+    router: router,
+    buildPages: (location, topLocation) {
+      if (location is ABLocation ||
+          location is ABCLocation ||
+          location is ADLocation ||
+          location is ADCLocation) {
+        return [filledPage];
+      }
+
+      return [emptyPage];
+    },
     buildPage: (key, child) => MaterialPage<dynamic>(key: key, child: child),
     buildKey: (location) => ValueKey(location),
-    child: const NestedScreen(),
+    builder: (context, child) => NestedScreen(child: child),
   );
 
   final dialogPage = LocationPageSkeleton<LocationId>(
