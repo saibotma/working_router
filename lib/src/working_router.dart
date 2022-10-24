@@ -54,14 +54,14 @@ class WorkingRouter<ID> with ChangeNotifier {
     );
   }
 
-  void routeToId(
+  Future<void> routeToId(
     ID id, {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
-  }) {
+  }) async {
     final matches = locationTree.matchId(id);
-    _routeTo(
+    await _routeTo(
       locations: matches,
       fallback: null,
       pathParameters: pathParameters,
@@ -70,18 +70,18 @@ class WorkingRouter<ID> with ChangeNotifier {
     );
   }
 
-  void routeToRelative(
+  Future<void> routeToRelative(
     bool Function(Location<ID> location) match, {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
-  }) {
+  }) async {
     final relativeMatches = data!.locations.last.matchRelative(match);
     if (relativeMatches.isEmpty) {
       return;
     }
 
-    _routeTo(
+    await _routeTo(
       locations: data!.locations.addAll(relativeMatches),
       fallback: null,
       pathParameters: pathParameters,
@@ -135,22 +135,20 @@ class WorkingRouter<ID> with ChangeNotifier {
     notifyListeners();
   }
 
-  void pop() {
+  Future<void> pop() async {
     final newLocations = data!.locations.removeLast();
     final newPathParameters =
         newLocations.last.selectPathParameters(data!.pathParameters);
     final newQueryParameters =
         newLocations.last.selectQueryParameters(data!.queryParameters);
 
-    _routeTo(
+    await _routeTo(
       locations: newLocations,
       fallback: null,
       queryParameters: newQueryParameters,
       pathParameters: newPathParameters,
       isRedirect: false,
     );
-
-    notifyListeners();
   }
 
   Uri _uriFromLocations({
