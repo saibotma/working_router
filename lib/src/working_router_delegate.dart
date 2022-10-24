@@ -23,7 +23,6 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     required this.buildPages,
   }) {
     navigatorKey = GlobalKey<NavigatorState>();
-    refresh();
     router.addListener(refresh);
   }
 
