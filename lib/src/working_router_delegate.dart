@@ -64,11 +64,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   @override
-  Future<void> setNewRoutePath(Uri configuration) {
+  Future<void> setNewRoutePath(Uri configuration) async {
     if (isRootRouter) {
-      router.routeToUri(configuration);
+      await router.routeToUri(configuration);
     }
-    return SynchronousFuture(null);
   }
 
   void refresh() {
