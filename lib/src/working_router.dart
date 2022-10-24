@@ -30,11 +30,17 @@ class WorkingRouter<ID> with ChangeNotifier {
     return myRouter!.router;
   }
 
-  Future<void> routeToUriString(String uriString) async {
-    await routeToUri(Uri.parse(uriString));
+  Future<void> routeToUriString(
+    String uriString, {
+    bool isRedirect = false,
+  }) async {
+    await routeToUri(Uri.parse(uriString), isRedirect: isRedirect);
   }
 
-  Future<void> routeToUri(Uri uri) async {
+  Future<void> routeToUri(
+    Uri uri, {
+    bool isRedirect = false,
+  }) async {
     final matchResult = locationTree.match(uri.pathSegments.toIList());
     final matches = matchResult.first;
     final pathParameters = matchResult.second;
@@ -44,6 +50,7 @@ class WorkingRouter<ID> with ChangeNotifier {
       fallback: uri,
       pathParameters: pathParameters,
       queryParameters: uri.queryParameters.toIMap(),
+      isRedirect: isRedirect,
     );
   }
 
@@ -51,6 +58,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     ID id, {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
+    bool isRedirect = false,
   }) {
     final matches = locationTree.matchId(id);
     _routeTo(
@@ -58,6 +66,7 @@ class WorkingRouter<ID> with ChangeNotifier {
       fallback: null,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
+      isRedirect: isRedirect,
     );
   }
 
@@ -65,6 +74,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     bool Function(Location<ID> location) match, {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
+    bool isRedirect = false,
   }) {
     final relativeMatches = data!.locations.last.matchRelative(match);
     if (relativeMatches.isEmpty) {
@@ -76,6 +86,7 @@ class WorkingRouter<ID> with ChangeNotifier {
       fallback: null,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
+      isRedirect: isRedirect,
     );
   }
 
@@ -84,6 +95,7 @@ class WorkingRouter<ID> with ChangeNotifier {
     required Uri? fallback,
     required IMap<String, String> pathParameters,
     required IMap<String, String> queryParameters,
+    required bool isRedirect,
   }) async {
     assert(
       locations.isNotEmpty || (fallback != null),
@@ -108,12 +120,15 @@ class WorkingRouter<ID> with ChangeNotifier {
           ? fallback!.queryParameters.toIMap()
           : queryParameters,
     );
-    if (!(await beforeRouting?.call(this, data, newData) ?? true)) {
-      return;
-    }
 
-    if (await _guard(locations)) {
-      return;
+    if (!isRedirect) {
+      if (!(await beforeRouting?.call(this, data, newData) ?? true)) {
+        return;
+      }
+
+      if (await _guard(locations)) {
+        return;
+      }
     }
 
     _data = newData;
@@ -128,10 +143,12 @@ class WorkingRouter<ID> with ChangeNotifier {
         newLocations.last.selectQueryParameters(data!.queryParameters);
 
     _routeTo(
-        locations: newLocations,
-        fallback: null,
-        queryParameters: newQueryParameters,
-        pathParameters: newPathParameters);
+      locations: newLocations,
+      fallback: null,
+      queryParameters: newQueryParameters,
+      pathParameters: newPathParameters,
+      isRedirect: false,
+    );
 
     notifyListeners();
   }
