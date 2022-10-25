@@ -26,7 +26,9 @@ class _WorkingRouterDataProviderState<ID>
   @override
   void initState() {
     super.initState();
-    handleMyRouterNotify();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      handleMyRouterNotify();
+    });
     widget.router.addListener(handleMyRouterNotify);
   }
 
