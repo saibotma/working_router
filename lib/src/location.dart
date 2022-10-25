@@ -67,7 +67,7 @@ abstract class Location<ID> {
     for (final child in children) {
       final childMatches = child._matchRelative(matches);
       if (childMatches.isNotEmpty) {
-        return [this, ...childMatches].toIList();
+        return childMatches;
       }
     }
 
