@@ -4,6 +4,8 @@ import '../working_router.dart';
 
 class WorkingRouterData<ID> {
   final Uri uri;
+
+  // TODO(saibotma): This is different from e.g. VRouter where a name is only added, when it's page is also displayed. Here a location gets added, when the path matches, but the page must not be displayed. This could be changed, by respecting whether buildPages from router delegate returns an empty list or not for a location.
   final IList<Location<ID>> locations;
   final IMap<String, String> pathParameters;
   final IMap<String, String> queryParameters;
@@ -15,12 +17,24 @@ class WorkingRouterData<ID> {
     required this.queryParameters,
   });
 
+  bool isIdMatched(ID id) {
+    return isMatched((location) => location.id == id);
+  }
+
+  bool isMatched(bool Function(Location<ID> location) match) {
+    return locations.any(match);
+  }
+
   bool isIdActive(ID id) {
     return isActive((location) => location.id == id);
   }
 
   bool isActive(bool Function(Location<ID> location) match) {
-    return locations.any(match);
+    final last = locations.lastOrNull;
+    if (last == null) {
+      return false;
+    }
+    return match(last);
   }
 
   WorkingRouterData<ID> copyWith({
