@@ -88,6 +88,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     if (isRootDelegate) {
       return WorkingRouterDataProvider(
         router: router,
+        data: router.data,
         child: child,
       );
     }
@@ -109,13 +110,18 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   void refresh() {
-    final locations = router.data?.locations;
-    pages = locations
-        ?.map((location) => buildPages(location, locations.last)
-            .map((e) => e.inflate(router: router, location: location)))
-        .flattened
-        .map((e) => e.page)
-        .toList();
-    notifyListeners();
+    final data = router.data;
+    if (data != null) {
+      pages = data.locations
+          .map((location) {
+            return buildPages(location, data.locations.last).map((e) {
+              return e.inflate(data: data, router: router, location: location);
+            });
+          })
+          .flattened
+          .map((e) => e.page)
+          .toList();
+      notifyListeners();
+    }
   }
 }

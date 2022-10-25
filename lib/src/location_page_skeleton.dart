@@ -9,11 +9,13 @@ class LocationPageSkeleton<ID> {
   LocationPageSkeleton({required this.child, this.buildPage, this.buildKey});
 
   LocationPage inflate({
+    required WorkingRouterData<ID> data,
     required Location<ID> location,
     required WorkingRouter<ID> router,
   }) {
     final wrappedChild = WorkingRouterDataProvider(
       router: router,
+      data: data,
       location: location,
       child: NearestLocation<ID>(location: location, child: child),
     );
