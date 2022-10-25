@@ -8,8 +8,15 @@ class LocationPageSkeleton<ID> {
 
   LocationPageSkeleton({required this.child, this.buildPage, this.buildKey});
 
-  LocationPage inflate(Location<ID> location) {
-    final wrappedChild = NearestLocation<ID>(location: location, child: child);
+  LocationPage inflate({
+    required Location<ID> location,
+    required WorkingRouter<ID> router,
+  }) {
+    final wrappedChild = WorkingRouterDataProvider(
+      router: router,
+      location: location,
+      child: NearestLocation<ID>(location: location, child: child),
+    );
     final key = buildKey?.call(location);
     return LocationPage(
       buildPage?.call(key, wrappedChild) ??

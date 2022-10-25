@@ -3,11 +3,13 @@ import '../working_router.dart';
 
 class WorkingRouterDataProvider<ID> extends StatefulWidget {
   final WorkingRouter<ID> router;
+  final Location<ID>? location;
   final Widget child;
 
   const WorkingRouterDataProvider({
     required this.router,
     required this.child,
+    this.location,
     Key? key,
   }) : super(key: key);
 
@@ -19,9 +21,12 @@ class WorkingRouterDataProvider<ID> extends StatefulWidget {
 
 class _WorkingRouterDataProviderState<ID>
     extends State<WorkingRouterDataProvider<ID>> {
+  WorkingRouterData<ID>? _data;
+
   @override
   void initState() {
     super.initState();
+    handleMyRouterNotify();
     widget.router.addListener(handleMyRouterNotify);
   }
 
@@ -29,7 +34,7 @@ class _WorkingRouterDataProviderState<ID>
   Widget build(BuildContext context) {
     return WorkingRouterDataProviderInherited<ID>(
       router: widget.router,
-      data: widget.router.data,
+      data: _data,
       child: NotificationListener(
         child: widget.child,
         onNotification: (notification) {
@@ -48,7 +53,11 @@ class _WorkingRouterDataProviderState<ID>
   }
 
   void handleMyRouterNotify() {
-    setState(() {});
+    final newData = widget.router.data;
+    final location = widget.location;
+    if (location == null || (newData?.isIdActive(location.id) ?? false)) {
+      setState(() => _data = newData);
+    }
   }
 
   @override

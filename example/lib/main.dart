@@ -165,7 +165,21 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   );
 
   final fullScreenDialogPage = LocationPageSkeleton<LocationId>(
-    child: Container(color: Colors.white, width: 300, height: 300),
+    child: Builder(
+      builder: (context) {
+        final router = WorkingRouter.of<LocationId>(context);
+        return Container(
+          color: Colors.white,
+          width: 300,
+          height: 300,
+          child: Text(
+            "${router.data!.pathParameters["id"]}, "
+                "${router.data!.queryParameters["b"]}, "
+                "${router.data!.queryParameters["c"]}",
+          ),
+        );
+      },
+    ),
   );
 
   final conditionalDialogPage = LocationPageSkeleton<LocationId>(

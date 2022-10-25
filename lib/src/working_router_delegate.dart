@@ -63,26 +63,23 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           );
           return noContentWidget!;
         }
-        return WorkingRouterDataProvider<ID>(
-          router: router,
-          child: (wrapNavigator ?? (_, child) => child)(
-            context,
-            Navigator(
-              key: navigatorKey,
-              pages: pages!,
-              onPopPage: (route, dynamic result) {
-                // In case of Navigator 1 route.
-                if (route.settings is! Page) {
-                  return route.didPop(result);
-                }
+        return (wrapNavigator ?? (_, child) => child)(
+          context,
+          Navigator(
+            key: navigatorKey,
+            pages: pages!,
+            onPopPage: (route, dynamic result) {
+              // In case of Navigator 1 route.
+              if (route.settings is! Page) {
+                return route.didPop(result);
+              }
 
-                // Need to execute in new cycle, because otherwise would try
-                // to push onto navigator while the pop is still running
-                // causing debug lock in navigator pop to assert false.
-                Future<void>.delayed(Duration.zero).then((_) => router.pop());
-                return false;
-              },
-            ),
+              // Need to execute in new cycle, because otherwise would try
+              // to push onto navigator while the pop is still running
+              // causing debug lock in navigator pop to assert false.
+              Future<void>.delayed(Duration.zero).then((_) => router.pop());
+              return false;
+            },
           ),
         );
       },
@@ -115,7 +112,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     final locations = router.data?.locations;
     pages = locations
         ?.map((location) => buildPages(location, locations.last)
-            .map((e) => e.inflate(location)))
+            .map((e) => e.inflate(router: router, location: location)))
         .flattened
         .map((e) => e.page)
         .toList();
