@@ -1,10 +1,11 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
 abstract class Location<ID> {
-  final ID id;
-  final List<Location<ID>> children;
+  final ID? id;
+  final IList<Location<ID>> children;
 
-  Location({required this.id, required this.children});
+  Location({required this.id, required Iterable<Location<ID>> children})
+      : this.children = children.toIList();
 
   String get path;
 
@@ -106,11 +107,14 @@ abstract class Location<ID> {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is Location && runtimeType == other.runtimeType && id == other.id;
+        other is Location &&
+            runtimeType == other.runtimeType &&
+            id == other.id &&
+            children == other.children;
   }
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => id.hashCode ^ children.hashCode;
 }
 
 Map<String, String>? startsWith(
