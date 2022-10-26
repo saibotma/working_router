@@ -66,9 +66,9 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         ),
       ],
     ),
-    buildRootPages: (location, topLocation) {
+    buildRootPages: (location, data) {
       if (location.id == LocationId.splash &&
-          topLocation.id == LocationId.splash) {
+          data.activeLocation.id == LocationId.splash) {
         return [splashPage];
       }
       if (location.id == LocationId.a) {
@@ -174,8 +174,8 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
           height: 300,
           child: Text(
             "${router.data!.pathParameters["id"]}, "
-                "${router.data!.queryParameters["b"]}, "
-                "${router.data!.queryParameters["c"]}",
+            "${router.data!.queryParameters["b"]}, "
+            "${router.data!.queryParameters["c"]}",
           ),
         );
       },

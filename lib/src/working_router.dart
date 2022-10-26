@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import '../working_router.dart';
+import 'working_router_sailor.dart';
 
 typedef BeforeRouting<ID> = Future<bool> Function(
   WorkingRouter<ID> router,
@@ -9,12 +10,13 @@ typedef BeforeRouting<ID> = Future<bool> Function(
   WorkingRouterData<ID> newData,
 );
 
-class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
-  static WorkingRouter<ID> of<ID>(BuildContext context) {
-    final WorkingRouterDataProviderInherited<ID>? myRouter =
-        context.dependOnInheritedWidgetOfExactType<
-            WorkingRouterDataProviderInherited<ID>>();
-    return myRouter!.router;
+class WorkingRouter<ID>
+    with ChangeNotifier
+    implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
+  static WorkingRouterDataProvider<ID> of<ID>(BuildContext context) {
+    final WorkingRouterDataProvider<ID>? dataProvider = context
+        .dependOnInheritedWidgetOfExactType<WorkingRouterDataProvider<ID>>();
+    return dataProvider!;
   }
 
   late final WorkingRouterDelegate<ID> _rootDelegate;
@@ -70,6 +72,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
 
   void refresh() => notifyListeners();
 
+  @override
   Future<void> routeToUriString(
     String uriString, {
     bool isRedirect = false,
@@ -77,6 +80,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
     await routeToUri(Uri.parse(uriString), isRedirect: isRedirect);
   }
 
+  @override
   Future<void> routeToUri(
     Uri uri, {
     bool isRedirect = false,
@@ -94,6 +98,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
     );
   }
 
+  @override
   Future<void> routeToId(
     ID id, {
     IMap<String, String> pathParameters = const IMapConst({}),
@@ -110,6 +115,7 @@ class WorkingRouter<ID> with ChangeNotifier implements RouterConfig<Uri> {
     );
   }
 
+  @override
   Future<void> routeToRelative(
     bool Function(Location<ID> location) match, {
     IMap<String, String> pathParameters = const IMapConst({}),

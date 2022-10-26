@@ -15,3 +15,4 @@ export 'src/working_router_data.dart';
 export 'src/working_router_data_provider.dart';
 export 'src/working_router_delegate.dart';
 export 'src/working_router_information_parser.dart';
+export 'src/working_router_sailor.dart';

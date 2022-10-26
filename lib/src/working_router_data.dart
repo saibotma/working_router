@@ -17,6 +17,8 @@ class WorkingRouterData<ID> {
     required this.queryParameters,
   });
 
+  Location<ID> get activeLocation => locations.last;
+
   bool isIdMatched(ID id) {
     return isMatched((location) => location.id == id);
   }
