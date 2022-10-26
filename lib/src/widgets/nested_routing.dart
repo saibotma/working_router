@@ -17,7 +17,7 @@ class NestedRouting<ID> extends StatefulWidget {
 }
 
 class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
-  late final _delegate = WorkingRouterDelegate(
+  late WorkingRouterDelegate<ID>? _delegate = WorkingRouterDelegate(
     isRootDelegate: false,
     router: widget.router,
     buildPages: widget.buildPages,
@@ -26,7 +26,7 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
   @override
   void didChangeDependencies() {
     final data = WorkingRouter.of<ID>(context).data;
-    _delegate.updateData(data);
+    _delegate!.updateData(data);
     super.didChangeDependencies();
   }
 
@@ -34,6 +34,13 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
   Widget build(BuildContext context) {
     // Depend on working router to make didChangeDependencies get called.
     WorkingRouter.of<ID>(context);
-    return Router(routerDelegate: _delegate);
+    return Router(routerDelegate: _delegate!);
+  }
+
+  @override
+  void dispose() {
+    _delegate!.deregister();
+    _delegate = null;
+    super.dispose();
   }
 }

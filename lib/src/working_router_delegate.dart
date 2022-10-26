@@ -43,6 +43,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           "but must not be set for nested delegates.",
         ) {
     navigatorKey = GlobalKey<NavigatorState>();
+    router.addNestedDelegate(this);
   }
 
   @override
@@ -134,5 +135,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   void updateData(WorkingRouterData<ID> data) {
     _data = data;
     refresh();
+  }
+
+  /// Needs to be called when the delegate will not be used anymore.
+  void deregister() {
+    router.removeNestedDelegate(this);
   }
 }

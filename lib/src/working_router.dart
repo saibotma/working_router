@@ -9,9 +9,7 @@ typedef BeforeRouting<ID> = Future<bool> Function(
   WorkingRouterData<ID> newData,
 );
 
-class WorkingRouter<ID>
-    with ChangeNotifier
-    implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
+class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   static WorkingRouterDataProvider<ID> of<ID>(BuildContext context) {
     final WorkingRouterDataProvider<ID>? dataProvider = context
         .dependOnInheritedWidgetOfExactType<WorkingRouterDataProvider<ID>>();
@@ -30,6 +28,8 @@ class WorkingRouter<ID>
 
   final Location<ID> _locationTree;
   final List<LocationGuardState> _guards = [];
+  final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
+
   @Deprecated(
     "Don't use this property directly. "
     "Get is using the data getter. Set it using _updateData.",
@@ -74,7 +74,9 @@ class WorkingRouter<ID>
   @override
   RouterDelegate<Uri> get routerDelegate => _rootDelegate;
 
-  void refresh() => notifyListeners();
+  void refresh() {
+    [_rootDelegate, ..._nestedDelegates].forEach((it) => it.refresh());
+  }
 
   @override
   Future<void> routeToUriString(
@@ -182,7 +184,6 @@ class WorkingRouter<ID>
     }
 
     _updateData(newData);
-    notifyListeners();
   }
 
   Future<void> pop() async {
@@ -245,5 +246,13 @@ class WorkingRouter<ID>
     // ignore: deprecated_member_use_from_same_package
     _data = data;
     _rootDelegate.updateData(data);
+  }
+
+  void addNestedDelegate(WorkingRouterDelegate<ID> delegate) {
+    _nestedDelegates.add(delegate);
+  }
+
+  void removeNestedDelegate(WorkingRouterDelegate<ID> delegate) {
+    _nestedDelegates.remove(delegate);
   }
 }
