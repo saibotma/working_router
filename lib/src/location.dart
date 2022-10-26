@@ -4,8 +4,10 @@ abstract class Location<ID> {
   final ID? id;
   final IList<Location<ID>> children;
 
-  Location({required this.id, required Iterable<Location<ID>> children})
-      : this.children = children.toIList();
+  Location({
+    this.id,
+    Iterable<Location<ID>> children = const [],
+  }) : this.children = children.toIList();
 
   String get path;
 
