@@ -37,7 +37,7 @@ class LocationPageSkeleton<ID> {
         ),
       ),
     );
-    final key = buildKey?.call(location);
+    final key = buildKey?.call(location) ?? ValueKey(location);
     return LocationPage(
       buildPage?.call(key, wrappedChild) ??
           MaterialPage<dynamic>(key: key, child: wrappedChild),

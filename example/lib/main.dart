@@ -146,7 +146,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   );
 
   final dialogPage = LocationPageSkeleton<LocationId>(
-    buildPage: (_, child) => PlatformModalPage<dynamic>(child: child),
+    buildPage: (key, child) => PlatformModalPage<dynamic>(key: key, child: child),
     child: Builder(
       builder: (context) {
         final router = WorkingRouter.of<LocationId>(context);
