@@ -23,7 +23,12 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
 
-  List<Page<dynamic>>? pages;
+  List<Page<dynamic>>? _pages;
+
+  // Have an extra data property here and don't get it directly from router,
+  // because nested delegates should not use the newest data, when their
+  // route gets animated out.
+  WorkingRouterData<ID>? _data;
 
   WorkingRouterDelegate({
     required this.isRootDelegate,
@@ -38,11 +43,6 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           "but must not be set for nested delegates.",
         ) {
     navigatorKey = GlobalKey<NavigatorState>();
-    // A root router may not refresh, because the data will still be null.
-    // A nested router must refresh, because otherwise it will not have the
-    // pages set.
-    if (!isRootDelegate) refresh();
-    router.addListener(refresh);
   }
 
   @override
@@ -50,14 +50,14 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   @override
   Widget build(BuildContext context) {
-    if (pages == null) {
+    if (_pages == null) {
       return navigatorInitializingWidget ??
           const Material(child: Center(child: CircularProgressIndicator()));
     }
 
     final child = Builder(
       builder: (context) {
-        if (pages!.isEmpty) {
+        if (_pages!.isEmpty) {
           assert(
             isRootDelegate,
             "buildPages of nested routers must not return empty pages.",
@@ -68,7 +68,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           context,
           Navigator(
             key: navigatorKey,
-            pages: pages!,
+            pages: _pages!,
             onPopPage: (route, dynamic result) {
               // In case of Navigator 1 route.
               if (route.settings is! Page) {
@@ -113,13 +113,15 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   void refresh() {
-    final data = router.data;
-    if (data != null) {
-      pages = data.locations
+    if (_data != null) {
+      _pages = _data!.locations
           .map((location) {
-            return buildPages(location, data).map((pageSkeleton) {
+            return buildPages(location, _data!).map((pageSkeleton) {
               return pageSkeleton.inflate(
-                  data: data, router: router, location: location);
+                data: _data!,
+                router: router,
+                location: location,
+              );
             });
           })
           .flattened
@@ -127,5 +129,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           .toList();
       notifyListeners();
     }
+  }
+
+  void updateData(WorkingRouterData<ID> data) {
+    _data = data;
+    refresh();
   }
 }

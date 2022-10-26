@@ -30,6 +30,10 @@ class WorkingRouter<ID>
 
   final Location<ID> _locationTree;
   final List<LocationGuardState> _guards = [];
+  @Deprecated(
+    "Don't use this property directly. "
+    "Get is using the data getter. Set it using _updateData.",
+  )
   WorkingRouterData<ID>? _data;
 
   /// oldData is null when the route from the OS is set for the first
@@ -53,6 +57,7 @@ class WorkingRouter<ID>
     );
   }
 
+  // ignore: deprecated_member_use_from_same_package
   WorkingRouterData<ID>? get data => _data;
 
   @override
@@ -176,7 +181,7 @@ class WorkingRouter<ID>
       }
     }
 
-    _data = newData;
+    _updateData(newData);
     notifyListeners();
   }
 
@@ -234,5 +239,11 @@ class WorkingRouter<ID>
       }
     }
     return false;
+  }
+
+  void _updateData(WorkingRouterData<ID> data) {
+    // ignore: deprecated_member_use_from_same_package
+    _data = data;
+    _rootDelegate.updateData(data);
   }
 }

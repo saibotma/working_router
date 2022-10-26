@@ -24,7 +24,16 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
   );
 
   @override
+  void didChangeDependencies() {
+    final data = WorkingRouter.of<ID>(context).data;
+    _delegate.updateData(data);
+    super.didChangeDependencies();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Depend on working router to make didChangeDependencies get called.
+    WorkingRouter.of<ID>(context);
     return Router(routerDelegate: _delegate);
   }
 }
