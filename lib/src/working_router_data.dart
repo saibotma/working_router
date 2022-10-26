@@ -27,6 +27,20 @@ class WorkingRouterData<ID> {
     return isMatched((location) => ids.contains(location.id));
   }
 
+  bool isTypeMatched<T>() {
+    return isMatched((location) => location is T);
+  }
+
+  bool isAnyTypeMatched2<T1, T2>() {
+    return isMatched((location) => location is T1 || location is T2);
+  }
+
+  bool isAnyTypeMatched3<T1, T2, T3>() {
+    return isMatched((location) {
+      return location is T1 || location is T2 || location is T3;
+    });
+  }
+
   bool isMatched(bool Function(Location<ID> location) match) {
     return locations.any(match);
   }
@@ -37,6 +51,20 @@ class WorkingRouterData<ID> {
 
   bool isAnyIdActive(Iterable<ID> ids) {
     return isActive((location) => ids.contains(location.id));
+  }
+
+  bool isTypeActive<T>() {
+    return isActive((location) => location is T);
+  }
+
+  bool isAnyTypeActive2<T1, T2>() {
+    return isActive((location) => location is T1 || location is T2);
+  }
+
+  bool isAnyTypeActive3<T1, T2, T3>() {
+    return isActive((location) {
+      return location is T1 || location is T2 || location is T3;
+    });
   }
 
   bool isActive(bool Function(Location<ID> location) match) {
