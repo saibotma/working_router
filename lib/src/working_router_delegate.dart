@@ -91,7 +91,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         router: router,
         // Gets updated every time the routing changes, because then
         // this gets rebuilt.
-        data: router.data,
+        data: router.data!,
         child: child,
       );
     }

@@ -2,7 +2,6 @@ import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import '../working_router.dart';
-import 'working_router_sailor.dart';
 
 typedef BeforeRouting<ID> = Future<bool> Function(
   WorkingRouter<ID> router,

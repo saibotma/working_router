@@ -1,13 +1,15 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+
 import '../working_router.dart';
 
 class WorkingRouterDataProvider<ID> extends InheritedWidget
-    implements WorkingRouterSailor<ID> {
+    implements WorkingRouterCargoSailor<ID> {
   final WorkingRouter<ID> _router;
 
   // Just pass the data, to know when to notify.
-  final WorkingRouterData<ID>? data;
+  @override
+  final WorkingRouterData<ID> data;
 
   const WorkingRouterDataProvider({
     required WorkingRouter<ID> router,
