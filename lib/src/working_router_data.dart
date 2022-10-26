@@ -23,12 +23,20 @@ class WorkingRouterData<ID> {
     return isMatched((location) => location.id == id);
   }
 
+  bool isAnyIdMatched(Iterable<ID> ids) {
+    return isMatched((location) => ids.contains(location.id));
+  }
+
   bool isMatched(bool Function(Location<ID> location) match) {
     return locations.any(match);
   }
 
   bool isIdActive(ID id) {
     return isActive((location) => location.id == id);
+  }
+
+  bool isAnyIdActive(Iterable<ID> ids) {
+    return isActive((location) => ids.contains(location.id));
   }
 
   bool isActive(bool Function(Location<ID> location) match) {
