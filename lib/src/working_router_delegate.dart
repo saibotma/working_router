@@ -14,10 +14,11 @@ typedef BuildPages<ID> = List<LocationPageSkeleton<ID>> Function(
 );
 
 class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
-    with ChangeNotifier {
+    with ChangeNotifier, PopNavigatorRouterDelegateMixin {
   final bool isRootDelegate;
   final WorkingRouter<ID> router;
   final BuildPages<ID> buildPages;
+  @override
   late final GlobalKey<NavigatorState> navigatorKey;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
@@ -98,11 +99,6 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     }
 
     return child;
-  }
-
-  @override
-  Future<bool> popRoute() {
-    return SynchronousFuture(true);
   }
 
   @override

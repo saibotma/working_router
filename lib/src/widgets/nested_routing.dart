@@ -34,7 +34,17 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
   Widget build(BuildContext context) {
     // Depend on working router to make didChangeDependencies get called.
     WorkingRouter.of<ID>(context);
-    return Router(routerDelegate: _delegate!);
+
+    // Followed https://github.com/flutter/flutter/issues/55570#issuecomment-665330166
+    // on how to connect this to the root back button dispatcher.
+    final parentRouter = Router.of(context);
+    final childBackButtonDispatcher =
+        parentRouter.backButtonDispatcher!.createChildBackButtonDispatcher();
+    childBackButtonDispatcher.takePriority();
+    return Router(
+      routerDelegate: _delegate!,
+      backButtonDispatcher: childBackButtonDispatcher,
+    );
   }
 
   @override

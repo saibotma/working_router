@@ -115,13 +115,18 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     child: Scaffold(
       body: Container(
         color: Colors.blueGrey,
-        child: Center(
-          child: Column(
-            children: [
-              MaterialButton(onPressed: () {}),
-              const BackButton(),
-            ],
-          ),
+        child: Column(
+          children: [
+            Builder(builder: (context) {
+              return MaterialButton(
+                  child: Text("push"),
+                  onPressed: () {
+                    Navigator.of(context).push(PageRouteBuilder(
+                        pageBuilder: (context, _, __) => Placeholder()));
+                  });
+            }),
+            const BackButton(),
+          ],
         ),
       ),
     ),

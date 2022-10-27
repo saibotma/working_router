@@ -63,7 +63,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   WorkingRouterData<ID>? get data => _data;
 
   @override
-  BackButtonDispatcher? get backButtonDispatcher => null;
+  BackButtonDispatcher? get backButtonDispatcher => RootBackButtonDispatcher();
 
   @override
   RouteInformationParser<Uri>? get routeInformationParser => _informationParser;

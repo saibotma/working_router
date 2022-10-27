@@ -37,10 +37,10 @@ class NestedScreen extends StatelessWidget {
                 },
               ),
               MaterialButton(
-                child: const Text("/a/b/c"),
+                child: const Text("/a/b/c/test"),
                 onPressed: () {
                   WorkingRouter.of<LocationId>(context)
-                      .routeToUriString("/a/b/c");
+                      .routeToUriString("/a/b/c/test");
                 },
               ),
               MaterialButton(
