@@ -178,7 +178,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
         return;
       }
 
-      if (await _guard(locations)) {
+      if (await _guardBeforeLeave(locations)) {
         return;
       }
     }
@@ -229,12 +229,20 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     );
   }
 
-  Future<bool> _guard(IList<Location<ID>> newLocations) async {
+  Future<bool> _guardBeforeLeave(IList<Location<ID>> newLocations) async {
     for (final guard in _guards) {
+      final currentLocations = data!.locations;
       final guardedLocation = NearestLocation.of<ID>(guard.context);
-      if (data!.locations.contains(guardedLocation) &&
+      // afterUpdate
+      if (currentLocations.contains(guardedLocation) &&
+          newLocations.contains(guardedLocation)) {
+        guard.widget.afterUpdate?.call();
+      }
+
+      // beforeLeave
+      if (currentLocations.contains(guardedLocation) &&
           !newLocations.contains(guardedLocation)) {
-        if (!(await guard.widget.mayLeave())) {
+        if (!(await guard.widget.beforeLeave?.call() ?? true)) {
           return true;
         }
       }

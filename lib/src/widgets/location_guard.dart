@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 
 class LocationGuard extends StatefulWidget {
   final Widget child;
-  final Future<bool> Function() mayLeave;
+
+  final void Function()? afterUpdate;
+  final Future<bool> Function()? beforeLeave;
 
   const LocationGuard({
     required this.child,
-    required this.mayLeave,
+    this.afterUpdate,
+    this.beforeLeave,
     Key? key,
   }) : super(key: key);
 

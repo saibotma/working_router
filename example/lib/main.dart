@@ -187,7 +187,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     child: Builder(
       builder: (context) {
         return LocationGuard(
-          mayLeave: () async {
+          beforeLeave: () async {
             final result = await showDialog<bool>(
               context: context,
               builder: (context) {
