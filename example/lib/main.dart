@@ -142,10 +142,17 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     },
     buildPage: (key, child) => MaterialPage<dynamic>(key: key, child: child),
     buildKey: (location) => ValueKey(location),
-    builder: (context, child) => LocationGuard(
-      afterUpdate: () => print("after update"),
-      child: NestedScreen(child: child),
-    ),
+    builder: (context, child) {
+      return LocationGuard(
+        afterUpdate: () {
+          print(
+            "after update: "
+            "${WorkingRouter.of<LocationId>(context).data.queryParameters["afterUpdate"]}",
+          );
+        },
+        child: NestedScreen(child: child),
+      );
+    },
   );
 
   final dialogPage = LocationPageSkeleton<LocationId>(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
@@ -187,7 +189,11 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     _updateData(newData);
 
     if (!isRedirect) {
-      _guardAfterUpdate(oldLocations: oldLocations, newLocations: locations);
+      // We need to do this after rebuild as completed so that the user
+      // can have access to the new router data.
+      WidgetsFlutterBinding.ensureInitialized().addPostFrameCallback((_) {
+        _guardAfterUpdate(oldLocations: oldLocations, newLocations: locations);
+      });
     }
   }
 
