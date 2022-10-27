@@ -183,7 +183,12 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
       }
     }
 
+    final oldLocations = data!.locations;
     _updateData(newData);
+
+    if (!isRedirect) {
+      _guardAfterUpdate(oldLocations: oldLocations, newLocations: locations);
+    }
   }
 
   Future<void> pop() async {
@@ -229,15 +234,24 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     );
   }
 
+  void _guardAfterUpdate({
+    required IList<Location<ID>> oldLocations,
+    required IList<Location<ID>> newLocations,
+  }) {
+    for (final guard in _guards) {
+      final guardedLocation = NearestLocation.of<ID>(guard.context);
+      // afterUpdate
+      if (oldLocations.contains(guardedLocation) &&
+          newLocations.contains(guardedLocation)) {
+        guard.widget.afterUpdate?.call();
+      }
+    }
+  }
+
   Future<bool> _guardBeforeLeave(IList<Location<ID>> newLocations) async {
     for (final guard in _guards) {
       final currentLocations = data!.locations;
       final guardedLocation = NearestLocation.of<ID>(guard.context);
-      // afterUpdate
-      if (currentLocations.contains(guardedLocation) &&
-          newLocations.contains(guardedLocation)) {
-        guard.widget.afterUpdate?.call();
-      }
 
       // beforeLeave
       if (currentLocations.contains(guardedLocation) &&
