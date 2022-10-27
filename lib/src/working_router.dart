@@ -183,7 +183,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
       }
     }
 
-    final oldLocations = data!.locations;
+    final oldLocations = data?.locations;
     _updateData(newData);
 
     if (!isRedirect) {
@@ -235,13 +235,16 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   }
 
   void _guardAfterUpdate({
-    required IList<Location<ID>> oldLocations,
+    required IList<Location<ID>>? oldLocations,
     required IList<Location<ID>> newLocations,
   }) {
+    if (oldLocations?.isEmpty ?? true) {
+      return;
+    }
     for (final guard in _guards) {
       final guardedLocation = NearestLocation.of<ID>(guard.context);
       // afterUpdate
-      if (oldLocations.contains(guardedLocation) &&
+      if (oldLocations!.contains(guardedLocation) &&
           newLocations.contains(guardedLocation)) {
         guard.widget.afterUpdate?.call();
       }
