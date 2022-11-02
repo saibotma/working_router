@@ -119,10 +119,10 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
           children: [
             Builder(builder: (context) {
               return MaterialButton(
-                  child: Text("push"),
+                  child: const Text("push"),
                   onPressed: () {
                     Navigator.of(context).push(PageRouteBuilder(
-                        pageBuilder: (context, _, __) => Placeholder()));
+                        pageBuilder: (context, _, __) => const Placeholder()));
                   });
             }),
             const BackButton(),

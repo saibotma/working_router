@@ -25,14 +25,22 @@ class LocationGuardState extends State<LocationGuard> {
   }
 
   @override
+  void activate() {
+    super.activate();
+    AddLocationGuardMessage(state: this).dispatch(context);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return widget.child;
   }
 
   @override
-  void dispose() {
+  void deactivate() {
+    // Need to call this in deactivate, because then the context
+    // may not be used anymore.
     RemoveLocationGuardMessage(state: this).dispatch(context);
-    super.dispose();
+    super.deactivate();
   }
 }
 
