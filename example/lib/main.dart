@@ -44,28 +44,30 @@ class _DependentMaterialApp extends StatefulWidget {
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
     noContentWidget: const Text("No content"),
-    locationTree: SplashLocation(
-      id: LocationId.splash,
-      children: [
-        ALocation(
-          id: LocationId.a,
-          children: [
-            ABLocation(
-              id: LocationId.ab,
-              children: [
-                ABCLocation(id: LocationId.abc, children: []),
-              ],
-            ),
-            ADLocation(
-              id: LocationId.ad,
-              children: [
-                ADCLocation(id: LocationId.adc, children: []),
-              ],
-            ),
-          ],
-        ),
-      ],
-    ),
+    buildLocationTree: () {
+      return SplashLocation(
+        id: LocationId.splash,
+        children: [
+          ALocation(
+            id: LocationId.a,
+            children: [
+              ABLocation(
+                id: LocationId.ab,
+                children: [
+                  ABCLocation(id: LocationId.abc, children: []),
+                ],
+              ),
+              ADLocation(
+                id: LocationId.ad,
+                children: [
+                  ADCLocation(id: LocationId.adc, children: []),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+    },
     buildRootPages: (location, data) {
       if (location.id == LocationId.splash &&
           data.activeLocation.id == LocationId.splash) {

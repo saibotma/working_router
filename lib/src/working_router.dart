@@ -28,7 +28,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     ),
   );
 
-  final Location<ID> _locationTree;
+  Location<ID> _locationTree;
   final List<LocationGuardState> _guards = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
 
@@ -41,14 +41,15 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   /// oldData is null when the route from the OS is set for the first
   /// time at router start up.
   final BeforeRouting<ID>? _beforeRouting;
+  final Location<ID> Function() buildLocationTree;
 
   WorkingRouter({
-    required Location<ID> locationTree,
+    required this.buildLocationTree,
     required BuildPages<ID> buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     BeforeRouting<ID>? beforeRouting,
-  })  : _locationTree = locationTree,
+  })  : _locationTree = buildLocationTree(),
         _beforeRouting = beforeRouting {
     _rootDelegate = WorkingRouterDelegate<ID>(
       isRootDelegate: true,
@@ -77,6 +78,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   RouterDelegate<Uri> get routerDelegate => _rootDelegate;
 
   void refresh() {
+    _locationTree = buildLocationTree();
     [_rootDelegate, ..._nestedDelegates].forEach((it) => it.refresh());
   }
 
