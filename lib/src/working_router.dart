@@ -18,13 +18,15 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     return dataProvider!;
   }
 
+  final String? initialRoute;
   late final WorkingRouterDelegate<ID> _rootDelegate;
   final WorkingRouteInformationParser _informationParser =
       WorkingRouteInformationParser();
-  final RouteInformationProvider _informationProvider =
+  late final RouteInformationProvider _informationProvider =
       PlatformRouteInformationProvider(
     initialRouteInformation: RouteInformation(
-      location: WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+      location: initialRoute ??
+          WidgetsBinding.instance.platformDispatcher.defaultRouteName,
     ),
   );
 
@@ -44,6 +46,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   final Location<ID> Function() buildLocationTree;
 
   WorkingRouter({
+    required this.initialRoute,
     required this.buildLocationTree,
     required BuildPages<ID> buildRootPages,
     required Widget noContentWidget,

@@ -1,3 +1,4 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
@@ -12,27 +13,34 @@ import '../nested_screen.dart';
 import '../platform_modal/platform_modal_page.dart';
 import 'responsive.dart';
 
-void main() {
-  runApp(const MyApp());
+void main(List<String> arguments) {
+  runApp(MyApp(initialRoute: arguments.getOrNull(0)));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String? initialRoute;
+
+  const MyApp({required this.initialRoute, super.key});
 
   @override
   Widget build(BuildContext context) {
     return Responsive(
       builder: (context, size) {
-        return _DependentMaterialApp(screenSize: size);
+        return _DependentMaterialApp(
+          initialRoute: initialRoute,
+          screenSize: size,
+        );
       },
     );
   }
 }
 
 class _DependentMaterialApp extends StatefulWidget {
+  final String? initialRoute;
   final ScreenSize screenSize;
 
   const _DependentMaterialApp({
+    required this.initialRoute,
     required this.screenSize,
     Key? key,
   }) : super(key: key);
@@ -43,6 +51,7 @@ class _DependentMaterialApp extends StatefulWidget {
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
+    initialRoute: widget.initialRoute,
     noContentWidget: const Text("No content"),
     buildLocationTree: () {
       return SplashLocation(
