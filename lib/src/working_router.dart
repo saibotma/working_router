@@ -194,7 +194,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
       // We need to do this after rebuild as completed so that the user
       // can have access to the new router data.
       WidgetsFlutterBinding.ensureInitialized().addPostFrameCallback((_) {
-        _guardAfterUpdate(oldLocations: oldLocations, newLocations: locations);
+        _guardAfter(oldLocations: oldLocations, newLocations: locations);
       });
     }
   }
@@ -242,7 +242,8 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     );
   }
 
-  void _guardAfterUpdate({
+  /// Handles all guards starting with "after".
+  void _guardAfter({
     required IList<Location<ID>>? oldLocations,
     required IList<Location<ID>> newLocations,
   }) {
@@ -251,10 +252,14 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     }
     for (final guard in _guards) {
       final guardedLocation = NearestLocation.of<ID>(guard.context);
-      // afterUpdate
-      if (oldLocations!.contains(guardedLocation) &&
-          newLocations.contains(guardedLocation)) {
-        guard.widget.afterUpdate?.call();
+      if (oldLocations!.contains(guardedLocation)) {
+        if (newLocations.contains(guardedLocation)) {
+          guard.widget.afterUpdate?.call();
+        }
+      } else {
+        if (newLocations.contains(guardedLocation)) {
+          guard.widget.afterEnter?.call();
+        }
       }
     }
   }
