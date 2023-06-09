@@ -27,6 +27,15 @@ class WorkingRouterData<ID> {
     return isMatched((location) => ids.contains(location.id));
   }
 
+  ID? matchingId(Iterable<ID> ids) {
+    for (final location in locations) {
+      if (ids.contains(location.id)) {
+        return location.id;
+      }
+    }
+    return null;
+  }
+
   bool isTypeMatched<T>() {
     return isMatched((location) => location is T);
   }
