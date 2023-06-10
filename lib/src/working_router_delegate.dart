@@ -9,6 +9,7 @@ import 'working_router_data.dart';
 import 'working_router_data_provider.dart';
 
 typedef BuildPages<ID> = List<LocationPageSkeleton<ID>> Function(
+  WorkingRouter<ID> router,
   Location<ID> location,
   WorkingRouterData<ID> data,
 );
@@ -113,7 +114,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     if (_data != null) {
       _pages = _data!.locations
           .map((location) {
-            return buildPages(location, _data!).map((pageSkeleton) {
+            return buildPages(router, location, _data!).map((pageSkeleton) {
               return pageSkeleton.inflate(
                 data: _data!,
                 router: router,

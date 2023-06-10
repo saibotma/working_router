@@ -33,7 +33,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
         ],
       );
     },
-    buildRootPages: (location, data) {
+    buildRootPages: (_, location, data) {
       // Need to have one nested navigator for each tab, because otherwise
       // the same navigator (with the same global navigator key) would be
       // inside the IndexedStack which flutter does not allow.
@@ -59,24 +59,26 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
       builder: (context, child) {
         return StatePreservingScaffold(index: index, child: child);
       },
-      buildPages: (location, routerData) {
+      buildPages: (_, location, routerData) {
         // Return the correct tab page depending on the index.
         // Have to return the tab for the index, also when another index
         // is currently active, because also the "temporarily deactivated"
         // navigators will still be active in the IndexedStack.
-        if ((location is Tab1Location || location is Tab2Location) &&
+        if ((location is Tab1Location) &&
             index == 0) {
           return [tab1Page];
         }
-        if ((location is Tab1Location || location is Tab2Location) &&
+        if ((location is Tab2Location) &&
             index == 1) {
           return [tab2Page];
         }
-        return [];
+        return [emptyPage];
       },
     );
   }
 
+
+  final emptyPage = LocationPageSkeleton<String>(child: Placeholder());
   // Give each tab page a unique key, so that it does not get rebuilt
   // (and thus looses state) when switching between tabs. This is required,
   // because tab1Page will also be returned (above) when Tab2Location is active

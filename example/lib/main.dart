@@ -68,7 +68,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         ],
       );
     },
-    buildRootPages: (location, data) {
+    buildRootPages: (_, location, data) {
       if (location.id == LocationId.splash &&
           data.activeLocation.id == LocationId.splash) {
         return [splashPage];
@@ -137,7 +137,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final LocationPageSkeleton<LocationId> nestedPage =
       NestedLocationPageSkeleton<LocationId>(
     router: router,
-    buildPages: (location, topLocation) {
+    buildPages: (_, location, topLocation) {
       if (location is ABLocation ||
           location is ABCLocation ||
           location is ADLocation ||
