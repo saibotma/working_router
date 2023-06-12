@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import '../working_router.dart';
 
+/// A blueprint used by the router to insert a page built by [buildPage]
+/// displaying [child] into a navigator.
+///
+/// The key built by [buildKey] gets passed to [buildPage].
+///
+/// Does not hold state and thus can be reused.
 class LocationPageSkeleton<ID> {
   final Widget child;
   final Page<dynamic> Function(LocalKey? key, Widget child)? buildPage;
