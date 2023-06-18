@@ -16,11 +16,12 @@ typedef BuildPages<ID> = List<LocationPageSkeleton<ID>> Function(
 
 class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin {
+  @override
+  late final GlobalKey<NavigatorState> navigatorKey;
+
   final bool isRootDelegate;
   final WorkingRouter<ID> router;
   final BuildPages<ID> buildPages;
-  @override
-  late final GlobalKey<NavigatorState> navigatorKey;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
@@ -39,12 +40,13 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     this.noContentWidget,
     this.navigatorInitializingWidget,
     this.wrapNavigator,
+    String? debugLabel,
   }) : assert(
           isRootDelegate == (noContentWidget != null),
           "noContentWidget must be set for the root delegate, "
           "but must not be set for nested delegates.",
         ) {
-    navigatorKey = GlobalKey<NavigatorState>();
+    navigatorKey = GlobalKey<NavigatorState>(debugLabel: debugLabel);
     router.addNestedDelegate(this);
   }
 

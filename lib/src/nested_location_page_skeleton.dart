@@ -11,11 +11,15 @@ class NestedLocationPageSkeleton<ID> extends LocationPageSkeleton<ID> {
     this.builder,
     super.buildPage,
     super.buildKey,
+    String? debugLabel,
   }) : super(
           child: Builder(
             builder: (context) {
-              final nested =
-                  NestedRouting(router: router, buildPages: buildPages);
+              final nested = NestedRouting(
+                router: router,
+                buildPages: buildPages,
+                debugLabel: debugLabel,
+              );
               if (builder == null) {
                 return nested;
               }
