@@ -52,6 +52,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   })  : _locationTree = buildLocationTree(),
         _beforeRouting = beforeRouting {
     _rootDelegate = WorkingRouterDelegate<ID>(
+      debugLabel: "root",
       isRootDelegate: true,
       router: this,
       buildPages: buildRootPages,
