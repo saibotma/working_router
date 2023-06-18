@@ -135,7 +135,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   );
 
   late final LocationPageSkeleton<LocationId> nestedPage =
-      NestedLocationPageSkeleton<LocationId>(
+  NestedLocationPageSkeleton<LocationId>(
     router: router,
     buildPages: (_, location, topLocation) {
       if (location is ABLocation ||
@@ -154,7 +154,10 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         afterUpdate: () {
           print(
             "after update: "
-            "${WorkingRouter.of<LocationId>(context).data.queryParameters["afterUpdate"]}",
+                "${WorkingRouter
+                .of<LocationId>(context)
+                .data
+                .queryParameters["afterUpdate"]}",
           );
         },
         child: NestedScreen(child: child),
@@ -174,8 +177,8 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
           height: 300,
           child: Text(
             "${router.data.pathParameters["id"]}, "
-            "${router.data.queryParameters["b"]}, "
-            "${router.data.queryParameters["c"]}",
+                "${router.data.queryParameters["b"]}, "
+                "${router.data.queryParameters["c"]}",
           ),
         );
       },
@@ -192,8 +195,8 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
           height: 300,
           child: Text(
             "${router.data.pathParameters["id"]}, "
-            "${router.data.queryParameters["b"]}, "
-            "${router.data.queryParameters["c"]}",
+                "${router.data.queryParameters["b"]}, "
+                "${router.data.queryParameters["c"]}",
           ),
         );
       },
