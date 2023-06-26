@@ -1,4 +1,7 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/material.dart';
+
+import 'working_router_sailor.dart';
 
 abstract class Location<ID> {
   final ID? id;
@@ -94,11 +97,25 @@ abstract class Location<ID> {
     return IList();
   }
 
-  IMap<String, String> selectQueryParameters(IMap<String, String> source) {
+  /// Selects the query parameters required by this Location
+  /// from [currentQueryParameters].
+  ///
+  /// The result will be the query parameters of the route resulting from
+  /// [Navigator.pop] or [WorkingRouterSailor.popUntil].
+  IMap<String, String> selectQueryParameters(
+    IMap<String, String> currentQueryParameters,
+  ) {
     return IMap();
   }
 
-  IMap<String, String> selectPathParameters(IMap<String, String> source) {
+  /// Selects the query parameters required by this Location
+  /// from [currentPathParameters].
+  ///
+  /// The result will be the path parameters of the route resulting from
+  /// [Navigator.pop] or [WorkingRouterSailor.popUntil].
+  IMap<String, String> selectPathParameters(
+    IMap<String, String> currentPathParameters,
+  ) {
     return IMap();
   }
 

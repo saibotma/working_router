@@ -155,6 +155,27 @@ class WorkingRouter<ID>
     );
   }
 
+  @override
+  Future<void> popUntil(bool Function(Location<ID> location) match) async {
+    final reversedLocations = nullableData!.locations.reversed;
+    final index = reversedLocations.indexWhere(match);
+    if (index == -1) {
+      return;
+    }
+
+    final newLocations = reversedLocations.removeRange(0, index).reversed;
+    final newActiveLocation = newLocations.last;
+    await _routeTo(
+      locations: newLocations,
+      fallback: null,
+      pathParameters:
+          newActiveLocation.selectPathParameters(nullableData!.pathParameters),
+      queryParameters: newActiveLocation
+          .selectQueryParameters(nullableData!.queryParameters),
+      isRedirect: false,
+    );
+  }
+
   Future<void> _routeTo({
     required IList<Location<ID>> locations,
     required Uri? fallback,

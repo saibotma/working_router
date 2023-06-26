@@ -63,4 +63,9 @@ class WorkingRouterDataProvider<ID> extends InheritedWidget
   Future<void> routeToUriString(String uriString, {bool isRedirect = false}) {
     return _router.routeToUriString(uriString, isRedirect: isRedirect);
   }
+
+  @override
+  Future<void> popUntil(bool Function(Location<ID> location) match) {
+    return _router.popUntil(match);
+  }
 }

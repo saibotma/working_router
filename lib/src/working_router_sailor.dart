@@ -26,4 +26,10 @@ abstract class WorkingRouterSailor<ID> {
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
   });
+
+  /// Pops until [match] returns true.
+  /// Selects path and query parameters of the destination location
+  /// depending on how [Location.selectQueryParameters] and
+  /// [Location.selectPathParameters] are implemented.
+  Future<void> popUntil(bool Function(Location<ID> location) match);
 }

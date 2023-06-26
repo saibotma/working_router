@@ -135,7 +135,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   );
 
   late final LocationPageSkeleton<LocationId> nestedPage =
-  NestedLocationPageSkeleton<LocationId>(
+      NestedLocationPageSkeleton<LocationId>(
     router: router,
     buildPages: (_, location, topLocation) {
       if (location is ABLocation ||
@@ -154,10 +154,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         afterUpdate: () {
           print(
             "after update: "
-                "${WorkingRouter
-                .of<LocationId>(context)
-                .data
-                .queryParameters["afterUpdate"]}",
+            "${WorkingRouter.of<LocationId>(context).data.queryParameters["afterUpdate"]}",
           );
         },
         child: NestedScreen(child: child),
@@ -177,8 +174,8 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
           height: 300,
           child: Text(
             "${router.data.pathParameters["id"]}, "
-                "${router.data.queryParameters["b"]}, "
-                "${router.data.queryParameters["c"]}",
+            "${router.data.queryParameters["b"]}, "
+            "${router.data.queryParameters["c"]}",
           ),
         );
       },
@@ -195,8 +192,8 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
           height: 300,
           child: Text(
             "${router.data.pathParameters["id"]}, "
-                "${router.data.queryParameters["b"]}, "
-                "${router.data.queryParameters["c"]}",
+            "${router.data.queryParameters["b"]}, "
+            "${router.data.queryParameters["c"]}",
           ),
         );
       },
@@ -217,16 +214,30 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
                     width: 200,
                     height: 200,
                     color: Colors.white,
-                    child: MaterialButton(onPressed: () {
-                      Navigator.of(context).pop(true);
-                    }),
+                    child: MaterialButton(
+                      child: const Text("Press to allow pop."),
+                      onPressed: () {
+                        Navigator.of(context).pop(true);
+                      },
+                    ),
                   ),
                 );
               },
             );
             return result ?? false;
           },
-          child: Container(color: Colors.black, width: 300, height: 300),
+          child: Container(
+            color: Colors.green,
+            width: 300,
+            height: 300,
+            child: MaterialButton(
+              child: const Text("Press to pop to FallbackLocation."),
+              onPressed: () {
+                WorkingRouter.of<LocationId>(context)
+                    .popUntil((location) => location is FallbackLocation);
+              },
+            ),
+          ),
         );
       },
     ),
