@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import '../working_router.dart';
 
 class WorkingRouterDataProvider<ID> extends InheritedWidget
-    implements WorkingRouterCargoSailor<ID> {
+    implements WorkingRouterDataSailor<ID> {
   final WorkingRouter<ID> _router;
 
-  // Just pass the data, to know when to notify.
   @override
   final WorkingRouterData<ID> data;
 

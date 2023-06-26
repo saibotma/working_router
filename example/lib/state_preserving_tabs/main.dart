@@ -78,7 +78,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
   }
 
 
-  final emptyPage = LocationPageSkeleton<String>(child: Placeholder());
+  final emptyPage = LocationPageSkeleton<String>(child: const Placeholder());
   // Give each tab page a unique key, so that it does not get rebuilt
   // (and thus looses state) when switching between tabs. This is required,
   // because tab1Page will also be returned (above) when Tab2Location is active

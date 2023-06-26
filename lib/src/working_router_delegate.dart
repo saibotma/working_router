@@ -51,7 +51,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   @override
-  Uri? get currentConfiguration => router.data?.uri;
+  Uri? get currentConfiguration => router.nullableData?.uri;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +96,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         router: router,
         // Gets updated every time the routing changes, because then
         // this gets rebuilt.
-        data: router.data!,
+        data: router.nullableData!,
         child: child,
       );
     }

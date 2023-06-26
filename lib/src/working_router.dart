@@ -11,7 +11,8 @@ typedef BeforeRouting<ID> = Future<bool> Function(
   WorkingRouterData<ID> newData,
 );
 
-class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
+class WorkingRouter<ID>
+    implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
   static WorkingRouterDataProvider<ID> of<ID>(BuildContext context) {
     final WorkingRouterDataProvider<ID>? dataProvider = context
         .dependOnInheritedWidgetOfExactType<WorkingRouterDataProvider<ID>>();
@@ -61,8 +62,15 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     );
   }
 
+  /// This is mainly provided so that [WorkingRouter] can implement
+  /// [WorkingRouterDataSailor]. In almost all other cases [nullableData]
+  /// should be used.
+  @override
   // ignore: deprecated_member_use_from_same_package
-  WorkingRouterData<ID>? get data => _data;
+  WorkingRouterData<ID> get data => _data!;
+
+  // ignore: deprecated_member_use_from_same_package
+  WorkingRouterData<ID>? get nullableData => _data;
 
   @override
   BackButtonDispatcher? get backButtonDispatcher => RootBackButtonDispatcher();
@@ -133,13 +141,13 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
   }) async {
-    final relativeMatches = data!.locations.last.matchRelative(match);
+    final relativeMatches = nullableData!.locations.last.matchRelative(match);
     if (relativeMatches.isEmpty) {
       return;
     }
 
     await _routeTo(
-      locations: data!.locations.addAll(relativeMatches),
+      locations: nullableData!.locations.addAll(relativeMatches),
       fallback: null,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
@@ -179,7 +187,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
     );
 
     if (!isRedirect) {
-      if (!(await _beforeRouting?.call(this, data, newData) ?? true)) {
+      if (!(await _beforeRouting?.call(this, nullableData, newData) ?? true)) {
         return;
       }
 
@@ -188,7 +196,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
       }
     }
 
-    final oldLocations = data?.locations;
+    final oldLocations = nullableData?.locations;
     _updateData(newData);
 
     if (!isRedirect) {
@@ -201,11 +209,11 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
   }
 
   Future<void> pop() async {
-    final newLocations = data!.locations.removeLast();
+    final newLocations = nullableData!.locations.removeLast();
     final newPathParameters =
-        newLocations.last.selectPathParameters(data!.pathParameters);
+        newLocations.last.selectPathParameters(nullableData!.pathParameters);
     final newQueryParameters =
-        newLocations.last.selectQueryParameters(data!.queryParameters);
+        newLocations.last.selectQueryParameters(nullableData!.queryParameters);
 
     await _routeTo(
       locations: newLocations,
@@ -267,7 +275,7 @@ class WorkingRouter<ID> implements RouterConfig<Uri>, WorkingRouterSailor<ID> {
 
   Future<bool> _guardBeforeLeave(IList<Location<ID>> newLocations) async {
     for (final guard in _guards) {
-      final currentLocations = data!.locations;
+      final currentLocations = nullableData!.locations;
       final guardedLocation = NearestLocation.of<ID>(guard.context);
 
       // beforeLeave
