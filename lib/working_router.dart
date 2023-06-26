@@ -6,6 +6,7 @@ library working_router;
 export 'src/location.dart';
 export 'src/location_page.dart';
 export 'src/location_page_skeleton.dart';
+export 'src/location_tag.dart';
 export 'src/nested_location_page_skeleton.dart';
 export 'src/widgets/location_guard.dart';
 export 'src/widgets/nearest_location.dart';

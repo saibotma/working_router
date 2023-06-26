@@ -50,6 +50,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         children: [
           ALocation(
             id: LocationId.a,
+            tags: [PopUntilTarget()],
             children: [
               ABLocation(
                 id: LocationId.ab,
@@ -234,7 +235,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
               child: const Text("Press to pop to FallbackLocation."),
               onPressed: () {
                 WorkingRouter.of<LocationId>(context)
-                    .popUntil((location) => location is FallbackLocation);
+                    .popUntil((location) => location.hasTag(PopUntilTarget()));
               },
             ),
           ),
@@ -256,3 +257,5 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     return MaterialApp.router(routerConfig: router);
   }
 }
+
+class PopUntilTarget extends LocationTag {}

@@ -1,22 +1,28 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 
+import 'location_tag.dart';
 import 'working_router_sailor.dart';
 
 abstract class Location<ID> {
   final ID? id;
   final IList<Location<ID>> children;
+  final ISet<LocationTag> tags;
 
   Location({
     this.id,
     Iterable<Location<ID>> children = const [],
-  }) : this.children = children.toIList();
+    Iterable<LocationTag> tags = const [],
+  })  : this.children = children.toIList(),
+        this.tags = tags.toISet();
 
   String get path;
 
   late final Uri _uri = Uri.parse(path);
 
   List<String> get pathSegments => _uri.pathSegments;
+
+  bool hasTag(LocationTag tag) => tags.contains(tag);
 
   Tuple2<IList<Location<ID>>, IMap<String, String>> match(
       IList<String> pathSegments) {
