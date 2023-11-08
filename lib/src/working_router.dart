@@ -259,15 +259,20 @@ class WorkingRouter<ID>
     required IMap<String, String> queryParameters,
   }) {
     return Uri(
-      pathSegments: locations
-          .map((location) => location.pathSegments)
-          .flattened
-          .map((pathSegment) {
-        if (pathSegment.startsWith(":")) {
-          return pathParameters[pathSegment.replaceRange(0, 1, "")]!;
-        }
-        return pathSegment;
-      }),
+      // Need to build the path by hand and can not use pathSegments,
+      // because pathSegments does not add a leading slash. However in order
+      // to be consistent with the information parser and to have a proper
+      // representation for the root "/" a leading slash has to be added.
+      path: "/" +
+          locations
+              .map((location) => location.pathSegments)
+              .flattened
+              .map((pathSegment) {
+            if (pathSegment.startsWith(":")) {
+              return pathParameters[pathSegment.replaceRange(0, 1, "")]!;
+            }
+            return pathSegment;
+          }).join("/"),
       queryParameters: queryParameters.isEmpty ? null : queryParameters.unlock,
     );
   }
