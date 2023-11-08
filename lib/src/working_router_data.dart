@@ -116,4 +116,9 @@ class WorkingRouterData<ID> {
         pathParameters.hashCode ^
         queryParameters.hashCode;
   }
+
+  @override
+  String toString() {
+    return 'WorkingRouterData{uri: $uri, locations: $locations, pathParameters: $pathParameters, queryParameters: $queryParameters}';
+  }
 }
