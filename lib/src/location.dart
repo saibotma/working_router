@@ -129,17 +129,27 @@ abstract class Location<ID> {
     return null;
   }
 
+  /// The default equality ensures that a location
+  /// can be used as a [Page] key.
+  /// Therefore children and tags are not relevant,
+  /// because they may change during runtime, and should not
+  /// cause a page rebuild.
+  /// Two locations with null id are not considered equal, unless
+  /// they are the same instance add an id, when they should
+  /// be considered equal, because the corresponding pages should
+  /// not be recreated.
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is Location &&
             runtimeType == other.runtimeType &&
-            id == other.id &&
-            children == other.children;
+            id != null &&
+            other.id != null &&
+            id == other.id;
   }
 
   @override
-  int get hashCode => id.hashCode ^ children.hashCode;
+  int get hashCode => id.hashCode;
 }
 
 Map<String, String>? startsWith(
