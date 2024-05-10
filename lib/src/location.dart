@@ -24,7 +24,7 @@ abstract class Location<ID> {
 
   bool hasTag(LocationTag tag) => tags.contains(tag);
 
-  Tuple2<IList<Location<ID>>, IMap<String, String>> match(
+  (IList<Location<ID>>, IMap<String, String>) match(
       IList<String> pathSegments) {
     final List<Location<ID>> matches = [];
     final Map<String, String> pathParameters = {};
@@ -40,19 +40,19 @@ abstract class Location<ID> {
           : pathSegments.sublist(thisPathSegments.length);
       for (final child in children) {
         final childMatches = child.match(nextPathSegments);
-        if (childMatches.first.isNotEmpty) {
-          matches.addAll(childMatches.first);
-          pathParameters.addAll(childMatches.second.unlock);
+        if (childMatches.$1.isNotEmpty) {
+          matches.addAll(childMatches.$1);
+          pathParameters.addAll(childMatches.$2.unlock);
           break;
         }
       }
 
       if (matches.length == 1 && nextPathSegments.isNotEmpty) {
-        return Tuple2(IList(), IMap());
+        return (IList(), IMap());
       }
     }
 
-    return Tuple2(matches.toIList(), pathParameters.toIMap());
+    return (matches.toIList(), pathParameters.toIMap());
   }
 
   IList<Location<ID>> matchId(ID id) {

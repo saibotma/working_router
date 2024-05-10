@@ -105,8 +105,8 @@ class WorkingRouter<ID>
     bool isRedirect = false,
   }) async {
     final matchResult = _locationTree.match(uri.pathSegments.toIList());
-    final matches = matchResult.first;
-    final pathParameters = matchResult.second;
+    final matches = matchResult.$1;
+    final pathParameters = matchResult.$2;
 
     await _routeTo(
       locations: matches,
