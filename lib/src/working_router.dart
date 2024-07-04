@@ -50,6 +50,7 @@ class WorkingRouter<ID>
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     BeforeRouting<ID>? beforeRouting,
+    List<NavigatorObserver> navigatorObservers = const [],
   })  : _locationTree = buildLocationTree(),
         _beforeRouting = beforeRouting {
     _rootDelegate = WorkingRouterDelegate<ID>(
@@ -59,6 +60,7 @@ class WorkingRouter<ID>
       buildPages: buildRootPages,
       noContentWidget: noContentWidget,
       wrapNavigator: wrapNavigator,
+      navigatorObservers: navigatorObservers,
     );
   }
 

@@ -1,3 +1,4 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 
 import '../../working_router.dart';
@@ -6,11 +7,13 @@ class NestedRouting<ID> extends StatefulWidget {
   final WorkingRouter<ID> router;
   final BuildPages<ID> buildPages;
   final String? debugLabel;
+  final List<NavigatorObserver> navigatorObservers;
 
   const NestedRouting({
     required this.router,
     required this.buildPages,
     this.debugLabel,
+    this.navigatorObservers = const [],
     Key? key,
   }) : super(key: key);
 
@@ -24,6 +27,7 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
     router: widget.router,
     buildPages: widget.buildPages,
     debugLabel: widget.debugLabel,
+    navigatorObservers: widget.navigatorObservers.toList(),
   );
 
   @override

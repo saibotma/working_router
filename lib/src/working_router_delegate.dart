@@ -25,6 +25,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
+  final List<NavigatorObserver> navigatorObservers;
 
   List<Page<dynamic>>? _pages;
 
@@ -40,6 +41,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     this.noContentWidget,
     this.navigatorInitializingWidget,
     this.wrapNavigator,
+    this.navigatorObservers = const [],
     String? debugLabel,
   }) : assert(
           isRootDelegate == (noContentWidget != null),
@@ -86,6 +88,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               Future<void>.delayed(Duration.zero).then((_) => router.pop());
               return false;
             },
+            observers: navigatorObservers,
           ),
         );
       },

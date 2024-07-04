@@ -12,6 +12,7 @@ class NestedLocationPageSkeleton<ID> extends LocationPageSkeleton<ID> {
     super.buildPage,
     super.buildKey,
     String? debugLabel,
+    List<NavigatorObserver> navigatorObservers = const [],
   }) : super(
           child: Builder(
             builder: (context) {
@@ -19,6 +20,7 @@ class NestedLocationPageSkeleton<ID> extends LocationPageSkeleton<ID> {
                 router: router,
                 buildPages: buildPages,
                 debugLabel: debugLabel,
+                navigatorObservers: navigatorObservers,
               );
               if (builder == null) {
                 return nested;

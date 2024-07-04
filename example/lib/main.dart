@@ -43,6 +43,9 @@ class _DependentMaterialApp extends StatefulWidget {
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
+    navigatorObservers: [
+      MyNavigatorObserver("Root"),
+    ],
     noContentWidget: const Text("No content"),
     buildLocationTree: () {
       return SplashLocation(
@@ -137,6 +140,9 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
 
   late final LocationPageSkeleton<LocationId> nestedPage =
       NestedLocationPageSkeleton<LocationId>(
+        navigatorObservers: [
+          MyNavigatorObserver("Nested"),
+        ],
     router: router,
     buildPages: (_, location, topLocation) {
       if (location is ABLocation ||
@@ -259,3 +265,40 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
 }
 
 class PopUntilTarget extends LocationTag {}
+
+// TODO(saibotma): Print route names.
+class MyNavigatorObserver extends NavigatorObserver {
+  final String debugName;
+
+  MyNavigatorObserver(this.debugName);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    print('$debugName - didPush: ${route.settings.name}');
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    print('$debugName - didPop: ${route.settings.name}');
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    print('$debugName - didRemove: ${route.settings}');
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    print('$debugName - didReplace: ${oldRoute?.settings.name} with ${newRoute?.settings.name}');
+  }
+
+  @override
+  void didStartUserGesture(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    print('$debugName - didStartUserGesture: ${route.settings.name}');
+  }
+
+  @override
+  void didStopUserGesture() {
+    print('$debugName - didStopUserGesture');
+  }
+}
