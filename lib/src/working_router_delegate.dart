@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -83,8 +85,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               // Need to execute in new cycle, because otherwise would try
               // to push onto navigator while the pop is still running
               // causing debug lock in navigator pop to assert false.
-              Future<void>.delayed(Duration.zero)
-                  .then((_) => router.routeBack());
+              // Schedule a Microtask instead of a Future, because
+              // go_router also does it like this.
+              scheduleMicrotask(() async {
+                await router.routeBack();
+              });
               return false;
             },
           ),
