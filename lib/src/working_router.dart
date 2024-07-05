@@ -156,7 +156,25 @@ class WorkingRouter<ID>
   }
 
   @override
-  Future<void> popUntil(bool Function(Location<ID> location) match) async {
+  Future<void> routeBack() async {
+    final newLocations = nullableData!.locations.removeLast();
+    final newPathParameters =
+        newLocations.last.selectPathParameters(nullableData!.pathParameters);
+    final newQueryParameters =
+        newLocations.last.selectQueryParameters(nullableData!.queryParameters);
+
+    await _routeTo(
+      locations: newLocations,
+      fallback: null,
+      queryParameters: newQueryParameters,
+      pathParameters: newPathParameters,
+      isRedirect: false,
+    );
+  }
+
+  @override
+  Future<void> routeBackUntil(
+      bool Function(Location<ID> location) match) async {
     final reversedLocations = nullableData!.locations.reversed;
     final index = reversedLocations.indexWhere(match);
     if (index == -1) {
@@ -227,22 +245,6 @@ class WorkingRouter<ID>
         _guardAfter(oldLocations: oldLocations, newLocations: locations);
       });
     }
-  }
-
-  Future<void> pop() async {
-    final newLocations = nullableData!.locations.removeLast();
-    final newPathParameters =
-        newLocations.last.selectPathParameters(nullableData!.pathParameters);
-    final newQueryParameters =
-        newLocations.last.selectQueryParameters(nullableData!.queryParameters);
-
-    await _routeTo(
-      locations: newLocations,
-      fallback: null,
-      queryParameters: newQueryParameters,
-      pathParameters: newPathParameters,
-      isRedirect: false,
-    );
   }
 
   void addGuard(LocationGuardState guard) {

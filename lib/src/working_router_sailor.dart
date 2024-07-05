@@ -27,9 +27,12 @@ abstract class WorkingRouterSailor<ID> {
     bool isRedirect = false,
   });
 
-  /// Pops until [match] returns true.
+  // Routes back one to the previous location.
+  Future<void> routeBack();
+
+  /// Routes back until [match] returns true.
   /// Selects path and query parameters of the destination location
   /// depending on how [Location.selectQueryParameters] and
   /// [Location.selectPathParameters] are implemented.
-  Future<void> popUntil(bool Function(Location<ID> location) match);
+  Future<void> routeBackUntil(bool Function(Location<ID> location) match);
 }

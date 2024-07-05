@@ -107,7 +107,8 @@ abstract class Location<ID> {
   /// from [currentQueryParameters].
   ///
   /// The result will be the query parameters of the route resulting from
-  /// [Navigator.pop] or [WorkingRouterSailor.popUntil].
+  /// [Navigator.pop], [WorkingRouterSailor.routeBack]
+  /// or [WorkingRouterSailor.routeBackUntil].
   IMap<String, String> selectQueryParameters(
     IMap<String, String> currentQueryParameters,
   ) {
@@ -118,7 +119,8 @@ abstract class Location<ID> {
   /// from [currentPathParameters].
   ///
   /// The result will be the path parameters of the route resulting from
-  /// [Navigator.pop] or [WorkingRouterSailor.popUntil].
+  /// [Navigator.pop], [WorkingRouterSailor.routeBack]
+  /// or [WorkingRouterSailor.routeBackUntil].
   IMap<String, String> selectPathParameters(
     IMap<String, String> currentPathParameters,
   ) {

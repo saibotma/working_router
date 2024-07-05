@@ -83,7 +83,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               // Need to execute in new cycle, because otherwise would try
               // to push onto navigator while the pop is still running
               // causing debug lock in navigator pop to assert false.
-              Future<void>.delayed(Duration.zero).then((_) => router.pop());
+              Future<void>.delayed(Duration.zero)
+                  .then((_) => router.routeBack());
               return false;
             },
           ),

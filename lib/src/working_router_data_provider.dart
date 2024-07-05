@@ -65,7 +65,10 @@ class WorkingRouterDataProvider<ID> extends InheritedWidget
   }
 
   @override
-  Future<void> popUntil(bool Function(Location<ID> location) match) {
-    return _router.popUntil(match);
+  Future<void> routeBack() => _router.routeBack();
+
+  @override
+  Future<void> routeBackUntil(bool Function(Location<ID> location) match) {
+    return _router.routeBackUntil(match);
   }
 }
