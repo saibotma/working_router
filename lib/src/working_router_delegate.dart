@@ -42,13 +42,15 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     this.noContentWidget,
     this.navigatorInitializingWidget,
     this.wrapNavigator,
+    GlobalKey<NavigatorState>? navigatorKey,
     String? debugLabel,
   }) : assert(
           isRootDelegate == (noContentWidget != null),
           "noContentWidget must be set for the root delegate, "
           "but must not be set for nested delegates.",
         ) {
-    navigatorKey = GlobalKey<NavigatorState>(debugLabel: debugLabel);
+    this.navigatorKey =
+        navigatorKey ?? GlobalKey<NavigatorState>(debugLabel: debugLabel);
     router.addNestedDelegate(this);
   }
 
