@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../working_router.dart';
+import 'inherited_working_router_data.dart';
 
 /// A blueprint used by the router to insert a page built by [buildPage]
 /// displaying [child] into a navigator.
@@ -19,9 +20,8 @@ class LocationPageSkeleton<ID> {
     required WorkingRouterData<ID> data,
     required Location<ID> location,
   }) {
-    final wrappedChild = WorkingRouterDataProvider(
-      router: router,
-      // Require an extra data provider for each location, because
+    final wrappedChild = InheritedWorkingRouterData(
+      // Require an extra inherited widget for each location, because
       // the widget below should have access to old router data, when
       // it animates out of view because of a routing event.
       data: data,

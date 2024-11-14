@@ -4,11 +4,12 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'inherited_working_router_data.dart';
 import 'location.dart';
 import 'location_page_skeleton.dart';
+import 'inherited_working_router.dart';
 import 'working_router.dart';
 import 'working_router_data.dart';
-import 'working_router_data_provider.dart';
 
 typedef BuildPages<ID> = List<LocationPageSkeleton<ID>> Function(
   WorkingRouter<ID> router,
@@ -100,12 +101,14 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     );
 
     if (isRootDelegate) {
-      return WorkingRouterDataProvider(
-        router: router,
-        // Gets updated every time the routing changes, because then
-        // this gets rebuilt.
-        data: router.nullableData!,
-        child: child,
+      return InheritedWorkingRouter(
+        sailor: router,
+        child: InheritedWorkingRouterData(
+          // Gets updated every time the routing changes, because then
+          // this gets rebuilt.
+          data: router.nullableData!,
+          child: child,
+        ),
       );
     }
 

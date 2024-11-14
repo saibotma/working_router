@@ -1,6 +1,8 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/material.dart';
 
 import '../working_router.dart';
+import 'inherited_working_router_data.dart';
 
 class WorkingRouterData<ID> {
   final Uri uri;
@@ -16,6 +18,12 @@ class WorkingRouterData<ID> {
     required this.pathParameters,
     required this.queryParameters,
   });
+
+  static WorkingRouterData<ID> of<ID>(BuildContext context) {
+    final dataProvider = context
+        .dependOnInheritedWidgetOfExactType<InheritedWorkingRouterData<ID>>();
+    return dataProvider!.data;
+  }
 
   Location<ID> get activeLocation => locations.last;
 

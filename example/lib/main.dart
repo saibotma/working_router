@@ -155,7 +155,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         afterUpdate: () {
           print(
             "after update: "
-            "${WorkingRouter.of<LocationId>(context).data.queryParameters["afterUpdate"]}",
+            "${WorkingRouterData.of<LocationId>(context).queryParameters["afterUpdate"]}",
           );
         },
         child: NestedScreen(child: child),
@@ -168,15 +168,15 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
         PlatformModalPage<dynamic>(key: key, child: child),
     child: Builder(
       builder: (context) {
-        final router = WorkingRouter.of<LocationId>(context);
+        final data = WorkingRouterData.of<LocationId>(context);
         return Container(
           color: Colors.white,
           width: 300,
           height: 300,
           child: Text(
-            "${router.data.pathParameters["id"]}, "
-            "${router.data.queryParameters["b"]}, "
-            "${router.data.queryParameters["c"]}",
+            "${data.pathParameters["id"]}, "
+            "${data.queryParameters["b"]}, "
+            "${data.queryParameters["c"]}",
           ),
         );
       },
@@ -186,15 +186,15 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   final fullScreenDialogPage = LocationPageSkeleton<LocationId>(
     child: Builder(
       builder: (context) {
-        final router = WorkingRouter.of<LocationId>(context);
+        final data = WorkingRouterData.of<LocationId>(context);
         return Container(
           color: Colors.white,
           width: 300,
           height: 300,
           child: Text(
-            "${router.data.pathParameters["id"]}, "
-            "${router.data.queryParameters["b"]}, "
-            "${router.data.queryParameters["c"]}",
+            "${data.pathParameters["id"]}, "
+            "${data.queryParameters["b"]}, "
+            "${data.queryParameters["c"]}",
           ),
         );
       },

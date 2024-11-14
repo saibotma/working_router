@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import '../working_router.dart';
+import 'inherited_working_router.dart';
 
 typedef BeforeRouting<ID> = Future<bool> Function(
   WorkingRouter<ID> router,
@@ -13,10 +14,14 @@ typedef BeforeRouting<ID> = Future<bool> Function(
 
 class WorkingRouter<ID>
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
-  static WorkingRouterDataProvider<ID> of<ID>(BuildContext context) {
-    final WorkingRouterDataProvider<ID>? dataProvider = context
-        .dependOnInheritedWidgetOfExactType<WorkingRouterDataProvider<ID>>();
-    return dataProvider!;
+  /// Does not notify widgets at all.
+  /// This is meant to be used for one off calls to the router,
+  /// and not rebuilding a widget based router data changes.
+  /// Use [WorkingRouterData.of] for this instead.
+  static WorkingRouterDataSailor<ID> of<ID>(BuildContext context) {
+    final inheritedWidget = context
+        .dependOnInheritedWidgetOfExactType<InheritedWorkingRouter<ID>>();
+    return inheritedWidget!.sailor;
   }
 
   late final WorkingRouterDelegate<ID> _rootDelegate;
