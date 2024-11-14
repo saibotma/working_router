@@ -234,8 +234,8 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
             child: MaterialButton(
               child: const Text("Press to pop to FallbackLocation."),
               onPressed: () {
-                WorkingRouter.of<LocationId>(context)
-                    .popUntil((location) => location.hasTag(PopUntilTarget()));
+                WorkingRouter.of<LocationId>(context).routeBackUntil(
+                    (location) => location.hasTag(PopUntilTarget()));
               },
             ),
           ),
