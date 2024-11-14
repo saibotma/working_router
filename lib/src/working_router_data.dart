@@ -20,9 +20,18 @@ class WorkingRouterData<ID> {
   });
 
   static WorkingRouterData<ID> of<ID>(BuildContext context) {
-    final dataProvider = context
-        .dependOnInheritedWidgetOfExactType<InheritedWorkingRouterData<ID>>();
-    return dataProvider!.data;
+    final data = InheritedModel.inheritFrom<InheritedWorkingRouterData<ID>>(
+      context,
+    );
+    return data!.data;
+  }
+
+  static Slice ofSliced<ID, Slice>(
+      BuildContext context, Slice Function(WorkingRouterData<ID>) slice) {
+    final data = InheritedModel.inheritFrom<InheritedWorkingRouterData<ID>>(
+        context,
+        aspect: (dynamic data) => slice(data as WorkingRouterData<ID>));
+    return slice(data!.data);
   }
 
   Location<ID> get activeLocation => locations.last;
