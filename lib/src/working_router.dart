@@ -294,7 +294,9 @@ class WorkingRouter<ID>
     if (oldLocations?.isEmpty ?? true) {
       return;
     }
-    for (final guard in _guards) {
+    // Get guards in reverse order so that the last added one
+    // (i.e., the innermost LocationGuard) is called first.
+    for (final guard in _guards.reversed) {
       final guardedLocation = NearestLocation.of<ID>(guard.context);
       if (oldLocations!.contains(guardedLocation)) {
         if (newLocations.contains(guardedLocation)) {
@@ -309,16 +311,23 @@ class WorkingRouter<ID>
   }
 
   Future<bool> _guardBeforeLeave(IList<Location<ID>> newLocations) async {
-    for (final guard in _guards) {
+    // Get guards in reverse order so that the last added one
+    // (i.e., the innermost LocationGuard) is called first.
+    for (final guard in _guards.reversed) {
+      final context = guard.context;
       final currentLocations = nullableData!.locations;
-      final guardedLocation = NearestLocation.of<ID>(guard.context);
+      if (context.mounted) {
+        final guardedLocation = NearestLocation.of<ID>(context);
 
-      // beforeLeave
-      if (currentLocations.contains(guardedLocation) &&
-          !newLocations.contains(guardedLocation)) {
-        if (!(await guard.widget.beforeLeave?.call() ?? true)) {
-          return true;
+        // beforeLeave
+        if (currentLocations.contains(guardedLocation) &&
+            !newLocations.contains(guardedLocation)) {
+          if (!(await guard.widget.beforeLeave?.call() ?? true)) {
+            return true;
+          }
         }
+      } else {
+        return true;
       }
     }
     return false;
