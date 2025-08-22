@@ -182,7 +182,10 @@ class WorkingRouter<ID>
   @override
   Future<void> routeBackUntil(
       bool Function(Location<ID> location) match) async {
-    final reversedLocations = nullableData!.locations.reversed;
+    // Remove the last, because it should at least route back one location
+    // when a match exists and not stay at the current location,
+    // when it matches.
+    final reversedLocations = nullableData!.locations.removeLast().reversed;
     final index = reversedLocations.indexWhere(match);
     if (index == -1) {
       return;
