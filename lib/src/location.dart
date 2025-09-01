@@ -18,6 +18,8 @@ abstract class Location<ID> {
 
   String get path;
 
+  bool get shouldBeSkippedOnRouteBack => false;
+
   late final Uri _uri = Uri.parse(path);
 
   List<String> get pathSegments => _uri.pathSegments;
