@@ -165,7 +165,7 @@ class WorkingRouter<ID>
   @override
   Future<void> routeBack() async {
     var newLocations = nullableData!.locations.removeLast();
-    while (!newLocations.last.shouldBeSkippedOnRouteBack) {
+    while (newLocations.last.shouldBeSkippedOnRouteBack) {
       newLocations = newLocations.removeLast();
     }
     final newPathParameters =
