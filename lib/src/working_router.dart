@@ -145,8 +145,6 @@ class WorkingRouter<ID>
   Future<void> slideIn(
     ID id, {
     required ID afterId,
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
   }) async {
     await _routeTo(
@@ -154,8 +152,8 @@ class WorkingRouter<ID>
         return location.runtimeType == nullableData!.locations.last.runtimeType;
       }),
       fallback: null,
-      pathParameters: pathParameters,
-      queryParameters: queryParameters,
+      pathParameters: nullableData!.pathParameters,
+      queryParameters: nullableData!.queryParameters,
       isRedirect: isRedirect,
     );
   }

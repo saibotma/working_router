@@ -23,8 +23,6 @@ abstract class WorkingRouterSailor<ID> {
   Future<void> slideIn(
     ID id, {
     required ID afterId,
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
   });
 
