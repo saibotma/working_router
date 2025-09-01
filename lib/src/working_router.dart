@@ -147,10 +147,15 @@ class WorkingRouter<ID>
     required ID afterId,
     bool isRedirect = false,
   }) async {
+    final idMatches = _locationTree.matchId(id);
+    final relativeMatches = idMatches.last.matchRelative((location) =>
+        location.runtimeType == nullableData!.locations.last.runtimeType);
+    if (relativeMatches.isEmpty) {
+      return;
+    }
+
     await _routeTo(
-      locations: _locationTree.matchId(id).last.matchRelative((location) {
-        return location.runtimeType == nullableData!.locations.last.runtimeType;
-      }),
+      locations: _locationTree.matchId(id).addAll(relativeMatches),
       fallback: null,
       pathParameters: nullableData!.pathParameters,
       queryParameters: nullableData!.queryParameters,
