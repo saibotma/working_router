@@ -141,6 +141,26 @@ class WorkingRouter<ID>
     );
   }
 
+  Future<void> slideIn(
+    ID id, {
+    required ID afterId,
+    IMap<String, String> pathParameters = const IMapConst({}),
+    IMap<String, String> queryParameters = const IMapConst({}),
+    bool isRedirect = false,
+  }) async {
+    final afterIdIndex =
+        nullableData!.locations.indexWhere((it) => it.id == afterId);
+    await _routeTo(
+      locations: _locationTree
+          .matchId(id)
+          .addAll(nullableData!.locations.sublist(afterIdIndex + 1)),
+      fallback: null,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+      isRedirect: isRedirect,
+    );
+  }
+
   @override
   Future<void> routeToRelative(
     bool Function(Location<ID> location) match, {
