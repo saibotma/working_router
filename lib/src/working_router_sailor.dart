@@ -22,7 +22,6 @@ abstract class WorkingRouterSailor<ID> {
 
   Future<void> slideIn(
     ID id, {
-    required ID afterId,
     bool isRedirect = false,
   });
 

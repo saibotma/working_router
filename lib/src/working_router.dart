@@ -144,10 +144,9 @@ class WorkingRouter<ID>
   @override
   Future<void> slideIn(
     ID id, {
-    required ID afterId,
     bool isRedirect = false,
   }) async {
-    final idMatches = _locationTree.matchId(afterId);
+    final idMatches = _locationTree.matchId(id);
     final relativeMatches = idMatches.last.matchRelative((location) =>
         location.runtimeType == nullableData!.locations.last.runtimeType);
 
