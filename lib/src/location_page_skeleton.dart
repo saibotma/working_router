@@ -3,19 +3,28 @@ import 'package:flutter/material.dart';
 import '../working_router.dart';
 import 'inherited_working_router_data.dart';
 
+abstract interface class BaseLocationPageSkeleton<ID> {
+  LocationPage inflate({
+    required WorkingRouter<ID> router,
+    required WorkingRouterData<ID> data,
+    required Location<ID> location,
+  });
+}
+
 /// A blueprint used by the router to insert a page built by [buildPage]
 /// displaying [child] into a navigator.
 ///
 /// The key built by [buildKey] gets passed to [buildPage].
 ///
 /// Does not hold state and thus can be reused.
-class LocationPageSkeleton<ID> {
+class LocationPageSkeleton<ID> implements BaseLocationPageSkeleton<ID> {
   final Widget child;
   final Page<dynamic> Function(LocalKey? key, Widget child)? buildPage;
   final LocalKey Function(Location<ID> location)? buildKey;
 
   LocationPageSkeleton({required this.child, this.buildPage, this.buildKey});
 
+  @override
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
@@ -52,7 +61,7 @@ class LocationPageSkeleton<ID> {
   }
 }
 
-class LocationPageBuilderSkeleton<ID> {
+class LocationPageBuilderSkeleton<ID> implements BaseLocationPageSkeleton<ID> {
   final Widget Function(BuildContext, WorkingRouterData<ID> data) buildChild;
   final Page<dynamic> Function(LocalKey? key, Widget child)? buildPage;
   final LocalKey Function(Location<ID> location)? buildKey;
@@ -63,6 +72,7 @@ class LocationPageBuilderSkeleton<ID> {
     this.buildKey,
   });
 
+  @override
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
