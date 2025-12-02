@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+
 import '../working_router.dart';
 import 'inherited_working_router.dart';
 
@@ -160,22 +161,23 @@ class WorkingRouter<ID>
   }
 
   @override
-  Future<void> routeToRelative(
+  Future<void> routeToChild(
     bool Function(Location<ID> location) match, {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
   }) async {
-    final relativeMatches = nullableData!.locations.last.matchRelative(match);
+    final data = nullableData!;
+    final relativeMatches = data.locations.last.matchRelative(match);
     if (relativeMatches.isEmpty) {
       return;
     }
 
     await _routeTo(
-      locations: nullableData!.locations.addAll(relativeMatches),
+      locations: data.locations.addAll(relativeMatches),
       fallback: null,
-      pathParameters: pathParameters,
-      queryParameters: queryParameters,
+      pathParameters: data.pathParameters.addAll(pathParameters),
+      queryParameters: data.queryParameters.addAll(queryParameters),
       isRedirect: isRedirect,
     );
   }

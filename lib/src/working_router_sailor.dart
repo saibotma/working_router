@@ -25,7 +25,15 @@ abstract class WorkingRouterSailor<ID> {
     bool isRedirect = false,
   });
 
-  Future<void> routeToRelative(
+  /// Routes to the first child for which [match] returns
+  /// true.
+  ///
+  /// Reuses the path parameters and query parameters
+  /// from the parent and extends them with [pathParameters]
+  /// and [queryParameters], respectively. In case the same parameter
+  /// is both in the parent parameters and in the passed in parameters
+  /// the passed in parameter overrides the parent parameter.
+  Future<void> routeToChild(
     bool Function(Location<ID> location) match, {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
