@@ -61,9 +61,14 @@ class LocationPageSkeleton<ID> implements BaseLocationPageSkeleton<ID> {
   }
 }
 
+typedef LocationChildBuilder<ID> = Widget Function(
+    BuildContext, WorkingRouterData<ID> data);
+typedef LocationPageBuilder = Page<dynamic> Function(
+    LocalKey? key, Widget child);
+
 class LocationPageBuilderSkeleton<ID> implements BaseLocationPageSkeleton<ID> {
-  final Widget Function(BuildContext, WorkingRouterData<ID> data) buildChild;
-  final Page<dynamic> Function(LocalKey? key, Widget child)? buildPage;
+  final LocationChildBuilder<ID> buildChild;
+  final LocationPageBuilder? buildPage;
   final LocalKey Function(Location<ID> location)? buildKey;
 
   LocationPageBuilderSkeleton({
