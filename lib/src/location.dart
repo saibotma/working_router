@@ -78,6 +78,7 @@ abstract class Location<ID> {
   IList<Location<ID>> matchRelative(
     bool Function(Location<ID> location) matches,
   ) {
+    // todo: improve this by making id breadth-first instead of depth-first
     for (final child in children) {
       final childMatches = child._matchRelative(matches);
       if (childMatches.isNotEmpty) {

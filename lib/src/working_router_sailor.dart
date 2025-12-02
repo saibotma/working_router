@@ -25,7 +25,7 @@ abstract class WorkingRouterSailor<ID> {
     bool isRedirect = false,
   });
 
-  /// Routes to the first child for which [match] returns
+  /// Routes to the first child for which [predicate] returns
   /// true.
   ///
   /// Reuses the path parameters and query parameters
@@ -33,8 +33,14 @@ abstract class WorkingRouterSailor<ID> {
   /// and [queryParameters], respectively. In case the same parameter
   /// is both in the parent parameters and in the passed in parameters
   /// the passed in parameter overrides the parent parameter.
-  Future<void> routeToChild(
-    bool Function(Location<ID> location) match, {
+  Future<void> routeToChildWhere(
+    bool Function(Location<ID> location) predicate, {
+    IMap<String, String> pathParameters = const IMapConst({}),
+    IMap<String, String> queryParameters = const IMapConst({}),
+    bool isRedirect = false,
+  });
+
+  Future<void> routeToChild<T>({
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,

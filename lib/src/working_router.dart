@@ -161,23 +161,37 @@ class WorkingRouter<ID>
   }
 
   @override
-  Future<void> routeToChild(
-    bool Function(Location<ID> location) match, {
+  Future<void> routeToChildWhere(
+    bool Function(Location<ID> location) predicate, {
     IMap<String, String> pathParameters = const IMapConst({}),
     IMap<String, String> queryParameters = const IMapConst({}),
     bool isRedirect = false,
   }) async {
     final data = nullableData!;
-    final relativeMatches = data.locations.last.matchRelative(match);
-    if (relativeMatches.isEmpty) {
+    final matches = data.locations.last.matchRelative(predicate);
+    if (matches.isEmpty) {
       return;
     }
 
     await _routeTo(
-      locations: data.locations.addAll(relativeMatches),
+      locations: data.locations.addAll(matches),
       fallback: null,
       pathParameters: data.pathParameters.addAll(pathParameters),
       queryParameters: data.queryParameters.addAll(queryParameters),
+      isRedirect: isRedirect,
+    );
+  }
+
+  @override
+  Future<void> routeToChild<T>({
+    IMap<String, String> pathParameters = const IMapConst({}),
+    IMap<String, String> queryParameters = const IMapConst({}),
+    bool isRedirect = false,
+  }) {
+    return routeToChildWhere(
+      (it) => it is T,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
       isRedirect: isRedirect,
     );
   }
