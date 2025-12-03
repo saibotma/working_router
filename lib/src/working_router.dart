@@ -197,46 +197,53 @@ class WorkingRouter<ID>
   }
 
   @override
-  Future<void> routeBack() async {
-    var newLocations = nullableData!.locations.removeLast();
-    while (newLocations.last.shouldBeSkippedOnRouteBack) {
-      newLocations = newLocations.removeLast();
-    }
-    final newPathParameters =
-        newLocations.last.selectPathParameters(nullableData!.pathParameters);
-    final newQueryParameters =
-        newLocations.last.selectQueryParameters(nullableData!.queryParameters);
-
-    await _routeTo(
-      locations: newLocations,
-      fallback: null,
-      queryParameters: newQueryParameters,
-      pathParameters: newPathParameters,
-      isRedirect: false,
-    );
-  }
+  Future<void> routeBack() async =>
+      routeBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
 
   @override
   Future<void> routeBackUntil(
-      bool Function(Location<ID> location) match) async {
-    // Remove the last, because it should at least route back one location
-    // when a match exists and not stay at the current location,
-    // when it matches.
-    final reversedLocations = nullableData!.locations.removeLast().reversed;
-    final index = reversedLocations.indexWhere(match);
-    if (index == -1) {
+    bool Function(Location<ID> location) match,
+  ) async {
+    final data = nullableData!;
+
+    final locations = data.locations;
+    if (locations.length <= 1) {
+      // Nothing to go back to
       return;
     }
 
-    final newLocations = reversedLocations.removeRange(0, index).reversed;
+    // Start from the *previous* location (skip the current/last one).
+    int matchIndex = -1;
+    for (var i = locations.length - 2; i >= 0; i--) {
+      if (match(locations[i])) {
+        matchIndex = i;
+        break;
+      }
+    }
+
+    if (matchIndex == -1) {
+      // No matching location found
+      return;
+    }
+
+    // Keep everything up to and including the matched location
+    final newLocations = locations.sublist(0, matchIndex + 1);
     final newActiveLocation = newLocations.last;
+
+    final pathParameterKeys = newLocations
+        .expand((location) => location.pathSegments)
+        .map(findPathParameterKeyInPathSegment)
+        .nonNulls
+        .toISet();
+
+    final newPathParameters = data.pathParameters.keepKeys(pathParameterKeys);
+
     await _routeTo(
       locations: newLocations,
       fallback: null,
-      pathParameters:
-          newActiveLocation.selectPathParameters(nullableData!.pathParameters),
-      queryParameters: newActiveLocation
-          .selectQueryParameters(nullableData!.queryParameters),
+      pathParameters: newPathParameters,
+      queryParameters:
+          newActiveLocation.selectQueryParameters(data.queryParameters),
       isRedirect: false,
     );
   }
@@ -386,4 +393,24 @@ class WorkingRouter<ID>
   void removeNestedDelegate(WorkingRouterDelegate<ID> delegate) {
     _nestedDelegates.remove(delegate);
   }
+}
+
+extension IMapExtension<K, V> on IMap<K, V> {
+  IMap<K, V> keepKeys(ISet<K> keys) {
+    final map = <K, V>{};
+    for (final key in keys) {
+      final value = get(key);
+      if (value != null) {
+        map[key] = value;
+      }
+    }
+    return map.toIMap();
+  }
+}
+
+String? findPathParameterKeyInPathSegment(String pathSegment) {
+  if (pathSegment.startsWith(":")) {
+    return pathSegment.replaceRange(0, 1, "");
+  }
+  return null;
 }

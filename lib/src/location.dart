@@ -118,18 +118,6 @@ abstract class Location<ID> {
     return IMap();
   }
 
-  /// Selects the query parameters required by this Location
-  /// from [currentPathParameters].
-  ///
-  /// The result will be the path parameters of the route resulting from
-  /// [Navigator.pop], [WorkingRouterSailor.routeBack]
-  /// or [WorkingRouterSailor.routeBackUntil].
-  IMap<String, String> selectPathParameters(
-    IMap<String, String> currentPathParameters,
-  ) {
-    return IMap();
-  }
-
   Location<ID>? pop() {
     return null;
   }
