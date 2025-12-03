@@ -395,19 +395,6 @@ class WorkingRouter<ID>
   }
 }
 
-extension<K, V> on IMap<K, V> {
-  IMap<K, V> keepKeys(ISet<K> keys) {
-    final map = <K, V>{};
-    for (final key in keys) {
-      final value = get(key);
-      if (value != null) {
-        map[key] = value;
-      }
-    }
-    return map.toIMap();
-  }
-}
-
 String? _findPathParameterKeyInPathSegment(String pathSegment) {
   if (pathSegment.startsWith(":")) {
     return pathSegment.replaceRange(0, 1, "");
