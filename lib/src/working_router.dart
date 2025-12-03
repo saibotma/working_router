@@ -230,13 +230,13 @@ class WorkingRouter<ID>
     final newLocations = locations.sublist(0, matchIndex + 1);
     final newActiveLocation = newLocations.last;
 
-    final pathParameterKeys = newLocations
-        .expand((location) => location.pathSegments)
-        .map(_findPathParameterKeyInPathSegment)
-        .nonNulls
-        .toISet();
-
-    final newPathParameters = data.pathParameters.keepKeys(pathParameterKeys);
+    final newPathParameters = data.pathParameters.keepKeys(
+      newLocations
+          .expand((location) => location.pathSegments)
+          .map(_findPathParameterKeyInPathSegment)
+          .nonNulls
+          .toSet(),
+    );
 
     await _routeTo(
       locations: newLocations,
