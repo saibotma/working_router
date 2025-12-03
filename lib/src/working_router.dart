@@ -232,7 +232,7 @@ class WorkingRouter<ID>
 
     final pathParameterKeys = newLocations
         .expand((location) => location.pathSegments)
-        .map(findPathParameterKeyInPathSegment)
+        .map(_findPathParameterKeyInPathSegment)
         .nonNulls
         .toISet();
 
@@ -395,7 +395,7 @@ class WorkingRouter<ID>
   }
 }
 
-extension IMapExtension<K, V> on IMap<K, V> {
+extension<K, V> on IMap<K, V> {
   IMap<K, V> keepKeys(ISet<K> keys) {
     final map = <K, V>{};
     for (final key in keys) {
@@ -408,7 +408,7 @@ extension IMapExtension<K, V> on IMap<K, V> {
   }
 }
 
-String? findPathParameterKeyInPathSegment(String pathSegment) {
+String? _findPathParameterKeyInPathSegment(String pathSegment) {
   if (pathSegment.startsWith(":")) {
     return pathSegment.replaceRange(0, 1, "");
   }
