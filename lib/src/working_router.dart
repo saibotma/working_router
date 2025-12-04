@@ -13,7 +13,7 @@ typedef BeforeRouting<ID> = Future<bool> Function(
   WorkingRouterData<ID> newData,
 );
 
-class WorkingRouter<ID>
+class WorkingRouter<ID> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
   /// Does not notify widgets at all.
   /// This is meant to be used for one off calls to the router,
@@ -384,6 +384,7 @@ class WorkingRouter<ID>
     // ignore: deprecated_member_use_from_same_package
     _data = data;
     _rootDelegate.updateData(data);
+    notifyListeners();
   }
 
   void addNestedDelegate(WorkingRouterDelegate<ID> delegate) {
