@@ -9,7 +9,7 @@ typedef LocationPageBuilder = Page<dynamic> Function(
     LocalKey? key, Widget child);
 typedef LocationPageKeyBuilder<ID> = LocalKey Function(Location<ID> location);
 
-abstract interface class BaseLocationPageSkeleton<ID> {
+abstract interface class LocationPageSkeleton<ID> {
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
@@ -23,12 +23,12 @@ abstract interface class BaseLocationPageSkeleton<ID> {
 /// The key built by [buildKey] gets passed to [buildPage].
 ///
 /// Does not hold state and thus can be reused.
-class LocationPageBuilderSkeleton<ID> implements BaseLocationPageSkeleton<ID> {
+class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
   final LocationChildBuilder<ID> buildChild;
   final LocationPageBuilder? buildPage;
   final LocationPageKeyBuilder<ID>? buildKey;
 
-  LocationPageBuilderSkeleton({
+  BuilderLocationPageSkeleton({
     required this.buildChild,
     this.buildPage,
     this.buildKey,
@@ -74,8 +74,8 @@ class LocationPageBuilderSkeleton<ID> implements BaseLocationPageSkeleton<ID> {
   }
 }
 
-class LocationPageSkeleton<ID> extends LocationPageBuilderSkeleton<ID> {
-  LocationPageSkeleton({
+class ChildLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
+  ChildLocationPageSkeleton({
     required Widget child,
     super.buildPage,
     super.buildKey,

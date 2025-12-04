@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../working_router.dart';
 
-class NestedLocationPageSkeleton<ID> extends LocationPageBuilderSkeleton<ID> {
+class NestedLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
   final Widget Function(BuildContext context, Widget child)? builder;
 
   NestedLocationPageSkeleton({

@@ -11,7 +11,7 @@ import 'location_page_skeleton.dart';
 import 'working_router.dart';
 import 'working_router_data.dart';
 
-typedef BuildPages<ID> = List<BaseLocationPageSkeleton<ID>> Function(
+typedef BuildPages<ID> = List<LocationPageSkeleton<ID>> Function(
   WorkingRouter<ID> router,
   Location<ID> location,
   WorkingRouterData<ID> data,

@@ -64,12 +64,10 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
         // Have to return the tab for the index, also when another index
         // is currently active, because also the "temporarily deactivated"
         // navigators will still be active in the IndexedStack.
-        if ((location is Tab1Location) &&
-            index == 0) {
+        if ((location is Tab1Location) && index == 0) {
           return [tab1Page];
         }
-        if ((location is Tab2Location) &&
-            index == 1) {
+        if ((location is Tab2Location) && index == 1) {
           return [tab2Page];
         }
         return [emptyPage];
@@ -77,17 +75,17 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
     );
   }
 
-
-  final emptyPage = LocationPageSkeleton<String>(child: const Placeholder());
+  final emptyPage =
+      ChildLocationPageSkeleton<String>(child: const Placeholder());
   // Give each tab page a unique key, so that it does not get rebuilt
   // (and thus looses state) when switching between tabs. This is required,
   // because tab1Page will also be returned (above) when Tab2Location is active
   // and vice versa.
-  final tab1Page = LocationPageSkeleton<String>(
+  final tab1Page = ChildLocationPageSkeleton<String>(
     buildKey: (_) => const ValueKey("tab1"),
     child: const ScreenWithState(color: Colors.red),
   );
-  final tab2Page = LocationPageSkeleton<String>(
+  final tab2Page = ChildLocationPageSkeleton<String>(
     buildKey: (_) => const ValueKey("tab2"),
     child: const ScreenWithState(color: Colors.blue),
   );

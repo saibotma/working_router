@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-import 'location_id.dart';
 import '../locations/a_location.dart';
 import '../locations/ab_location.dart';
 import '../locations/abc_location.dart';
@@ -10,6 +9,7 @@ import '../locations/adc_location.dart';
 import '../locations/splash_location.dart';
 import '../nested_screen.dart';
 import '../platform_modal/platform_modal_page.dart';
+import 'location_id.dart';
 import 'responsive.dart';
 
 void main() {
@@ -93,7 +93,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     },
   );
 
-  final splashPage = LocationPageSkeleton<LocationId>(
+  final splashPage = ChildLocationPageSkeleton<LocationId>(
     child: Scaffold(
       body: Builder(
         builder: (context) {
@@ -110,11 +110,11 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     ),
   );
 
-  final emptyPage = LocationPageSkeleton<LocationId>(
+  final emptyPage = ChildLocationPageSkeleton<LocationId>(
     child: Container(color: Colors.white, child: const Text("Empty page")),
   );
 
-  final filledPage = LocationPageSkeleton<LocationId>(
+  final filledPage = ChildLocationPageSkeleton<LocationId>(
     child: Scaffold(
       body: Container(
         color: Colors.blueGrey,
@@ -163,7 +163,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     },
   );
 
-  final dialogPage = LocationPageSkeleton<LocationId>(
+  final dialogPage = ChildLocationPageSkeleton<LocationId>(
     buildPage: (key, child) =>
         PlatformModalPage<dynamic>(key: key, child: child),
     child: Builder(
@@ -183,7 +183,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     ),
   );
 
-  final fullScreenDialogPage = LocationPageSkeleton<LocationId>(
+  final fullScreenDialogPage = ChildLocationPageSkeleton<LocationId>(
     child: Builder(
       builder: (context) {
         final data = WorkingRouterData.of<LocationId>(context);
@@ -201,7 +201,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     ),
   );
 
-  final conditionalDialogPage = LocationPageSkeleton<LocationId>(
+  final conditionalDialogPage = ChildLocationPageSkeleton<LocationId>(
     buildPage: (_, child) => PlatformModalPage<dynamic>(child: child),
     child: Builder(
       builder: (context) {
