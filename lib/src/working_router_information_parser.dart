@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 class WorkingRouteInformationParser extends RouteInformationParser<Uri> {
   @override
   Future<Uri> parseRouteInformation(RouteInformation routeInformation) {
-    return SynchronousFuture(Uri.parse(routeInformation.location!));
+    // ignore: deprecated_member_use
+    return SynchronousFuture(Uri.parse(routeInformation.location));
   }
 
   @override
@@ -15,6 +16,7 @@ class WorkingRouteInformationParser extends RouteInformationParser<Uri> {
     if (!uriString.startsWith("/")) {
       uriString = "/$uriString";
     }
+    // ignore: deprecated_member_use
     return RouteInformation(location: uriString);
   }
 }

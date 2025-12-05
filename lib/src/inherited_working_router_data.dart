@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'working_router_data.dart';
+import 'package:working_router/src/working_router_data.dart';
 
 typedef WorkingRouterFunction = dynamic Function(WorkingRouterData<dynamic>);
 
@@ -23,7 +23,8 @@ class InheritedWorkingRouterData<ID>
     covariant InheritedWorkingRouterData<ID> oldWidget,
     Set<dynamic Function(WorkingRouterData<ID>)> dependencies,
   ) {
-    return dependencies
-        .any((element) => element(data) != element(oldWidget.data));
+    return dependencies.any(
+      (element) => element(data) != element(oldWidget.data),
+    );
   }
 }

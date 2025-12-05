@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../working_router.dart';
+import 'package:working_router/working_router.dart';
 
 class NestedLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
   final Widget Function(BuildContext context, Widget child)? builder;
@@ -13,16 +13,16 @@ class NestedLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
     super.buildKey,
     String? debugLabel,
   }) : super(
-          buildChild: (context, _) {
-            final nested = NestedRouting(
-              router: router,
-              buildPages: buildPages,
-              debugLabel: debugLabel,
-            );
-            if (builder == null) {
-              return nested;
-            }
-            return builder(context, nested);
-          },
-        );
+         buildChild: (context, _) {
+           final nested = NestedRouting(
+             router: router,
+             buildPages: buildPages,
+             debugLabel: debugLabel,
+           );
+           if (builder == null) {
+             return nested;
+           }
+           return builder(context, nested);
+         },
+       );
 }

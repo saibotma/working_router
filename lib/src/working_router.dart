@@ -2,15 +2,15 @@ import 'dart:async';
 
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+import 'package:working_router/src/inherited_working_router.dart';
+import 'package:working_router/working_router.dart';
 
-import '../working_router.dart';
-import 'inherited_working_router.dart';
-
-typedef BeforeRouting<ID> = Future<bool> Function(
-  WorkingRouter<ID> router,
-  WorkingRouterData<ID>? oldData,
-  WorkingRouterData<ID> newData,
-);
+typedef BeforeRouting<ID> =
+    Future<bool> Function(
+      WorkingRouter<ID> router,
+      WorkingRouterData<ID>? oldData,
+      WorkingRouterData<ID> newData,
+    );
 
 class WorkingRouter<ID> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
@@ -29,10 +29,11 @@ class WorkingRouter<ID> extends ChangeNotifier
       WorkingRouteInformationParser();
   final RouteInformationProvider _informationProvider =
       PlatformRouteInformationProvider(
-    initialRouteInformation: RouteInformation(
-      location: WidgetsBinding.instance.platformDispatcher.defaultRouteName,
-    ),
-  );
+        initialRouteInformation: RouteInformation(
+          // ignore: deprecated_member_use
+          location: WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+        ),
+      );
 
   Location<ID> _locationTree;
   final List<LocationGuardState> _guards = [];
@@ -56,8 +57,8 @@ class WorkingRouter<ID> extends ChangeNotifier
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     BeforeRouting<ID>? beforeRouting,
     GlobalKey<NavigatorState>? navigatorKey,
-  })  : _locationTree = buildLocationTree(),
-        _beforeRouting = beforeRouting {
+  }) : _locationTree = buildLocationTree(),
+       _beforeRouting = beforeRouting {
     _rootDelegate = WorkingRouterDelegate<ID>(
       debugLabel: "root",
       isRootDelegate: true,
@@ -95,7 +96,9 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   void refresh() {
     _locationTree = buildLocationTree();
-    [_rootDelegate, ..._nestedDelegates].forEach((it) => it.refresh());
+    for (final it in [_rootDelegate, ..._nestedDelegates]) {
+      it.refresh();
+    }
   }
 
   @override
@@ -147,8 +150,10 @@ class WorkingRouter<ID> extends ChangeNotifier
     bool isRedirect = false,
   }) async {
     final idMatches = _locationTree.matchId(id);
-    final relativeMatches = idMatches.last.matchRelative((location) =>
-        location.runtimeType == nullableData!.locations.last.runtimeType);
+    final relativeMatches = idMatches.last.matchRelative(
+      (location) =>
+          location.runtimeType == nullableData!.locations.last.runtimeType,
+    );
 
     await _routeTo(
       locations: idMatches.addAll(relativeMatches),
@@ -196,7 +201,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   @override
-  Future<void> routeBack() async =>
+  Future<void> routeBack() =>
       routeBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
 
   @override
@@ -241,8 +246,9 @@ class WorkingRouter<ID> extends ChangeNotifier
       locations: newLocations,
       fallback: null,
       pathParameters: newPathParameters,
-      queryParameters:
-          newActiveLocation.selectQueryParameters(data.queryParameters),
+      queryParameters: newActiveLocation.selectQueryParameters(
+        data.queryParameters,
+      ),
       isRedirect: false,
     );
   }

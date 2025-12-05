@@ -1,6 +1,6 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 
-import '../working_router.dart';
+import 'package:working_router/working_router.dart';
 
 abstract class WorkingRouterSailor<ID> {
   Future<void> routeToUriString(

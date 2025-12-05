@@ -1,7 +1,7 @@
 /// Support for doing something awesome.
 ///
 /// More dartdocs go here.
-library working_router;
+library;
 
 export 'src/location.dart';
 export 'src/location_page.dart';

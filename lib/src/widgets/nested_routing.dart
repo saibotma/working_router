@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../working_router.dart';
+import 'package:working_router/working_router.dart';
 
 class NestedRouting<ID> extends StatefulWidget {
   final WorkingRouter<ID> router;
@@ -11,8 +11,8 @@ class NestedRouting<ID> extends StatefulWidget {
     required this.router,
     required this.buildPages,
     this.debugLabel,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<NestedRouting<ID>> createState() => _NestedRoutingState<ID>();
@@ -41,8 +41,8 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
     // Followed https://github.com/flutter/flutter/issues/55570#issuecomment-665330166
     // on how to connect this to the root back button dispatcher.
     final parentRouter = Router.of(context);
-    final childBackButtonDispatcher =
-        parentRouter.backButtonDispatcher!.createChildBackButtonDispatcher();
+    final childBackButtonDispatcher = parentRouter.backButtonDispatcher!
+        .createChildBackButtonDispatcher();
     childBackButtonDispatcher.takePriority();
     return Router(
       routerDelegate: _delegate!,

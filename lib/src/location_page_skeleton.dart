@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:working_router/src/inherited_working_router_data.dart';
+import 'package:working_router/working_router.dart';
 
-import '../working_router.dart';
-import 'inherited_working_router_data.dart';
-
-typedef LocationChildBuilder<ID> = Widget Function(
-    BuildContext, WorkingRouterData<ID> data);
-typedef LocationPageBuilder = Page<dynamic> Function(
-    LocalKey? key, Widget child);
+typedef LocationChildBuilder<ID> =
+    Widget Function(BuildContext, WorkingRouterData<ID> data);
+typedef LocationPageBuilder =
+    Page<dynamic> Function(LocalKey? key, Widget child);
 typedef LocationPageKeyBuilder<ID> = LocalKey Function(Location<ID> location);
 
 abstract interface class LocationPageSkeleton<ID> {
@@ -79,5 +78,5 @@ class ChildLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
     required Widget child,
     super.buildPage,
     super.buildKey,
-  }) : super(buildChild: (_, __) => child);
+  }) : super(buildChild: (_, _) => child);
 }

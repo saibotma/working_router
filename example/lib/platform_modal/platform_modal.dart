@@ -7,6 +7,7 @@ import '../responsive.dart';
 import 'bottom_sheet_suspended_curve.dart';
 import 'render_inset_aware_content.dart';
 
+// ignore: deprecated_member_use
 const Curve _modalBottomSheetCurve = decelerateEasing;
 
 class PlatformModal<T> extends StatefulWidget {
@@ -34,7 +35,7 @@ class PlatformModal<T> extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _PlatformModalState<T> createState() => _PlatformModalState<T>();
+  State<PlatformModal<T>> createState() => _PlatformModalState<T>();
 }
 
 class _PlatformModalState<T> extends State<PlatformModal<T>> {

@@ -12,7 +12,6 @@ class Responsive extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
       ScreenSize size = ScreenSize.small;

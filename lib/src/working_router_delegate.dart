@@ -3,19 +3,19 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:working_router/src/inherited_working_router.dart';
+import 'package:working_router/src/inherited_working_router_data.dart';
+import 'package:working_router/src/location.dart';
+import 'package:working_router/src/location_page_skeleton.dart';
+import 'package:working_router/src/working_router.dart';
+import 'package:working_router/src/working_router_data.dart';
 
-import 'inherited_working_router.dart';
-import 'inherited_working_router_data.dart';
-import 'location.dart';
-import 'location_page_skeleton.dart';
-import 'working_router.dart';
-import 'working_router_data.dart';
-
-typedef BuildPages<ID> = List<LocationPageSkeleton<ID>> Function(
-  WorkingRouter<ID> router,
-  Location<ID> location,
-  WorkingRouterData<ID> data,
-);
+typedef BuildPages<ID> =
+    List<LocationPageSkeleton<ID>> Function(
+      WorkingRouter<ID> router,
+      Location<ID> location,
+      WorkingRouterData<ID> data,
+    );
 
 class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin {
@@ -46,10 +46,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     GlobalKey<NavigatorState>? navigatorKey,
     String? debugLabel,
   }) : assert(
-          isRootDelegate == (noContentWidget != null),
-          "noContentWidget must be set for the root delegate, "
-          "but must not be set for nested delegates.",
-        ) {
+         isRootDelegate == (noContentWidget != null),
+         "noContentWidget must be set for the root delegate, "
+         "but must not be set for nested delegates.",
+       ) {
     this.navigatorKey =
         navigatorKey ?? GlobalKey<NavigatorState>(debugLabel: debugLabel);
     router.addNestedDelegate(this);
@@ -79,6 +79,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           Navigator(
             key: navigatorKey,
             pages: _pages!,
+            // ignore: deprecated_member_use
             onPopPage: (route, dynamic result) {
               // In case of Navigator 1 route.
               if (route.settings is! Page) {

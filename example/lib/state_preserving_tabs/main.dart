@@ -114,6 +114,7 @@ class _ScreenWithStateState extends State<ScreenWithState> {
       color: widget.color,
       child: Column(
         children: [
+          // ignore: deprecated_member_use
           Text("${widget.color.value}: ${counter.toString()}"),
           MaterialButton(
             onPressed: () => setState(() => counter++),

@@ -153,7 +153,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     builder: (context, child) {
       return LocationGuard(
         afterUpdate: () {
-          print(
+          debugPrint(
             "after update: "
             "${WorkingRouterData.of<LocationId>(context).queryParameters["afterUpdate"]}",
           );

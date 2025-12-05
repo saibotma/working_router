@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../location.dart';
+import 'package:working_router/src/location.dart';
 
 class NearestLocation<ID> extends InheritedWidget {
   final Location<ID> location;
@@ -11,8 +11,8 @@ class NearestLocation<ID> extends InheritedWidget {
   });
 
   static Location<ID> of<ID>(BuildContext context) {
-    final NearestLocation<ID>? nearestLocation =
-        context.dependOnInheritedWidgetOfExactType<NearestLocation<ID>>();
+    final NearestLocation<ID>? nearestLocation = context
+        .dependOnInheritedWidgetOfExactType<NearestLocation<ID>>();
     return nearestLocation!.location;
   }
 

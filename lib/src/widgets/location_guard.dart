@@ -19,8 +19,8 @@ class LocationGuard extends StatefulWidget {
     this.afterEnter,
     this.afterUpdate,
     this.beforeLeave,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<LocationGuard> createState() => LocationGuardState();

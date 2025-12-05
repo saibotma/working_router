@@ -1,8 +1,7 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
-
-import 'location_tag.dart';
-import 'working_router_sailor.dart';
+import 'package:working_router/src/location_tag.dart';
+import 'package:working_router/src/working_router_sailor.dart';
 
 abstract class Location<ID> {
   final ID? id;
@@ -13,8 +12,8 @@ abstract class Location<ID> {
     this.id,
     Iterable<Location<ID>> children = const [],
     Iterable<LocationTag> tags = const [],
-  })  : this.children = children.toIList(),
-        this.tags = tags.toISet();
+  }) : children = children.toIList(),
+       tags = tags.toISet();
 
   String get path;
 
@@ -27,7 +26,8 @@ abstract class Location<ID> {
   bool hasTag(LocationTag tag) => tags.contains(tag);
 
   (IList<Location<ID>>, IMap<String, String>) match(
-      IList<String> pathSegments) {
+    IList<String> pathSegments,
+  ) {
     final List<Location<ID>> matches = [];
     final Map<String, String> pathParameters = {};
 
@@ -173,12 +173,11 @@ Map<String, String>? startsWith(
 
 extension LocationPathBuilder<ID> on Iterable<Location<ID>> {
   String buildPath(IMap<String, String> pathParameters) {
-    return "/" +
-        expand((location) => location.pathSegments).map((pathSegment) {
-          if (pathSegment.startsWith(":")) {
-            return pathParameters[pathSegment.substring(1)]!;
-          }
-          return pathSegment;
-        }).join("/");
+    return "/${expand((location) => location.pathSegments).map((pathSegment) {
+      if (pathSegment.startsWith(":")) {
+        return pathParameters[pathSegment.substring(1)]!;
+      }
+      return pathSegment;
+    }).join("/")}";
   }
 }

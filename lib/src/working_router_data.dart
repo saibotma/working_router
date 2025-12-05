@@ -1,8 +1,7 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
-
-import '../working_router.dart';
-import 'inherited_working_router_data.dart';
+import 'package:working_router/src/inherited_working_router_data.dart';
+import 'package:working_router/working_router.dart';
 
 class WorkingRouterData<ID> {
   final Uri uri;
@@ -27,10 +26,13 @@ class WorkingRouterData<ID> {
   }
 
   static Slice ofSliced<ID, Slice>(
-      BuildContext context, Slice Function(WorkingRouterData<ID>) slice) {
+    BuildContext context,
+    Slice Function(WorkingRouterData<ID>) slice,
+  ) {
     final data = InheritedModel.inheritFrom<InheritedWorkingRouterData<ID>>(
-        context,
-        aspect: (dynamic data) => slice(data as WorkingRouterData<ID>));
+      context,
+      aspect: (dynamic data) => slice(data as WorkingRouterData<ID>),
+    );
     return slice(data!.data);
   }
 
