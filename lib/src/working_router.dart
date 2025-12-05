@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 
@@ -315,20 +314,7 @@ class WorkingRouter<ID> extends ChangeNotifier
     required IMap<String, String> queryParameters,
   }) {
     return Uri(
-      // Need to build the path by hand and can not use pathSegments,
-      // because pathSegments does not add a leading slash. However in order
-      // to be consistent with the information parser and to have a proper
-      // representation for the root "/" a leading slash has to be added.
-      path: "/" +
-          locations
-              .map((location) => location.pathSegments)
-              .flattened
-              .map((pathSegment) {
-            if (pathSegment.startsWith(":")) {
-              return pathParameters[pathSegment.replaceRange(0, 1, "")]!;
-            }
-            return pathSegment;
-          }).join("/"),
+      path: locations.buildPath(pathParameters),
       queryParameters: queryParameters.isEmpty ? null : queryParameters.unlock,
     );
   }

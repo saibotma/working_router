@@ -36,6 +36,14 @@ class WorkingRouterData<ID> {
 
   Location<ID> get activeLocation => locations.last;
 
+  String pathUpToLocation(Location<ID> location) {
+    final locationIndex = locations.indexOf(location);
+    if (locationIndex == -1) {
+      return uri.path;
+    }
+    return locations.sublist(0, locationIndex + 1).buildPath(pathParameters);
+  }
+
   bool isIdMatched(ID id) {
     return isMatched((location) => location.id == id);
   }

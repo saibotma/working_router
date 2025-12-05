@@ -60,7 +60,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
             return false;
           },
           child: Builder(
-            key: ValueKey(data.uri.path),
+            key: ValueKey(data.pathUpToLocation(location)),
             builder: (context) => buildChild(context, data),
           ),
         ),

@@ -170,3 +170,15 @@ Map<String, String>? startsWith(
 
   return pathParameters;
 }
+
+extension LocationPathBuilder<ID> on Iterable<Location<ID>> {
+  String buildPath(IMap<String, String> pathParameters) {
+    return "/" +
+        expand((location) => location.pathSegments).map((pathSegment) {
+          if (pathSegment.startsWith(":")) {
+            return pathParameters[pathSegment.substring(1)]!;
+          }
+          return pathSegment;
+        }).join("/");
+  }
+}
