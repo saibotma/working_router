@@ -19,7 +19,9 @@ abstract class Location<ID> {
 
   bool get shouldBeSkippedOnRouteBack => false;
 
-  late final Uri _uri = Uri.parse(path);
+  // Using Uri(path:) instead of Uri.parse()
+  // to avoid ":" being parsed as scheme delimiter
+  late final Uri _uri = Uri(path: path);
 
   List<String> get pathSegments => _uri.pathSegments;
 
