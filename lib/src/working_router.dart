@@ -81,6 +81,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   /// [WorkingRouterDataSailor]. In almost all other cases [nullableData]
   /// should be used.
   @override
+  @protected
   // ignore: deprecated_member_use_from_same_package
   WorkingRouterData<ID> get data => _data!;
 
