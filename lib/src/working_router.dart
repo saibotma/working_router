@@ -15,7 +15,7 @@ import 'package:working_router/working_router.dart';
 /// **Important:** Keep this callback fast. Long-running async work will
 /// delay routing and make the app feel unresponsive.
 typedef BeforeRoutingGuard<ID> =
-    Future<bool> Function(
+    FutureOr<bool> Function(
       WorkingRouter<ID> router,
       WorkingRouterData<ID>? oldData,
       WorkingRouterData<ID> newData,
@@ -293,9 +293,10 @@ class WorkingRouter<ID> extends ChangeNotifier
 
     if (!isRedirect) {
       final beforeRoutingGuard = _beforeRoutingGuard;
-      if (beforeRoutingGuard != null &&
-          !await beforeRoutingGuard(this, nullableData, newData)) {
-        return;
+      if (beforeRoutingGuard != null) {
+        final result = beforeRoutingGuard(this, nullableData, newData);
+        final allowed = result is Future<bool> ? await result : result;
+        if (!allowed) return;
       }
 
       if (_guards.isNotEmpty && await _guardBeforeLeave(locations)) {
