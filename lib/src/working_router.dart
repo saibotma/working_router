@@ -5,7 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/working_router.dart';
 
-typedef BeforeRouting<ID> =
+/// A guard that runs before every route change.
+///
+/// Return `true` to allow the route change, `false` to block it.
+///
+/// [oldData] is `null` when the route from the OS is set for the first
+/// time at router startup.
+///
+/// **Important:** Keep this callback fast. Long-running async work will
+/// delay routing and make the app feel unresponsive.
+typedef BeforeRoutingGuard<ID> =
     Future<bool> Function(
       WorkingRouter<ID> router,
       WorkingRouterData<ID>? oldData,
@@ -45,9 +54,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   )
   WorkingRouterData<ID>? _data;
 
-  /// oldData is null when the route from the OS is set for the first
-  /// time at router start up.
-  final BeforeRouting<ID>? _beforeRouting;
+  final BeforeRoutingGuard<ID>? _beforeRoutingGuard;
   final Location<ID> Function() buildLocationTree;
 
   WorkingRouter({
@@ -55,10 +62,10 @@ class WorkingRouter<ID> extends ChangeNotifier
     required BuildPages<ID> buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
-    BeforeRouting<ID>? beforeRouting,
+    BeforeRoutingGuard<ID>? beforeRoutingGuard,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : _locationTree = buildLocationTree(),
-       _beforeRouting = beforeRouting {
+       _beforeRoutingGuard = beforeRoutingGuard {
     _rootDelegate = WorkingRouterDelegate<ID>(
       debugLabel: "root",
       isRootDelegate: true,
@@ -285,11 +292,13 @@ class WorkingRouter<ID> extends ChangeNotifier
     );
 
     if (!isRedirect) {
-      if (!(await _beforeRouting?.call(this, nullableData, newData) ?? true)) {
+      final beforeRoutingGuard = _beforeRoutingGuard;
+      if (beforeRoutingGuard != null &&
+          !await beforeRoutingGuard(this, nullableData, newData)) {
         return;
       }
 
-      if (await _guardBeforeLeave(locations)) {
+      if (_guards.isNotEmpty && await _guardBeforeLeave(locations)) {
         return;
       }
     }
