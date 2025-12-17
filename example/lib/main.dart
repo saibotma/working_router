@@ -150,7 +150,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     },
     buildPage: (key, child) => MaterialPage<dynamic>(key: key, child: child),
     buildKey: (location) => ValueKey(location),
-    buildChild: (context, child) {
+    buildChild: (context, _, child) {
       return LocationGuard(
         afterUpdate: () {
           debugPrint(
