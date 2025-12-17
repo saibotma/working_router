@@ -129,22 +129,16 @@ abstract class Location<ID> {
   /// Therefore children and tags are not relevant,
   /// because they may change during runtime, and should not
   /// cause a page rebuild.
-  /// Two locations with null id are not considered equal, unless
-  /// they are the same instance add an id, when they should
-  /// be considered equal, because the corresponding pages should
-  /// not be recreated.
+  /// Two locations are considered equal if they have the same type
+  /// and the same id (including both having null id).
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is Location &&
-            runtimeType == other.runtimeType &&
-            id != null &&
-            other.id != null &&
-            id == other.id;
+        other is Location && runtimeType == other.runtimeType && id == other.id;
   }
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => Object.hash(runtimeType, id);
 }
 
 Map<String, String>? startsWith(
