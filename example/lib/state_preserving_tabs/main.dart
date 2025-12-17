@@ -56,7 +56,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
   LocationPageSkeleton<String> buildScaffoldPage({required int index}) {
     return NestedLocationPageSkeleton<String>(
       router: router,
-      builder: (context, child) {
+      buildChild: (context, child) {
         return StatePreservingScaffold(index: index, child: child);
       },
       buildPages: (_, location, routerData) {
