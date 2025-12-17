@@ -39,6 +39,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
     required WorkingRouterData<ID> data,
     required Location<ID> location,
   }) {
+    final childKey = ValueKey(data.pathUpToLocation(location));
     final wrappedChild = InheritedWorkingRouterData(
       // Require an extra inherited widget for each location, because
       // the widget below should have access to old router data, when
@@ -59,7 +60,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
             return false;
           },
           child: Builder(
-            key: ValueKey(data.pathUpToLocation(location)),
+            key: childKey,
             builder: (context) => buildChild(context, data),
           ),
         ),
