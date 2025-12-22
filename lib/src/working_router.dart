@@ -48,6 +48,11 @@ class WorkingRouter<ID> extends ChangeNotifier
   final List<LocationGuardState> _guards = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
 
+  /// Counter to track routing requests and prevent race conditions.
+  /// Each routing request captures this value at start; if a newer request
+  /// completes first, older requests are discarded.
+  int _routingVersion = 0;
+
   @Deprecated(
     "Don't use this property directly. "
     "Get is using the data getter. Set it using _updateData.",
@@ -273,6 +278,11 @@ class WorkingRouter<ID> extends ChangeNotifier
       "Fallback must not be null when locations are empty.",
     );
 
+    // Capture the current version at the start of this routing request.
+    // If a newer request comes in while we're awaiting guards, this request
+    // becomes stale and should be discarded.
+    final myVersion = ++_routingVersion;
+
     final newData = WorkingRouterData(
       // Set the uri to fallback when locations are empty.
       // When locations are empty, then not found should be shown, but
@@ -298,11 +308,15 @@ class WorkingRouter<ID> extends ChangeNotifier
         final result = beforeRoutingGuard(this, nullableData, newData);
         final allowed = result is Future<bool> ? await result : result;
         if (!allowed) return;
+        // Check if a newer routing request was made while awaiting the guard.
+        if (myVersion != _routingVersion) return;
       }
 
       if (_guards.isNotEmpty && await _guardBeforeLeave(locations)) {
         return;
       }
+      // Check again after beforeLeave guards.
+      if (myVersion != _routingVersion) return;
     }
 
     final oldLocations = nullableData?.locations;
