@@ -143,16 +143,16 @@ class WorkingRouter<ID> extends ChangeNotifier
   @override
   Future<void> routeToId(
     ID id, {
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
+    Map<String, String> pathParameters = const {},
+    Map<String, String> queryParameters = const {},
     bool isRedirect = false,
   }) async {
     final matches = _locationTree.matchId(id);
     await _routeTo(
       locations: matches,
       fallback: null,
-      pathParameters: pathParameters,
-      queryParameters: queryParameters,
+      pathParameters: pathParameters.toIMap(),
+      queryParameters: queryParameters.toIMap(),
       isRedirect: isRedirect,
     );
   }
@@ -180,8 +180,8 @@ class WorkingRouter<ID> extends ChangeNotifier
   @override
   Future<void> routeToChildWhere(
     bool Function(Location<ID> location) predicate, {
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
+    Map<String, String> pathParameters = const {},
+    Map<String, String> queryParameters = const {},
     bool isRedirect = false,
   }) async {
     final data = nullableData!;
@@ -193,16 +193,16 @@ class WorkingRouter<ID> extends ChangeNotifier
     await _routeTo(
       locations: data.locations.addAll(matches),
       fallback: null,
-      pathParameters: data.pathParameters.addAll(pathParameters),
-      queryParameters: data.queryParameters.addAll(queryParameters),
+      pathParameters: data.pathParameters.addAll(pathParameters.toIMap()),
+      queryParameters: data.queryParameters.addAll(queryParameters.toIMap()),
       isRedirect: isRedirect,
     );
   }
 
   @override
   Future<void> routeToChild<T>({
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
+    Map<String, String> pathParameters = const {},
+    Map<String, String> queryParameters = const {},
     bool isRedirect = false,
   }) {
     return routeToChildWhere(

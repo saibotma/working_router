@@ -1,5 +1,3 @@
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
-
 import 'package:working_router/working_router.dart';
 
 abstract class WorkingRouterSailor<ID> {
@@ -15,8 +13,8 @@ abstract class WorkingRouterSailor<ID> {
 
   Future<void> routeToId(
     ID id, {
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
+    Map<String, String> pathParameters = const {},
+    Map<String, String> queryParameters = const {},
     bool isRedirect = false,
   });
 
@@ -35,14 +33,14 @@ abstract class WorkingRouterSailor<ID> {
   /// the passed in parameter overrides the parent parameter.
   Future<void> routeToChildWhere(
     bool Function(Location<ID> location) predicate, {
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
+    Map<String, String> pathParameters = const {},
+    Map<String, String> queryParameters = const {},
     bool isRedirect = false,
   });
 
   Future<void> routeToChild<T>({
-    IMap<String, String> pathParameters = const IMapConst({}),
-    IMap<String, String> queryParameters = const IMapConst({}),
+    Map<String, String> pathParameters = const {},
+    Map<String, String> queryParameters = const {},
     bool isRedirect = false,
   });
 
