@@ -319,8 +319,29 @@ class WorkingRouter<ID> extends ChangeNotifier
       if (myVersion != _routingVersion) return;
     }
 
+    // Prepare all delegates to track animations before updating data.
+    // This must happen before _updateData so the observers are ready
+    // to capture animations when the Navigators rebuild.
+    for (final delegate in [_rootDelegate, ..._nestedDelegates]) {
+      delegate.prepareForNextAnimation();
+    }
+
     final oldLocations = nullableData?.locations;
     _updateData(newData);
+
+    // After the build phase completes, finalize any delegates that had no
+    // animations (their completers would otherwise never complete).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final delegate in [_rootDelegate, ..._nestedDelegates]) {
+        delegate.finalizeAnimationIfNeeded();
+      }
+    });
+
+    // Wait for all navigation animations to complete before returning.
+    await Future.wait([
+      _rootDelegate.animationComplete,
+      ..._nestedDelegates.map((d) => d.animationComplete),
+    ]);
 
     if (!isRedirect) {
       // We need to do this after rebuild as completed so that the user

@@ -29,6 +29,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
 
+  final _animationObserver = _AnimationAwareNavigatorObserver();
+
   List<Page<dynamic>>? _pages;
 
   // Have an extra data property here and don't get it directly from router,
@@ -58,6 +60,19 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   @override
   Uri? get currentConfiguration => router.nullableData?.uri;
 
+  /// Prepares to track animations for the next navigation.
+  void prepareForNextAnimation() {
+    _animationObserver.prepareForNextAnimation();
+  }
+
+  /// Returns a Future that completes when all tracked animations finish.
+  Future<void> get animationComplete => _animationObserver.animationComplete;
+
+  /// Call after the build phase to complete if no animations were triggered.
+  void finalizeAnimationIfNeeded() {
+    _animationObserver.finalizeIfNoAnimations();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_pages == null) {
@@ -79,7 +94,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           Navigator(
             key: navigatorKey,
             pages: _pages!,
-            // ignore: deprecated_member_use
+            observers: [_animationObserver],
             onPopPage: (route, dynamic result) {
               // In case of Navigator 1 route.
               if (route.settings is! Page) {
@@ -151,5 +166,88 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   /// Needs to be called when the delegate will not be used anymore.
   void deregister() {
     router.removeNestedDelegate(this);
+  }
+}
+
+/// Observer that tracks when navigation animations complete.
+///
+/// Handles multiple animations per navigation (e.g., pushing multiple routes)
+/// and both entrance animations (didPush) and exit animations (didRemove/didPop).
+class _AnimationAwareNavigatorObserver extends NavigatorObserver {
+  Completer<void>? _completer;
+  int _pendingAnimations = 0;
+
+  /// Prepares to track animations for the next navigation.
+  /// Completes any previous completer to prevent hanging awaits from
+  /// concurrent navigations.
+  void prepareForNextAnimation() {
+    // Complete any previous completer to unblock old awaits
+    if (_completer != null && !_completer!.isCompleted) {
+      _completer!.complete();
+    }
+    _completer = Completer<void>();
+    _pendingAnimations = 0;
+  }
+
+  /// Returns a Future that completes when all tracked animations finish.
+  Future<void> get animationComplete =>
+      _completer?.future ?? SynchronousFuture(null);
+
+  /// Call after the build phase to complete if no animations were triggered.
+  void finalizeIfNoAnimations() {
+    if (_completer != null &&
+        !_completer!.isCompleted &&
+        _pendingAnimations == 0) {
+      _completer!.complete();
+    }
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _trackAnimation(route, AnimationStatus.completed);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (newRoute != null) {
+      _trackAnimation(newRoute, AnimationStatus.completed);
+    }
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _trackAnimation(route, AnimationStatus.dismissed);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _trackAnimation(route, AnimationStatus.dismissed);
+  }
+
+  void _trackAnimation(Route<dynamic>? route, AnimationStatus targetStatus) {
+    if (route == null || _completer == null || _completer!.isCompleted) return;
+
+    if (route is TransitionRoute) {
+      final animation = route.animation;
+      if (animation == null || animation.status == targetStatus) {
+        // Already at target status, no animation to wait for
+        return;
+      }
+
+      _pendingAnimations++;
+      final completer = _completer!; // Capture reference for closure
+
+      void listener(AnimationStatus status) {
+        if (status == targetStatus) {
+          animation.removeStatusListener(listener);
+          _pendingAnimations--;
+          if (_pendingAnimations == 0 && !completer.isCompleted) {
+            completer.complete();
+          }
+        }
+      }
+
+      animation.addStatusListener(listener);
+    }
   }
 }
