@@ -6,6 +6,7 @@ import '../locations/ab_location.dart';
 import '../locations/abc_location.dart';
 import '../locations/ad_location.dart';
 import '../locations/adc_location.dart';
+import '../locations/adp_location.dart';
 import '../locations/splash_location.dart';
 import '../nested_screen.dart';
 import '../platform_modal/platform_modal_page.dart';
@@ -62,6 +63,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
                 id: LocationId.ad,
                 children: [
                   ADCLocation(id: LocationId.adc, children: []),
+                  ADPLocation(id: LocationId.adp, children: []),
                 ],
               ),
             ],
@@ -87,6 +89,9 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
 
       if (location.id == LocationId.adc) {
         return [conditionalDialogPage];
+      }
+      if (location.id == LocationId.adp) {
+        return [materialControlPage];
       }
 
       return [];
@@ -151,7 +156,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     buildPage: (key, child) => MaterialPage<dynamic>(key: key, child: child),
     buildKey: (location) => ValueKey(location),
     buildChild: (context, _, child) {
-      return LocationGuard(
+      return LocationObserver(
         afterUpdate: () {
           debugPrint(
             "after update: "
@@ -201,48 +206,127 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     ),
   );
 
-  final conditionalDialogPage = ChildLocationPageSkeleton<LocationId>(
+  late final conditionalDialogPage = ChildLocationPageSkeleton<LocationId>(
     buildPage: (_, child) => PlatformModalPage<dynamic>(child: child),
     child: Builder(
       builder: (context) {
-        return LocationGuard(
-          beforeLeave: () async {
-            final result = await showDialog<bool>(
-              context: context,
-              builder: (context) {
-                return Center(
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    color: Colors.white,
-                    child: MaterialButton(
-                      child: const Text("Press to allow pop."),
-                      onPressed: () {
-                        Navigator.of(context).pop(true);
-                      },
-                    ),
-                  ),
-                );
-              },
+        return PopScope<Object?>(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) async {
+            debugPrint(
+              "GREEN(PopupRoute) onPopInvokedWithResult "
+              "didPop=$didPop result=$result",
             );
-            return result ?? false;
+            if (didPop) {
+              return;
+            }
+            final router = WorkingRouter.of<LocationId>(context);
+            final shouldPop = await _showAllowPopDialog(context);
+            if (shouldPop ?? false) {
+              router.routeBack();
+            }
           },
           child: Container(
             color: Colors.green,
             width: 300,
             height: 300,
-            child: MaterialButton(
-              child: const Text("Press to pop to FallbackLocation."),
-              onPressed: () {
-                WorkingRouter.of<LocationId>(context).routeBackUntil(
-                    (location) => location.hasTag(PopUntilTarget()));
-              },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "Path: /a/d/c\nPopupRoute + PopScope(canPop: false)",
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                MaterialButton(
+                  child: const Text("Programmatic routeBack()"),
+                  onPressed: () {
+                    WorkingRouter.of<LocationId>(context).routeBack();
+                  },
+                ),
+                MaterialButton(
+                  child: const Text("Pop until fallback"),
+                  onPressed: () {
+                    WorkingRouter.of<LocationId>(context).routeBackUntil(
+                        (location) => location.hasTag(PopUntilTarget()));
+                  },
+                ),
+              ],
             ),
           ),
         );
       },
     ),
   );
+
+  late final materialControlPage = ChildLocationPageSkeleton<LocationId>(
+    child: Builder(
+      builder: (context) {
+        return PopScope<Object?>(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) async {
+            debugPrint(
+              "ORANGE(MaterialPage) onPopInvokedWithResult "
+              "didPop=$didPop result=$result",
+            );
+            if (didPop) {
+              return;
+            }
+            final shouldPop = await _showAllowPopDialog(context);
+            if (shouldPop ?? false) {
+              if (!context.mounted) {
+                return;
+              }
+              WorkingRouter.of<LocationId>(context).routeBack();
+            }
+          },
+          child: Scaffold(
+            body: Container(
+              color: Colors.orange,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Path: /a/d/p\nMaterialPage + PopScope(canPop: false)",
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  MaterialButton(
+                    child: const Text("Programmatic maybePop()"),
+                    onPressed: () {
+                      Navigator.of(context).maybePop();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
+
+  Future<bool?> _showAllowPopDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return Center(
+          child: Container(
+            width: 220,
+            height: 220,
+            color: Colors.white,
+            child: MaterialButton(
+              child: const Text("Press to allow pop."),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void didUpdateWidget(covariant _DependentMaterialApp oldWidget) {

@@ -79,22 +79,12 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           Navigator(
             key: navigatorKey,
             pages: _pages!,
-            // ignore: deprecated_member_use
-            onPopPage: (route, dynamic result) {
-              // In case of Navigator 1 route.
-              if (route.settings is! Page) {
-                return route.didPop(result);
-              }
-
-              // Need to execute in new cycle, because otherwise would try
-              // to push onto navigator while the pop is still running
-              // causing debug lock in navigator pop to assert false.
-              // Schedule a Microtask instead of a Future, because
-              // go_router also does it like this.
-              scheduleMicrotask(() async {
-                await router.routeBack();
+            onDidRemovePage: (_) {
+              // Run in a microtask to avoid mutating routing state while
+              // navigator history updates are still being flushed.
+              scheduleMicrotask(() {
+                router.syncBackAfterNavigatorPop();
               });
-              return false;
             },
           ),
         );
@@ -119,9 +109,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   @override
   Future<void> setNewRoutePath(Uri configuration) {
     if (isRootDelegate) {
-      return router.routeToUri(configuration);
+      router.routeToUriFromRouteInformation(configuration);
     }
-    return SynchronousFuture(null);
+    return SynchronousFuture<void>(null);
   }
 
   void refresh() {
@@ -153,3 +143,5 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     router.removeNestedDelegate(this);
   }
 }
+
+// todo: continue: lets find out whether claude code or a new codex session can fix it. commit before. if not then try debugging on our own, etc. especially why making back gesture only works after 4th time.
