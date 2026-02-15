@@ -49,12 +49,12 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
         location: location,
         child: NotificationListener(
           onNotification: (notification) {
-            if (notification is AddLocationGuardMessage) {
-              router.addGuard(notification.state);
+            if (notification is AddLocationObserverMessage) {
+              router.addObserver(notification.state);
               return true;
             }
-            if (notification is RemoveLocationGuardMessage) {
-              router.removeGuard(notification.state);
+            if (notification is RemoveLocationObserverMessage) {
+              router.removeObserver(notification.state);
               return true;
             }
             return false;

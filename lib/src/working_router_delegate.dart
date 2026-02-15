@@ -52,7 +52,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
        ) {
     this.navigatorKey =
         navigatorKey ?? GlobalKey<NavigatorState>(debugLabel: debugLabel);
-    router.addNestedDelegate(this);
+    if (!isRootDelegate) {
+      router.addNestedDelegate(this);
+    }
   }
 
   @override
@@ -91,8 +93,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               // causing debug lock in navigator pop to assert false.
               // Schedule a Microtask instead of a Future, because
               // go_router also does it like this.
-              scheduleMicrotask(() async {
-                await router.routeBack();
+              scheduleMicrotask(() {
+                router.routeBack();
               });
               return false;
             },
@@ -119,9 +121,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   @override
   Future<void> setNewRoutePath(Uri configuration) {
     if (isRootDelegate) {
-      return router.routeToUri(configuration);
+      router.routeToUriFromRouteInformation(configuration);
     }
-    return SynchronousFuture(null);
+    return SynchronousFuture<void>(null);
   }
 
   void refresh() {
@@ -150,6 +152,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   /// Needs to be called when the delegate will not be used anymore.
   void deregister() {
-    router.removeNestedDelegate(this);
+    if (!isRootDelegate) {
+      router.removeNestedDelegate(this);
+    }
   }
 }

@@ -1,27 +1,17 @@
 import 'package:working_router/working_router.dart';
 
 abstract class WorkingRouterSailor<ID> {
-  Future<void> routeToUriString(
-    String uriString, {
-    bool isRedirect = false,
-  });
+  void routeToUriString(String uriString);
 
-  Future<void> routeToUri(
-    Uri uri, {
-    bool isRedirect = false,
-  });
+  void routeToUri(Uri uri);
 
-  Future<void> routeToId(
+  void routeToId(
     ID id, {
     Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
-    bool isRedirect = false,
   });
 
-  Future<void> slideIn(
-    ID id, {
-    bool isRedirect = false,
-  });
+  void slideIn(ID id);
 
   /// Routes to the first child for which [predicate] returns
   /// true.
@@ -31,25 +21,23 @@ abstract class WorkingRouterSailor<ID> {
   /// and [queryParameters], respectively. In case the same parameter
   /// is both in the parent parameters and in the passed in parameters
   /// the passed in parameter overrides the parent parameter.
-  Future<void> routeToChildWhere(
+  void routeToChildWhere(
     bool Function(Location<ID> location) predicate, {
     Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
-    bool isRedirect = false,
   });
 
-  Future<void> routeToChild<T>({
+  void routeToChild<T>({
     Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
-    bool isRedirect = false,
   });
 
   // Routes back one to the previous location.
-  Future<void> routeBack();
+  void routeBack();
 
   /// Routes back until [match] returns true.
   /// Selects path and query parameters of the destination location
   /// depending on how [Location.selectQueryParameters] and
   /// [Location.selectPathParameters] are implemented.
-  Future<void> routeBackUntil(bool Function(Location<ID> location) match);
+  void routeBackUntil(bool Function(Location<ID> location) match);
 }

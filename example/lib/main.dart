@@ -151,7 +151,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     buildPage: (key, child) => MaterialPage<dynamic>(key: key, child: child),
     buildKey: (location) => ValueKey(location),
     buildChild: (context, _, child) {
-      return LocationGuard(
+      return LocationObserver(
         afterUpdate: () {
           debugPrint(
             "after update: "
@@ -205,7 +205,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     buildPage: (_, child) => PlatformModalPage<dynamic>(child: child),
     child: Builder(
       builder: (context) {
-        return LocationGuard(
+        return LocationObserver(
           beforeLeave: () async {
             final result = await showDialog<bool>(
               context: context,
