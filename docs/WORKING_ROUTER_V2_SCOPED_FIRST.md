@@ -352,3 +352,29 @@ After creation, subsequent scope activations reuse the same router instance unti
 2. No manual resolve/build URL glue in app code.
 3. Per-scope nested stacks are preserved and independently routable.
 4. Scope and route transitions are observable and deterministic.
+
+## Documentation Backlog (Recommended)
+
+To make later continuation easier, document these explicitly before stabilizing v2:
+
+1. Routing precedence + ambiguity rules
+   - exact decision order for static vs param matches
+   - conflict examples and expected winners
+2. Scope identity contract
+   - `==`/`hashCode` requirements for `ScopeKey`
+   - behavior if scope objects are recreated each rebuild
+3. URL fallback behavior
+   - what happens when a host URI does not match any declared route
+   - how fallback interacts with active scope and browser URL
+4. Scope router lifecycle
+   - when `buildScopeRouter` is called
+   - when routers are reused vs disposed (`removeScope`)
+5. Known limitation: nested scope boundaries
+   - whether scopes-inside-scopes are supported in first v2 release
+   - if not, state this clearly and track follow-up design
+6. App integration pattern
+   - recommended shell patterns (`IndexedStack`, `PageView`, hybrid)
+   - where to route from widgets (`host` vs scope-local router)
+7. Migration guide (v1 -> v2)
+   - mapping from `Location`/`routeToId` usage to `LocationV2` + scope nodes
+   - incremental adoption strategy for existing apps
