@@ -156,4 +156,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
       router.removeNestedDelegate(this);
     }
   }
+
+  @override
+  void dispose() {
+    deregister();
+    super.dispose();
+  }
 }

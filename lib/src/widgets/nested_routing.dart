@@ -52,7 +52,7 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
 
   @override
   void dispose() {
-    _delegate!.deregister();
+    _delegate!.dispose();
     _delegate = null;
     super.dispose();
   }

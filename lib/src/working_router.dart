@@ -21,17 +21,14 @@ class WorkingRouter<ID> extends ChangeNotifier
   late final WorkingRouterDelegate<ID> _rootDelegate;
   final WorkingRouteInformationParser _informationParser =
       WorkingRouteInformationParser();
-  final RouteInformationProvider _informationProvider =
-      PlatformRouteInformationProvider(
-        initialRouteInformation: RouteInformation(
-          // ignore: deprecated_member_use
-          location: WidgetsBinding.instance.platformDispatcher.defaultRouteName,
-        ),
-      );
+  late final RouteInformationProvider _informationProvider;
 
   Location<ID> _locationTree;
   final List<LocationObserverState> _observers = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
+  final StreamController<RouteTransition<ID>> _routeTransitionController =
+      StreamController<RouteTransition<ID>>.broadcast();
+  bool _isDisposed = false;
 
   /// Counter to track routing requests and prevent race conditions.
   /// Each routing request captures this value at start; if a newer request
@@ -57,10 +54,20 @@ class WorkingRouter<ID> extends ChangeNotifier
     TransitionDecider<ID>? decideTransition,
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,
+    Uri? initialUri,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _locationTree = buildLocationTree(),
        _decideTransition = decideTransition,
        _redirectLimit = redirectLimit {
+    final initialConfiguration =
+        initialUri ??
+        Uri.parse(WidgetsBinding.instance.platformDispatcher.defaultRouteName);
+    _informationProvider = PlatformRouteInformationProvider(
+      initialRouteInformation: RouteInformation(
+        // ignore: deprecated_member_use
+        location: initialConfiguration.toString(),
+      ),
+    );
     _rootDelegate = WorkingRouterDelegate<ID>(
       debugLabel: "root",
       isRootDelegate: true,
@@ -69,6 +76,34 @@ class WorkingRouter<ID> extends ChangeNotifier
       noContentWidget: noContentWidget,
       wrapNavigator: wrapNavigator,
       navigatorKey: navigatorKey,
+    );
+
+    if (initialUri != null) {
+      _updateData(_buildDataForUri(initialUri));
+    }
+  }
+
+  factory WorkingRouter.fromLocationSubtreeV2({
+    required ScopeRouteSubtree<dynamic, ID> subtree,
+    required BuildPages<ID> buildRootPages,
+    required Widget noContentWidget,
+    Widget Function(BuildContext context, Widget child)? wrapNavigator,
+    TransitionDecider<ID>? decideTransition,
+    int redirectLimit = 5,
+    GlobalKey<NavigatorState>? navigatorKey,
+    Uri? initialUri,
+  }) {
+    return WorkingRouter<ID>(
+      buildLocationTree: () => _V2SubtreeRootLocation<ID>(
+        children: subtree.children.map(_v2NodeToLocation<ID>).toList(),
+      ),
+      buildRootPages: buildRootPages,
+      noContentWidget: noContentWidget,
+      wrapNavigator: wrapNavigator,
+      decideTransition: decideTransition,
+      redirectLimit: redirectLimit,
+      navigatorKey: navigatorKey,
+      initialUri: initialUri,
     );
   }
 
@@ -82,6 +117,12 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   // ignore: deprecated_member_use_from_same_package
   WorkingRouterData<ID>? get nullableData => _data;
+
+  /// Emits a typed transition whenever routing successfully commits.
+  ///
+  /// Blocked transitions and stale async transitions are not emitted.
+  Stream<RouteTransition<ID>> get routeTransitions =>
+      _routeTransitionController.stream;
 
   @override
   BackButtonDispatcher? get backButtonDispatcher => RootBackButtonDispatcher();
@@ -263,6 +304,9 @@ class WorkingRouter<ID> extends ChangeNotifier
     required WorkingRouterData<ID> targetData,
     required RouteTransitionReason reason,
   }) {
+    if (_isDisposed) {
+      return;
+    }
     final myVersion = ++_routingVersion;
     final oldData = nullableData;
 
@@ -280,10 +324,23 @@ class WorkingRouter<ID> extends ChangeNotifier
         routingVersion: myVersion,
         newLocations: resolvedData.locations,
         onAllowed: () {
+          if (_isDisposed) {
+            return;
+          }
           final oldLocations = oldData?.locations;
           _updateData(resolvedData);
+          _routeTransitionController.add(
+            RouteTransition(
+              from: oldData,
+              to: resolvedData,
+              reason: reason,
+            ),
+          );
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_isDisposed) {
+              return;
+            }
             _notifyObserversAfterRouteChange(
               oldLocations: oldLocations,
               newLocations: resolvedData.locations,
@@ -496,6 +553,9 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   void _updateData(WorkingRouterData<ID> data) {
+    if (_isDisposed) {
+      return;
+    }
     // ignore: deprecated_member_use_from_same_package
     _data = data;
     _rootDelegate.updateData(data);
@@ -503,11 +563,27 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   void addNestedDelegate(WorkingRouterDelegate<ID> delegate) {
+    if (_isDisposed) {
+      return;
+    }
     _nestedDelegates.add(delegate);
   }
 
   void removeNestedDelegate(WorkingRouterDelegate<ID> delegate) {
+    if (_isDisposed) {
+      return;
+    }
     _nestedDelegates.remove(delegate);
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _observers.clear();
+    _nestedDelegates.clear();
+    unawaited(_routeTransitionController.close());
+    _rootDelegate.dispose();
+    super.dispose();
   }
 }
 
@@ -525,4 +601,50 @@ String? _findPathParameterKeyInPathSegment(String pathSegment) {
     return pathSegment.replaceRange(0, 1, '');
   }
   return null;
+}
+
+class _V2SubtreeRootLocation<ID> extends Location<ID> {
+  final String _path;
+
+  _V2SubtreeRootLocation({
+    required super.children,
+  }) : _path = '',
+       super();
+
+  @override
+  String get path => _path;
+}
+
+class _V2PathLocation<ID> extends Location<ID> {
+  final String _path;
+
+  _V2PathLocation({
+    required String path,
+    required super.id,
+    required super.children,
+  }) : _path = path,
+       super();
+
+  @override
+  String get path => _path;
+}
+
+Location<ID> _v2NodeToLocation<ID>(LocationV2<dynamic, ID> node) {
+  if (node is ScopeRootLocationV2<dynamic, ID>) {
+    return _V2SubtreeRootLocation<ID>(
+      children: node.children.map(_v2NodeToLocation<ID>).toList(),
+    );
+  }
+  if (node is RouteLocationV2<dynamic, ID>) {
+    return _V2PathLocation<ID>(
+      path: node.path,
+      id: node.id,
+      children: node.children.map(_v2NodeToLocation<ID>).toList(),
+    );
+  }
+
+  throw ArgumentError(
+    'Scope boundary nodes are not allowed inside scope route subtrees. '
+    'Found ${node.runtimeType}.',
+  );
 }

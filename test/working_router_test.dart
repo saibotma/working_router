@@ -9,6 +9,32 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('WorkingRouter transitions', () {
+    testWidgets('emits typed route transitions when routing commits', (
+      tester,
+    ) async {
+      final router = _buildRouter();
+      final transitionsFuture = router.routeTransitions
+          .take(2)
+          .toList()
+          .timeout(const Duration(seconds: 2));
+
+      router.routeToUri(Uri(path: '/a'));
+      await tester.pump();
+      router.routeToUri(Uri(path: '/a/b'));
+      await tester.pump();
+      await tester.pump();
+
+      final transitions = await transitionsFuture;
+
+      expect(transitions.length, 2);
+      expect(transitions[0].from, isNull);
+      expect(transitions[0].to.uri.path, '/a');
+      expect(transitions[0].reason, RouteTransitionReason.programmatic);
+      expect(transitions[1].from!.uri.path, '/a');
+      expect(transitions[1].to.uri.path, '/a/b');
+      expect(transitions[1].reason, RouteTransitionReason.programmatic);
+    });
+
     testWidgets('blocks and allows transitions via TransitionDecider', (
       tester,
     ) async {
@@ -220,6 +246,15 @@ void main() {
   });
 
   group('WorkingRouter navigation behavior', () {
+    testWidgets('initialUri seeds router data immediately', (tester) async {
+      final router = _buildRouter(initialUri: Uri(path: '/a/b'));
+
+      expect(router.nullableData!.uri.path, '/a/b');
+
+      await _pumpApp(tester, router);
+      expect(router.nullableData!.uri.path, '/a/b');
+    });
+
     testWidgets('routeBack keeps selected query and path parameters', (
       tester,
     ) async {
@@ -288,6 +323,26 @@ void main() {
       expect(router.nullableData!.uri.path, '/a');
     });
   });
+
+  group('WorkingRouter lifecycle', () {
+    testWidgets('disposing router closes route transition stream', (
+      tester,
+    ) async {
+      final router = _buildRouter();
+      final done = Completer<void>();
+      router.routeTransitions.listen(
+        (_) {},
+        onDone: () {
+          if (!done.isCompleted) {
+            done.complete();
+          }
+        },
+      );
+
+      router.dispose();
+      await done.future;
+    });
+  });
 }
 
 Future<void> _pumpApp(WidgetTester tester, WorkingRouter<_Id> router) async {
@@ -299,6 +354,7 @@ WorkingRouter<_Id> _buildRouter({
   TransitionDecider<_Id>? decideTransition,
   Future<bool> Function()? beforeLeave,
   int redirectLimit = 5,
+  Uri? initialUri,
 }) {
   final bPage = ChildLocationPageSkeleton<_Id>(
     child: LocationObserver(
@@ -341,6 +397,7 @@ WorkingRouter<_Id> _buildRouter({
     noContentWidget: const SizedBox.shrink(),
     decideTransition: decideTransition,
     redirectLimit: redirectLimit,
+    initialUri: initialUri,
   );
 }
 
