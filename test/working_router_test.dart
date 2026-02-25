@@ -58,10 +58,28 @@ void main() {
       expect(idRouter.nullableData!.uri.path, '/c');
     });
 
-    testWidgets('throws on redirect loop', (tester) async {
+    testWidgets('allows immediate self redirect as no-op', (tester) async {
       final router = _buildRouter(
         decideTransition: (_, transition) {
           if (transition.to.uri.path == '/a') {
+            return RedirectTransition.toUri(Uri(path: '/a'));
+          }
+          return const AllowTransition();
+        },
+      );
+
+      expect(() => router.routeToUri(Uri(path: '/a')), returnsNormally);
+      await tester.pump();
+      expect(router.nullableData!.uri.path, '/a');
+    });
+
+    testWidgets('throws on multi-step redirect loop', (tester) async {
+      final router = _buildRouter(
+        decideTransition: (_, transition) {
+          if (transition.to.uri.path == '/a') {
+            return RedirectTransition.toUri(Uri(path: '/b'));
+          }
+          if (transition.to.uri.path == '/b') {
             return RedirectTransition.toUri(Uri(path: '/a'));
           }
           return const AllowTransition();

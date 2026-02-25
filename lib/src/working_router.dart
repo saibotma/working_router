@@ -379,6 +379,7 @@ class WorkingRouter<ID> extends ChangeNotifier
               'transition to ${initialData.uri}.',
             );
           }
+          final previousUri = currentData.uri;
           switch (to) {
             case RedirectToUri(:final uri):
               currentData = _buildDataForUri(uri);
@@ -393,6 +394,10 @@ class WorkingRouter<ID> extends ChangeNotifier
                 pathParameters: pathParameters.toIMap(),
                 queryParameters: queryParameters.toIMap(),
               );
+          }
+
+          if (currentData.uri == previousUri) {
+            return currentData;
           }
 
           if (!visitedUris.add(currentData.uri)) {
