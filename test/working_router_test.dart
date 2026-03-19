@@ -291,6 +291,54 @@ void main() {
       expect(router.nullableData!.uri.path, '/a/b');
     });
 
+    testWidgets('buildKey receives the current router data', (tester) async {
+      var sawExpectedData = false;
+      final keys = <_Id, LocalKey>{};
+
+      final router = WorkingRouter<_Id>(
+        buildLocationTree: () {
+          return _PathLocation(
+            id: _Id.root,
+            path: '',
+            children: [
+              _PathLocation(
+                id: _Id.a,
+                path: 'a',
+                children: [
+                  _PathLocation(id: _Id.b, path: 'b', children: []),
+                ],
+              ),
+            ],
+          );
+        },
+        buildRootPages: (_, location, _) {
+          return [
+            ChildLocationPageSkeleton<_Id>(
+              buildKey: (keyLocation, data) {
+                if (keyLocation.id == _Id.a) {
+                  sawExpectedData =
+                      data.uri.path == '/a/b' &&
+                      data.activeLocation.id == _Id.b &&
+                      data.locations.contains(keyLocation);
+                }
+                final key = ValueKey('${keyLocation.id}:${data.uri.path}');
+                keys[keyLocation.id!] = key;
+                return key;
+              },
+              child: Text('${location.id}'),
+            ),
+          ];
+        },
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      router.routeToUri(Uri(path: '/a/b'));
+      await tester.pump();
+
+      expect(sawExpectedData, isTrue);
+      expect(keys[_Id.a], const ValueKey('_Id.a:/a/b'));
+    });
+
     testWidgets('navigator maybePop syncs router back once', (tester) async {
       final router = _buildRouter();
       await _pumpApp(tester, router);

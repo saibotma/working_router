@@ -149,7 +149,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
       return [emptyPage];
     },
     buildPage: (key, child) => MaterialPage<dynamic>(key: key, child: child),
-    buildKey: (location) => ValueKey(location),
+    buildKey: (location, _) => ValueKey(location),
     buildChild: (context, _, child) {
       return LocationObserver(
         afterUpdate: () {

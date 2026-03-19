@@ -6,7 +6,8 @@ typedef LocationChildBuilder<ID> =
     Widget Function(BuildContext, WorkingRouterData<ID> data);
 typedef LocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
-typedef LocationPageKeyBuilder<ID> = LocalKey Function(Location<ID> location);
+typedef LocationPageKeyBuilder<ID> =
+    LocalKey Function(Location<ID> location, WorkingRouterData<ID> data);
 
 abstract interface class LocationPageSkeleton<ID> {
   LocationPage inflate({
@@ -19,7 +20,8 @@ abstract interface class LocationPageSkeleton<ID> {
 /// A blueprint used by the router to insert a page built by [buildPage]
 /// displaying [buildChild] into a navigator.
 ///
-/// The key built by [buildKey] gets passed to [buildPage].
+/// The key built by [buildKey] from [location] and [data]
+/// gets passed to [buildPage].
 ///
 /// Does not hold state and thus can be reused.
 class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
@@ -66,7 +68,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
         ),
       ),
     );
-    final key = buildKey?.call(location) ?? ValueKey(location);
+    final key = buildKey?.call(location, data) ?? ValueKey(location);
     return LocationPage(
       buildPage?.call(key, wrappedChild) ??
           MaterialPage<dynamic>(key: key, child: wrappedChild),

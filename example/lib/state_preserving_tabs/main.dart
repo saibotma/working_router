@@ -82,11 +82,11 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
   // because tab1Page will also be returned (above) when Tab2Location is active
   // and vice versa.
   final tab1Page = ChildLocationPageSkeleton<String>(
-    buildKey: (_) => const ValueKey("tab1"),
+    buildKey: (_, __) => const ValueKey("tab1"),
     child: const ScreenWithState(color: Colors.red),
   );
   final tab2Page = ChildLocationPageSkeleton<String>(
-    buildKey: (_) => const ValueKey("tab2"),
+    buildKey: (_, __) => const ValueKey("tab2"),
     child: const ScreenWithState(color: Colors.blue),
   );
 
