@@ -36,7 +36,7 @@ class WorkingRouterData<ID> {
     return slice(data!.data);
   }
 
-  Location<ID> get activeLocation => locations.last;
+  Location<ID>? get activeLocation => locations.lastOrNull;
 
   String pathUpToLocation(Location<ID> location) {
     final locationIndex = locations.indexOf(location);

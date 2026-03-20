@@ -151,9 +151,14 @@ class WorkingRouter<ID> extends ChangeNotifier
   @override
   void slideIn(ID id) {
     final idMatches = _locationTree.matchId(id);
-    final relativeMatches = idMatches.last.matchRelative(
-      (location) =>
-          location.runtimeType == nullableData!.locations.last.runtimeType,
+    final targetLocation = idMatches.lastOrNull;
+    final currentLocation = nullableData?.activeLocation;
+    if (targetLocation == null || currentLocation == null) {
+      return;
+    }
+
+    final relativeMatches = targetLocation.matchRelative(
+      (location) => location.runtimeType == currentLocation.runtimeType,
     );
 
     _routeTo(
@@ -174,7 +179,12 @@ class WorkingRouter<ID> extends ChangeNotifier
     Map<String, String> queryParameters = const {},
   }) {
     final data = nullableData!;
-    final matches = data.locations.last.matchRelative(predicate);
+    final currentLocation = data.activeLocation;
+    if (currentLocation == null) {
+      return;
+    }
+
+    final matches = currentLocation.matchRelative(predicate);
     if (matches.isEmpty) {
       return;
     }

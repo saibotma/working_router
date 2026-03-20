@@ -71,7 +71,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     },
     buildRootPages: (_, location, data) {
       if (location.id == LocationId.splash &&
-          data.activeLocation.id == LocationId.splash) {
+          data.activeLocation?.id == LocationId.splash) {
         return [splashPage];
       }
       if (location.id == LocationId.a) {

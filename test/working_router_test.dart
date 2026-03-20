@@ -301,8 +301,38 @@ void main() {
 
       final data = router.nullableData!;
       expect(data.locations, isEmpty);
+      expect(data.activeLocation, isNull);
       expect(data.uri.path, '/does-not-exist');
       expect(data.uri.queryParameters['q'], '1');
+    });
+
+    testWidgets('routeToChildWhere is a no-op for unknown path', (tester) async {
+      final router = _buildRouter();
+
+      router.routeToUri(Uri(path: '/does-not-exist'));
+      await tester.pump();
+
+      expect(
+        () => router.routeToChildWhere((location) => location.id == _Id.b),
+        returnsNormally,
+      );
+      await tester.pump();
+
+      expect(router.nullableData!.locations, isEmpty);
+      expect(router.nullableData!.uri.path, '/does-not-exist');
+    });
+
+    testWidgets('slideIn is a no-op for unknown path', (tester) async {
+      final router = _buildRouter();
+
+      router.routeToUri(Uri(path: '/does-not-exist'));
+      await tester.pump();
+
+      expect(() => router.slideIn(_Id.a), returnsNormally);
+      await tester.pump();
+
+      expect(router.nullableData!.locations, isEmpty);
+      expect(router.nullableData!.uri.path, '/does-not-exist');
     });
 
     testWidgets('routeToChildWhere appends matching child stack', (
@@ -346,7 +376,7 @@ void main() {
                 if (keyLocation.id == _Id.a) {
                   sawExpectedData =
                       data.uri.path == '/a/b' &&
-                      data.activeLocation.id == _Id.b &&
+                      data.activeLocation?.id == _Id.b &&
                       data.locations.contains(keyLocation);
                 }
                 final key = ValueKey('${keyLocation.id}:${data.uri.path}');
