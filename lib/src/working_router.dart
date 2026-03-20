@@ -372,6 +372,8 @@ class WorkingRouter<ID> extends ChangeNotifier
         case BlockTransition():
           return null;
         case RedirectTransition(:final to):
+          // Re-run the decider for redirect targets so multi-hop redirects
+          // like `/a -> /b -> /c` can resolve step by step.
           redirects += 1;
           if (redirects > _redirectLimit) {
             throw StateError(

@@ -58,6 +58,34 @@ void main() {
       expect(idRouter.nullableData!.uri.path, '/c');
     });
 
+    testWidgets('re-evaluates redirected targets for chained redirects', (
+      tester,
+    ) async {
+      final calls = <String>[];
+      final router = _buildRouter(
+        decideTransition: (_, transition) {
+          calls.add('${transition.reason}:${transition.to.uri.path}');
+          if (transition.to.uri.path == '/a') {
+            return RedirectTransition.toUri(Uri(path: '/b'));
+          }
+          if (transition.to.uri.path == '/b') {
+            return RedirectTransition.toUri(Uri(path: '/c'));
+          }
+          return const AllowTransition();
+        },
+      );
+
+      router.routeToUri(Uri(path: '/a'));
+      await tester.pump();
+
+      expect(router.nullableData!.uri.path, '/c');
+      expect(calls, [
+        'RouteTransitionReason.programmatic:/a',
+        'RouteTransitionReason.redirect:/b',
+        'RouteTransitionReason.redirect:/c',
+      ]);
+    });
+
     testWidgets('allows immediate self redirect as no-op', (tester) async {
       final router = _buildRouter(
         decideTransition: (_, transition) {

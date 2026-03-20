@@ -5,7 +5,7 @@ enum RouteTransitionReason {
   /// Application code explicitly routed (e.g. routeToUri, routeBack, routeToId).
   programmatic,
 
-  /// A transition callback redirected to a new URI.
+  /// A transition callback redirected to a new destination.
   redirect,
 
   /// Route information changed externally (e.g. browser back/forward).
@@ -60,6 +60,12 @@ final class RedirectToId<ID> extends RedirectTarget<ID> {
   });
 }
 
+/// Redirects to a new candidate destination.
+///
+/// The router does not stop immediately after this decision. Instead it
+/// resolves the redirected target and runs the transition decider again with
+/// [RouteTransition.reason] set to [RouteTransitionReason.redirect]. That
+/// second pass is required for chained redirects.
 final class RedirectTransition<ID> extends TransitionDecision<ID> {
   final RedirectTarget<ID> to;
 
