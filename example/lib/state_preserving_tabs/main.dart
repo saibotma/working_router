@@ -41,11 +41,23 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
       // not just persist widget state, but also the route state per
       // nested navigator like it is done here:
       // https://github.com/lulupointu/vrouter/issues/32#issuecomment-884901775
-      if (location is ScaffoldLocation && data.activeLocation is Tab1Location) {
+      final activeLocation = data.activeLocation;
+
+      if (location is ScaffoldLocation &&
+          activeLocation is Tab1Location &&
+          data.isChildOf(
+            (candidate) => candidate is ScaffoldLocation,
+            activeLocation,
+          )) {
         return [buildScaffoldPage(index: 0)];
       }
 
-      if (location is ScaffoldLocation && data.activeLocation is Tab2Location) {
+      if (location is ScaffoldLocation &&
+          activeLocation is Tab2Location &&
+          data.isChildOf(
+            (candidate) => candidate is ScaffoldLocation,
+            activeLocation,
+          )) {
         return [buildScaffoldPage(index: 1)];
       }
 

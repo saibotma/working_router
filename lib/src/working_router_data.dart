@@ -46,6 +46,23 @@ class WorkingRouterData<ID> {
     return locations.sublist(0, locationIndex + 1).buildPath(pathParameters);
   }
 
+  bool isChildOf(
+    bool Function(Location<ID> location) parent,
+    Location<ID> child,
+  ) {
+    var sawParent = false;
+
+    for (final location in locations) {
+      if (parent(location)) {
+        sawParent = true;
+      } else if (identical(location, child)) {
+        return sawParent;
+      }
+    }
+
+    return false;
+  }
+
   bool isIdMatched(ID id) {
     return isMatched((location) => location.id == id);
   }
