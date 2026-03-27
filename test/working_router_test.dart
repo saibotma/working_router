@@ -306,7 +306,9 @@ void main() {
       expect(data.uri.queryParameters['q'], '1');
     });
 
-    testWidgets('routeToChildWhere is a no-op for unknown path', (tester) async {
+    testWidgets('routeToChildWhere is a no-op for unknown path', (
+      tester,
+    ) async {
       final router = _buildRouter();
 
       router.routeToUri(Uri(path: '/does-not-exist'));
@@ -395,6 +397,60 @@ void main() {
 
       expect(sawExpectedData, isTrue);
       expect(keys[_Id.a], const ValueKey('_Id.a:/a/b'));
+    });
+
+    testWidgets('wrapLocationChild receives the current router data', (
+      tester,
+    ) async {
+      var sawExpectedData = false;
+
+      final router = WorkingRouter<_Id>(
+        buildLocationTree: () {
+          return _PathLocation(
+            id: _Id.root,
+            path: '',
+            children: [
+              _PathLocation(
+                id: _Id.a,
+                path: 'a',
+                children: [
+                  _PathLocation(id: _Id.b, path: 'b', children: []),
+                ],
+              ),
+            ],
+          );
+        },
+        buildRootPages: (_, location, _) {
+          return [
+            ChildLocationPageSkeleton<_Id>(
+              child: Text('${location.id}'),
+            ),
+          ];
+        },
+        noContentWidget: const SizedBox.shrink(),
+        wrapLocationChild: (context, location, data, child) {
+          if (location.id == _Id.b) {
+            final inheritedData = WorkingRouterData.of<_Id>(context);
+            sawExpectedData =
+                identical(inheritedData, data) &&
+                data.uri.path == '/a/b' &&
+                data.activeLocation?.id == _Id.b;
+          }
+          return Column(
+            children: [
+              Text('wrapped ${location.id} at ${data.uri.path}'),
+              child,
+            ],
+          );
+        },
+      );
+
+      await _pumpApp(tester, router);
+      router.routeToUri(Uri(path: '/a/b'));
+      await tester.pumpAndSettle();
+
+      expect(sawExpectedData, isTrue);
+      expect(find.text('wrapped _Id.b at /a/b'), findsOneWidget);
     });
 
     testWidgets('navigator maybePop syncs router back once', (tester) async {

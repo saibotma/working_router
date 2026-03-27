@@ -48,12 +48,14 @@ class WorkingRouter<ID> extends ChangeNotifier
   final TransitionDecider<ID>? _decideTransition;
   final int _redirectLimit;
   final Location<ID> Function() buildLocationTree;
+  final LocationChildWrapper<ID>? wrapLocationChild;
 
   WorkingRouter({
     required this.buildLocationTree,
     required BuildPages<ID> buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
+    this.wrapLocationChild,
     TransitionDecider<ID>? decideTransition,
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,

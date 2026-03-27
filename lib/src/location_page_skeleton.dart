@@ -8,6 +8,13 @@ typedef LocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
 typedef LocationPageKeyBuilder<ID> =
     LocalKey Function(Location<ID> location, WorkingRouterData<ID> data);
+typedef LocationChildWrapper<ID> =
+    Widget Function(
+      BuildContext context,
+      Location<ID> location,
+      WorkingRouterData<ID> data,
+      Widget child,
+    );
 
 abstract interface class LocationPageSkeleton<ID> {
   LocationPage inflate({
@@ -63,7 +70,14 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
           },
           child: Builder(
             key: childKey,
-            builder: (context) => buildChild(context, data),
+            builder: (context) {
+              final child = buildChild(context, data);
+              final wrapChild = router.wrapLocationChild;
+              if (wrapChild == null) {
+                return child;
+              }
+              return wrapChild(context, location, data, child);
+            },
           ),
         ),
       ),
