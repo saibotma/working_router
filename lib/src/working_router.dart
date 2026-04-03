@@ -248,8 +248,6 @@ class WorkingRouter<ID> extends ChangeNotifier
 
     // Keep everything up to and including the matched location
     final newLocations = locations.sublist(0, matchIndex + 1);
-    final newActiveLocation = newLocations.last;
-
     final newPathParameters = data.pathParameters.keepKeys(
       newLocations
           .expand((location) => location.pathSegments)
@@ -258,14 +256,16 @@ class WorkingRouter<ID> extends ChangeNotifier
           .toSet(),
     );
 
+    final newQueryParameters = data.queryParameters.keepKeys(
+      newLocations.expand((location) => location.queryParameters).toSet(),
+    );
+
     _routeTo(
       targetData: _buildData(
         locations: newLocations,
         fallback: null,
         pathParameters: newPathParameters,
-        queryParameters: newActiveLocation.selectQueryParameters(
-          data.queryParameters,
-        ),
+        queryParameters: newQueryParameters,
       ),
       reason: RouteTransitionReason.programmatic,
     );

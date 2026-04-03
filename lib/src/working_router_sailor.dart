@@ -36,8 +36,7 @@ abstract class WorkingRouterSailor<ID> {
   void routeBack();
 
   /// Routes back until [match] returns true.
-  /// Selects path and query parameters of the destination location
-  /// depending on how [Location.selectQueryParameters] and
-  /// [Location.selectPathParameters] are implemented.
+  /// Retains path parameters required by the remaining route chain and
+  /// query parameters declared by the remaining locations.
   void routeBackUntil(bool Function(Location<ID> location) match);
 }

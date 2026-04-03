@@ -649,9 +649,5 @@ class _ItemLocation extends _ParamPathLocation {
   }) : super(path: 'item/:id');
 
   @override
-  IMap<String, String> selectQueryParameters(
-    IMap<String, String> currentQueryParameters,
-  ) {
-    return currentQueryParameters.keepKeys({'keep'});
-  }
+  Set<String> get queryParameters => {'keep'};
 }

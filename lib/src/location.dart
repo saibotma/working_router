@@ -108,17 +108,13 @@ abstract class Location<ID> {
     return IList();
   }
 
-  /// Selects the query parameters required by this Location
-  /// from [currentQueryParameters].
+  /// Query parameter keys retained while routing back to this Location.
   ///
-  /// The result will be the query parameters of the route resulting from
-  /// [Navigator.pop], [WorkingRouterSailor.routeBack]
-  /// or [WorkingRouterSailor.routeBackUntil].
-  IMap<String, String> selectQueryParameters(
-    IMap<String, String> currentQueryParameters,
-  ) {
-    return IMap();
-  }
+  /// The final query parameters of the route resulting from [Navigator.pop],
+  /// [WorkingRouterSailor.routeBack] or [WorkingRouterSailor.routeBackUntil]
+  /// are filtered to the union of the keys declared by the remaining
+  /// locations.
+  Set<String> get queryParameters => const {};
 
   Location<ID>? pop() {
     return null;
