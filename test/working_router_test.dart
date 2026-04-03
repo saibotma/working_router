@@ -289,6 +289,22 @@ void main() {
       expect(router.nullableData!.queryParameters.isEmpty, true);
     });
 
+    testWidgets(
+      'routeToId keeps query parameters shared by current and target chains',
+      (tester) async {
+        final router = _buildParamRouter();
+
+        router.routeToUri(Uri.parse('/item/42/details?keep=1&detail=2&drop=3'));
+        await tester.pump();
+
+        router.routeToId(_ParamId.item, pathParameters: {'id': '42'});
+        await tester.pump();
+
+        expect(router.nullableData!.uri.path, '/item/42');
+        expect(router.nullableData!.queryParameters.unlock, {'keep': '1'});
+      },
+    );
+
     testWidgets('keeps fallback uri and empty locations for unknown path', (
       tester,
     ) async {
@@ -586,7 +602,7 @@ WorkingRouter<_ParamId> _buildParamRouter() {
           _ItemLocation(
             id: _ParamId.item,
             children: [
-              _ParamPathLocation(id: _ParamId.details, path: 'details'),
+              _DetailLocation(id: _ParamId.details, path: 'details'),
             ],
           ),
         ],
@@ -650,4 +666,15 @@ class _ItemLocation extends _ParamPathLocation {
 
   @override
   Set<String> get queryParameters => {'keep'};
+}
+
+class _DetailLocation extends _ParamPathLocation {
+  _DetailLocation({
+    required super.id,
+    required super.path,
+    super.children = const [],
+  });
+
+  @override
+  Set<String> get queryParameters => {'detail'};
 }

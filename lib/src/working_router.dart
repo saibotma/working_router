@@ -139,12 +139,25 @@ class WorkingRouter<ID> extends ChangeNotifier
     Map<String, String> queryParameters = const {},
   }) {
     final matches = _locationTree.matchId(id);
+    final currentData = nullableData;
+    final keptQueryParameterKeys = currentData == null
+        ? <String>{}
+        : currentData.locations
+              .expand((location) => location.queryParameters)
+              .toSet()
+              .intersection(
+                matches.expand((location) => location.queryParameters).toSet(),
+              );
+
     _routeTo(
       targetData: _buildData(
         locations: matches,
         fallback: null,
         pathParameters: pathParameters.toIMap(),
-        queryParameters: queryParameters.toIMap(),
+        queryParameters:
+            (currentData?.queryParameters.keepKeys(keptQueryParameterKeys) ??
+                    IMap<String, String>())
+                .addAll(queryParameters.toIMap()),
       ),
       reason: RouteTransitionReason.programmatic,
     );
