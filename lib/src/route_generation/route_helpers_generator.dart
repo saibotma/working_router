@@ -929,7 +929,10 @@ class _InstanceStringContext implements _ExpressionContext {
     if (normalizedExpression is SimpleIdentifier) {
       final binding = parameterBindings[normalizedExpression.name];
       if (binding != null) {
-        return binding.expression;
+        final boundExpression = _unwrapExpression(binding.expression);
+        if (!_isSameSimpleIdentifier(boundExpression, normalizedExpression)) {
+          return binding.expression;
+        }
       }
     }
     return parentContext?.resolveExpression(normalizedExpression);
@@ -944,7 +947,10 @@ class _InstanceStringContext implements _ExpressionContext {
     if (normalizedExpression is SimpleIdentifier) {
       final parameterBinding = parameterBindings[normalizedExpression.name];
       if (parameterBinding != null) {
-        return resolveIdExpression(parameterBinding.expression);
+        final boundExpression = _unwrapExpression(parameterBinding.expression);
+        if (!_isSameSimpleIdentifier(boundExpression, normalizedExpression)) {
+          return resolveIdExpression(parameterBinding.expression);
+        }
       }
       final parentExpression = await parentContext?.resolveExpression(
         normalizedExpression,
@@ -1302,6 +1308,12 @@ class _InstanceStringContext implements _ExpressionContext {
     }
     return current;
   }
+
+  bool _isSameSimpleIdentifier(Expression left, Expression right) {
+    return left is SimpleIdentifier &&
+        right is SimpleIdentifier &&
+        left.name == right.name;
+  }
 }
 
 class _FunctionExpressionContext implements _ExpressionContext {
@@ -1364,7 +1376,13 @@ class _FunctionExpressionContext implements _ExpressionContext {
     if (normalizedExpression is SimpleIdentifier) {
       final boundExpression = parameterBindings[normalizedExpression.name];
       if (boundExpression != null) {
-        return boundExpression;
+        final normalizedBoundExpression = _unwrapExpression(boundExpression);
+        if (!_isSameSimpleIdentifier(
+          normalizedBoundExpression,
+          normalizedExpression,
+        )) {
+          return boundExpression;
+        }
       }
     }
     return parentContext?.resolveExpression(normalizedExpression);
@@ -1379,7 +1397,13 @@ class _FunctionExpressionContext implements _ExpressionContext {
     if (normalizedExpression is SimpleIdentifier) {
       final boundExpression = parameterBindings[normalizedExpression.name];
       if (boundExpression != null) {
-        return resolveIdExpression(boundExpression);
+        final normalizedBoundExpression = _unwrapExpression(boundExpression);
+        if (!_isSameSimpleIdentifier(
+          normalizedBoundExpression,
+          normalizedExpression,
+        )) {
+          return resolveIdExpression(boundExpression);
+        }
       }
       final parentExpression = await parentContext?.resolveExpression(
         normalizedExpression,
@@ -1483,6 +1507,12 @@ class _FunctionExpressionContext implements _ExpressionContext {
       current = current.expression;
     }
     return current;
+  }
+
+  bool _isSameSimpleIdentifier(Expression left, Expression right) {
+    return left is SimpleIdentifier &&
+        right is SimpleIdentifier &&
+        left.name == right.name;
   }
 }
 
