@@ -56,8 +56,8 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   /// Rebuilds the routing tree used by this router instance.
   ///
-  /// When using `@WorkingRouterLocationTree`, pass the same top-level function
-  /// here that was used as the generator entrypoint.
+  /// When using `@WorkingRouterLocationTree`, pass a closure here that builds
+  /// the same route tree shape as the annotated generator entrypoint.
   final BuildLocationTree<ID> buildLocationTree;
   final LocationChildWrapper<ID>? wrapLocationChild;
 

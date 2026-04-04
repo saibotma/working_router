@@ -425,4 +425,136 @@ Location<IfUnionRouteId> buildLocationTree() => RootLocation();
       );
     },
   );
+
+  test(
+    'supports parameterized annotated builders, local helper functions, and forwarded children parameters',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions(const {}),
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/parameterized_builder_routes.dart': '''
+library parameterized_builder_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'parameterized_builder_routes.g.dart';
+
+enum ParameterizedRouteId { root, chat, channel, channelSend, search }
+
+class Permissions {
+  final bool maySeeExtra;
+
+  const Permissions({required this.maySeeExtra});
+}
+
+class RootLocation extends Location<ParameterizedRouteId> {
+  RootLocation({required super.id, super.children = const []});
+
+  @override
+  String get path => '';
+}
+
+class ChatLocation extends Location<ParameterizedRouteId> {
+  ChatLocation({required super.id, super.children = const []});
+
+  @override
+  String get path => 'chat';
+}
+
+class ChatSearchLocation extends Location<ParameterizedRouteId> {
+  ChatSearchLocation({
+    required ParameterizedRouteId id,
+    List<Location<ParameterizedRouteId>> children = const [],
+  }) : super(id: id, children: children);
+
+  @override
+  String get path => 'search';
+}
+
+class ChatChannelLocation extends Location<ParameterizedRouteId> {
+  ChatChannelLocation({super.id, super.children = const []});
+
+  @override
+  String get path => 'channels/:channelId';
+}
+
+class ChatChannelSendLocation extends Location<ParameterizedRouteId> {
+  ChatChannelSendLocation({super.id});
+
+  @override
+  String get path => 'send';
+}
+
+class ExtraLocation extends Location<ParameterizedRouteId> {
+  ExtraLocation();
+
+  @override
+  String get path => 'extra';
+}
+
+@WorkingRouterLocationTree()
+Location<ParameterizedRouteId> buildLocationTree({
+  required Permissions permissions,
+}) {
+  List<Location<ParameterizedRouteId>> sharedChatLocations({
+    required bool shouldSetIds,
+  }) {
+    return [
+      ChatChannelLocation(
+        id: shouldSetIds ? ParameterizedRouteId.channel : null,
+        children: [
+          ChatChannelSendLocation(
+            id: shouldSetIds ? ParameterizedRouteId.channelSend : null,
+          ),
+        ],
+      ),
+    ];
+  }
+
+  return RootLocation(
+    id: ParameterizedRouteId.root,
+    children: [
+      ChatLocation(
+        id: ParameterizedRouteId.chat,
+        children: [
+          ...sharedChatLocations(shouldSetIds: true),
+          ChatSearchLocation(
+            id: ParameterizedRouteId.search,
+            children: sharedChatLocations(shouldSetIds: false),
+          ),
+          if (permissions.maySeeExtra) ExtraLocation(),
+        ],
+      ),
+    ],
+  );
+}
+''',
+        },
+        outputs: {
+          'working_router|lib/parameterized_builder_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('extension BuildLocationTreeGeneratedRoutes'),
+                  contains('void routeToRoot()'),
+                  contains('void routeToChat()'),
+                  contains(
+                    'void routeToChannel({required String channelId}) {',
+                  ),
+                  contains(
+                    'void routeToChannelSend({required String channelId}) {',
+                  ),
+                  contains('void routeToSearch()'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
 }

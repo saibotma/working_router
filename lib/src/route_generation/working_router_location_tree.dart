@@ -1,8 +1,8 @@
 /// Marks the canonical working-router location tree used for route helper
 /// generation.
 ///
-/// The annotation target must be a top-level field, getter, or zero-argument
-/// function returning `Location<ID>`.
+/// The annotation target must be a top-level field, getter, or function
+/// returning `Location<ID>`.
 ///
 /// Example:
 /// ```dart
@@ -21,8 +21,8 @@
 /// - all path parameters from the full ancestor chain
 /// - all query parameter keys from the full ancestor chain
 ///
-/// Static helper members can still be used inside the tree composition as long
-/// as the annotated entrypoint itself is top-level.
+/// Static helper members and local helper functions can still be used inside
+/// the tree composition as long as the annotated entrypoint itself is top-level.
 ///
 /// The generator works on the union of routes that can appear in this tree. In
 /// collection literals it includes the branches of `if` elements without
@@ -31,7 +31,10 @@
 ///
 /// Supported composition includes:
 /// - inline constructor trees
-/// - top-level or static helper fields, getters, and zero-argument functions
+/// - top-level or static helper fields and getters
+/// - top-level, static, or local helper functions
+/// - helper function arguments when the tree-relevant expressions remain
+///   statically recoverable from source
 /// - children passed directly to a location constructor
 /// - children passed to `super(children: [...])` inside a location constructor
 /// - collection `if` elements and spreads inside children lists

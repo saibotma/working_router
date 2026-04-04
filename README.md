@@ -53,15 +53,17 @@ class LessonEditLocation extends Location<LocationId> {
 }
 
 @WorkingRouterLocationTree()
-Location<LocationId> buildLocationTree() => SplashLocation(
+Location<LocationId> buildLocationTree({
+  required bool includeLessons,
+}) => SplashLocation(
       id: LocationId.splash,
       children: [
-        LessonLocation(id: LocationId.lesson),
+        if (includeLessons) LessonLocation(id: LocationId.lesson),
       ],
     );
 
 final router = WorkingRouter<LocationId>(
-  buildLocationTree: buildLocationTree,
+  buildLocationTree: () => buildLocationTree(includeLessons: true),
   noContentWidget: const SizedBox(),
   buildRootPages: (_, location, __) => [],
 );
@@ -93,6 +95,9 @@ includes routes from collection `if` branches without evaluating the condition.
 That means generated helpers guarantee parameter completeness, but a helper may
 still target a route that is currently pruned from the live runtime tree.
 
+The annotated builder used for code generation may take parameters. At runtime,
+pass a closure to `WorkingRouter.buildLocationTree` that binds those values.
+
 ## Setup
 
 Add `build_runner` to the consuming app's `dev_dependencies`, then run:
@@ -111,9 +116,11 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 
 The generator resolves a canonical tree from source and generates for the union
 of routes that can appear. Supported patterns include:
-- a top-level annotated field, getter, or zero-argument function returning the root `Location`
+- a top-level annotated field, getter, or function returning the root `Location`
 - inline child lists
-- top-level or static helper fields, getters, and zero-argument functions
+- top-level or static helper fields and getters
+- top-level, static, or local helper functions
+- helper function arguments when the tree-relevant expressions stay statically recoverable
 - children passed directly to a location constructor
 - children passed via `super(children: [...])` inside a location constructor
 - collection `if` elements and spreads in children lists

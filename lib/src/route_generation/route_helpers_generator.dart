@@ -245,6 +245,12 @@ class _StaticRouteTreeExtractor {
     if (node is FunctionDeclaration) {
       return _bodyExpression(node.functionExpression.body, declarationElement);
     }
+    if (node is FunctionDeclarationStatement) {
+      return _bodyExpression(
+        node.functionDeclaration.functionExpression.body,
+        declarationElement,
+      );
+    }
     if (node is MethodDeclaration) {
       return _bodyExpression(node.body, declarationElement);
     }
@@ -327,14 +333,37 @@ class _StaticRouteTreeExtractor {
 
   Future<_RouteNode> _locationFromExpression(
     Expression expression, {
-    _InstanceStringContext? evaluationContext,
+    _ExpressionContext? evaluationContext,
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
+
+    if (evaluationContext != null) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null) {
+        return _locationFromExpression(
+          boundExpression,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
 
     if (normalizedExpression is InstanceCreationExpression) {
       return _locationFromCreation(
         normalizedExpression,
         evaluationContext: evaluationContext,
+      );
+    }
+
+    final helperInvocation = await _helperInvocation(
+      normalizedExpression,
+      evaluationContext: evaluationContext,
+    );
+    if (helperInvocation != null) {
+      return _locationFromExpression(
+        helperInvocation.expression,
+        evaluationContext: helperInvocation.context,
       );
     }
 
@@ -354,7 +383,7 @@ class _StaticRouteTreeExtractor {
 
   Future<_RouteNode> _locationFromCreation(
     InstanceCreationExpression expression, {
-    _InstanceStringContext? evaluationContext,
+    _ExpressionContext? evaluationContext,
   }) async {
     final constructor = expression.constructorName.element;
     final classElement = constructor?.enclosingElement;
@@ -376,6 +405,7 @@ class _StaticRouteTreeExtractor {
       buildStep: buildStep,
       creation: expression,
       rootElement: rootElement,
+      parentContext: evaluationContext,
     );
     final path = await _resolvePath(context);
     final queryParameters = await _resolveQueryParameters(classElement);
@@ -408,9 +438,33 @@ class _StaticRouteTreeExtractor {
 
   Future<List<_RouteNode>> _locationsFromListExpression(
     Expression expression, {
-    _InstanceStringContext? evaluationContext,
+    _ExpressionContext? evaluationContext,
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
+
+    if (evaluationContext != null) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null) {
+        return _locationsFromListExpression(
+          boundExpression,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
+
+    final helperInvocation = await _helperInvocation(
+      normalizedExpression,
+      evaluationContext: evaluationContext,
+    );
+    if (helperInvocation != null) {
+      return _locationsFromListExpression(
+        helperInvocation.expression,
+        evaluationContext: helperInvocation.context,
+      );
+    }
+
     if (normalizedExpression is ListLiteral) {
       final result = <_RouteNode>[];
       for (final element in normalizedExpression.elements) {
@@ -440,7 +494,7 @@ class _StaticRouteTreeExtractor {
 
   Future<List<_RouteNode>> _locationsFromCollectionElement(
     CollectionElement element, {
-    _InstanceStringContext? evaluationContext,
+    _ExpressionContext? evaluationContext,
   }) async {
     switch (element) {
       case Expression():
@@ -484,7 +538,7 @@ class _StaticRouteTreeExtractor {
 
   Future<String?> _resolveIdExpression(
     Expression? expression, {
-    _InstanceStringContext? evaluationContext,
+    _ExpressionContext? evaluationContext,
   }) async {
     if (expression == null) {
       return null;
@@ -509,6 +563,35 @@ class _StaticRouteTreeExtractor {
     }
 
     return normalizedExpression.toSource();
+  }
+
+  Future<_ResolvedHelperInvocation?> _helperInvocation(
+    Expression expression, {
+    required _ExpressionContext? evaluationContext,
+  }) async {
+    if (expression is! MethodInvocation &&
+        expression is! FunctionExpressionInvocation) {
+      return null;
+    }
+
+    final executable = _invokedExecutableElement(expression);
+    if (executable == null) {
+      return null;
+    }
+
+    _validateInvokedHelperElement(executable);
+    final helperContext = await _FunctionExpressionContext.fromInvocation(
+      buildStep: buildStep,
+      rootElement: rootElement,
+      executable: executable,
+      arguments: _invocationArguments(expression),
+      parentContext: evaluationContext,
+    );
+    final targetExpression = await _declarationExpression(executable);
+    return _ResolvedHelperInvocation(
+      expression: targetExpression,
+      context: helperContext,
+    );
   }
 
   Future<String> _resolvePath(_InstanceStringContext context) async {
@@ -617,7 +700,10 @@ class _StaticRouteTreeExtractor {
     return null;
   }
 
-  Element? _expressionElement(Expression expression) {
+  Element? _expressionElement(
+    Expression expression, {
+    bool allowParameterizedExecutable = false,
+  }) {
     var element = switch (expression) {
       MethodInvocation() => expression.methodName.element,
       FunctionExpressionInvocation() => expression.element,
@@ -635,7 +721,7 @@ class _StaticRouteTreeExtractor {
 
     if (element is ExecutableElement) {
       _validateHelperElement(element);
-      if (element.formalParameters.isNotEmpty) {
+      if (!allowParameterizedExecutable && element.formalParameters.isNotEmpty) {
         throw InvalidGenerationSourceError(
           'Helper functions used in generated route trees must not have '
           'parameters.',
@@ -649,6 +735,22 @@ class _StaticRouteTreeExtractor {
       return element;
     }
     return null;
+  }
+
+  ExecutableElement? _invokedExecutableElement(Expression expression) {
+    final element = _expressionElement(
+      expression,
+      allowParameterizedExecutable: true,
+    );
+    return element is ExecutableElement ? element : null;
+  }
+
+  List<Expression> _invocationArguments(Expression expression) {
+    return switch (expression) {
+      MethodInvocation() => expression.argumentList.arguments,
+      FunctionExpressionInvocation() => expression.argumentList.arguments,
+      _ => const <Expression>[],
+    };
   }
 
   Element _normalizeDeclarationElement(Element element) {
@@ -667,6 +769,7 @@ class _StaticRouteTreeExtractor {
       TopLevelFunctionElement() => true,
       MethodElement() => element.isStatic,
       GetterElement() => isTopLevel || element.isStatic,
+      ExecutableElement() => true,
       PropertyInducingElement() => isTopLevel || element.isStatic,
       _ => false,
     };
@@ -678,6 +781,10 @@ class _StaticRouteTreeExtractor {
         element: element,
       );
     }
+  }
+
+  void _validateInvokedHelperElement(ExecutableElement element) {
+    _validateHelperElement(element);
   }
 
   Expression _unwrapExpression(Expression expression) {
@@ -700,13 +807,30 @@ class _StaticRouteTreeExtractor {
   }
 }
 
-class _InstanceStringContext {
+abstract class _ExpressionContext {
+  Future<Expression?> resolveExpression(Expression expression);
+
+  Future<Expression?> resolveIdExpression(Expression expression);
+}
+
+class _ResolvedHelperInvocation {
+  final Expression expression;
+  final _ExpressionContext context;
+
+  const _ResolvedHelperInvocation({
+    required this.expression,
+    required this.context,
+  });
+}
+
+class _InstanceStringContext implements _ExpressionContext {
   final BuildStep buildStep;
   final Element rootElement;
   final InterfaceElement classElement;
   final ConstructorElement constructor;
   final ConstructorDeclaration constructorNode;
   final Map<String, _BoundStringExpression> parameterBindings;
+  final _ExpressionContext? parentContext;
 
   _InstanceStringContext({
     required this.buildStep,
@@ -715,12 +839,14 @@ class _InstanceStringContext {
     required this.constructor,
     required this.constructorNode,
     required this.parameterBindings,
+    required this.parentContext,
   });
 
   static Future<_InstanceStringContext> fromCreation({
     required BuildStep buildStep,
     required InstanceCreationExpression creation,
     required Element rootElement,
+    required _ExpressionContext? parentContext,
   }) async {
     final constructor = creation.constructorName.element;
     final classElement = constructor?.enclosingElement;
@@ -750,6 +876,7 @@ class _InstanceStringContext {
       constructor: constructor,
       constructorNode: constructorNode,
       parameterBindings: {},
+      parentContext: parentContext,
     );
     context.parameterBindings.addAll(
       context._bindArguments(
@@ -796,12 +923,41 @@ class _InstanceStringContext {
     );
   }
 
+  @override
+  Future<Expression?> resolveExpression(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is SimpleIdentifier) {
+      final binding = parameterBindings[normalizedExpression.name];
+      if (binding != null) {
+        return binding.expression;
+      }
+    }
+    return parentContext?.resolveExpression(normalizedExpression);
+  }
+
+  @override
   Future<Expression?> resolveIdExpression(Expression expression) async {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is NullLiteral) {
       return null;
     }
+    if (normalizedExpression is SimpleIdentifier) {
+      final parameterBinding = parameterBindings[normalizedExpression.name];
+      if (parameterBinding != null) {
+        return resolveIdExpression(parameterBinding.expression);
+      }
+      final parentExpression = await parentContext?.resolveExpression(
+        normalizedExpression,
+      );
+      if (parentExpression != null) {
+        return parentContext!.resolveIdExpression(parentExpression);
+      }
+    }
     if (normalizedExpression is ConditionalExpression) {
+      if (!_isNullableIdCondition(normalizedExpression.condition) &&
+          parentContext != null) {
+        return parentContext!.resolveIdExpression(normalizedExpression);
+      }
       final conditionResult = await _evaluateNullableIdCondition(
         normalizedExpression.condition,
       );
@@ -904,6 +1060,7 @@ class _InstanceStringContext {
       constructor: superConstructor,
       constructorNode: superConstructorNode,
       parameterBindings: {},
+      parentContext: parentContext,
     );
     context.parameterBindings.addAll(
       context._bindArguments(
@@ -985,6 +1142,21 @@ class _InstanceStringContext {
       'Only `id != null ? ... : null` style conditional ids are supported.',
       element: constructor,
     );
+  }
+
+  bool _isNullableIdCondition(Expression expression) {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is! BinaryExpression) {
+      return false;
+    }
+
+    final operator = normalizedExpression.operator.lexeme;
+    if (operator != '!=' && operator != '==') {
+      return false;
+    }
+
+    return normalizedExpression.leftOperand is NullLiteral ||
+        normalizedExpression.rightOperand is NullLiteral;
   }
 
   Future<bool> _evaluateIsNull(Expression expression) async {
@@ -1120,6 +1292,188 @@ class _InstanceStringContext {
     throw InvalidGenerationSourceError(
       'Only simple getter bodies are supported for generated paths.',
       element: element,
+    );
+  }
+
+  Expression _unwrapExpression(Expression expression) {
+    var current = expression;
+    while (current is ParenthesizedExpression) {
+      current = current.expression;
+    }
+    return current;
+  }
+}
+
+class _FunctionExpressionContext implements _ExpressionContext {
+  final Element rootElement;
+  final ExecutableElement executable;
+  final Map<String, Expression> parameterBindings;
+  final _ExpressionContext? parentContext;
+
+  _FunctionExpressionContext({
+    required this.rootElement,
+    required this.executable,
+    required this.parameterBindings,
+    required this.parentContext,
+  });
+
+  static Future<_FunctionExpressionContext> fromInvocation({
+    required BuildStep buildStep,
+    required Element rootElement,
+    required ExecutableElement executable,
+    required List<Expression> arguments,
+    required _ExpressionContext? parentContext,
+  }) async {
+    final node = await buildStep.resolver.astNodeFor(
+      _fragmentFor(executable),
+      resolve: true,
+    );
+
+    final parameters = switch (node) {
+      FunctionDeclaration() => node.functionExpression.parameters,
+      FunctionDeclarationStatement() =>
+        node.functionDeclaration.functionExpression.parameters,
+      MethodDeclaration() => node.parameters,
+      _ => throw InvalidGenerationSourceError(
+          'Unable to resolve helper function `${executable.displayName}`.',
+          element: executable,
+        ),
+    };
+
+    if (parameters == null) {
+      throw InvalidGenerationSourceError(
+        'Unable to resolve helper function `${executable.displayName}`.',
+        element: executable,
+      );
+    }
+
+    return _FunctionExpressionContext(
+      rootElement: rootElement,
+      executable: executable,
+      parameterBindings: _bindArguments(
+        parameters: parameters,
+        arguments: arguments,
+      ),
+      parentContext: parentContext,
+    );
+  }
+
+  @override
+  Future<Expression?> resolveExpression(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is SimpleIdentifier) {
+      final boundExpression = parameterBindings[normalizedExpression.name];
+      if (boundExpression != null) {
+        return boundExpression;
+      }
+    }
+    return parentContext?.resolveExpression(normalizedExpression);
+  }
+
+  @override
+  Future<Expression?> resolveIdExpression(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is NullLiteral) {
+      return null;
+    }
+    if (normalizedExpression is SimpleIdentifier) {
+      final boundExpression = parameterBindings[normalizedExpression.name];
+      if (boundExpression != null) {
+        return resolveIdExpression(boundExpression);
+      }
+      final parentExpression = await parentContext?.resolveExpression(
+        normalizedExpression,
+      );
+      if (parentExpression != null) {
+        return resolveIdExpression(parentExpression);
+      }
+    }
+    if (normalizedExpression is ConditionalExpression) {
+      final conditionResult = await _evaluateCondition(
+        normalizedExpression.condition,
+      );
+      return resolveIdExpression(
+        conditionResult
+            ? normalizedExpression.thenExpression
+            : normalizedExpression.elseExpression,
+      );
+    }
+    return normalizedExpression;
+  }
+
+  static Map<String, Expression> _bindArguments({
+    required FormalParameterList parameters,
+    required List<Expression> arguments,
+  }) {
+    final positionalArguments = <Expression>[];
+    final namedArguments = <String, Expression>{};
+    for (final argument in arguments) {
+      if (argument is NamedExpression) {
+        namedArguments[argument.name.label.name] = argument.expression;
+      } else {
+        positionalArguments.add(argument);
+      }
+    }
+
+    final bindings = <String, Expression>{};
+    var positionalIndex = 0;
+    for (final parameter in parameters.parameters) {
+      final element = parameter.declaredFragment?.element;
+      final parameterName = element?.name;
+      if (element == null || parameterName == null) {
+        continue;
+      }
+
+      Expression? argument;
+      if (element.isNamed) {
+        argument = namedArguments[parameterName];
+      } else if (positionalIndex < positionalArguments.length) {
+        argument = positionalArguments[positionalIndex++];
+      } else if (parameter is DefaultFormalParameter &&
+          parameter.defaultValue != null) {
+        argument = parameter.defaultValue;
+      }
+
+      if (argument != null) {
+        bindings[parameterName] = argument;
+      }
+    }
+
+    return bindings;
+  }
+
+  Future<bool> _evaluateCondition(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is BooleanLiteral) {
+      return normalizedExpression.value;
+    }
+    if (normalizedExpression is PrefixExpression &&
+        normalizedExpression.operator.lexeme == '!') {
+      return !(await _evaluateCondition(normalizedExpression.operand));
+    }
+    if (normalizedExpression is SimpleIdentifier) {
+      final boundExpression = parameterBindings[normalizedExpression.name];
+      if (boundExpression != null) {
+        return _evaluateCondition(boundExpression);
+      }
+      final parentExpression = await parentContext?.resolveExpression(
+        normalizedExpression,
+      );
+      if (parentExpression != null) {
+        return _evaluateCondition(parentExpression);
+      }
+    }
+
+    final constantValue = normalizedExpression.computeConstantValue();
+    final boolValue = constantValue?.value?.toBoolValue();
+    if (boolValue != null) {
+      return boolValue;
+    }
+
+    throw InvalidGenerationSourceError(
+      'Only statically known boolean helper arguments can be used in '
+      'generated route ids.',
+      element: executable,
     );
   }
 
