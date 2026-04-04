@@ -924,8 +924,18 @@ class _InstanceStringContext implements _ExpressionContext {
   }
 
   @override
-  Future<Expression?> resolveExpression(Expression expression) async {
+  Future<Expression?> resolveExpression(Expression expression) {
+    return _resolveExpression(expression, <String>{});
+  }
+
+  Future<Expression?> _resolveExpression(
+    Expression expression,
+    Set<String> visited,
+  ) async {
     final normalizedExpression = _unwrapExpression(expression);
+    if (!_markVisited(visited, 'expr', normalizedExpression)) {
+      return null;
+    }
     if (normalizedExpression is SimpleIdentifier) {
       final binding = parameterBindings[normalizedExpression.name];
       if (binding != null) {
@@ -935,12 +945,26 @@ class _InstanceStringContext implements _ExpressionContext {
         }
       }
     }
-    return parentContext?.resolveExpression(normalizedExpression);
+    return _resolveParentExpression(
+      parentContext,
+      normalizedExpression,
+      visited,
+    );
   }
 
   @override
-  Future<Expression?> resolveIdExpression(Expression expression) async {
+  Future<Expression?> resolveIdExpression(Expression expression) {
+    return _resolveIdExpression(expression, <String>{});
+  }
+
+  Future<Expression?> _resolveIdExpression(
+    Expression expression,
+    Set<String> visited,
+  ) async {
     final normalizedExpression = _unwrapExpression(expression);
+    if (!_markVisited(visited, 'id', normalizedExpression)) {
+      return null;
+    }
     if (normalizedExpression is NullLiteral) {
       return null;
     }
@@ -949,20 +973,26 @@ class _InstanceStringContext implements _ExpressionContext {
       if (parameterBinding != null) {
         final boundExpression = _unwrapExpression(parameterBinding.expression);
         if (!_isSameSimpleIdentifier(boundExpression, normalizedExpression)) {
-          return resolveIdExpression(parameterBinding.expression);
+          return _resolveIdExpression(parameterBinding.expression, visited);
         }
       }
-      final parentExpression = await parentContext?.resolveExpression(
+      final parentExpression = await _resolveParentExpression(
+        parentContext,
         normalizedExpression,
+        visited,
       );
       if (parentExpression != null) {
-        return parentContext!.resolveIdExpression(parentExpression);
+        return _resolveParentIdExpression(parentContext, parentExpression, visited);
       }
     }
     if (normalizedExpression is ConditionalExpression) {
       if (!_isNullableIdCondition(normalizedExpression.condition) &&
           parentContext != null) {
-        return parentContext!.resolveIdExpression(normalizedExpression);
+        return _resolveParentIdExpression(
+          parentContext,
+          normalizedExpression,
+          visited,
+        );
       }
       final conditionResult = await _evaluateNullableIdCondition(
         normalizedExpression.condition,
@@ -970,7 +1000,7 @@ class _InstanceStringContext implements _ExpressionContext {
       final branch = conditionResult
           ? normalizedExpression.thenExpression
           : normalizedExpression.elseExpression;
-      return resolveIdExpression(branch);
+      return _resolveIdExpression(branch, visited);
     }
     return normalizedExpression;
   }
@@ -1314,6 +1344,46 @@ class _InstanceStringContext implements _ExpressionContext {
         right is SimpleIdentifier &&
         left.name == right.name;
   }
+
+  bool _markVisited(
+    Set<String> visited,
+    String kind,
+    Expression expression,
+  ) {
+    final key = switch (expression) {
+      SimpleIdentifier() => '$kind:${identityHashCode(this)}:${expression.name}',
+      _ => '$kind:${identityHashCode(this)}:${expression.toSource()}',
+    };
+    return visited.add(key);
+  }
+
+  Future<Expression?> _resolveParentExpression(
+    _ExpressionContext? context,
+    Expression expression,
+    Set<String> visited,
+  ) {
+    if (context case _InstanceStringContext()) {
+      return context._resolveExpression(expression, visited);
+    }
+    if (context case _FunctionExpressionContext()) {
+      return context._resolveExpression(expression, visited);
+    }
+    return context?.resolveExpression(expression) ?? Future.value(null);
+  }
+
+  Future<Expression?> _resolveParentIdExpression(
+    _ExpressionContext? context,
+    Expression expression,
+    Set<String> visited,
+  ) {
+    if (context case _InstanceStringContext()) {
+      return context._resolveIdExpression(expression, visited);
+    }
+    if (context case _FunctionExpressionContext()) {
+      return context._resolveIdExpression(expression, visited);
+    }
+    return context?.resolveIdExpression(expression) ?? Future.value(null);
+  }
 }
 
 class _FunctionExpressionContext implements _ExpressionContext {
@@ -1371,8 +1441,18 @@ class _FunctionExpressionContext implements _ExpressionContext {
   }
 
   @override
-  Future<Expression?> resolveExpression(Expression expression) async {
+  Future<Expression?> resolveExpression(Expression expression) {
+    return _resolveExpression(expression, <String>{});
+  }
+
+  Future<Expression?> _resolveExpression(
+    Expression expression,
+    Set<String> visited,
+  ) async {
     final normalizedExpression = _unwrapExpression(expression);
+    if (!_markVisited(visited, 'expr', normalizedExpression)) {
+      return null;
+    }
     if (normalizedExpression is SimpleIdentifier) {
       final boundExpression = parameterBindings[normalizedExpression.name];
       if (boundExpression != null) {
@@ -1385,12 +1465,26 @@ class _FunctionExpressionContext implements _ExpressionContext {
         }
       }
     }
-    return parentContext?.resolveExpression(normalizedExpression);
+    return _resolveParentExpression(
+      parentContext,
+      normalizedExpression,
+      visited,
+    );
   }
 
   @override
-  Future<Expression?> resolveIdExpression(Expression expression) async {
+  Future<Expression?> resolveIdExpression(Expression expression) {
+    return _resolveIdExpression(expression, <String>{});
+  }
+
+  Future<Expression?> _resolveIdExpression(
+    Expression expression,
+    Set<String> visited,
+  ) async {
     final normalizedExpression = _unwrapExpression(expression);
+    if (!_markVisited(visited, 'id', normalizedExpression)) {
+      return null;
+    }
     if (normalizedExpression is NullLiteral) {
       return null;
     }
@@ -1402,24 +1496,27 @@ class _FunctionExpressionContext implements _ExpressionContext {
           normalizedBoundExpression,
           normalizedExpression,
         )) {
-          return resolveIdExpression(boundExpression);
+          return _resolveIdExpression(boundExpression, visited);
         }
       }
-      final parentExpression = await parentContext?.resolveExpression(
+      final parentExpression = await _resolveParentExpression(
+        parentContext,
         normalizedExpression,
+        visited,
       );
       if (parentExpression != null) {
-        return resolveIdExpression(parentExpression);
+        return _resolveIdExpression(parentExpression, visited);
       }
     }
     if (normalizedExpression is ConditionalExpression) {
       final conditionResult = await _evaluateCondition(
         normalizedExpression.condition,
       );
-      return resolveIdExpression(
+      return _resolveIdExpression(
         conditionResult
             ? normalizedExpression.thenExpression
             : normalizedExpression.elseExpression,
+        visited,
       );
     }
     return normalizedExpression;
@@ -1513,6 +1610,32 @@ class _FunctionExpressionContext implements _ExpressionContext {
     return left is SimpleIdentifier &&
         right is SimpleIdentifier &&
         left.name == right.name;
+  }
+
+  bool _markVisited(
+    Set<String> visited,
+    String kind,
+    Expression expression,
+  ) {
+    final key = switch (expression) {
+      SimpleIdentifier() => '$kind:${identityHashCode(this)}:${expression.name}',
+      _ => '$kind:${identityHashCode(this)}:${expression.toSource()}',
+    };
+    return visited.add(key);
+  }
+
+  Future<Expression?> _resolveParentExpression(
+    _ExpressionContext? context,
+    Expression expression,
+    Set<String> visited,
+  ) {
+    if (context case _InstanceStringContext()) {
+      return context._resolveExpression(expression, visited);
+    }
+    if (context case _FunctionExpressionContext()) {
+      return context._resolveExpression(expression, visited);
+    }
+    return context?.resolveExpression(expression) ?? Future.value(null);
   }
 }
 
