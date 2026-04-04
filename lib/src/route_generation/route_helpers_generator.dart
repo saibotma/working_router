@@ -325,11 +325,17 @@ class _StaticRouteTreeExtractor {
     );
   }
 
-  Future<_RouteNode> _locationFromExpression(Expression expression) async {
+  Future<_RouteNode> _locationFromExpression(
+    Expression expression, {
+    _InstanceStringContext? evaluationContext,
+  }) async {
     final normalizedExpression = _unwrapExpression(expression);
 
     if (normalizedExpression is InstanceCreationExpression) {
-      return _locationFromCreation(normalizedExpression);
+      return _locationFromCreation(
+        normalizedExpression,
+        evaluationContext: evaluationContext,
+      );
     }
 
     final referencedElement = _expressionElement(normalizedExpression);
@@ -347,7 +353,9 @@ class _StaticRouteTreeExtractor {
   }
 
   Future<_RouteNode> _locationFromCreation(
-    InstanceCreationExpression expression,
+    InstanceCreationExpression expression, {
+    _InstanceStringContext? evaluationContext,
+  }
   ) async {
     final constructor = expression.constructorName.element;
     final classElement = constructor?.enclosingElement;
@@ -377,13 +385,19 @@ class _StaticRouteTreeExtractor {
         await context.locationChildrenExpression();
     final children = childrenExpression == null
         ? const <_RouteNode>[]
-        : await _locationsFromListExpression(childrenExpression);
+        : await _locationsFromListExpression(
+            childrenExpression,
+            evaluationContext: context,
+          );
 
     return _RouteNode(
-      idExpression: _namedArgumentExpression(
-        expression.argumentList.arguments,
-        'id',
-      )?.toSource(),
+      idExpression: await _resolveIdExpression(
+        _namedArgumentExpression(
+          expression.argumentList.arguments,
+          'id',
+        ),
+        evaluationContext: evaluationContext,
+      ),
       path: path,
       queryParameters: queryParameters,
       children: children,
@@ -391,7 +405,9 @@ class _StaticRouteTreeExtractor {
   }
 
   Future<List<_RouteNode>> _locationsFromListExpression(
-    Expression expression,
+    Expression expression, {
+    _InstanceStringContext? evaluationContext,
+  }
   ) async {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is ListLiteral) {
@@ -399,10 +415,18 @@ class _StaticRouteTreeExtractor {
       for (final element in normalizedExpression.elements) {
         switch (element) {
           case Expression():
-            result.add(await _locationFromExpression(element));
+            result.add(
+              await _locationFromExpression(
+                element,
+                evaluationContext: evaluationContext,
+              ),
+            );
           case SpreadElement():
             result.addAll(
-              await _locationsFromListExpression(element.expression),
+              await _locationsFromListExpression(
+                element.expression,
+                evaluationContext: evaluationContext,
+              ),
             );
           default:
             throw InvalidGenerationSourceError(
@@ -427,6 +451,35 @@ class _StaticRouteTreeExtractor {
       'helper functions.',
       element: rootElement,
     );
+  }
+
+  Future<String?> _resolveIdExpression(
+    Expression? expression, {
+    _InstanceStringContext? evaluationContext,
+  }) async {
+    if (expression == null) {
+      return null;
+    }
+
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is NullLiteral) {
+      return null;
+    }
+    if (normalizedExpression is ConditionalExpression) {
+      if (evaluationContext == null) {
+        throw InvalidGenerationSourceError(
+          'Conditional id expressions are only supported when they can be '
+          'resolved from constructor arguments of the enclosing location.',
+          element: rootElement,
+        );
+      }
+      final resolvedExpression = await evaluationContext.resolveIdExpression(
+        normalizedExpression,
+      );
+      return resolvedExpression?.toSource();
+    }
+
+    return normalizedExpression.toSource();
   }
 
   Future<String> _resolvePath(_InstanceStringContext context) async {
@@ -714,6 +767,23 @@ class _InstanceStringContext {
     );
   }
 
+  Future<Expression?> resolveIdExpression(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is NullLiteral) {
+      return null;
+    }
+    if (normalizedExpression is ConditionalExpression) {
+      final conditionResult = await _evaluateNullableIdCondition(
+        normalizedExpression.condition,
+      );
+      final branch = conditionResult
+          ? normalizedExpression.thenExpression
+          : normalizedExpression.elseExpression;
+      return resolveIdExpression(branch);
+    }
+    return normalizedExpression;
+  }
+
   Expression? _namedArgumentExpression(
     List<Expression> arguments,
     String name,
@@ -854,6 +924,66 @@ class _InstanceStringContext {
     );
   }
 
+  Future<bool> _evaluateNullableIdCondition(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is! BinaryExpression) {
+      throw InvalidGenerationSourceError(
+        'Only `id != null ? ... : null` style conditional ids are supported.',
+        element: constructor,
+      );
+    }
+
+    final operator = normalizedExpression.operator.lexeme;
+    if (operator != '!=' && operator != '==') {
+      throw InvalidGenerationSourceError(
+        'Only `id != null ? ... : null` style conditional ids are supported.',
+        element: constructor,
+      );
+    }
+
+    final left = normalizedExpression.leftOperand;
+    final right = normalizedExpression.rightOperand;
+    if (left is NullLiteral) {
+      final targetIsNull = await _evaluateIsNull(right);
+      return operator == '!=' ? !targetIsNull : targetIsNull;
+    }
+    if (right is NullLiteral) {
+      final targetIsNull = await _evaluateIsNull(left);
+      return operator == '!=' ? !targetIsNull : targetIsNull;
+    }
+
+    throw InvalidGenerationSourceError(
+      'Only `id != null ? ... : null` style conditional ids are supported.',
+      element: constructor,
+    );
+  }
+
+  Future<bool> _evaluateIsNull(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is NullLiteral) {
+      return true;
+    }
+    if (normalizedExpression is SimpleIdentifier) {
+      return _evaluateNamedValueIsNull(normalizedExpression.name);
+    }
+    if (normalizedExpression is PrefixedIdentifier &&
+        normalizedExpression.prefix.name == 'this') {
+      return _evaluateFieldIsNull(normalizedExpression.identifier.name);
+    }
+    if (normalizedExpression is PropertyAccess &&
+        normalizedExpression.realTarget is ThisExpression) {
+      return _evaluateFieldIsNull(normalizedExpression.propertyName.name);
+    }
+
+    final constantValue = normalizedExpression.computeConstantValue();
+    final value = constantValue?.value;
+    if (value != null) {
+      return value.isNull;
+    }
+
+    return false;
+  }
+
   Future<String> _evaluateField(String name) async {
     final field = classElement.getField(name);
     if (field != null) {
@@ -878,6 +1008,63 @@ class _InstanceStringContext {
     final superContext = await _superContext();
     if (superContext != null) {
       return superContext._evaluateField(name);
+    }
+
+    throw InvalidGenerationSourceError(
+      'Unable to resolve the field `$name` in `${classElement.name}`.',
+      element: classElement,
+    );
+  }
+
+  Future<bool> _evaluateNamedValueIsNull(String name) async {
+    final parameterBinding = parameterBindings[name];
+    if (parameterBinding != null) {
+      return parameterBinding.isNull();
+    }
+
+    final parameter = constructorNode.parameters.parameters.firstWhereOrNull((
+      parameter,
+    ) {
+      return parameter.declaredFragment?.element?.name == name;
+    });
+    if (parameter != null) {
+      if (parameter is DefaultFormalParameter) {
+        final defaultValue = parameter.defaultValue;
+        if (defaultValue == null) {
+          return true;
+        }
+        return _evaluateIsNull(defaultValue);
+      }
+      return false;
+    }
+
+    return _evaluateFieldIsNull(name);
+  }
+
+  Future<bool> _evaluateFieldIsNull(String name) async {
+    final field = classElement.getField(name);
+    if (field != null) {
+      final fieldInitializer = constructorNode.initializers
+          .whereType<ConstructorFieldInitializer>()
+          .firstWhereOrNull(
+            (initializer) => initializer.fieldName.name == name,
+          );
+      if (fieldInitializer != null) {
+        return _evaluateIsNull(fieldInitializer.expression);
+      }
+
+      final fieldNode = await buildStep.resolver.astNodeFor(
+        _fragmentFor(field.nonSynthetic),
+        resolve: true,
+      );
+      if (fieldNode is VariableDeclaration && fieldNode.initializer != null) {
+        return _evaluateIsNull(fieldNode.initializer!);
+      }
+    }
+
+    final superContext = await _superContext();
+    if (superContext != null) {
+      return superContext._evaluateNamedValueIsNull(name);
     }
 
     throw InvalidGenerationSourceError(
@@ -953,6 +1140,8 @@ class _BoundStringExpression {
   });
 
   Future<String> evaluate() => context._evaluateStringExpression(expression);
+
+  Future<bool> isNull() => context._evaluateIsNull(expression);
 }
 
 class _RouteNode {

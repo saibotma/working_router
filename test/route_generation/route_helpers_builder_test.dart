@@ -280,4 +280,64 @@ final Location<ConstQueryRouteId> appLocationTree =
       readerWriter: readerWriter,
     );
   });
+
+  test('supports child ids derived from whether the parent id is null', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions(const {}),
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/derived_child_ids_routes.dart': '''
+library derived_child_ids_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'derived_child_ids_routes.g.dart';
+
+enum DerivedChildRouteId { chatChannel, chatChannelSend }
+
+class ChatChannelLocation extends Location<DerivedChildRouteId> {
+  ChatChannelLocation({super.id})
+      : super(
+          children: [
+            ChatChannelSendLocation(
+              id: id != null ? DerivedChildRouteId.chatChannelSend : null,
+            ),
+          ],
+        );
+
+  @override
+  String get path => 'channels/:channelId';
+}
+
+class ChatChannelSendLocation extends Location<DerivedChildRouteId> {
+  ChatChannelSendLocation({super.id});
+
+  @override
+  String get path => 'send';
+}
+
+@WorkingRouterLocationTree()
+final Location<DerivedChildRouteId> appLocationTree =
+    ChatChannelLocation(id: DerivedChildRouteId.chatChannel);
+''',
+      },
+      outputs: {
+        'working_router|lib/derived_child_ids_routes.working_router.g.part':
+            decodedMatches(
+          allOf(
+            contains('void routeToChatChannel({required String channelId}) {'),
+            contains(
+              'void routeToChatChannelSend({required String channelId}) {',
+            ),
+          ),
+        ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
 }
