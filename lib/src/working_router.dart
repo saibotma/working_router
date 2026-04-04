@@ -6,6 +6,12 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/working_router.dart';
 
+/// Rebuilds the root [Location] tree for a router instance.
+///
+/// This callback is used at startup and again on [WorkingRouter.refresh] so the
+/// runtime tree can react to changing application state such as permissions.
+typedef BuildLocationTree<ID> = Location<ID> Function();
+
 class WorkingRouter<ID> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
   /// Does not notify widgets at all.
@@ -29,7 +35,7 @@ class WorkingRouter<ID> extends ChangeNotifier
         ),
       );
 
-  final Location<ID> _locationTree;
+  late Location<ID> _locationTree;
   final List<LocationObserverState> _observers = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
 
@@ -47,15 +53,16 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   final TransitionDecider<ID>? _decideTransition;
   final int _redirectLimit;
-  /// The static root of the routing tree used by this router instance.
+
+  /// Rebuilds the routing tree used by this router instance.
   ///
-  /// When using `@WorkingRouterLocationTree`, pass the same tree here that was
-  /// used as the generator entrypoint.
-  final Location<ID> locationTree;
+  /// When using `@WorkingRouterLocationTree`, pass the same top-level function
+  /// here that was used as the generator entrypoint.
+  final BuildLocationTree<ID> buildLocationTree;
   final LocationChildWrapper<ID>? wrapLocationChild;
 
   WorkingRouter({
-    required this.locationTree,
+    required this.buildLocationTree,
     required BuildPages<ID> buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
@@ -64,9 +71,9 @@ class WorkingRouter<ID> extends ChangeNotifier
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
-       _locationTree = locationTree,
        _decideTransition = decideTransition,
        _redirectLimit = redirectLimit {
+    _locationTree = buildLocationTree();
     _rootDelegate = WorkingRouterDelegate<ID>(
       debugLabel: "root",
       isRootDelegate: true,
@@ -103,7 +110,16 @@ class WorkingRouter<ID> extends ChangeNotifier
   @override
   RouterDelegate<Uri> get routerDelegate => _rootDelegate;
 
+  /// Rebuilds the location tree for this router instance.
   void refresh() {
+    _locationTree = buildLocationTree();
+    final currentData = nullableData;
+    if (currentData != null) {
+      // Delegate refresh only rebuilds pages from the current router data.
+      // After the tree changes, rematch the current uri so stale active
+      // locations are dropped when that route no longer exists.
+      _updateData(_buildDataForUri(currentData.uri));
+    }
     for (final it in [_rootDelegate, ..._nestedDelegates]) {
       it.refresh();
     }

@@ -355,8 +355,7 @@ class _StaticRouteTreeExtractor {
   Future<_RouteNode> _locationFromCreation(
     InstanceCreationExpression expression, {
     _InstanceStringContext? evaluationContext,
-  }
-  ) async {
+  }) async {
     final constructor = expression.constructorName.element;
     final classElement = constructor?.enclosingElement;
     if (constructor == null || classElement is! InterfaceElement) {
@@ -381,7 +380,10 @@ class _StaticRouteTreeExtractor {
     final path = await _resolvePath(context);
     final queryParameters = await _resolveQueryParameters(classElement);
     final childrenExpression =
-        _namedArgumentExpression(expression.argumentList.arguments, 'children') ??
+        _namedArgumentExpression(
+          expression.argumentList.arguments,
+          'children',
+        ) ??
         await context.locationChildrenExpression();
     final children = childrenExpression == null
         ? const <_RouteNode>[]
@@ -407,34 +409,17 @@ class _StaticRouteTreeExtractor {
   Future<List<_RouteNode>> _locationsFromListExpression(
     Expression expression, {
     _InstanceStringContext? evaluationContext,
-  }
-  ) async {
+  }) async {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is ListLiteral) {
       final result = <_RouteNode>[];
       for (final element in normalizedExpression.elements) {
-        switch (element) {
-          case Expression():
-            result.add(
-              await _locationFromExpression(
-                element,
-                evaluationContext: evaluationContext,
-              ),
-            );
-          case SpreadElement():
-            result.addAll(
-              await _locationsFromListExpression(
-                element.expression,
-                evaluationContext: evaluationContext,
-              ),
-            );
-          default:
-            throw InvalidGenerationSourceError(
-              'Unsupported list element `${element.toSource()}` in the '
-              'location tree.',
-              element: rootElement,
-            );
-        }
+        result.addAll(
+          await _locationsFromCollectionElement(
+            element,
+            evaluationContext: evaluationContext,
+          ),
+        );
       }
       return result;
     }
@@ -447,10 +432,54 @@ class _StaticRouteTreeExtractor {
 
     throw InvalidGenerationSourceError(
       'Unsupported children expression `${normalizedExpression.toSource()}`. '
-      'Use list literals, helper getters, helper variables, or zero-argument '
-      'helper functions.',
+      'Use list literals, collection ifs, spreads, helper getters, helper '
+      'variables, or zero-argument helper functions.',
       element: rootElement,
     );
+  }
+
+  Future<List<_RouteNode>> _locationsFromCollectionElement(
+    CollectionElement element, {
+    _InstanceStringContext? evaluationContext,
+  }) async {
+    switch (element) {
+      case Expression():
+        return [
+          await _locationFromExpression(
+            element,
+            evaluationContext: evaluationContext,
+          ),
+        ];
+      case SpreadElement():
+        return _locationsFromListExpression(
+          element.expression,
+          evaluationContext: evaluationContext,
+        );
+      case IfElement():
+        final result = <_RouteNode>[];
+        result.addAll(
+          await _locationsFromCollectionElement(
+            element.thenElement,
+            evaluationContext: evaluationContext,
+          ),
+        );
+        final elseElement = element.elseElement;
+        if (elseElement != null) {
+          result.addAll(
+            await _locationsFromCollectionElement(
+              elseElement,
+              evaluationContext: evaluationContext,
+            ),
+          );
+        }
+        return result;
+      default:
+        throw InvalidGenerationSourceError(
+          'Unsupported list element `${element.toSource()}` in the location '
+          'tree.',
+          element: rootElement,
+        );
+    }
   }
 
   Future<String?> _resolveIdExpression(

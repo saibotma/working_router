@@ -372,7 +372,7 @@ void main() {
       final keys = <_Id, LocalKey>{};
 
       final router = WorkingRouter<_Id>(
-        locationTree: _PathLocation(
+        buildLocationTree: () => _PathLocation(
           id: _Id.root,
           path: '',
           children: [
@@ -419,7 +419,7 @@ void main() {
       var sawExpectedData = false;
 
       final router = WorkingRouter<_Id>(
-        locationTree: _PathLocation(
+        buildLocationTree: () => _PathLocation(
           id: _Id.root,
           path: '',
           children: [
@@ -479,6 +479,51 @@ void main() {
       expect(didPop, true);
       expect(router.nullableData!.uri.path, '/a');
     });
+
+    testWidgets(
+      'refresh rebuilds the location tree and rematches the current uri',
+      (
+        tester,
+      ) async {
+        var includeB = true;
+        final router = WorkingRouter<_Id>(
+          buildLocationTree: () => _PathLocation(
+            id: _Id.root,
+            path: '',
+            children: [
+              _PathLocation(
+                id: _Id.a,
+                path: 'a',
+                children: includeB
+                    ? [
+                        _PathLocation(id: _Id.b, path: 'b', children: []),
+                      ]
+                    : const [],
+              ),
+            ],
+          ),
+          buildRootPages: (_, location, _) {
+            return [
+              ChildLocationPageSkeleton<_Id>(
+                child: Text('${location.id}'),
+              ),
+            ];
+          },
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        router.routeToUri(Uri(path: '/a/b'));
+        await tester.pump();
+        expect(router.nullableData!.activeLocation?.id, _Id.b);
+
+        includeB = false;
+        router.refresh();
+        await tester.pump();
+
+        expect(router.nullableData!.locations, isEmpty);
+        expect(router.nullableData!.uri.path, '/a/b');
+      },
+    );
   });
 }
 
@@ -500,7 +545,7 @@ WorkingRouter<_Id> _buildRouter({
   );
 
   return WorkingRouter<_Id>(
-    locationTree: _PathLocation(
+    buildLocationTree: () => _PathLocation(
       id: _Id.root,
       path: '',
       children: [
@@ -539,7 +584,7 @@ WorkingRouter<_Id> _buildOrderRouter({
   Future<bool> Function()? beforeLeaveB,
 }) {
   return WorkingRouter<_Id>(
-    locationTree: _PathLocation(
+    buildLocationTree: () => _PathLocation(
       id: _Id.root,
       path: '',
       children: [
@@ -587,7 +632,7 @@ WorkingRouter<_Id> _buildOrderRouter({
 
 WorkingRouter<_ParamId> _buildParamRouter() {
   return WorkingRouter<_ParamId>(
-    locationTree: _ParamRootLocation(
+    buildLocationTree: () => _ParamRootLocation(
       id: _ParamId.root,
       children: [
         _ItemLocation(

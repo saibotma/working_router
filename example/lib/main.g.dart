@@ -6,7 +6,7 @@ part of 'main.dart';
 // RouteHelpersGenerator
 // **************************************************************************
 
-extension AppLocationTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
+extension BuildLocationTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
   void routeToSplash() {
     routeToId(LocationId.splash);
   }

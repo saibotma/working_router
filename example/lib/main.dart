@@ -16,29 +16,29 @@ import 'responsive.dart';
 part 'main.g.dart';
 
 @WorkingRouterLocationTree()
-final Location<LocationId> appLocationTree = SplashLocation(
-  id: LocationId.splash,
-  children: [
-    ALocation(
-      id: LocationId.a,
-      tags: [PopUntilTarget()],
+Location<LocationId> buildLocationTree() => SplashLocation(
+      id: LocationId.splash,
       children: [
-        ABLocation(
-          id: LocationId.ab,
+        ALocation(
+          id: LocationId.a,
+          tags: [PopUntilTarget()],
           children: [
-            ABCLocation(id: LocationId.abc, children: []),
-          ],
-        ),
-        ADLocation(
-          id: LocationId.ad,
-          children: [
-            ADCLocation(id: LocationId.adc, children: []),
+            ABLocation(
+              id: LocationId.ab,
+              children: [
+                ABCLocation(id: LocationId.abc, children: []),
+              ],
+            ),
+            ADLocation(
+              id: LocationId.ad,
+              children: [
+                ADCLocation(id: LocationId.adc, children: []),
+              ],
+            ),
           ],
         ),
       ],
-    ),
-  ],
-);
+    );
 
 void main() {
   runApp(const MyApp());
@@ -72,7 +72,7 @@ class _DependentMaterialApp extends StatefulWidget {
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
     noContentWidget: const Text("No content"),
-    locationTree: appLocationTree,
+    buildLocationTree: buildLocationTree,
     buildRootPages: (_, location, data) {
       if (location.id == LocationId.splash &&
           data.activeLocation?.id == LocationId.splash) {

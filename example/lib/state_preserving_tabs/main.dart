@@ -15,6 +15,13 @@ void main() {
   runApp(const StatePreservingTabs());
 }
 
+Location<String> buildLocationTree() => ScaffoldLocation(
+      children: [
+        Tab1Location(),
+        Tab2Location(),
+      ],
+    );
+
 class StatePreservingTabs extends StatefulWidget {
   const StatePreservingTabs({Key? key}) : super(key: key);
 
@@ -25,12 +32,7 @@ class StatePreservingTabs extends StatefulWidget {
 class _StatePreservingTabsState extends State<StatePreservingTabs> {
   late final WorkingRouter<String> router = WorkingRouter<String>(
     noContentWidget: const Text("No content"),
-    locationTree: ScaffoldLocation(
-      children: [
-        Tab1Location(),
-        Tab2Location(),
-      ],
-    ),
+    buildLocationTree: buildLocationTree,
     buildRootPages: (_, location, data) {
       // Need to have one nested navigator for each tab, because otherwise
       // the same navigator (with the same global navigator key) would be

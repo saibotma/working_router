@@ -1,4 +1,4 @@
-/// Marks the static working-router location tree used for route helper
+/// Marks the canonical working-router location tree used for route helper
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or zero-argument
@@ -9,7 +9,7 @@
 /// part 'app_routes.g.dart';
 ///
 /// @WorkingRouterLocationTree()
-/// final Location<AppRouteId> appLocationTree = _appLocationTree;
+/// Location<AppRouteId> buildLocationTree() => _appLocationTree;
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
@@ -22,19 +22,23 @@
 /// - all query parameter keys from the full ancestor chain
 ///
 /// Static helper members can still be used inside the tree composition as long
-/// as the annotated entrypoint itself is top-level. The route topology itself
-/// must stay static so the generator can recover it without executing
-/// application code.
+/// as the annotated entrypoint itself is top-level.
 ///
-/// Supported static composition includes:
+/// The generator works on the union of routes that can appear in this tree. In
+/// collection literals it includes the branches of `if` elements without
+/// evaluating their conditions, so runtime tree pruning still generates helpers
+/// for the full route vocabulary.
+///
+/// Supported composition includes:
 /// - inline constructor trees
 /// - top-level or static helper fields, getters, and zero-argument functions
 /// - children passed directly to a location constructor
 /// - children passed to `super(children: [...])` inside a location constructor
+/// - collection `if` elements and spreads inside children lists
 ///
 /// Not supported:
-/// - route topology that depends on runtime values
 /// - annotating instance members or static class members directly
+/// - loops or other arbitrary collection-building constructs
 /// - resolving children from an overridden `children` getter
 ///
 /// The generated extension targets `WorkingRouterSailor<ID>`.

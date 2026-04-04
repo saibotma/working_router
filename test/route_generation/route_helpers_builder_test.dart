@@ -152,28 +152,30 @@ Location<StaticRouteId> get appLocationTree => AppRoutes.tree;
       outputs: {
         'working_router|lib/static_routes.working_router.g.part':
             decodedMatches(
-          allOf(
-            contains('extension AppLocationTreeGeneratedRoutes'),
-            contains('void routeToRoot()'),
-            contains('void routeToChild()'),
-          ),
-        ),
+              allOf(
+                contains('extension AppLocationTreeGeneratedRoutes'),
+                contains('void routeToRoot()'),
+                contains('void routeToChild()'),
+              ),
+            ),
       },
       readerWriter: readerWriter,
     );
   });
 
-  test('supports static children declared inside the location constructor', () async {
-    final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
-    );
-    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
-    await readerWriter.testing.loadIsolateSources();
+  test(
+    'supports static children declared inside the location constructor',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions(const {}),
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
 
-    await testBuilder(
-      builder,
-      {
-        'working_router|lib/constructor_children_routes.dart': '''
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/constructor_children_routes.dart': '''
 library constructor_children_routes;
 
 import 'package:working_router/working_router.dart';
@@ -210,25 +212,26 @@ class LessonEditLocation extends Location<ConstructorRouteId> {
 @WorkingRouterLocationTree()
 final Location<ConstructorRouteId> appLocationTree = RootLocation();
 ''',
-      },
-      outputs: {
-        'working_router|lib/constructor_children_routes.working_router.g.part':
-            decodedMatches(
-          allOf(
-            contains('void routeToLesson({'),
-            contains(
-              "queryParameters: {\n"
-              "        'coursePeriodId': coursePeriodId,\n"
-              "        'sourceDateTime': sourceDateTime,\n"
-              '      },',
-            ),
-            contains('void routeToLessonEdit({'),
-          ),
-        ),
-      },
-      readerWriter: readerWriter,
-    );
-  });
+        },
+        outputs: {
+          'working_router|lib/constructor_children_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToLesson({'),
+                  contains(
+                    "queryParameters: {\n"
+                    "        'coursePeriodId': coursePeriodId,\n"
+                    "        'sourceDateTime': sourceDateTime,\n"
+                    '      },',
+                  ),
+                  contains('void routeToLessonEdit({'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
 
   test('supports const string identifiers in query parameter sets', () async {
     final builder = workingRouterRouteHelpersBuilder(
@@ -270,28 +273,30 @@ final Location<ConstQueryRouteId> appLocationTree =
       outputs: {
         'working_router|lib/const_query_routes.working_router.g.part':
             decodedMatches(
-          allOf(
-            contains('void routeToLesson({'),
-            contains("required String coursePeriodId,"),
-            contains("required String sourceDateTime,"),
-          ),
-        ),
+              allOf(
+                contains('void routeToLesson({'),
+                contains("required String coursePeriodId,"),
+                contains("required String sourceDateTime,"),
+              ),
+            ),
       },
       readerWriter: readerWriter,
     );
   });
 
-  test('supports child ids derived from whether the parent id is null', () async {
-    final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
-    );
-    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
-    await readerWriter.testing.loadIsolateSources();
+  test(
+    'supports child ids derived from whether the parent id is null',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions(const {}),
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
 
-    await testBuilder(
-      builder,
-      {
-        'working_router|lib/derived_child_ids_routes.dart': '''
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/derived_child_ids_routes.dart': '''
 library derived_child_ids_routes;
 
 import 'package:working_router/working_router.dart';
@@ -325,19 +330,99 @@ class ChatChannelSendLocation extends Location<DerivedChildRouteId> {
 final Location<DerivedChildRouteId> appLocationTree =
     ChatChannelLocation(id: DerivedChildRouteId.chatChannel);
 ''',
-      },
-      outputs: {
-        'working_router|lib/derived_child_ids_routes.working_router.g.part':
-            decodedMatches(
-          allOf(
-            contains('void routeToChatChannel({required String channelId}) {'),
-            contains(
-              'void routeToChatChannelSend({required String channelId}) {',
-            ),
-          ),
-        ),
-      },
-      readerWriter: readerWriter,
-    );
-  });
+        },
+        outputs: {
+          'working_router|lib/derived_child_ids_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'void routeToChatChannel({required String channelId}) {',
+                  ),
+                  contains(
+                    'void routeToChatChannelSend({required String channelId}) {',
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'treats collection if branches as part of the generated route union',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions(const {}),
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/if_union_routes.dart': '''
+library if_union_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'if_union_routes.g.dart';
+
+enum IfUnionRouteId { root, always, maybe, maybeSpread, maybeElseA, maybeElseB }
+
+bool get includeMaybe => throw UnimplementedError();
+bool get includeSpread => throw UnimplementedError();
+
+class RootLocation extends Location<IfUnionRouteId> {
+  RootLocation()
+      : super(
+          id: IfUnionRouteId.root,
+          children: [
+            _ChildLocation(id: IfUnionRouteId.always, path: 'always'),
+            if (includeMaybe)
+              _ChildLocation(id: IfUnionRouteId.maybe, path: 'maybe'),
+            if (includeSpread) ...[
+              _ChildLocation(id: IfUnionRouteId.maybeSpread, path: 'spread'),
+            ],
+            if (includeMaybe)
+              _ChildLocation(id: IfUnionRouteId.maybeElseA, path: 'else-a')
+            else
+              _ChildLocation(id: IfUnionRouteId.maybeElseB, path: 'else-b'),
+          ],
+        );
+
+  @override
+  String get path => '';
+}
+
+class _ChildLocation extends Location<IfUnionRouteId> {
+  final String _path;
+
+  _ChildLocation({required super.id, required String path})
+      : _path = path;
+
+  @override
+  String get path => _path;
+}
+
+@WorkingRouterLocationTree()
+Location<IfUnionRouteId> buildLocationTree() => RootLocation();
+''',
+        },
+        outputs: {
+          'working_router|lib/if_union_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToAlways()'),
+                  contains('void routeToMaybe()'),
+                  contains('void routeToMaybeSpread()'),
+                  contains('void routeToMaybeElseA()'),
+                  contains('void routeToMaybeElseB()'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
 }

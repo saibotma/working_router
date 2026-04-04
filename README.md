@@ -10,8 +10,8 @@ It supports:
 
 ## Route Helper Generation
 
-Annotate the static location tree with `@WorkingRouterLocationTree()` and run
-`build_runner`.
+Annotate the canonical `buildLocationTree` entrypoint with
+`@WorkingRouterLocationTree()` and run `build_runner`.
 
 ```dart
 import 'package:working_router/working_router.dart';
@@ -53,15 +53,15 @@ class LessonEditLocation extends Location<LocationId> {
 }
 
 @WorkingRouterLocationTree()
-final Location<LocationId> appLocationTree = SplashLocation(
-  id: LocationId.splash,
-  children: [
-    LessonLocation(id: LocationId.lesson),
-  ],
-);
+Location<LocationId> buildLocationTree() => SplashLocation(
+      id: LocationId.splash,
+      children: [
+        LessonLocation(id: LocationId.lesson),
+      ],
+    );
 
 final router = WorkingRouter<LocationId>(
-  locationTree: appLocationTree,
+  buildLocationTree: buildLocationTree,
   noContentWidget: const SizedBox(),
   buildRootPages: (_, location, __) => [],
 );
@@ -88,6 +88,11 @@ parameters are the full ancestor-chain union of:
 - path parameters
 - query parameter keys declared through `Location.queryParameters`
 
+The generator is union-based, not exact-runtime-based. In children lists it
+includes routes from collection `if` branches without evaluating the condition.
+That means generated helpers guarantee parameter completeness, but a helper may
+still target a route that is currently pruned from the live runtime tree.
+
 ## Setup
 
 Add `build_runner` to the consuming app's `dev_dependencies`, then run:
@@ -102,26 +107,21 @@ Or during development:
 flutter pub run build_runner watch --delete-conflicting-outputs
 ```
 
-## Supported Static Tree Shapes
+## Supported Tree Shapes
 
-The generator can resolve the route tree without executing your application
-code. Supported patterns include:
+The generator resolves a canonical tree from source and generates for the union
+of routes that can appear. Supported patterns include:
 - a top-level annotated field, getter, or zero-argument function returning the root `Location`
 - inline child lists
 - top-level or static helper fields, getters, and zero-argument functions
 - children passed directly to a location constructor
 - children passed via `super(children: [...])` inside a location constructor
+- collection `if` elements and spreads in children lists
 - query parameter keys declared as string literals or const string identifiers
 
 ## Unsupported Patterns
 
-The route topology must stay static. These patterns are intentionally not
-supported:
+These patterns are intentionally not supported:
 - annotating instance members or static class members directly
-- children that appear or disappear based on runtime values
-- route trees that depend on callbacks with runtime-dependent output
+- loops or other arbitrary collection-building constructs
 - resolving children from an overridden `children` getter
-
-If a route should only be accessible under certain conditions, keep it in the
-static tree and enforce access with redirect or transition logic instead of
-removing it from the tree.
