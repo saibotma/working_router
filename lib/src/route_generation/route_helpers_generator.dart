@@ -337,7 +337,8 @@ class _StaticRouteTreeExtractor {
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
 
-    if (evaluationContext != null) {
+    if (evaluationContext != null &&
+        _canResolveThroughContext(normalizedExpression)) {
       final boundExpression = await evaluationContext.resolveExpression(
         normalizedExpression,
       );
@@ -442,7 +443,8 @@ class _StaticRouteTreeExtractor {
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
 
-    if (evaluationContext != null) {
+    if (evaluationContext != null &&
+        _canResolveThroughContext(normalizedExpression)) {
       final boundExpression = await evaluationContext.resolveExpression(
         normalizedExpression,
       );
@@ -795,6 +797,12 @@ class _StaticRouteTreeExtractor {
     return current;
   }
 
+  bool _canResolveThroughContext(Expression expression) {
+    return expression is SimpleIdentifier ||
+        expression is PrefixedIdentifier ||
+        expression is PropertyAccess;
+  }
+
   bool _isLocationClass(InterfaceElement classElement) {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
@@ -941,6 +949,15 @@ class _InstanceStringContext implements _ExpressionContext {
       if (binding != null) {
         final boundExpression = _unwrapExpression(binding.expression);
         if (!_isSameSimpleIdentifier(boundExpression, normalizedExpression)) {
+          if (_canResolveFurther(boundExpression)) {
+            final resolvedExpression = await _resolveExpression(
+              boundExpression,
+              visited,
+            );
+            if (resolvedExpression != null) {
+              return resolvedExpression;
+            }
+          }
           return binding.expression;
         }
       }
@@ -1034,15 +1051,19 @@ class _InstanceStringContext implements _ExpressionContext {
     final bindings = <String, _BoundStringExpression>{};
     var positionalIndex = 0;
     for (final parameter in parameters.parameters) {
-      final element = parameter.declaredFragment?.element;
-      final parameterName = element?.name;
-      if (element == null || parameterName == null) {
+      final parameterName = _formalParameterName(parameter);
+      if (parameterName == null) {
         continue;
       }
 
       Expression? argument;
-      if (element.isNamed) {
+      if (parameter.isNamed) {
         argument = namedArguments[parameterName];
+        if (argument == null &&
+            parameter is DefaultFormalParameter &&
+            parameter.defaultValue != null) {
+          argument = parameter.defaultValue;
+        }
       } else if (positionalIndex < positionalArguments.length) {
         argument = positionalArguments[positionalIndex++];
       } else if (parameter is DefaultFormalParameter &&
@@ -1262,7 +1283,7 @@ class _InstanceStringContext implements _ExpressionContext {
     final parameter = constructorNode.parameters.parameters.firstWhereOrNull((
       parameter,
     ) {
-      return parameter.declaredFragment?.element?.name == name;
+      return _formalParameterName(parameter) == name;
     });
     if (parameter != null) {
       if (parameter is DefaultFormalParameter) {
@@ -1345,14 +1366,22 @@ class _InstanceStringContext implements _ExpressionContext {
         left.name == right.name;
   }
 
+  bool _canResolveFurther(Expression expression) {
+    return expression is SimpleIdentifier ||
+        expression is PrefixedIdentifier ||
+        expression is PropertyAccess;
+  }
+
   bool _markVisited(
     Set<String> visited,
     String kind,
     Expression expression,
   ) {
     final key = switch (expression) {
-      SimpleIdentifier() => '$kind:${identityHashCode(this)}:${expression.name}',
-      _ => '$kind:${identityHashCode(this)}:${expression.toSource()}',
+      SimpleIdentifier() =>
+        '$kind:${identityHashCode(this)}:simple:${expression.name}',
+      _ =>
+        '$kind:${identityHashCode(this)}:${expression.runtimeType}:${expression.offset}:${expression.length}',
     };
     return visited.add(key);
   }
@@ -1461,6 +1490,15 @@ class _FunctionExpressionContext implements _ExpressionContext {
           normalizedBoundExpression,
           normalizedExpression,
         )) {
+          if (_canResolveFurther(normalizedBoundExpression)) {
+            final resolvedExpression = await _resolveExpression(
+              normalizedBoundExpression,
+              visited,
+            );
+            if (resolvedExpression != null) {
+              return resolvedExpression;
+            }
+          }
           return boundExpression;
         }
       }
@@ -1539,15 +1577,19 @@ class _FunctionExpressionContext implements _ExpressionContext {
     final bindings = <String, Expression>{};
     var positionalIndex = 0;
     for (final parameter in parameters.parameters) {
-      final element = parameter.declaredFragment?.element;
-      final parameterName = element?.name;
-      if (element == null || parameterName == null) {
+      final parameterName = _formalParameterName(parameter);
+      if (parameterName == null) {
         continue;
       }
 
       Expression? argument;
-      if (element.isNamed) {
+      if (parameter.isNamed) {
         argument = namedArguments[parameterName];
+        if (argument == null &&
+            parameter is DefaultFormalParameter &&
+            parameter.defaultValue != null) {
+          argument = parameter.defaultValue;
+        }
       } else if (positionalIndex < positionalArguments.length) {
         argument = positionalArguments[positionalIndex++];
       } else if (parameter is DefaultFormalParameter &&
@@ -1612,14 +1654,22 @@ class _FunctionExpressionContext implements _ExpressionContext {
         left.name == right.name;
   }
 
+  bool _canResolveFurther(Expression expression) {
+    return expression is SimpleIdentifier ||
+        expression is PrefixedIdentifier ||
+        expression is PropertyAccess;
+  }
+
   bool _markVisited(
     Set<String> visited,
     String kind,
     Expression expression,
   ) {
     final key = switch (expression) {
-      SimpleIdentifier() => '$kind:${identityHashCode(this)}:${expression.name}',
-      _ => '$kind:${identityHashCode(this)}:${expression.toSource()}',
+      SimpleIdentifier() =>
+        '$kind:${identityHashCode(this)}:simple:${expression.name}',
+      _ =>
+        '$kind:${identityHashCode(this)}:${expression.runtimeType}:${expression.offset}:${expression.length}',
     };
     return visited.add(key);
   }
@@ -1640,6 +1690,30 @@ class _FunctionExpressionContext implements _ExpressionContext {
 }
 
 Fragment _fragmentFor(Element element) => element.firstFragment;
+
+FormalParameter _unwrapFormalParameter(FormalParameter parameter) {
+  var current = parameter;
+  while (current is DefaultFormalParameter) {
+    current = current.parameter;
+  }
+  return current;
+}
+
+String? _formalParameterName(FormalParameter parameter) {
+  final unwrapped = _unwrapFormalParameter(parameter);
+  final elementName = unwrapped.declaredFragment?.element?.name;
+  if (elementName != null) {
+    return elementName;
+  }
+
+  return switch (unwrapped) {
+    SimpleFormalParameter() => unwrapped.name?.lexeme,
+    FieldFormalParameter() => unwrapped.name.lexeme,
+    SuperFormalParameter() => unwrapped.name.lexeme,
+    FunctionTypedFormalParameter() => unwrapped.name.lexeme,
+    _ => null,
+  };
+}
 
 Future<ConstructorDeclaration?> _constructorDeclaration({
   required BuildStep buildStep,

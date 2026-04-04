@@ -557,4 +557,175 @@ Location<ParameterizedRouteId> buildLocationTree({
       );
     },
   );
+
+  test(
+    'resolves aliased children through helper and constructor forwarding chains',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions(const {}),
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/aliased_children_routes.dart': '''
+library aliased_children_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'aliased_children_routes.g.dart';
+
+enum AliasedChildrenRouteId { root, search, leaf }
+
+class RootLocation extends Location<AliasedChildrenRouteId> {
+  RootLocation({required super.id, super.children = const []});
+
+  @override
+  String get path => '';
+}
+
+class SearchLocation extends Location<AliasedChildrenRouteId> {
+  SearchLocation({
+    required AliasedChildrenRouteId id,
+    List<Location<AliasedChildrenRouteId>> children = const [],
+  }) : super(id: id, children: children);
+
+  @override
+  String get path => 'search';
+}
+
+class LeafLocation extends Location<AliasedChildrenRouteId> {
+  LeafLocation({required super.id});
+
+  @override
+  String get path => 'leaf';
+}
+
+@WorkingRouterLocationTree()
+Location<AliasedChildrenRouteId> buildLocationTree() {
+  List<Location<AliasedChildrenRouteId>> buildSearchBranch({
+    required List<Location<AliasedChildrenRouteId>> children,
+  }) {
+    return [
+      SearchLocation(
+        id: AliasedChildrenRouteId.search,
+        children: children,
+      ),
+    ];
+  }
+
+  return RootLocation(
+    id: AliasedChildrenRouteId.root,
+    children: [
+      ...buildSearchBranch(
+        children: [
+          LeafLocation(id: AliasedChildrenRouteId.leaf),
+        ],
+      ),
+    ],
+  );
+}
+''',
+        },
+        outputs: {
+          'working_router|lib/aliased_children_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToRoot()'),
+                  contains('void routeToSearch()'),
+                  contains('void routeToLeaf()'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'resolves default forwarded children through nested constructor chains',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions(const {}),
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/default_forwarded_children_routes.dart': '''
+library default_forwarded_children_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'default_forwarded_children_routes.g.dart';
+
+enum DefaultForwardedChildrenRouteId { root, parent, branch, leaf }
+
+class RootLocation extends Location<DefaultForwardedChildrenRouteId> {
+  RootLocation({required super.id, super.children = const []});
+
+  @override
+  String get path => '';
+}
+
+class ParentLocation extends Location<DefaultForwardedChildrenRouteId> {
+  ParentLocation({required super.id, super.children});
+
+  @override
+  String get path => 'parent';
+}
+
+class BranchLocation extends Location<DefaultForwardedChildrenRouteId> {
+  BranchLocation({required super.id})
+    : super(children: [LeafLocation(id: DefaultForwardedChildrenRouteId.leaf)]);
+
+  @override
+  String get path => 'branch';
+}
+
+class LeafLocation extends Location<DefaultForwardedChildrenRouteId> {
+  LeafLocation({
+    required DefaultForwardedChildrenRouteId id,
+    List<Location<DefaultForwardedChildrenRouteId>> children = const [],
+  }) : super(id: id, children: children);
+
+  @override
+  String get path => 'leaf';
+}
+
+@WorkingRouterLocationTree()
+Location<DefaultForwardedChildrenRouteId> buildLocationTree() {
+  return RootLocation(
+    id: DefaultForwardedChildrenRouteId.root,
+    children: [
+      ParentLocation(
+        id: DefaultForwardedChildrenRouteId.parent,
+        children: [
+          BranchLocation(id: DefaultForwardedChildrenRouteId.branch),
+        ],
+      ),
+    ],
+  );
+}
+''',
+        },
+        outputs: {
+          'working_router|lib/default_forwarded_children_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToRoot()'),
+                  contains('void routeToParent()'),
+                  contains('void routeToBranch()'),
+                  contains('void routeToLeaf()'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
 }
