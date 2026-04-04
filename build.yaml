@@ -1,11 +1,11 @@
 targets:
   $default:
     builders:
-      working_router|route_helpers:
+      working_router|working_router:
         enabled: true
 
 builders:
-  route_helpers:
+  working_router:
     import: "package:working_router/src/route_generation/builder.dart"
     builder_factories: ["workingRouterRouteHelpersBuilder"]
     build_extensions: {".dart": [".working_router.g.part"]}
