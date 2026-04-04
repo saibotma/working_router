@@ -29,7 +29,7 @@ class WorkingRouter<ID> extends ChangeNotifier
         ),
       );
 
-  Location<ID> _locationTree;
+  final Location<ID> _locationTree;
   final List<LocationObserverState> _observers = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
 
@@ -47,11 +47,15 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   final TransitionDecider<ID>? _decideTransition;
   final int _redirectLimit;
-  final Location<ID> Function() buildLocationTree;
+  /// The static root of the routing tree used by this router instance.
+  ///
+  /// When using `@WorkingRouterLocationTree`, pass the same tree here that was
+  /// used as the generator entrypoint.
+  final Location<ID> locationTree;
   final LocationChildWrapper<ID>? wrapLocationChild;
 
   WorkingRouter({
-    required this.buildLocationTree,
+    required this.locationTree,
     required BuildPages<ID> buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
@@ -60,7 +64,7 @@ class WorkingRouter<ID> extends ChangeNotifier
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
-       _locationTree = buildLocationTree(),
+       _locationTree = locationTree,
        _decideTransition = decideTransition,
        _redirectLimit = redirectLimit {
     _rootDelegate = WorkingRouterDelegate<ID>(
@@ -100,7 +104,6 @@ class WorkingRouter<ID> extends ChangeNotifier
   RouterDelegate<Uri> get routerDelegate => _rootDelegate;
 
   void refresh() {
-    _locationTree = buildLocationTree();
     for (final it in [_rootDelegate, ..._nestedDelegates]) {
       it.refresh();
     }

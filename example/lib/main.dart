@@ -1,16 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-import '../locations/a_location.dart';
-import '../locations/ab_location.dart';
-import '../locations/abc_location.dart';
-import '../locations/ad_location.dart';
-import '../locations/adc_location.dart';
-import '../locations/splash_location.dart';
-import '../nested_screen.dart';
-import '../platform_modal/platform_modal_page.dart';
 import 'location_id.dart';
+import 'locations/a_location.dart';
+import 'locations/ab_location.dart';
+import 'locations/abc_location.dart';
+import 'locations/ad_location.dart';
+import 'locations/adc_location.dart';
+import 'locations/splash_location.dart';
+import 'nested_screen.dart';
+import 'platform_modal/platform_modal_page.dart';
+import 'pop_until_target.dart';
 import 'responsive.dart';
+
+part 'main.g.dart';
+
+@WorkingRouterLocationTree()
+final Location<LocationId> appLocationTree = SplashLocation(
+  id: LocationId.splash,
+  children: [
+    ALocation(
+      id: LocationId.a,
+      tags: [PopUntilTarget()],
+      children: [
+        ABLocation(
+          id: LocationId.ab,
+          children: [
+            ABCLocation(id: LocationId.abc, children: []),
+          ],
+        ),
+        ADLocation(
+          id: LocationId.ad,
+          children: [
+            ADCLocation(id: LocationId.adc, children: []),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
 
 void main() {
   runApp(const MyApp());
@@ -44,31 +72,7 @@ class _DependentMaterialApp extends StatefulWidget {
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
     noContentWidget: const Text("No content"),
-    buildLocationTree: () {
-      return SplashLocation(
-        id: LocationId.splash,
-        children: [
-          ALocation(
-            id: LocationId.a,
-            tags: [PopUntilTarget()],
-            children: [
-              ABLocation(
-                id: LocationId.ab,
-                children: [
-                  ABCLocation(id: LocationId.abc, children: []),
-                ],
-              ),
-              ADLocation(
-                id: LocationId.ad,
-                children: [
-                  ADCLocation(id: LocationId.adc, children: []),
-                ],
-              ),
-            ],
-          ),
-        ],
-      );
-    },
+    locationTree: appLocationTree,
     buildRootPages: (_, location, data) {
       if (location.id == LocationId.splash &&
           data.activeLocation?.id == LocationId.splash) {
@@ -101,7 +105,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
             child: MaterialButton(
               child: const Text("Splash screen"),
               onPressed: () {
-                WorkingRouter.of<LocationId>(context).routeToId(LocationId.a);
+                WorkingRouter.of<LocationId>(context).routeToA();
               },
             ),
           );
@@ -257,5 +261,3 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     return MaterialApp.router(routerConfig: router);
   }
 }
-
-class PopUntilTarget extends LocationTag {}

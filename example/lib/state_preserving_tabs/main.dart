@@ -25,14 +25,12 @@ class StatePreservingTabs extends StatefulWidget {
 class _StatePreservingTabsState extends State<StatePreservingTabs> {
   late final WorkingRouter<String> router = WorkingRouter<String>(
     noContentWidget: const Text("No content"),
-    buildLocationTree: () {
-      return ScaffoldLocation(
-        children: [
-          Tab1Location(),
-          Tab2Location(),
-        ],
-      );
-    },
+    locationTree: ScaffoldLocation(
+      children: [
+        Tab1Location(),
+        Tab2Location(),
+      ],
+    ),
     buildRootPages: (_, location, data) {
       // Need to have one nested navigator for each tab, because otherwise
       // the same navigator (with the same global navigator key) would be

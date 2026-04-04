@@ -372,21 +372,19 @@ void main() {
       final keys = <_Id, LocalKey>{};
 
       final router = WorkingRouter<_Id>(
-        buildLocationTree: () {
-          return _PathLocation(
-            id: _Id.root,
-            path: '',
-            children: [
-              _PathLocation(
-                id: _Id.a,
-                path: 'a',
-                children: [
-                  _PathLocation(id: _Id.b, path: 'b', children: []),
-                ],
-              ),
-            ],
-          );
-        },
+        locationTree: _PathLocation(
+          id: _Id.root,
+          path: '',
+          children: [
+            _PathLocation(
+              id: _Id.a,
+              path: 'a',
+              children: [
+                _PathLocation(id: _Id.b, path: 'b', children: []),
+              ],
+            ),
+          ],
+        ),
         buildRootPages: (_, location, _) {
           return [
             ChildLocationPageSkeleton<_Id>(
@@ -421,21 +419,19 @@ void main() {
       var sawExpectedData = false;
 
       final router = WorkingRouter<_Id>(
-        buildLocationTree: () {
-          return _PathLocation(
-            id: _Id.root,
-            path: '',
-            children: [
-              _PathLocation(
-                id: _Id.a,
-                path: 'a',
-                children: [
-                  _PathLocation(id: _Id.b, path: 'b', children: []),
-                ],
-              ),
-            ],
-          );
-        },
+        locationTree: _PathLocation(
+          id: _Id.root,
+          path: '',
+          children: [
+            _PathLocation(
+              id: _Id.a,
+              path: 'a',
+              children: [
+                _PathLocation(id: _Id.b, path: 'b', children: []),
+              ],
+            ),
+          ],
+        ),
         buildRootPages: (_, location, _) {
           return [
             ChildLocationPageSkeleton<_Id>(
@@ -504,22 +500,20 @@ WorkingRouter<_Id> _buildRouter({
   );
 
   return WorkingRouter<_Id>(
-    buildLocationTree: () {
-      return _PathLocation(
-        id: _Id.root,
-        path: '',
-        children: [
-          _PathLocation(
-            id: _Id.a,
-            path: 'a',
-            children: [
-              _PathLocation(id: _Id.b, path: 'b', children: []),
-            ],
-          ),
-          _PathLocation(id: _Id.c, path: 'c', children: []),
-        ],
-      );
-    },
+    locationTree: _PathLocation(
+      id: _Id.root,
+      path: '',
+      children: [
+        _PathLocation(
+          id: _Id.a,
+          path: 'a',
+          children: [
+            _PathLocation(id: _Id.b, path: 'b', children: []),
+          ],
+        ),
+        _PathLocation(id: _Id.c, path: 'c', children: []),
+      ],
+    ),
     buildRootPages: (_, location, _) {
       switch (location.id) {
         case _Id.root:
@@ -545,22 +539,20 @@ WorkingRouter<_Id> _buildOrderRouter({
   Future<bool> Function()? beforeLeaveB,
 }) {
   return WorkingRouter<_Id>(
-    buildLocationTree: () {
-      return _PathLocation(
-        id: _Id.root,
-        path: '',
-        children: [
-          _PathLocation(
-            id: _Id.a,
-            path: 'a',
-            children: [
-              _PathLocation(id: _Id.b, path: 'b', children: []),
-            ],
-          ),
-          _PathLocation(id: _Id.c, path: 'c', children: []),
-        ],
-      );
-    },
+    locationTree: _PathLocation(
+      id: _Id.root,
+      path: '',
+      children: [
+        _PathLocation(
+          id: _Id.a,
+          path: 'a',
+          children: [
+            _PathLocation(id: _Id.b, path: 'b', children: []),
+          ],
+        ),
+        _PathLocation(id: _Id.c, path: 'c', children: []),
+      ],
+    ),
     buildRootPages: (_, location, _) {
       switch (location.id) {
         case _Id.root:
@@ -595,19 +587,17 @@ WorkingRouter<_Id> _buildOrderRouter({
 
 WorkingRouter<_ParamId> _buildParamRouter() {
   return WorkingRouter<_ParamId>(
-    buildLocationTree: () {
-      return _ParamRootLocation(
-        id: _ParamId.root,
-        children: [
-          _ItemLocation(
-            id: _ParamId.item,
-            children: [
-              _DetailLocation(id: _ParamId.details, path: 'details'),
-            ],
-          ),
-        ],
-      );
-    },
+    locationTree: _ParamRootLocation(
+      id: _ParamId.root,
+      children: [
+        _ItemLocation(
+          id: _ParamId.item,
+          children: [
+            _DetailLocation(id: _ParamId.details, path: 'details'),
+          ],
+        ),
+      ],
+    ),
     buildRootPages: (_, location, _) {
       return [
         ChildLocationPageSkeleton(

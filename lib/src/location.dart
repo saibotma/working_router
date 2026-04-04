@@ -108,12 +108,16 @@ abstract class Location<ID> {
     return IList();
   }
 
-  /// Query parameter keys retained while routing back to this Location.
+  /// Query parameter keys associated with this location.
   ///
   /// The final query parameters of the route resulting from [Navigator.pop],
   /// [WorkingRouterSailor.routeBack] or [WorkingRouterSailor.routeBackUntil]
   /// are filtered to the union of the keys declared by the remaining
   /// locations.
+  ///
+  /// When using `@WorkingRouterLocationTree`, these keys are also treated as
+  /// required query parameters for generated `routeToX(...)` helpers targeting
+  /// this location or any of its descendants.
   Set<String> get queryParameters => const {};
 
   Location<ID>? pop() {
