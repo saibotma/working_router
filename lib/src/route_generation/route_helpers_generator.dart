@@ -108,19 +108,39 @@ class RouteHelpersGenerator
     Element element,
   ) {
     final methods = <_GeneratedRouteMethod>[];
-    final usedMethodNames = <String>{};
+    final usedMethodsByName = <String, _GeneratedRouteMethod>{};
 
     void visit(_RouteNode node, List<_RouteNode> chain) {
       final nextChain = [...chain, node];
       if (node.idExpression != null) {
         final method = _buildMethod(nextChain, node.idExpression!, element);
-        if (!usedMethodNames.add(method.name)) {
+        final previousMethod = usedMethodsByName[method.name];
+        if (previousMethod != null && !previousMethod.isEquivalent(method)) {
           throw InvalidGenerationSourceError(
             'Duplicate generated method name `${method.name}`.',
             element: element,
           );
         }
-        methods.add(method);
+        if (previousMethod == null) {
+          usedMethodsByName[method.name] = method;
+          methods.add(method);
+        }
+      }
+
+      if (chain.isNotEmpty) {
+        final childMethod = _buildChildMethod(node, element);
+        final previousMethod = usedMethodsByName[childMethod.name];
+        if (previousMethod != null &&
+            !previousMethod.isEquivalent(childMethod)) {
+          throw InvalidGenerationSourceError(
+            'Duplicate generated method name `${childMethod.name}`.',
+            element: element,
+          );
+        }
+        if (previousMethod == null) {
+          usedMethodsByName[childMethod.name] = childMethod;
+          methods.add(childMethod);
+        }
       }
 
       for (final child in node.children) {
@@ -139,6 +159,43 @@ class RouteHelpersGenerator
   ) {
     final methodName =
         'routeTo${_toUpperCamelCase(idExpression.split('.').last)}';
+    final (pathParameters, queryParameters) = _collectParameters(
+      chain,
+      element: element,
+      errorContext: idExpression,
+    );
+
+    return _GeneratedRouteMethod.toId(
+      name: methodName,
+      idExpression: idExpression,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
+  }
+
+  _GeneratedRouteMethod _buildChildMethod(_RouteNode node, Element element) {
+    final methodName =
+        'routeToChild${_toUpperCamelCase(_childMethodBaseName(node.locationTypeSource))}';
+    final (pathParameters, queryParameters) = _collectParameters(
+      [node],
+      element: element,
+      errorContext: node.locationTypeSource,
+    );
+
+    return _GeneratedRouteMethod.toChild(
+      name: methodName,
+      childLocationTypeSource: node.locationTypeSource,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
+  }
+
+  (Map<String, _GeneratedRouteParameter>, Map<String, _GeneratedRouteParameter>)
+  _collectParameters(
+    Iterable<_RouteNode> nodes, {
+    required Element element,
+    required String errorContext,
+  }) {
     final pathParameters = <String, _GeneratedRouteParameter>{};
     final queryParameters = <String, _GeneratedRouteParameter>{};
     final usedParameterNames = <String, String>{};
@@ -155,7 +212,7 @@ class RouteHelpersGenerator
             existing.optional != parameter.optional ||
             existing.codecExpressionSource != parameter.codecExpressionSource) {
           throw InvalidGenerationSourceError(
-            'The generated helper for `$idExpression` needs conflicting $kind '
+            'The generated helper for `$errorContext` needs conflicting $kind '
             'parameter metadata for `$originalName`.',
             element: element,
           );
@@ -168,7 +225,7 @@ class RouteHelpersGenerator
       if (previousOriginalName != null &&
           previousOriginalName != originalName) {
         throw InvalidGenerationSourceError(
-          'The generated helper for `$idExpression` needs two $kind '
+          'The generated helper for `$errorContext` needs two $kind '
           'parameters that both map to `$parameterName` '
           '($previousOriginalName and $originalName).',
           element: element,
@@ -178,7 +235,7 @@ class RouteHelpersGenerator
       if (pathParameters.containsKey(originalName) &&
           !identical(target, pathParameters)) {
         throw InvalidGenerationSourceError(
-          'The generated helper for `$idExpression` uses `$originalName` as '
+          'The generated helper for `$errorContext` uses `$originalName` as '
           'both a path parameter and a query parameter.',
           element: element,
         );
@@ -188,7 +245,7 @@ class RouteHelpersGenerator
       target[originalName] = parameter.copyWith(parameterName: parameterName);
     }
 
-    for (final node in chain) {
+    for (final node in nodes) {
       for (final segment in node.pathSegments) {
         if (segment case _RoutePathParameterSegmentMetadata()) {
           registerParameter(
@@ -220,12 +277,7 @@ class RouteHelpersGenerator
       }
     }
 
-    return _GeneratedRouteMethod(
-      name: methodName,
-      idExpression: idExpression,
-      pathParameters: pathParameters,
-      queryParameters: queryParameters,
-    );
+    return (pathParameters, queryParameters);
   }
 
   InterfaceType? _locationSupertype(InterfaceType type) {
@@ -450,6 +502,7 @@ class _StaticRouteTreeExtractor {
         ),
         evaluationContext: evaluationContext,
       ),
+      locationTypeSource: classElement.displayName,
       pathSegments: pathSegments,
       queryParameters: queryParameters,
       children: children,
@@ -2218,12 +2271,14 @@ class _BoundStringExpression {
 
 class _RouteNode {
   final String? idExpression;
+  final String locationTypeSource;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
   final List<_RouteNode> children;
 
   const _RouteNode({
     required this.idExpression,
+    required this.locationTypeSource,
     required this.pathSegments,
     required this.queryParameters,
     required this.children,
@@ -2232,16 +2287,78 @@ class _RouteNode {
 
 class _GeneratedRouteMethod {
   final String name;
-  final String idExpression;
+  final String? idExpression;
+  final String? childLocationTypeSource;
   final Map<String, _GeneratedRouteParameter> pathParameters;
   final Map<String, _GeneratedRouteParameter> queryParameters;
 
-  const _GeneratedRouteMethod({
+  const _GeneratedRouteMethod._({
     required this.name,
     required this.idExpression,
+    required this.childLocationTypeSource,
     required this.pathParameters,
     required this.queryParameters,
   });
+
+  factory _GeneratedRouteMethod.toId({
+    required String name,
+    required String idExpression,
+    required Map<String, _GeneratedRouteParameter> pathParameters,
+    required Map<String, _GeneratedRouteParameter> queryParameters,
+  }) {
+    return _GeneratedRouteMethod._(
+      name: name,
+      idExpression: idExpression,
+      childLocationTypeSource: null,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
+  }
+
+  factory _GeneratedRouteMethod.toChild({
+    required String name,
+    required String childLocationTypeSource,
+    required Map<String, _GeneratedRouteParameter> pathParameters,
+    required Map<String, _GeneratedRouteParameter> queryParameters,
+  }) {
+    return _GeneratedRouteMethod._(
+      name: name,
+      idExpression: null,
+      childLocationTypeSource: childLocationTypeSource,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
+  }
+
+  bool isEquivalent(_GeneratedRouteMethod other) {
+    return name == other.name &&
+        idExpression == other.idExpression &&
+        childLocationTypeSource == other.childLocationTypeSource &&
+        _parametersEquivalent(pathParameters, other.pathParameters) &&
+        _parametersEquivalent(queryParameters, other.queryParameters);
+  }
+
+  bool _parametersEquivalent(
+    Map<String, _GeneratedRouteParameter> first,
+    Map<String, _GeneratedRouteParameter> second,
+  ) {
+    if (first.length != second.length) {
+      return false;
+    }
+
+    for (final entry in first.entries) {
+      final other = second[entry.key];
+      if (other == null ||
+          other.parameterName != entry.value.parameterName ||
+          other.dartTypeSource != entry.value.dartTypeSource ||
+          other.codecExpressionSource != entry.value.codecExpressionSource ||
+          other.optional != entry.value.optional) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   String render() {
     final buffer = StringBuffer();
@@ -2251,10 +2368,9 @@ class _GeneratedRouteMethod {
     ];
 
     if (parameters.isEmpty) {
-      buffer
-        ..writeln('  void $name() {')
-        ..writeln('    routeToId($idExpression);')
-        ..writeln('  }');
+      buffer.writeln('  void $name() {');
+      _writeInvocation(buffer);
+      buffer.writeln('  }');
       return buffer.toString();
     }
 
@@ -2270,9 +2386,19 @@ class _GeneratedRouteMethod {
       );
     }
     buffer.writeln('  }) {');
-    buffer
-      ..writeln('    routeToId(')
-      ..writeln('      $idExpression,');
+    _writeInvocation(buffer);
+    buffer.writeln('  }');
+    return buffer.toString();
+  }
+
+  void _writeInvocation(StringBuffer buffer) {
+    if (idExpression != null) {
+      buffer
+        ..writeln('    routeToId(')
+        ..writeln('      $idExpression,');
+    } else {
+      buffer..writeln('    routeToChild<$childLocationTypeSource>(');
+    }
 
     if (pathParameters.isNotEmpty) {
       buffer.writeln('      pathParameters: {');
@@ -2308,10 +2434,7 @@ class _GeneratedRouteMethod {
       buffer.writeln('      },');
     }
 
-    buffer
-      ..writeln('    );')
-      ..writeln('  }');
-    return buffer.toString();
+    buffer.writeln('    );');
   }
 }
 
@@ -2393,6 +2516,19 @@ String _toUpperCamelCase(String value) {
   return pieces
       .map((piece) => piece[0].toUpperCase() + piece.substring(1))
       .join();
+}
+
+String _childMethodBaseName(String locationTypeSource) {
+  const suffix = 'Location';
+  if (locationTypeSource.endsWith(suffix) &&
+      locationTypeSource.length > suffix.length) {
+    return locationTypeSource.substring(
+      0,
+      locationTypeSource.length - suffix.length,
+    );
+  }
+
+  return locationTypeSource;
 }
 
 String _toParameterIdentifier(String value) {

@@ -84,21 +84,33 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
       outputs: {
         'working_router|lib/app_routes.working_router.g.part': decodedMatches(
           allOf(
-            contains('extension AppLocationTreeGeneratedRoutes'),
-            contains('void routeToRoot()'),
-            contains(
-              'void routeToItem({required String id, required String keep}) {',
+            allOf(
+              contains('extension AppLocationTreeGeneratedRoutes'),
+              contains('void routeToRoot()'),
+              contains(
+                'void routeToItem({required String id, required String keep}) {',
+              ),
+              contains(
+                'void routeToChildItem({required String id, required String keep}) {',
+              ),
+              contains('routeToChild<_ItemLocation>('),
+              contains("StringRouteParamCodec().encode(id)"),
             ),
-            contains("StringRouteParamCodec().encode(id)"),
-            contains(
-              'void routeToItemDetails({\n'
-              '    required String id,\n'
-              '    required String keep,\n'
-              '    required String detail,\n'
-              '  }) {',
+            allOf(
+              contains(
+                'void routeToItemDetails({\n'
+                '    required String id,\n'
+                '    required String keep,\n'
+                '    required String detail,\n'
+                '  }) {',
+              ),
+              contains(
+                'void routeToChildItemDetails({required String detail}) {',
+              ),
+              contains('routeToChild<_ItemDetailsLocation>('),
+              contains("StringRouteParamCodec().encode(keep)"),
+              contains("StringRouteParamCodec().encode(detail)"),
             ),
-            contains("StringRouteParamCodec().encode(keep)"),
-            contains("StringRouteParamCodec().encode(detail)"),
           ),
         ),
       },
@@ -160,7 +172,7 @@ Location<StaticRouteId> get appLocationTree => AppRoutes.tree;
               allOf(
                 contains('extension AppLocationTreeGeneratedRoutes'),
                 contains('void routeToRoot()'),
-                contains('void routeToChild()'),
+                contains('void routeToChildChild()'),
               ),
             ),
       },
@@ -341,15 +353,19 @@ final Location<TypedRouteId> appLocationTree =
           'working_router|lib/typed_route_params_routes.working_router.g.part':
               decodedMatches(
                 allOf(
+                allOf(
                   contains('required int itemId,'),
                   contains('required ItemFilter filter,'),
                   contains('int? page,'),
+                ),
+                allOf(
                   contains("IntRouteParamCodec().encode(itemId)"),
                   contains(
                     "EnumNameRouteParamCodec(ItemFilter.values).encode(filter)",
-                  ),
-                  contains(
-                    "if (page != null) 'page': IntRouteParamCodec().encode(page)",
+                    ),
+                    contains(
+                      "if (page != null) 'page': IntRouteParamCodec().encode(page)",
+                    ),
                   ),
                 ),
               ),

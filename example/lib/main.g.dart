@@ -8,15 +8,29 @@ part of 'main.dart';
 
 extension BuildLocationTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
   void routeToSplash() {
-    routeToId(LocationId.splash);
+    routeToId(
+      LocationId.splash,
+    );
   }
 
   void routeToA() {
-    routeToId(LocationId.a);
+    routeToId(
+      LocationId.a,
+    );
+  }
+
+  void routeToChildA() {
+    routeToChild<ALocation>();
   }
 
   void routeToAb() {
-    routeToId(LocationId.ab);
+    routeToId(
+      LocationId.ab,
+    );
+  }
+
+  void routeToChildAb() {
+    routeToChild<ABLocation>();
   }
 
   void routeToAbc({
@@ -30,11 +44,33 @@ extension BuildLocationTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
     );
   }
 
+  void routeToChildAbc({
+    required String id,
+  }) {
+    routeToChild<ABCLocation>(
+      pathParameters: {
+        'id': StringRouteParamCodec().encode(id),
+      },
+    );
+  }
+
   void routeToAd() {
-    routeToId(LocationId.ad);
+    routeToId(
+      LocationId.ad,
+    );
+  }
+
+  void routeToChildAd() {
+    routeToChild<ADLocation>();
   }
 
   void routeToAdc() {
-    routeToId(LocationId.adc);
+    routeToId(
+      LocationId.adc,
+    );
+  }
+
+  void routeToChildAdc() {
+    routeToChild<ADCLocation>();
   }
 }
