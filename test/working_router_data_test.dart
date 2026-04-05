@@ -62,10 +62,28 @@ void main() {
 
 class _TestLocation extends Location<String> {
   @override
-  final String? id;
+  final List<PathSegment> path;
 
-  @override
-  final String path;
+  _TestLocation({required super.id, required String path})
+    : path = _pathSegments(path);
+}
 
-  _TestLocation({required this.id, required this.path});
+List<PathSegment> _pathSegments(String path) {
+  final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+  if (normalizedPath.isEmpty) {
+    return const [];
+  }
+
+  return normalizedPath
+      .split('/')
+      .map((segment) {
+        if (segment.startsWith(':')) {
+          return PathSegment.param<String>(
+            segment.substring(1),
+            codec: const StringRouteParamCodec(),
+          );
+        }
+        return PathSegment.literal(segment);
+      })
+      .toList(growable: false);
 }

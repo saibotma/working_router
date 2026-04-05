@@ -6,5 +6,5 @@ class SplashLocation extends Location<LocationId> {
   SplashLocation({required super.id, required super.children});
 
   @override
-  String get path => "/";
+  List<PathSegment> get path => const [];
 }

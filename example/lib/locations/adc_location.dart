@@ -6,5 +6,5 @@ class ADCLocation extends Location<LocationId> {
   ADCLocation({required super.id, required super.children});
 
   @override
-  String get path => "/c";
+  List<PathSegment> get path => const [PathSegment.literal('c')];
 }

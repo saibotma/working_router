@@ -6,5 +6,11 @@ class ABCLocation extends Location<LocationId> {
   ABCLocation({required super.id, required super.children});
 
   @override
-  String get path => "/c/:id";
+  List<PathSegment> get path => [
+        PathSegment.literal('c'),
+        PathSegment.param<String>(
+          'id',
+          codec: StringRouteParamCodec(),
+        ),
+      ];
 }

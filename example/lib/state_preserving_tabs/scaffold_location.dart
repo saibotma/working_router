@@ -4,5 +4,5 @@ class ScaffoldLocation extends Location<String> {
   ScaffoldLocation({required super.children});
 
   @override
-  String get path => "/";
+  List<PathSegment> get path => const [];
 }

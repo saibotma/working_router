@@ -11,5 +11,5 @@ class ALocation extends Location<LocationId> {
   }
 
   @override
-  String get path => "/a";
+  List<PathSegment> get path => const [PathSegment.literal('a')];
 }

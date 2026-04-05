@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:working_router/working_router.dart';
@@ -659,31 +658,31 @@ enum _Id { root, a, b, c }
 enum _ParamId { root, item, details }
 
 class _PathLocation extends Location<_Id> {
-  final String _path;
+  final List<PathSegment> _path;
 
   _PathLocation({
     required _Id id,
     required String path,
     super.children = const [],
-  }) : _path = path,
+  }) : _path = _pathSegments(path),
        super(id: id);
 
   @override
-  String get path => _path;
+  List<PathSegment> get path => _path;
 }
 
 class _ParamPathLocation extends Location<_ParamId> {
-  final String _path;
+  final List<PathSegment> _path;
 
   _ParamPathLocation({
     required _ParamId id,
     required String path,
     super.children = const [],
-  }) : _path = path,
+  }) : _path = _pathSegments(path),
        super(id: id);
 
   @override
-  String get path => _path;
+  List<PathSegment> get path => _path;
 }
 
 class _ParamRootLocation extends _ParamPathLocation {
@@ -700,16 +699,39 @@ class _ItemLocation extends _ParamPathLocation {
   }) : super(path: 'item/:id');
 
   @override
-  Set<String> get queryParameters => {'keep'};
+  get queryParameters => const {
+    'keep': QueryParameter.required(StringRouteParamCodec()),
+  };
 }
 
 class _DetailLocation extends _ParamPathLocation {
   _DetailLocation({
     required super.id,
     required super.path,
-    super.children = const [],
   });
 
   @override
-  Set<String> get queryParameters => {'detail'};
+  get queryParameters => const {
+    'detail': QueryParameter.required(StringRouteParamCodec()),
+  };
+}
+
+List<PathSegment> _pathSegments(String path) {
+  final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+  if (normalizedPath.isEmpty) {
+    return const [];
+  }
+
+  return normalizedPath
+      .split('/')
+      .map((segment) {
+        if (segment.startsWith(':')) {
+          return PathSegment.param<String>(
+            segment.substring(1),
+            codec: const StringRouteParamCodec(),
+          );
+        }
+        return PathSegment.literal(segment);
+      })
+      .toList(growable: false);
 }

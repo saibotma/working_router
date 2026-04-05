@@ -72,9 +72,7 @@ class RouteHelpersGenerator
       );
     }
 
-    return locationType.typeArguments.single.getDisplayString(
-      withNullability: true,
-    );
+    return locationType.typeArguments.single.getDisplayString();
   }
 
   void _validateDeclarationTarget(Element element) {
@@ -99,9 +97,7 @@ class RouteHelpersGenerator
   }
 
   Element _declarationElement(Element element) {
-    if (element is PropertyAccessorElement &&
-        element.isSynthetic &&
-        element.variable != null) {
+    if (element is PropertyAccessorElement && element.isSynthetic) {
       return element.variable;
     }
     return element;
@@ -143,16 +139,27 @@ class RouteHelpersGenerator
   ) {
     final methodName =
         'routeTo${_toUpperCamelCase(idExpression.split('.').last)}';
-    final pathParameters = LinkedHashMap<String, String>();
-    final queryParameters = LinkedHashMap<String, String>();
+    final pathParameters = <String, _GeneratedRouteParameter>{};
+    final queryParameters = <String, _GeneratedRouteParameter>{};
     final usedParameterNames = <String, String>{};
 
     void registerParameter(
-      String originalName,
-      LinkedHashMap<String, String> target,
+      _GeneratedRouteParameter parameter,
+      Map<String, _GeneratedRouteParameter> target,
       String kind,
     ) {
+      final originalName = parameter.routeKey;
       if (target.containsKey(originalName)) {
+        final existing = target[originalName]!;
+        if (existing.dartTypeSource != parameter.dartTypeSource ||
+            existing.optional != parameter.optional ||
+            existing.codecExpressionSource != parameter.codecExpressionSource) {
+          throw InvalidGenerationSourceError(
+            'The generated helper for `$idExpression` needs conflicting $kind '
+            'parameter metadata for `$originalName`.',
+            element: element,
+          );
+        }
         return;
       }
 
@@ -178,23 +185,35 @@ class RouteHelpersGenerator
       }
 
       usedParameterNames[parameterName] = originalName;
-      target[originalName] = parameterName;
+      target[originalName] = parameter.copyWith(parameterName: parameterName);
     }
 
     for (final node in chain) {
-      for (final segment in Uri(path: node.path).pathSegments) {
-        if (segment.startsWith(':')) {
+      for (final segment in node.pathSegments) {
+        if (segment case _RoutePathParameterSegmentMetadata()) {
           registerParameter(
-            segment.substring(1),
+            _GeneratedRouteParameter(
+              routeKey: segment.key,
+              parameterName: '',
+              dartTypeSource: segment.dartTypeSource,
+              codecExpressionSource: segment.codecExpressionSource,
+              optional: false,
+            ),
             pathParameters,
             'path',
           );
         }
       }
 
-      for (final queryParameter in node.queryParameters) {
+      for (final queryParameter in node.queryParameters.values) {
         registerParameter(
-          queryParameter,
+          _GeneratedRouteParameter(
+            routeKey: queryParameter.key,
+            parameterName: '',
+            dartTypeSource: queryParameter.dartTypeSource,
+            codecExpressionSource: queryParameter.codecExpressionSource,
+            optional: queryParameter.optional,
+          ),
           queryParameters,
           'query',
         );
@@ -318,7 +337,7 @@ class _StaticRouteTreeExtractor {
       final returnExpression = body.block.statements
           .whereType<ReturnStatement>()
           .map((statement) => statement.expression)
-          .whereNotNull()
+          .nonNulls
           .firstOrNull;
       if (returnExpression != null) {
         return returnExpression;
@@ -408,7 +427,7 @@ class _StaticRouteTreeExtractor {
       rootElement: rootElement,
       parentContext: evaluationContext,
     );
-    final path = await _resolvePath(context);
+    final pathSegments = await _resolvePathSegments(context);
     final queryParameters = await _resolveQueryParameters(classElement);
     final childrenExpression =
         _namedArgumentExpression(
@@ -431,7 +450,7 @@ class _StaticRouteTreeExtractor {
         ),
         evaluationContext: evaluationContext,
       ),
-      path: path,
+      pathSegments: pathSegments,
       queryParameters: queryParameters,
       children: children,
     );
@@ -596,30 +615,54 @@ class _StaticRouteTreeExtractor {
     );
   }
 
-  Future<String> _resolvePath(_InstanceStringContext context) async {
-    final getter = context.classElement.lookUpGetter(
+  Future<List<_PathSegmentMetadata>> _resolvePathSegments(
+    _InstanceStringContext context,
+  ) async {
+    final classElement = context.classElement;
+    final getter = classElement.lookUpGetter(
       name: 'path',
-      library: context.classElement.library,
+      library: classElement.library,
     );
     if (getter == null) {
       throw InvalidGenerationSourceError(
-        '`${context.classElement.name}` does not define a path getter.',
-        element: context.classElement,
+        '`${classElement.name}` does not define a path getter.',
+        element: classElement,
       );
     }
 
-    return context.evaluateGetter(getter);
+    final node = await buildStep.resolver.astNodeFor(
+      getter.firstFragment,
+      resolve: true,
+    );
+    if (node is! MethodDeclaration && node is! FunctionDeclaration) {
+      throw InvalidGenerationSourceError(
+        'Unsupported path declaration in `${classElement.name}`.',
+        element: getter,
+      );
+    }
+
+    final body = switch (node) {
+      MethodDeclaration() => node.body,
+      FunctionDeclaration() => node.functionExpression.body,
+      _ => throw StateError('Unreachable'),
+    };
+    final expression = _bodyExpression(body, getter);
+    return _pathSegmentListLiteral(
+      expression,
+      getter,
+      evaluationContext: context,
+    );
   }
 
-  Future<LinkedHashSet<String>> _resolveQueryParameters(
+  Future<Map<String, _RouteQueryParameterMetadata>> _resolveQueryParameters(
     InterfaceElement classElement,
   ) async {
     final getter = classElement.lookUpGetter(
       name: 'queryParameters',
       library: classElement.library,
     );
-    if (getter == null || getter.enclosingElement?.displayName == 'Location') {
-      return LinkedHashSet();
+    if (getter == null || getter.enclosingElement.displayName == 'Location') {
+      return <String, _RouteQueryParameterMetadata>{};
     }
 
     final node = await buildStep.resolver.astNodeFor(
@@ -639,32 +682,281 @@ class _StaticRouteTreeExtractor {
       _ => throw StateError('Unreachable'),
     };
     final expression = _bodyExpression(body, getter);
-    return _stringSetLiteral(expression, getter);
+    return _queryParameterMapLiteral(expression, getter);
   }
 
-  LinkedHashSet<String> _stringSetLiteral(
+  Future<List<_PathSegmentMetadata>> _pathSegmentListLiteral(
     Expression expression,
-    Element element,
-  ) {
+    Element element, {
+    _ExpressionContext? evaluationContext,
+  }) async {
     final normalizedExpression = _unwrapExpression(expression);
-    if (normalizedExpression is SetOrMapLiteral &&
-        normalizedExpression.isMap == false) {
-      final result = LinkedHashSet<String>();
+    if (evaluationContext != null &&
+        _canResolveThroughContext(normalizedExpression)) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null) {
+        return _pathSegmentListLiteral(
+          boundExpression,
+          element,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
+
+    if (normalizedExpression is ListLiteral) {
+      final result = <_PathSegmentMetadata>[];
       for (final item in normalizedExpression.elements) {
         if (item is! Expression) {
           throw InvalidGenerationSourceError(
-            'Only literal string sets are supported for queryParameters.',
+            'Only literal route path segment lists are supported for path.',
             element: element,
           );
         }
-        result.add(_stringLiteral(item, element));
+        result.add(await _pathSegmentMetadata(item, element));
       }
       return result;
     }
 
+    final helperInvocation = await _helperInvocation(
+      normalizedExpression,
+      evaluationContext: evaluationContext,
+    );
+    if (helperInvocation != null) {
+      return _pathSegmentListLiteral(
+        helperInvocation.expression,
+        element,
+        evaluationContext: helperInvocation.context,
+      );
+    }
+
+    final referencedElement = _expressionElement(normalizedExpression);
+    if (referencedElement != null) {
+      final targetExpression = await _declarationExpression(referencedElement);
+      return _pathSegmentListLiteral(
+        targetExpression,
+        referencedElement,
+        evaluationContext: evaluationContext,
+      );
+    }
+
     throw InvalidGenerationSourceError(
-      'Only literal string sets are supported for queryParameters.',
+      'Only literal route path segment lists are supported for path.',
       element: element,
+    );
+  }
+
+  Future<_PathSegmentMetadata> _pathSegmentMetadata(
+    Expression expression,
+    Element element,
+  ) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is MethodInvocation) {
+      final targetSource = normalizedExpression.target?.toSource();
+      final methodName = normalizedExpression.methodName.name;
+      if (targetSource == 'PathSegment' && methodName == 'param') {
+        final keyExpression = normalizedExpression.argumentList.arguments
+            .whereType<Expression>()
+            .firstOrNull;
+        final codecExpression = _namedArgumentExpression(
+          normalizedExpression.argumentList.arguments,
+          'codec',
+        );
+        if (keyExpression == null || codecExpression == null) {
+          throw InvalidGenerationSourceError(
+            'PathSegment.param requires a key and `codec`.',
+            element: element,
+          );
+        }
+
+        return _RoutePathParameterSegmentMetadata(
+          key: _stringLiteral(keyExpression, element),
+          dartTypeSource: _wrapperValueTypeSource(
+            normalizedExpression.staticType,
+            'ParamPathSegment',
+            element,
+          ),
+          codecExpressionSource: _expressionSource(codecExpression),
+        );
+      }
+    }
+
+    if (normalizedExpression is! InstanceCreationExpression) {
+      final referencedElement = _expressionElement(normalizedExpression);
+      if (referencedElement != null) {
+        final targetExpression = await _declarationExpression(
+          referencedElement,
+        );
+        return _pathSegmentMetadata(targetExpression, referencedElement);
+      }
+      throw InvalidGenerationSourceError(
+        'Only route path segment constructor calls are supported in path.',
+        element: element,
+      );
+    }
+
+    final constructorTypeName = normalizedExpression.constructorName.type
+        .toSource()
+        .split('<')
+        .first;
+    final constructorName = normalizedExpression.constructorName.name?.name;
+    final isLiteralPathSegment =
+        constructorTypeName == 'LiteralPathSegment' ||
+        (constructorTypeName == 'PathSegment' && constructorName == 'literal');
+    if (isLiteralPathSegment) {
+      final valueExpression = normalizedExpression.argumentList.arguments
+          .whereType<Expression>()
+          .firstOrNull;
+      if (valueExpression == null) {
+        throw InvalidGenerationSourceError(
+          'LiteralPathSegment requires a string value.',
+          element: element,
+        );
+      }
+      return _LiteralPathSegmentMetadata(
+        value: _stringLiteral(valueExpression, element),
+      );
+    }
+
+    final isPathParamSegment =
+        constructorTypeName == 'ParamPathSegment' ||
+        (constructorTypeName == 'PathSegment' && constructorName == 'param');
+    if (isPathParamSegment) {
+      final keyExpression =
+          _namedArgumentExpression(
+            normalizedExpression.argumentList.arguments,
+            'key',
+          ) ??
+          normalizedExpression.argumentList.arguments.firstOrNull;
+      final codecExpression =
+          _namedArgumentExpression(
+            normalizedExpression.argumentList.arguments,
+            'codec',
+          ) ??
+          normalizedExpression.argumentList.arguments
+              .skip(keyExpression == null ? 0 : 1)
+              .firstOrNull;
+      if (keyExpression == null || codecExpression == null) {
+        throw InvalidGenerationSourceError(
+          'ParamPathSegment requires a key and `codec`.',
+          element: element,
+        );
+      }
+
+      return _RoutePathParameterSegmentMetadata(
+        key: _stringLiteral(keyExpression, element),
+        dartTypeSource: _wrapperValueTypeSource(
+          normalizedExpression.staticType,
+          constructorTypeName == 'ParamPathSegment'
+              ? 'ParamPathSegment'
+              : 'PathSegment',
+          element,
+        ),
+        codecExpressionSource: _expressionSource(codecExpression),
+      );
+    }
+
+    throw InvalidGenerationSourceError(
+      'Unsupported path segment `${normalizedExpression.toSource()}`.',
+      element: element,
+    );
+  }
+
+  Future<Map<String, _RouteQueryParameterMetadata>> _queryParameterMapLiteral(
+    Expression expression,
+    Element element,
+  ) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is SetOrMapLiteral &&
+        normalizedExpression.isMap == true) {
+      final result = <String, _RouteQueryParameterMetadata>{};
+      for (final item in normalizedExpression.elements) {
+        if (item is! MapLiteralEntry) {
+          throw InvalidGenerationSourceError(
+            'Only literal query parameter maps are supported.',
+            element: element,
+          );
+        }
+
+        final key = _stringLiteral(item.key, element);
+        result[key] = await _queryParameterMetadata(
+          item.value,
+          key: key,
+          element: element,
+        );
+      }
+      return result;
+    }
+
+    final referencedElement = _expressionElement(normalizedExpression);
+    if (referencedElement != null) {
+      final targetExpression = await _declarationExpression(referencedElement);
+      return _queryParameterMapLiteral(targetExpression, referencedElement);
+    }
+
+    throw InvalidGenerationSourceError(
+      'Only literal query parameter maps are supported.',
+      element: element,
+    );
+  }
+
+  Future<_RouteQueryParameterMetadata> _queryParameterMetadata(
+    Expression expression, {
+    required String key,
+    required Element element,
+  }) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is! InstanceCreationExpression) {
+      final referencedElement = _expressionElement(normalizedExpression);
+      if (referencedElement != null) {
+        final targetExpression = await _declarationExpression(
+          referencedElement,
+        );
+        return _queryParameterMetadata(
+          targetExpression,
+          key: key,
+          element: referencedElement,
+        );
+      }
+
+      throw InvalidGenerationSourceError(
+        'Only QueryParameter constructor calls are supported in '
+        'queryParameters.',
+        element: element,
+      );
+    }
+
+    final typeName = normalizedExpression.constructorName.type
+        .toSource()
+        .split('<')
+        .first;
+    if (typeName != 'QueryParameter') {
+      throw InvalidGenerationSourceError(
+        'Only QueryParameter values are supported in queryParameters.',
+        element: element,
+      );
+    }
+
+    final constructorName = normalizedExpression.constructorName.name?.name;
+    final codecExpression = normalizedExpression.argumentList.arguments
+        .whereType<Expression>()
+        .firstOrNull;
+    if (codecExpression == null) {
+      throw InvalidGenerationSourceError(
+        'QueryParameter requires a codec.',
+        element: element,
+      );
+    }
+
+    return _RouteQueryParameterMetadata(
+      key: key,
+      dartTypeSource: _codecValueTypeSourceForExpression(
+        codecExpression,
+        element,
+      ),
+      codecExpressionSource: _expressionSource(codecExpression),
+      optional: constructorName == 'optional',
     );
   }
 
@@ -688,6 +980,115 @@ class _StaticRouteTreeExtractor {
       'Only constant strings are supported in generated route metadata.',
       element: element,
     );
+  }
+
+  String _wrapperValueTypeSource(
+    DartType? wrapperType,
+    String expectedTypeName,
+    Element element,
+  ) {
+    if (wrapperType is! InterfaceType) {
+      throw InvalidGenerationSourceError(
+        'Route parameter wrappers must have a concrete $expectedTypeName<T> type.',
+        element: element,
+      );
+    }
+
+    final routeWrapperType = _supertypeNamed(wrapperType, expectedTypeName);
+    if (routeWrapperType == null ||
+        routeWrapperType.typeArguments.length != 1) {
+      throw InvalidGenerationSourceError(
+        'Route parameter wrappers must extend $expectedTypeName<T>.',
+        element: element,
+      );
+    }
+
+    return routeWrapperType.typeArguments.single.getDisplayString();
+  }
+
+  String _codecValueTypeSourceForExpression(
+    Expression codecExpression,
+    Element element,
+  ) {
+    final valueType = _codecValueType(codecExpression.staticType, element);
+    if (valueType is TypeParameterType &&
+        codecExpression is InstanceCreationExpression) {
+      final inferredValueType = _inferCodecValueTypeFromArguments(
+        codecExpression,
+      );
+      if (inferredValueType != null) {
+        return inferredValueType.getDisplayString();
+      }
+    }
+
+    return valueType.getDisplayString();
+  }
+
+  DartType _codecValueType(DartType? codecType, Element element) {
+    if (codecType is! InterfaceType) {
+      throw InvalidGenerationSourceError(
+        'Route parameter codecs must have a concrete RouteParamCodec<T> type.',
+        element: element,
+      );
+    }
+
+    final routeCodecType = _supertypeNamed(codecType, 'RouteParamCodec');
+    if (routeCodecType == null || routeCodecType.typeArguments.length != 1) {
+      throw InvalidGenerationSourceError(
+        'Route parameter codecs must extend RouteParamCodec<T>.',
+        element: element,
+      );
+    }
+
+    return routeCodecType.typeArguments.single;
+  }
+
+  DartType? _inferCodecValueTypeFromArguments(
+    InstanceCreationExpression expression,
+  ) {
+    final codecTypeName = expression.constructorName.type
+        .toSource()
+        .split('<')
+        .first;
+    if (codecTypeName == 'EnumNameRouteParamCodec') {
+      final valuesExpression = expression.argumentList.arguments
+          .whereType<Expression>()
+          .firstOrNull;
+      if (valuesExpression == null) {
+        return null;
+      }
+
+      final valuesType = valuesExpression.staticType;
+      if (valuesType is! InterfaceType) {
+        return null;
+      }
+
+      if (valuesType.typeArguments.length == 1) {
+        return valuesType.typeArguments.single;
+      }
+
+      final iterableType = _supertypeNamed(valuesType, 'Iterable');
+      if (iterableType != null && iterableType.typeArguments.length == 1) {
+        return iterableType.typeArguments.single;
+      }
+    }
+
+    return null;
+  }
+
+  InterfaceType? _supertypeNamed(InterfaceType type, String name) {
+    InterfaceType? current = type;
+    while (current != null) {
+      if (current.element.name == name) {
+        return current;
+      }
+      current = current.element.supertype;
+    }
+    return null;
+  }
+
+  String _expressionSource(Expression expression) {
+    return _unwrapExpression(expression).toSource();
   }
 
   Expression? _namedArgumentExpression(
@@ -715,15 +1116,14 @@ class _StaticRouteTreeExtractor {
       _ => null,
     };
 
-    if (element is PropertyAccessorElement &&
-        element.isSynthetic &&
-        element.variable != null) {
+    if (element is PropertyAccessorElement && element.isSynthetic) {
       element = element.variable;
     }
 
     if (element is ExecutableElement) {
       _validateHelperElement(element);
-      if (!allowParameterizedExecutable && element.formalParameters.isNotEmpty) {
+      if (!allowParameterizedExecutable &&
+          element.formalParameters.isNotEmpty) {
         throw InvalidGenerationSourceError(
           'Helper functions used in generated route trees must not have '
           'parameters.',
@@ -756,9 +1156,7 @@ class _StaticRouteTreeExtractor {
   }
 
   Element _normalizeDeclarationElement(Element element) {
-    if (element is PropertyAccessorElement &&
-        element.isSynthetic &&
-        element.variable != null) {
+    if (element is PropertyAccessorElement && element.isSynthetic) {
       return element.variable;
     }
     return element;
@@ -961,6 +1359,21 @@ class _InstanceStringContext implements _ExpressionContext {
           return binding.expression;
         }
       }
+
+      final fieldExpression = await _fieldExpression(normalizedExpression.name);
+      if (fieldExpression != null &&
+          !_isSameSimpleIdentifier(fieldExpression, normalizedExpression)) {
+        if (_canResolveFurther(fieldExpression)) {
+          final resolvedExpression = await _resolveExpression(
+            fieldExpression,
+            visited,
+          );
+          if (resolvedExpression != null) {
+            return resolvedExpression;
+          }
+        }
+        return fieldExpression;
+      }
     }
     return _resolveParentExpression(
       parentContext,
@@ -999,7 +1412,11 @@ class _InstanceStringContext implements _ExpressionContext {
         visited,
       );
       if (parentExpression != null) {
-        return _resolveParentIdExpression(parentContext, parentExpression, visited);
+        return _resolveParentIdExpression(
+          parentContext,
+          parentExpression,
+          visited,
+        );
       }
     }
     if (normalizedExpression is ConditionalExpression) {
@@ -1274,6 +1691,51 @@ class _InstanceStringContext implements _ExpressionContext {
     );
   }
 
+  Future<Expression?> _fieldExpression(String name) async {
+    final field = classElement.getField(name);
+    if (field != null) {
+      final fieldInitializer = constructorNode.initializers
+          .whereType<ConstructorFieldInitializer>()
+          .firstWhereOrNull(
+            (initializer) => initializer.fieldName.name == name,
+          );
+      if (fieldInitializer != null) {
+        return fieldInitializer.expression;
+      }
+
+      final fieldNode = await buildStep.resolver.astNodeFor(
+        _fragmentFor(field.nonSynthetic),
+        resolve: true,
+      );
+      if (fieldNode is VariableDeclaration && fieldNode.initializer != null) {
+        return fieldNode.initializer;
+      }
+    }
+
+    final getter = classElement.lookUpGetter(
+      name: name,
+      library: classElement.library,
+    );
+    if (getter != null &&
+        getter.enclosingElement != classElement.supertype?.element) {
+      final getterNode = await buildStep.resolver.astNodeFor(
+        getter.firstFragment,
+        resolve: true,
+      );
+      if (getterNode is MethodDeclaration ||
+          getterNode is FunctionDeclaration) {
+        final body = switch (getterNode) {
+          MethodDeclaration() => getterNode.body,
+          FunctionDeclaration() => getterNode.functionExpression.body,
+          _ => throw StateError('Unreachable'),
+        };
+        return _bodyExpression(body, getter);
+      }
+    }
+
+    return null;
+  }
+
   Future<bool> _evaluateNamedValueIsNull(String name) async {
     final parameterBinding = parameterBindings[name];
     if (parameterBinding != null) {
@@ -1339,7 +1801,7 @@ class _InstanceStringContext implements _ExpressionContext {
       final returnExpression = body.block.statements
           .whereType<ReturnStatement>()
           .map((statement) => statement.expression)
-          .whereNotNull()
+          .nonNulls
           .firstOrNull;
       if (returnExpression != null) {
         return returnExpression;
@@ -1446,9 +1908,9 @@ class _FunctionExpressionContext implements _ExpressionContext {
         node.functionDeclaration.functionExpression.parameters,
       MethodDeclaration() => node.parameters,
       _ => throw InvalidGenerationSourceError(
-          'Unable to resolve helper function `${executable.displayName}`.',
-          element: executable,
-        ),
+        'Unable to resolve helper function `${executable.displayName}`.',
+        element: executable,
+      ),
     };
 
     if (parameters == null) {
@@ -1701,7 +2163,7 @@ FormalParameter _unwrapFormalParameter(FormalParameter parameter) {
 
 String? _formalParameterName(FormalParameter parameter) {
   final unwrapped = _unwrapFormalParameter(parameter);
-  final elementName = unwrapped.declaredFragment?.element?.name;
+  final elementName = unwrapped.declaredFragment?.element.name;
   if (elementName != null) {
     return elementName;
   }
@@ -1756,13 +2218,13 @@ class _BoundStringExpression {
 
 class _RouteNode {
   final String? idExpression;
-  final String path;
-  final LinkedHashSet<String> queryParameters;
+  final List<_PathSegmentMetadata> pathSegments;
+  final Map<String, _RouteQueryParameterMetadata> queryParameters;
   final List<_RouteNode> children;
 
   const _RouteNode({
     required this.idExpression,
-    required this.path,
+    required this.pathSegments,
     required this.queryParameters,
     required this.children,
   });
@@ -1771,8 +2233,8 @@ class _RouteNode {
 class _GeneratedRouteMethod {
   final String name;
   final String idExpression;
-  final LinkedHashMap<String, String> pathParameters;
-  final LinkedHashMap<String, String> queryParameters;
+  final Map<String, _GeneratedRouteParameter> pathParameters;
+  final Map<String, _GeneratedRouteParameter> queryParameters;
 
   const _GeneratedRouteMethod({
     required this.name,
@@ -1798,7 +2260,14 @@ class _GeneratedRouteMethod {
 
     buffer.writeln('  void $name({');
     for (final parameter in parameters) {
-      buffer.writeln('    required String ${parameter.value},');
+      final generatedParameter = parameter.value;
+      final typeSource = generatedParameter.optional
+          ? '${generatedParameter.dartTypeSource}?'
+          : generatedParameter.dartTypeSource;
+      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+      buffer.writeln(
+        '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      );
     }
     buffer.writeln('  }) {');
     buffer
@@ -1808,7 +2277,12 @@ class _GeneratedRouteMethod {
     if (pathParameters.isNotEmpty) {
       buffer.writeln('      pathParameters: {');
       for (final parameter in pathParameters.entries) {
-        buffer.writeln("        '${parameter.key}': ${parameter.value},");
+        final generatedParameter = parameter.value;
+        buffer.writeln(
+          "        '${parameter.key}': "
+          '${generatedParameter.codecExpressionSource}'
+          '.encode(${generatedParameter.parameterName}),',
+        );
       }
       buffer.writeln('      },');
     }
@@ -1816,7 +2290,20 @@ class _GeneratedRouteMethod {
     if (queryParameters.isNotEmpty) {
       buffer.writeln('      queryParameters: {');
       for (final parameter in queryParameters.entries) {
-        buffer.writeln("        '${parameter.key}': ${parameter.value},");
+        final generatedParameter = parameter.value;
+        if (generatedParameter.optional) {
+          buffer.writeln(
+            "        if (${generatedParameter.parameterName} != null) "
+            "'${parameter.key}': ${generatedParameter.codecExpressionSource}"
+            '.encode(${generatedParameter.parameterName}),',
+          );
+        } else {
+          buffer.writeln(
+            "        '${parameter.key}': "
+            '${generatedParameter.codecExpressionSource}'
+            '.encode(${generatedParameter.parameterName}),',
+          );
+        }
       }
       buffer.writeln('      },');
     }
@@ -1825,6 +2312,75 @@ class _GeneratedRouteMethod {
       ..writeln('    );')
       ..writeln('  }');
     return buffer.toString();
+  }
+}
+
+sealed class _PathSegmentMetadata {
+  const _PathSegmentMetadata();
+}
+
+class _LiteralPathSegmentMetadata extends _PathSegmentMetadata {
+  final String value;
+
+  const _LiteralPathSegmentMetadata({required this.value});
+}
+
+class _RoutePathParameterSegmentMetadata extends _PathSegmentMetadata {
+  final String key;
+  final String dartTypeSource;
+  final String codecExpressionSource;
+
+  const _RoutePathParameterSegmentMetadata({
+    required this.key,
+    required this.dartTypeSource,
+    required this.codecExpressionSource,
+  });
+}
+
+class _RouteQueryParameterMetadata {
+  final String key;
+  final String dartTypeSource;
+  final String codecExpressionSource;
+  final bool optional;
+
+  const _RouteQueryParameterMetadata({
+    required this.key,
+    required this.dartTypeSource,
+    required this.codecExpressionSource,
+    required this.optional,
+  });
+}
+
+class _GeneratedRouteParameter {
+  final String routeKey;
+  final String parameterName;
+  final String dartTypeSource;
+  final String codecExpressionSource;
+  final bool optional;
+
+  const _GeneratedRouteParameter({
+    required this.routeKey,
+    required this.parameterName,
+    required this.dartTypeSource,
+    required this.codecExpressionSource,
+    required this.optional,
+  });
+
+  _GeneratedRouteParameter copyWith({
+    String? routeKey,
+    String? parameterName,
+    String? dartTypeSource,
+    String? codecExpressionSource,
+    bool? optional,
+  }) {
+    return _GeneratedRouteParameter(
+      routeKey: routeKey ?? this.routeKey,
+      parameterName: parameterName ?? this.parameterName,
+      dartTypeSource: dartTypeSource ?? this.dartTypeSource,
+      codecExpressionSource:
+          codecExpressionSource ?? this.codecExpressionSource,
+      optional: optional ?? this.optional,
+    );
   }
 }
 
@@ -1852,7 +2408,7 @@ String _toParameterIdentifier(String value) {
   }
 
   var identifier = buffer.toString();
-  if (RegExp(r'^[0-9]').hasMatch(identifier)) {
+  if (RegExp('^[0-9]').hasMatch(identifier)) {
     identifier = 'value$identifier';
   }
   if (_dartKeywords.contains(identifier)) {
@@ -1862,10 +2418,10 @@ String _toParameterIdentifier(String value) {
 }
 
 List<String> _splitIdentifier(String value) {
-  final sanitized = value.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), ' ');
+  final sanitized = value.replaceAll(RegExp('[^a-zA-Z0-9]+'), ' ');
   final spaceSeparated = sanitized
       .replaceAllMapped(
-        RegExp(r'([a-z0-9])([A-Z])'),
+        RegExp('([a-z0-9])([A-Z])'),
         (match) => '${match.group(1)} ${match.group(2)}',
       )
       .trim();

@@ -162,10 +162,12 @@ class WorkingRouter<ID> extends ChangeNotifier
     final keptQueryParameterKeys = currentData == null
         ? <String>{}
         : currentData.locations
-              .expand((location) => location.queryParameters)
+              .expand((location) => location.queryParameters.keys)
               .toSet()
               .intersection(
-                matches.expand((location) => location.queryParameters).toSet(),
+                matches
+                    .expand((location) => location.queryParameters.keys)
+                    .toSet(),
               );
 
     _routeTo(
@@ -282,14 +284,16 @@ class WorkingRouter<ID> extends ChangeNotifier
     final newLocations = locations.sublist(0, matchIndex + 1);
     final newPathParameters = data.pathParameters.keepKeys(
       newLocations
-          .expand((location) => location.pathSegments)
-          .map(_findPathParameterKeyInPathSegment)
-          .nonNulls
+          .expand(
+            (location) => location.path.whereType<ParamPathSegment>().map(
+              (segment) => segment.key,
+            ),
+          )
           .toSet(),
     );
 
     final newQueryParameters = data.queryParameters.keepKeys(
-      newLocations.expand((location) => location.queryParameters).toSet(),
+      newLocations.expand((location) => location.queryParameters.keys).toSet(),
     );
 
     _routeTo(
@@ -570,10 +574,3 @@ typedef TransitionDecider<ID> =
       WorkingRouter<ID> router,
       RouteTransition<ID> transition,
     );
-
-String? _findPathParameterKeyInPathSegment(String pathSegment) {
-  if (pathSegment.startsWith(':')) {
-    return pathSegment.replaceRange(0, 1, '');
-  }
-  return null;
-}

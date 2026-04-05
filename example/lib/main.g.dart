@@ -25,7 +25,7 @@ extension BuildLocationTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
     routeToId(
       LocationId.abc,
       pathParameters: {
-        'id': id,
+        'id': StringRouteParamCodec().encode(id),
       },
     );
   }
