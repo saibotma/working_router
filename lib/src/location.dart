@@ -31,13 +31,11 @@ class ParamPathSegment<T> extends PathSegment {
   });
 }
 
-class QueryParameter<T> {
+class QueryParamConfig<T> {
   final RouteParamCodec<T> codec;
   final bool optional;
 
-  const QueryParameter.required(this.codec) : optional = false;
-
-  const QueryParameter.optional(this.codec) : optional = true;
+  const QueryParamConfig(this.codec, {this.optional = false});
 }
 
 abstract class Location<ID> {
@@ -148,7 +146,7 @@ abstract class Location<ID> {
   /// When using `@WorkingRouterLocationTree`, required query parameters are
   /// generated as required `routeToX(...)` arguments. Optional query
   /// parameters are generated as nullable arguments and omitted when null.
-  Map<String, QueryParameter<dynamic>> get queryParameters => const {};
+  Map<String, QueryParamConfig<dynamic>> get queryParameters => const {};
 
   Location<ID>? pop() {
     return null;

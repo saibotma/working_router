@@ -480,7 +480,10 @@ class _StaticRouteTreeExtractor {
       parentContext: evaluationContext,
     );
     final pathSegments = await _resolvePathSegments(context);
-    final queryParameters = await _resolveQueryParameters(classElement);
+    final queryParameters = await _resolveQueryParameters(
+      classElement,
+      evaluationContext: context,
+    );
     final childrenExpression =
         _namedArgumentExpression(
           expression.argumentList.arguments,
@@ -708,8 +711,9 @@ class _StaticRouteTreeExtractor {
   }
 
   Future<Map<String, _RouteQueryParameterMetadata>> _resolveQueryParameters(
-    InterfaceElement classElement,
-  ) async {
+    InterfaceElement classElement, {
+    _ExpressionContext? evaluationContext,
+  }) async {
     final getter = classElement.lookUpGetter(
       name: 'queryParameters',
       library: classElement.library,
@@ -735,7 +739,11 @@ class _StaticRouteTreeExtractor {
       _ => throw StateError('Unreachable'),
     };
     final expression = _bodyExpression(body, getter);
-    return _queryParameterMapLiteral(expression, getter);
+    return _queryParameterMapLiteral(
+      expression,
+      getter,
+      evaluationContext: evaluationContext,
+    );
   }
 
   Future<List<_PathSegmentMetadata>> _pathSegmentListLiteral(
@@ -918,34 +926,64 @@ class _StaticRouteTreeExtractor {
 
   Future<Map<String, _RouteQueryParameterMetadata>> _queryParameterMapLiteral(
     Expression expression,
-    Element element,
-  ) async {
+    Element element, {
+    _ExpressionContext? evaluationContext,
+  }) async {
     final normalizedExpression = _unwrapExpression(expression);
+    if (evaluationContext != null &&
+        _canResolveThroughContext(normalizedExpression)) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null) {
+        return _queryParameterMapLiteral(
+          boundExpression,
+          element,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
+
     if (normalizedExpression is SetOrMapLiteral &&
         normalizedExpression.isMap == true) {
       final result = <String, _RouteQueryParameterMetadata>{};
       for (final item in normalizedExpression.elements) {
-        if (item is! MapLiteralEntry) {
-          throw InvalidGenerationSourceError(
-            'Only literal query parameter maps are supported.',
+        final metadataByKey = await _queryParametersFromMapElement(
+          item,
+          elementForErrors: element,
+          evaluationContext: evaluationContext,
+        );
+        for (final metadata in metadataByKey.values) {
+          _registerQueryParameterMetadata(
+            metadata,
+            result,
             element: element,
           );
         }
-
-        final key = _stringLiteral(item.key, element);
-        result[key] = await _queryParameterMetadata(
-          item.value,
-          key: key,
-          element: element,
-        );
       }
       return result;
+    }
+
+    final helperInvocation = await _helperInvocation(
+      normalizedExpression,
+      evaluationContext: evaluationContext,
+    );
+    if (helperInvocation != null) {
+      return _queryParameterMapLiteral(
+        helperInvocation.expression,
+        element,
+        evaluationContext: helperInvocation.context,
+      );
     }
 
     final referencedElement = _expressionElement(normalizedExpression);
     if (referencedElement != null) {
       final targetExpression = await _declarationExpression(referencedElement);
-      return _queryParameterMapLiteral(targetExpression, referencedElement);
+      return _queryParameterMapLiteral(
+        targetExpression,
+        referencedElement,
+        evaluationContext: evaluationContext,
+      );
     }
 
     throw InvalidGenerationSourceError(
@@ -954,13 +992,90 @@ class _StaticRouteTreeExtractor {
     );
   }
 
+  Future<Map<String, _RouteQueryParameterMetadata>> _queryParametersFromMapElement(
+    CollectionElement element, {
+    required Element elementForErrors,
+    _ExpressionContext? evaluationContext,
+  }) async {
+    switch (element) {
+      case MapLiteralEntry():
+        final key = _stringLiteral(element.key, elementForErrors);
+        final metadata = await _queryParameterMetadata(
+          element.value,
+          key: key,
+          element: elementForErrors,
+          evaluationContext: evaluationContext,
+        );
+        return {metadata.key: metadata};
+      case SpreadElement():
+        return _queryParameterMapLiteral(
+          element.expression,
+          elementForErrors,
+          evaluationContext: evaluationContext,
+        );
+      case IfElement():
+        final result = <String, _RouteQueryParameterMetadata>{};
+        for (final branchElement in [
+          element.thenElement,
+          if (element.elseElement != null) element.elseElement!,
+        ]) {
+          final branchMetadata = await _queryParametersFromMapElement(
+            branchElement,
+            elementForErrors: elementForErrors,
+            evaluationContext: evaluationContext,
+          );
+          for (final metadata in branchMetadata.values) {
+            _registerQueryParameterMetadata(
+              metadata,
+              result,
+              element: elementForErrors,
+            );
+          }
+        }
+        return result;
+      default:
+        throw InvalidGenerationSourceError(
+          'Unsupported element `${element.toSource()}` in queryParameters.',
+          element: elementForErrors,
+        );
+    }
+  }
+
   Future<_RouteQueryParameterMetadata> _queryParameterMetadata(
     Expression expression, {
     required String key,
     required Element element,
+    _ExpressionContext? evaluationContext,
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
+    if (evaluationContext != null &&
+        _canResolveThroughContext(normalizedExpression)) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null) {
+        return _queryParameterMetadata(
+          boundExpression,
+          key: key,
+          element: element,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
     if (normalizedExpression is! InstanceCreationExpression) {
+      final helperInvocation = await _helperInvocation(
+        normalizedExpression,
+        evaluationContext: evaluationContext,
+      );
+      if (helperInvocation != null) {
+        return _queryParameterMetadata(
+          helperInvocation.expression,
+          key: key,
+          element: element,
+          evaluationContext: helperInvocation.context,
+        );
+      }
+
       final referencedElement = _expressionElement(normalizedExpression);
       if (referencedElement != null) {
         final targetExpression = await _declarationExpression(
@@ -970,11 +1085,12 @@ class _StaticRouteTreeExtractor {
           targetExpression,
           key: key,
           element: referencedElement,
+          evaluationContext: evaluationContext,
         );
       }
 
       throw InvalidGenerationSourceError(
-        'Only QueryParameter constructor calls are supported in '
+        'Only QueryParamConfig constructor calls are supported in '
         'queryParameters.',
         element: element,
       );
@@ -984,20 +1100,33 @@ class _StaticRouteTreeExtractor {
         .toSource()
         .split('<')
         .first;
-    if (typeName != 'QueryParameter') {
+    if (typeName != 'QueryParamConfig') {
       throw InvalidGenerationSourceError(
-        'Only QueryParameter values are supported in queryParameters.',
+        'Only QueryParamConfig values are supported in queryParameters.',
         element: element,
       );
     }
 
-    final constructorName = normalizedExpression.constructorName.name?.name;
-    final codecExpression = normalizedExpression.argumentList.arguments
-        .whereType<Expression>()
-        .firstOrNull;
+    final keyExpression = _namedArgumentExpression(
+      normalizedExpression.argumentList.arguments,
+      'key',
+    );
+    final codecExpression =
+        _namedArgumentExpression(
+          normalizedExpression.argumentList.arguments,
+          'codec',
+        ) ??
+        normalizedExpression.argumentList.arguments
+            .whereType<Expression>()
+            .skip(keyExpression == null ? 0 : 1)
+            .firstOrNull;
+    final optionalExpression = _namedArgumentExpression(
+      normalizedExpression.argumentList.arguments,
+      'optional',
+    );
     if (codecExpression == null) {
       throw InvalidGenerationSourceError(
-        'QueryParameter requires a codec.',
+        'QueryParamConfig requires a codec.',
         element: element,
       );
     }
@@ -1009,7 +1138,32 @@ class _StaticRouteTreeExtractor {
         element,
       ),
       codecExpressionSource: _expressionSource(codecExpression),
-      optional: constructorName == 'optional',
+      optional:
+          optionalExpression != null && _boolLiteral(optionalExpression, element),
+    );
+  }
+
+  void _registerQueryParameterMetadata(
+    _RouteQueryParameterMetadata metadata,
+    Map<String, _RouteQueryParameterMetadata> target, {
+    required Element element,
+  }) {
+    final existing = target[metadata.key];
+    if (existing == null) {
+      target[metadata.key] = metadata;
+      return;
+    }
+
+    if (existing.dartTypeSource == metadata.dartTypeSource &&
+        existing.codecExpressionSource == metadata.codecExpressionSource &&
+        existing.optional == metadata.optional) {
+      return;
+    }
+
+    throw InvalidGenerationSourceError(
+      'Duplicate query parameter key `${metadata.key}` with conflicting '
+      'definitions.',
+      element: element,
     );
   }
 
@@ -1031,6 +1185,24 @@ class _StaticRouteTreeExtractor {
 
     throw InvalidGenerationSourceError(
       'Only constant strings are supported in generated route metadata.',
+      element: element,
+    );
+  }
+
+  bool _boolLiteral(Expression expression, Element element) {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is BooleanLiteral) {
+      return normalizedExpression.value;
+    }
+
+    final constantValue = normalizedExpression.computeConstantValue();
+    final boolValue = constantValue?.value?.toBoolValue();
+    if (boolValue != null) {
+      return boolValue;
+    }
+
+    throw InvalidGenerationSourceError(
+      'Only constant booleans are supported in generated route metadata.',
       element: element,
     );
   }
@@ -2393,11 +2565,10 @@ class _GeneratedRouteMethod {
 
   void _writeInvocation(StringBuffer buffer) {
     if (idExpression != null) {
-      buffer
-        ..writeln('    routeToId(')
-        ..writeln('      $idExpression,');
+      buffer.writeln('    routeToId(');
+      buffer.writeln('      $idExpression,');
     } else {
-      buffer..writeln('    routeToChild<$childLocationTypeSource>(');
+      buffer.writeln('    routeToChild<$childLocationTypeSource>(');
     }
 
     if (pathParameters.isNotEmpty) {

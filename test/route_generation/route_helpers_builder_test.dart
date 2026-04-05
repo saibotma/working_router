@@ -42,7 +42,7 @@ class _ItemLocation extends Location<AppRouteId> {
 
   @override
   get queryParameters => const {
-    'keep': QueryParameter.required(StringRouteParamCodec()),
+    'keep': QueryParamConfig(StringRouteParamCodec()),
   };
 }
 
@@ -54,7 +54,7 @@ class _ItemDetailsLocation extends Location<AppRouteId> {
 
   @override
   get queryParameters => const {
-    'detail': QueryParameter.required(StringRouteParamCodec()),
+    'detail': QueryParamConfig(StringRouteParamCodec()),
   };
 }
 
@@ -217,8 +217,8 @@ class LessonLocation extends Location<ConstructorRouteId> {
 
   @override
   get queryParameters => const {
-    'coursePeriodId': QueryParameter.required(StringRouteParamCodec()),
-    'sourceDateTime': QueryParameter.required(StringRouteParamCodec()),
+    'coursePeriodId': QueryParamConfig(StringRouteParamCodec()),
+    'sourceDateTime': QueryParamConfig(StringRouteParamCodec()),
   };
 }
 
@@ -279,8 +279,8 @@ class LessonLocation extends Location<ConstQueryRouteId> {
 
   @override
   get queryParameters => const {
-    coursePeriodIdKey: QueryParameter.required(StringRouteParamCodec()),
-    sourceDateTimeKey: QueryParameter.required(StringRouteParamCodec()),
+    coursePeriodIdKey: QueryParamConfig(StringRouteParamCodec()),
+    sourceDateTimeKey: QueryParamConfig(StringRouteParamCodec()),
   };
 }
 
@@ -337,10 +337,13 @@ class ItemLocation extends Location<TypedRouteId> {
 
   @override
   get queryParameters => const {
-    'filter': QueryParameter.required(
+    'filter': QueryParamConfig(
       EnumNameRouteParamCodec(ItemFilter.values),
     ),
-    'page': QueryParameter.optional(IntRouteParamCodec()),
+    'page': QueryParamConfig(
+      IntRouteParamCodec(),
+      optional: true,
+    ),
   };
 }
 
@@ -353,15 +356,15 @@ final Location<TypedRouteId> appLocationTree =
           'working_router|lib/typed_route_params_routes.working_router.g.part':
               decodedMatches(
                 allOf(
-                allOf(
-                  contains('required int itemId,'),
-                  contains('required ItemFilter filter,'),
-                  contains('int? page,'),
-                ),
-                allOf(
-                  contains("IntRouteParamCodec().encode(itemId)"),
-                  contains(
-                    "EnumNameRouteParamCodec(ItemFilter.values).encode(filter)",
+                  allOf(
+                    contains('required int itemId,'),
+                    contains('required ItemFilter filter,'),
+                    contains('int? page,'),
+                  ),
+                  allOf(
+                    contains("IntRouteParamCodec().encode(itemId)"),
+                    contains(
+                      "EnumNameRouteParamCodec(ItemFilter.values).encode(filter)",
                     ),
                     contains(
                       "if (page != null) 'page': IntRouteParamCodec().encode(page)",

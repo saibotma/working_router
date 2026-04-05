@@ -24,7 +24,7 @@ class SplashLocation extends Location<LocationId> {
   SplashLocation({super.id, super.children = const []});
 
   @override
-  String get path => '';
+  List<PathSegment> get path => const [];
 }
 
 class LessonLocation extends Location<LocationId> {
@@ -36,12 +36,21 @@ class LessonLocation extends Location<LocationId> {
       );
 
   @override
-  String get path => 'lessons/:lessonId';
+  List<PathSegment> get path => [
+    PathSegment.literal('lessons'),
+    PathSegment.param<int>(
+      'lessonId',
+      codec: IntRouteParamCodec(),
+    ),
+  ];
 
   @override
-  Set<String> get queryParameters => {
-    'coursePeriodId',
-    'sourceDateTime',
+  Map<String, QueryParamConfig<dynamic>> get queryParameters => const {
+    'coursePeriodId': QueryParamConfig(IntRouteParamCodec()),
+    'sourceDateTime': QueryParamConfig(
+      DateTimeIsoRouteParamCodec(),
+      optional: true,
+    ),
   };
 }
 
@@ -49,7 +58,9 @@ class LessonEditLocation extends Location<LocationId> {
   LessonEditLocation({required super.id});
 
   @override
-  String get path => 'edit';
+  List<PathSegment> get path => const [
+    PathSegment.literal('edit'),
+  ];
 }
 
 @WorkingRouterLocationTree()
@@ -74,21 +85,20 @@ Generated API:
 ```dart
 router.routeToSplash();
 router.routeToLesson(
-  lessonId: '42',
-  coursePeriodId: 'current',
-  sourceDateTime: '2026-04-04T10:00:00Z',
+  lessonId: 42,
+  coursePeriodId: 7,
+  sourceDateTime: DateTime.parse('2026-04-04T10:00:00Z'),
 );
 router.routeToLessonEdit(
-  lessonId: '42',
-  coursePeriodId: 'current',
-  sourceDateTime: '2026-04-04T10:00:00Z',
+  lessonId: 42,
+  coursePeriodId: 7,
 );
 ```
 
 The generated helper name comes from the `id` enum case. Its required
 parameters are the full ancestor-chain union of:
 - path parameters
-- query parameter keys declared through `Location.queryParameters`
+- query parameters declared through `Location.queryParameters`
 
 The generator is union-based, not exact-runtime-based. In children lists it
 includes routes from collection `if` branches without evaluating the condition.
@@ -124,7 +134,7 @@ of routes that can appear. Supported patterns include:
 - children passed directly to a location constructor
 - children passed via `super(children: [...])` inside a location constructor
 - collection `if` elements and spreads in children lists
-- query parameter keys declared as string literals or const string identifiers
+- query parameters declared as `Map<String, QueryParamConfig>`
 
 ## Unsupported Patterns
 

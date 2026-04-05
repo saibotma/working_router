@@ -699,8 +699,8 @@ class _ItemLocation extends _ParamPathLocation {
   }) : super(path: 'item/:id');
 
   @override
-  get queryParameters => const {
-    'keep': QueryParameter.required(StringRouteParamCodec()),
+  Map<String, QueryParamConfig<dynamic>> get queryParameters => const {
+    'keep': QueryParamConfig(StringRouteParamCodec()),
   };
 }
 
@@ -711,8 +711,8 @@ class _DetailLocation extends _ParamPathLocation {
   });
 
   @override
-  get queryParameters => const {
-    'detail': QueryParameter.required(StringRouteParamCodec()),
+  Map<String, QueryParamConfig<dynamic>> get queryParameters => const {
+    'detail': QueryParamConfig(StringRouteParamCodec()),
   };
 }
 
