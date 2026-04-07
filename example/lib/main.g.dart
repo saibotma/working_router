@@ -6,7 +6,7 @@ part of 'main.dart';
 // RouteHelpersGenerator
 // **************************************************************************
 
-extension BuildLocationTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
+extension BuildRouteNodeTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
   void routeToSplash() {
     routeToId(
       LocationId.splash,
@@ -34,22 +34,36 @@ extension BuildLocationTreeGeneratedRoutes on WorkingRouterSailor<LocationId> {
   }
 
   void routeToAbc({
-    required String id,
+    required String idParameter,
   }) {
+    var abclocationMatchIndex = 0;
     routeToId(
       LocationId.abc,
-      pathParameters: {
-        'id': StringRouteParamCodec().encode(id),
+      writePathParameters: (location, path) {
+        if (location is ABCLocation) {
+          switch (abclocationMatchIndex++) {
+            case 0:
+              path(location.idParameter, idParameter);
+              break;
+          }
+        }
       },
     );
   }
 
   void routeToChildAbc({
-    required String id,
+    required String idParameter,
   }) {
+    var abclocationMatchIndex = 0;
     routeToChild<ABCLocation>(
-      pathParameters: {
-        'id': StringRouteParamCodec().encode(id),
+      writePathParameters: (location, path) {
+        if (location is ABCLocation) {
+          switch (abclocationMatchIndex++) {
+            case 0:
+              path(location.idParameter, idParameter);
+              break;
+          }
+        }
       },
     );
   }

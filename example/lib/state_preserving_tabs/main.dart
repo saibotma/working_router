@@ -15,7 +15,7 @@ void main() {
   runApp(const StatePreservingTabs());
 }
 
-Location<String> buildLocationTree() => ScaffoldLocation(
+Location<String> buildRouteNodeTree() => ScaffoldLocation(
       children: [
         Tab1Location(),
         Tab2Location(),
@@ -32,7 +32,7 @@ class StatePreservingTabs extends StatefulWidget {
 class _StatePreservingTabsState extends State<StatePreservingTabs> {
   late final WorkingRouter<String> router = WorkingRouter<String>(
     noContentWidget: const Text("No content"),
-    buildLocationTree: buildLocationTree,
+    buildRouteNodeTree: buildRouteNodeTree,
     buildRootPages: (_, location, data) {
       // Need to have one nested navigator for each tab, because otherwise
       // the same navigator (with the same global navigator key) would be
@@ -94,11 +94,11 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
   // because tab1Page will also be returned (above) when Tab2Location is active
   // and vice versa.
   final tab1Page = ChildLocationPageSkeleton<String>(
-    buildKey: (_, __) => const ValueKey("tab1"),
+    buildPageKey: (_, __) => const ValueKey("tab1"),
     child: const ScreenWithState(color: Colors.red),
   );
   final tab2Page = ChildLocationPageSkeleton<String>(
-    buildKey: (_, __) => const ValueKey("tab2"),
+    buildPageKey: (_, __) => const ValueKey("tab2"),
     child: const ScreenWithState(color: Colors.blue),
   );
 

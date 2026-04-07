@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:working_router/src/location.dart';
+import 'package:working_router/src/route_node.dart';
+import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
-import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_page_skeleton.dart';
+import 'package:working_router/src/nested_location_page_skeleton.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 
@@ -24,7 +27,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   final bool isRootDelegate;
   final WorkingRouter<ID> router;
-  final BuildPages<ID> buildPages;
+  final BuildPages<ID>? buildPages;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
@@ -128,13 +131,13 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   void refresh() {
     if (_data != null) {
-      _pages = _data!.locations
-          .map((location) {
-            return buildPages(router, location, _data!).map((pageSkeleton) {
+      _pages = _matchedNodesForNavigator(_data!)
+          .map((node) {
+            return _buildPagesForNode(node, _data!).map((pageSkeleton) {
               return pageSkeleton.inflate(
                 data: _data!,
                 router: router,
-                location: location,
+                node: node,
               );
             });
           })
@@ -143,6 +146,105 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           .toList();
       notifyListeners();
     }
+  }
+
+  /// Filters the global matched node chain down to the nodes rendered by this
+  /// delegate's navigator.
+  ///
+  /// WorkingRouterData contains the full matched chain for the current URI,
+  /// including both semantic locations and structural shells. Each shell
+  /// creates a navigator boundary via its navigatorKey, so deeper nodes may
+  /// belong to a nested delegate rather than this one. parentNavigatorKey can
+  /// also route a node back to a different ancestor navigator. This method
+  /// resolves that ownership and yields only the nodes assigned to the current
+  /// delegate's navigator.
+  Iterable<RouteNode<ID>> _matchedNodesForNavigator(
+    WorkingRouterData<ID> data,
+  ) sync* {
+    GlobalKey<NavigatorState>? childNavigatorKey = router.rootNavigatorKey;
+
+    for (final node in data.nodes) {
+      final effectiveParentNavigatorKey =
+          node.parentNavigatorKey ?? childNavigatorKey;
+
+      if (identical(effectiveParentNavigatorKey, navigatorKey)) {
+        yield node;
+      }
+
+      switch (node) {
+        case Shell<ID>():
+          childNavigatorKey = node.navigatorKey;
+        case Location<ID>():
+          childNavigatorKey = effectiveParentNavigatorKey;
+      }
+    }
+  }
+
+  List<LocationPageSkeleton<ID>> _buildPagesForNode(
+    RouteNode<ID> node,
+    WorkingRouterData<ID> data,
+  ) {
+    if (node case final Shell<ID> shell) {
+      return [
+        NestedLocationPageSkeleton(
+          router: router,
+          buildPages: (_, location, data) => _buildPagesForLocation(
+            location,
+            data,
+          ),
+          navigatorKey: shell.navigatorKey,
+          buildChild: (context, nestedData, child) {
+            return shell.buildWidget(context, nestedData, child);
+          },
+          buildPage: shell.buildPage,
+          debugLabel: '$shell',
+        ),
+      ];
+    }
+
+    return _buildPagesForLocation(node as Location<ID>, data);
+  }
+
+  List<LocationPageSkeleton<ID>> _buildPagesForLocation(
+    Location<ID> location,
+    WorkingRouterData<ID> data,
+  ) {
+    final selfBuiltPages = _selfBuiltPages(location, data);
+    if (selfBuiltPages != null) {
+      return selfBuiltPages;
+    }
+    final fallback = buildPages;
+    if (fallback != null) {
+      return fallback(router, location, data);
+    }
+    return const [];
+  }
+
+  /// Adapts the new location-owned `buildWidget` / `buildPage` API to the
+  /// existing skeleton-based delegate flow. Returns `null` when the location
+  /// still relies on the legacy `buildPages` callback.
+  List<LocationPageSkeleton<ID>>? _selfBuiltPages(
+    Location<ID> location,
+    WorkingRouterData<ID> data,
+  ) {
+    if (!location.buildsOwnPage) {
+      return null;
+    }
+
+    return [
+      BuilderLocationPageSkeleton(
+        buildChild: (context, currentData) {
+          final child = location.buildWidget(context, currentData);
+          if (child == null) {
+            throw StateError(
+              'Location ${location.runtimeType} returned null from buildWidget().',
+            );
+          }
+          return child;
+        },
+        buildPage: location.buildPage,
+      ),
+    ];
   }
 
   void updateData(WorkingRouterData<ID> data) {

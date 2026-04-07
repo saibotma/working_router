@@ -31,18 +31,19 @@ class _RootLocation extends Location<AppRouteId> {
 }
 
 class _ItemLocation extends Location<AppRouteId> {
+  final itemId = pathParam(const StringRouteParamCodec());
+
   _ItemLocation({required super.id, super.children = const []});
 
   @override
   List<PathSegment> get path => [
     PathSegment.literal('item'),
-    PathSegment.param<String>('id', codec: StringRouteParamCodec(),
-    ),
+    itemId,
   ];
 
   @override
   get queryParameters => const {
-    'keep': QueryParamConfig(StringRouteParamCodec()),
+    'keep': QueryParam(StringRouteParamCodec()),
   };
 }
 
@@ -54,7 +55,7 @@ class _ItemDetailsLocation extends Location<AppRouteId> {
 
   @override
   get queryParameters => const {
-    'detail': QueryParamConfig(StringRouteParamCodec()),
+    'detail': QueryParam(StringRouteParamCodec()),
   };
 }
 
@@ -88,18 +89,19 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
               contains('extension AppLocationTreeGeneratedRoutes'),
               contains('void routeToRoot()'),
               contains(
-                'void routeToItem({required String id, required String keep}) {',
+                'void routeToItem({required String itemId, required String keep}) {',
               ),
               contains(
-                'void routeToChildItem({required String id, required String keep}) {',
+                'void routeToChildItem({required String itemId, required String keep}) {',
               ),
               contains('routeToChild<_ItemLocation>('),
-              contains("StringRouteParamCodec().encode(id)"),
+              contains('writePathParameters: (location, path) {'),
+              contains('path(location.itemId, itemId);'),
             ),
             allOf(
               contains(
                 'void routeToItemDetails({\n'
-                '    required String id,\n'
+                '    required String itemId,\n'
                 '    required String keep,\n'
                 '    required String detail,\n'
                 '  }) {',
@@ -108,8 +110,11 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
                 'void routeToChildItemDetails({required String detail}) {',
               ),
               contains('routeToChild<_ItemDetailsLocation>('),
-              contains("StringRouteParamCodec().encode(keep)"),
-              contains("StringRouteParamCodec().encode(detail)"),
+              contains('queryParameters: {'),
+              contains("'keep': StringRouteParamCodec().encode(keep),"),
+              contains(
+                "'detail': StringRouteParamCodec().encode(detail),",
+              ),
             ),
           ),
         ),
@@ -217,8 +222,8 @@ class LessonLocation extends Location<ConstructorRouteId> {
 
   @override
   get queryParameters => const {
-    'coursePeriodId': QueryParamConfig(StringRouteParamCodec()),
-    'sourceDateTime': QueryParamConfig(StringRouteParamCodec()),
+    'coursePeriodId': QueryParam(StringRouteParamCodec()),
+    'sourceDateTime': QueryParam(StringRouteParamCodec()),
   };
 }
 
@@ -238,8 +243,13 @@ final Location<ConstructorRouteId> appLocationTree = RootLocation();
               decodedMatches(
                 allOf(
                   contains('void routeToLesson({'),
-                  contains("StringRouteParamCodec().encode(coursePeriodId)"),
-                  contains("StringRouteParamCodec().encode(sourceDateTime)"),
+                  contains('queryParameters: {'),
+                  contains(
+                    "'coursePeriodId': StringRouteParamCodec().encode(coursePeriodId),",
+                  ),
+                  contains(
+                    "'sourceDateTime': StringRouteParamCodec().encode(sourceDateTime),",
+                  ),
                   contains('void routeToLessonEdit({'),
                 ),
               ),
@@ -279,8 +289,8 @@ class LessonLocation extends Location<ConstQueryRouteId> {
 
   @override
   get queryParameters => const {
-    coursePeriodIdKey: QueryParamConfig(StringRouteParamCodec()),
-    sourceDateTimeKey: QueryParamConfig(StringRouteParamCodec()),
+    coursePeriodIdKey: QueryParam(StringRouteParamCodec()),
+    sourceDateTimeKey: QueryParam(StringRouteParamCodec()),
   };
 }
 
@@ -326,21 +336,22 @@ enum TypedRouteId { item }
 enum ItemFilter { all, active }
 
 class ItemLocation extends Location<TypedRouteId> {
+  final itemId = pathParam(const IntRouteParamCodec());
+
   ItemLocation({required super.id});
 
   @override
   List<PathSegment> get path => [
     PathSegment.literal('items'),
-    PathSegment.param<int>('itemId', codec: IntRouteParamCodec(),
-    ),
+    itemId,
   ];
 
   @override
   get queryParameters => const {
-    'filter': QueryParamConfig(
+    'filter': QueryParam(
       EnumNameRouteParamCodec(ItemFilter.values),
     ),
-    'page': QueryParamConfig(
+    'page': QueryParam(
       IntRouteParamCodec(),
       optional: true,
     ),
@@ -362,14 +373,86 @@ final Location<TypedRouteId> appLocationTree =
                     contains('int? page,'),
                   ),
                   allOf(
-                    contains("IntRouteParamCodec().encode(itemId)"),
+                    contains('writePathParameters: (location, path) {'),
+                    contains('path(location.itemId, itemId);'),
+                    contains('queryParameters: {'),
                     contains(
-                      "EnumNameRouteParamCodec(ItemFilter.values).encode(filter)",
+                      "'filter': EnumNameRouteParamCodec(ItemFilter.values).encode(filter),",
                     ),
                     contains(
-                      "if (page != null) 'page': IntRouteParamCodec().encode(page)",
+                      "if (page != null) 'page': IntRouteParamCodec().encode(page),",
                     ),
                   ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'infers query parameter keys from QueryParam fields and generates a mixin',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions(const {}),
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/inferred_query_param_routes.dart': '''
+library inferred_query_param_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'inferred_query_param_routes.g.dart';
+
+enum InferredQueryParamRouteId { item }
+enum ItemFilter { all, active }
+
+class ItemLocation extends Location<InferredQueryParamRouteId>
+    with _ItemLocationGenerated {
+  final itemId = pathParam(const IntRouteParamCodec());
+  final filter = queryParam(
+    EnumNameRouteParamCodec(ItemFilter.values),
+  );
+  final page = queryParam(
+    IntRouteParamCodec(),
+    optional: true,
+  );
+
+  ItemLocation({required super.id});
+
+  @override
+  List<PathSegment> get path => [
+    PathSegment.literal('items'),
+    itemId,
+  ];
+}
+
+@WorkingRouterLocationTree()
+final Location<InferredQueryParamRouteId> appLocationTree =
+    ItemLocation(id: InferredQueryParamRouteId.item);
+''',
+        },
+        outputs: {
+          'working_router|lib/inferred_query_param_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'mixin _ItemLocationGenerated on ItemLocation {',
+                  ),
+                  contains("'filter': filter,"),
+                  contains("'page': page,"),
+                  contains(
+                    'void routeToItem({',
+                  ),
+                  contains('required int itemId,'),
+                  contains('required ItemFilter filter,'),
+                  contains('int? page,'),
                 ),
               ),
         },
@@ -399,7 +482,10 @@ part 'derived_child_ids_routes.g.dart';
 
 enum DerivedChildRouteId { chatChannel, chatChannelSend }
 
-class ChatChannelLocation extends Location<DerivedChildRouteId> {
+class ChatChannelLocation extends Location<DerivedChildRouteId>
+    with _ChatChannelLocationGenerated {
+  final channelId = pathParam(const StringRouteParamCodec());
+
   ChatChannelLocation({super.id})
       : super(
           children: [
@@ -412,8 +498,7 @@ class ChatChannelLocation extends Location<DerivedChildRouteId> {
   @override
   List<PathSegment> get path => [
     PathSegment.literal('channels'),
-    PathSegment.param<String>('channelId', codec: StringRouteParamCodec(),
-    ),
+    channelId,
   ];
 }
 
@@ -590,14 +675,16 @@ class ChatSearchLocation extends Location<ParameterizedRouteId> {
   List<PathSegment> get path => const [PathSegment.literal('search')];
 }
 
-class ChatChannelLocation extends Location<ParameterizedRouteId> {
+class ChatChannelLocation extends Location<ParameterizedRouteId>
+    with _ChatChannelLocationGenerated {
+  final channelId = pathParam(const StringRouteParamCodec());
+
   ChatChannelLocation({super.id, super.children = const []});
 
   @override
   List<PathSegment> get path => [
     PathSegment.literal('channels'),
-    PathSegment.param<String>('channelId', codec: StringRouteParamCodec(),
-    ),
+    channelId,
   ];
 }
 
@@ -845,4 +932,66 @@ Location<DefaultForwardedChildrenRouteId> buildLocationTree() {
       );
     },
   );
+
+  test('supports shell-rooted route trees', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions(const {}),
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/shell_root_routes.dart': '''
+library shell_root_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'shell_root_routes.g.dart';
+
+enum ShellRootRouteId { child }
+
+class AppShell extends Shell<ShellRootRouteId> {
+  AppShell({required super.navigatorKey, super.children = const []});
+
+  @override
+  Widget buildWidget(
+    BuildContext context,
+    WorkingRouterData<ShellRootRouteId> data,
+    Widget child,
+  ) => child;
+}
+
+class ChildLocation extends Location<ShellRootRouteId> {
+  ChildLocation({required super.id});
+
+  @override
+  List<PathSegment> get path => const [PathSegment.literal('child')];
+}
+
+@WorkingRouterLocationTree()
+RouteNode<ShellRootRouteId> get appLocationTree => AppShell(
+  navigatorKey: GlobalKey<NavigatorState>(),
+  children: [
+    ChildLocation(id: ShellRootRouteId.child),
+  ],
+);
+''',
+      },
+      outputs: {
+        'working_router|lib/shell_root_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains('extension AppLocationTreeGeneratedRoutes'),
+                contains('void routeToChild()'),
+                contains('void routeToChildChild()'),
+                contains('routeToChild<ChildLocation>('),
+              ),
+            ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
 }

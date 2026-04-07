@@ -16,7 +16,7 @@ import 'responsive.dart';
 part 'main.g.dart';
 
 @WorkingRouterLocationTree()
-Location<LocationId> buildLocationTree() => SplashLocation(
+Location<LocationId> buildRouteNodeTree() => SplashLocation(
       id: LocationId.splash,
       children: [
         ALocation(
@@ -72,7 +72,7 @@ class _DependentMaterialApp extends StatefulWidget {
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final router = WorkingRouter<LocationId>(
     noContentWidget: const Text("No content"),
-    buildLocationTree: buildLocationTree,
+    buildRouteNodeTree: buildRouteNodeTree,
     buildRootPages: (_, location, data) {
       if (location.id == LocationId.splash &&
           data.activeLocation?.id == LocationId.splash) {
@@ -81,11 +81,11 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
       if (location.id == LocationId.a) {
         return [nestedPage];
       }
-      if (location.id == LocationId.abc) {
+      if (location is ABCLocation) {
         if (widget.screenSize == ScreenSize.large) {
-          return [dialogPage];
+          return [buildDialogPage(location)];
         } else {
-          return [fullScreenDialogPage];
+          return [buildFullScreenDialogPage(location)];
         }
       }
 
@@ -153,7 +153,7 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
       return [emptyPage];
     },
     buildPage: (key, child) => MaterialPage<dynamic>(key: key, child: child),
-    buildKey: (location, _) => ValueKey(location),
+    buildPageKey: (location, _) => ValueKey(location),
     buildChild: (context, _, child) {
       return LocationObserver(
         afterUpdate: () {
@@ -167,43 +167,49 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
     },
   );
 
-  final dialogPage = ChildLocationPageSkeleton<LocationId>(
-    buildPage: (key, child) =>
-        PlatformModalPage<dynamic>(key: key, child: child),
-    child: Builder(
-      builder: (context) {
-        final data = WorkingRouterData.of<LocationId>(context);
-        return Container(
-          color: Colors.white,
-          width: 300,
-          height: 300,
-          child: Text(
-            "${data.pathParameters["id"]}, "
-            "${data.queryParameters["b"]}, "
-            "${data.queryParameters["c"]}",
-          ),
-        );
-      },
-    ),
-  );
+  LocationPageSkeleton<LocationId> buildDialogPage(ABCLocation location) {
+    return ChildLocationPageSkeleton<LocationId>(
+      buildPage: (key, child) =>
+          PlatformModalPage<dynamic>(key: key, child: child),
+      child: Builder(
+        builder: (context) {
+          final data = WorkingRouterData.of<LocationId>(context);
+          return Container(
+            color: Colors.white,
+            width: 300,
+            height: 300,
+            child: Text(
+              "${data.pathParameter(location.idParameter)}, "
+              "${data.queryParameters["b"]}, "
+              "${data.queryParameters["c"]}",
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-  final fullScreenDialogPage = ChildLocationPageSkeleton<LocationId>(
-    child: Builder(
-      builder: (context) {
-        final data = WorkingRouterData.of<LocationId>(context);
-        return Container(
-          color: Colors.white,
-          width: 300,
-          height: 300,
-          child: Text(
-            "${data.pathParameters["id"]}, "
-            "${data.queryParameters["b"]}, "
-            "${data.queryParameters["c"]}",
-          ),
-        );
-      },
-    ),
-  );
+  LocationPageSkeleton<LocationId> buildFullScreenDialogPage(
+    ABCLocation location,
+  ) {
+    return ChildLocationPageSkeleton<LocationId>(
+      child: Builder(
+        builder: (context) {
+          final data = WorkingRouterData.of<LocationId>(context);
+          return Container(
+            color: Colors.white,
+            width: 300,
+            height: 300,
+            child: Text(
+              "${data.pathParameter(location.idParameter)}, "
+              "${data.queryParameters["b"]}, "
+              "${data.queryParameters["c"]}",
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   final conditionalDialogPage = ChildLocationPageSkeleton<LocationId>(
     buildPage: (_, child) => PlatformModalPage<dynamic>(child: child),

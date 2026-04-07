@@ -5,15 +5,22 @@ import 'package:working_router/working_router.dart';
 
 class WorkingRouterData<ID> {
   final Uri uri;
+  final IList<RouteNode<ID>> nodes;
 
-  // TODO(saibotma): This is different from e.g. VRouter where a name is only added, when it's page is also displayed. Here a location gets added, when the path matches, but the page must not be displayed. This could be changed, by respecting whether buildPages from router delegate returns an empty list or not for a location.
-  final IList<Location<ID>> locations;
-  final IMap<String, String> pathParameters;
+  // Keep matched path params in their encoded URI form even though they are
+  // keyed by PathParam objects. The router core is still URI-first, so URI
+  // rebuilding, retention, and forwarding should work on raw URI values while
+  // decoding stays at typed access boundaries like pathParameter(...).
+  final IMap<PathParam<dynamic>, String> pathParameters;
+
+  // Keep query params encoded and string-keyed for the same reason: the URI is
+  // string-keyed, and rebuilding or forwarding it should not require recovering
+  // codec metadata first.
   final IMap<String, String> queryParameters;
 
   WorkingRouterData({
     required this.uri,
-    required this.locations,
+    required this.nodes,
     required this.pathParameters,
     required this.queryParameters,
   });
@@ -36,7 +43,54 @@ class WorkingRouterData<ID> {
     return slice(data!.data);
   }
 
+  late final IList<Location<ID>> locations = nodes.locations;
+
   Location<ID>? get activeLocation => locations.lastOrNull;
+
+  T pathParameter<T>(PathParam<T> parameter) {
+    final value = pathParameterOrNull(parameter);
+    if (value != null) {
+      return value;
+    }
+    throw StateError(
+      'The requested PathParam is not part of the current matched route chain.',
+    );
+  }
+
+  T? pathParameterOrNull<T>(PathParam<T> parameter) {
+    final rawValue = pathParameters[parameter];
+    if (rawValue == null) {
+      return null;
+    }
+    return parameter.codec.decode(rawValue);
+  }
+
+  T queryParameter<T>(QueryParam<T> parameter) {
+    final value = queryParameterOrNull(parameter);
+    if (value != null || parameter.optional) {
+      return value as T;
+    }
+    throw StateError(
+      'The requested QueryParam is not present in the current router data.',
+    );
+  }
+
+  T? queryParameterOrNull<T>(QueryParam<T> parameter) {
+    for (final location in locations) {
+      for (final entry in location.queryParameters.entries) {
+        if (!identical(entry.value, parameter)) {
+          continue;
+        }
+
+        final rawValue = queryParameters[entry.key];
+        if (rawValue == null) {
+          return null;
+        }
+        return parameter.codec.decode(rawValue);
+      }
+    }
+    return null;
+  }
 
   String pathUpToLocation(Location<ID> location) {
     final locationIndex = locations.indexOf(location);
@@ -44,6 +98,26 @@ class WorkingRouterData<ID> {
       return uri.path;
     }
     return locations.sublist(0, locationIndex + 1).buildPath(pathParameters);
+  }
+
+  String pathUpToNode(RouteNode<ID> node) {
+    final nodeIndex = nodes.indexOf(node);
+    if (nodeIndex == -1) {
+      return uri.path;
+    }
+
+    final locationsUpToNode = nodes.take(nodeIndex + 1).locations;
+    return locationsUpToNode.buildPath(pathParameters);
+  }
+
+  String pathTemplateUpToNode(RouteNode<ID> node) {
+    final nodeIndex = nodes.indexOf(node);
+    if (nodeIndex == -1) {
+      return uri.path;
+    }
+
+    final locationsUpToNode = nodes.take(nodeIndex + 1).locations;
+    return locationsUpToNode.buildPathTemplate();
   }
 
   bool isChildOf(
@@ -130,13 +204,13 @@ class WorkingRouterData<ID> {
 
   WorkingRouterData<ID> copyWith({
     Uri? uri,
-    IList<Location<ID>>? locations,
-    IMap<String, String>? pathParameters,
+    IList<RouteNode<ID>>? nodes,
+    IMap<PathParam<dynamic>, String>? pathParameters,
     IMap<String, String>? queryParameters,
   }) {
     return WorkingRouterData(
       uri: uri ?? this.uri,
-      locations: locations ?? this.locations,
+      nodes: nodes ?? this.nodes,
       pathParameters: pathParameters ?? this.pathParameters,
       queryParameters: queryParameters ?? this.queryParameters,
     );
@@ -148,7 +222,7 @@ class WorkingRouterData<ID> {
         other is WorkingRouterData &&
             runtimeType == other.runtimeType &&
             uri == other.uri &&
-            locations == other.locations &&
+            nodes == other.nodes &&
             pathParameters == other.pathParameters &&
             queryParameters == other.queryParameters;
   }
@@ -156,13 +230,13 @@ class WorkingRouterData<ID> {
   @override
   int get hashCode {
     return uri.hashCode ^
-        locations.hashCode ^
+        nodes.hashCode ^
         pathParameters.hashCode ^
         queryParameters.hashCode;
   }
 
   @override
   String toString() {
-    return 'WorkingRouterData{uri: $uri, locations: $locations, pathParameters: $pathParameters, queryParameters: $queryParameters}';
+    return 'WorkingRouterData{uri: $uri, nodes: $nodes, locations: $locations, pathParameters: $pathParameters, queryParameters: $queryParameters}';
   }
 }

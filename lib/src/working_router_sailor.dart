@@ -7,8 +7,8 @@ abstract class WorkingRouterSailor<ID> {
 
   void routeToId(
     ID id, {
-    Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
+    WritePathParameters<ID>? writePathParameters,
   });
 
   void slideIn(ID id);
@@ -17,19 +17,19 @@ abstract class WorkingRouterSailor<ID> {
   /// true.
   ///
   /// Reuses the path parameters and query parameters
-  /// from the parent and extends them with [pathParameters]
+  /// from the parent and extends them with [writePathParameters]
   /// and [queryParameters], respectively. In case the same parameter
   /// is both in the parent parameters and in the passed in parameters
   /// the passed in parameter overrides the parent parameter.
   void routeToChildWhere(
     bool Function(Location<ID> location) predicate, {
-    Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
+    WritePathParameters<ID>? writePathParameters,
   });
 
   void routeToChild<T>({
-    Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
+    WritePathParameters<ID>? writePathParameters,
   });
 
   // Routes back one to the previous location.

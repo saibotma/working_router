@@ -272,13 +272,20 @@ void main() {
 
       router.routeToUri(Uri.parse('/item/42/details?keep=1&drop=2'));
       await tester.pump();
+      final itemLocation = router.nullableData!.locations.whereType<_ItemLocation>().last;
       expect(router.nullableData!.uri.path, '/item/42/details');
-      expect(router.nullableData!.pathParameters['id'], '42');
+      expect(
+        router.nullableData!.pathParameters[itemLocation.idParameter],
+        '42',
+      );
 
       router.routeBack();
       await tester.pump();
       expect(router.nullableData!.uri.path, '/item/42');
-      expect(router.nullableData!.pathParameters['id'], '42');
+      expect(
+        router.nullableData!.pathParameters[itemLocation.idParameter],
+        '42',
+      );
       expect(router.nullableData!.queryParameters.unlock, {'keep': '1'});
 
       router.routeBack();
@@ -296,7 +303,14 @@ void main() {
         router.routeToUri(Uri.parse('/item/42/details?keep=1&detail=2&drop=3'));
         await tester.pump();
 
-        router.routeToId(_ParamId.item, pathParameters: {'id': '42'});
+        router.routeToId(
+          _ParamId.item,
+          writePathParameters: (location, path) {
+            if (location is _ItemLocation) {
+              path(location.idParameter, '42');
+            }
+          },
+        );
         await tester.pump();
 
         expect(router.nullableData!.uri.path, '/item/42');
@@ -366,12 +380,14 @@ void main() {
       expect(router.nullableData!.uri.path, '/a/b');
     });
 
-    testWidgets('buildKey receives the current router data', (tester) async {
+    testWidgets('buildPageKey receives the current router data', (
+      tester,
+    ) async {
       var sawExpectedData = false;
       final keys = <_Id, LocalKey>{};
 
       final router = WorkingRouter<_Id>(
-        buildLocationTree: () => _PathLocation(
+        buildRouteNodeTree: () => _PathLocation(
           id: _Id.root,
           path: '',
           children: [
@@ -387,7 +403,7 @@ void main() {
         buildRootPages: (_, location, _) {
           return [
             ChildLocationPageSkeleton<_Id>(
-              buildKey: (keyLocation, data) {
+              buildPageKey: (keyLocation, data) {
                 if (keyLocation.id == _Id.a) {
                   sawExpectedData =
                       data.uri.path == '/a/b' &&
@@ -418,7 +434,7 @@ void main() {
       var sawExpectedData = false;
 
       final router = WorkingRouter<_Id>(
-        buildLocationTree: () => _PathLocation(
+        buildRouteNodeTree: () => _PathLocation(
           id: _Id.root,
           path: '',
           children: [
@@ -486,7 +502,7 @@ void main() {
       ) async {
         var includeB = true;
         final router = WorkingRouter<_Id>(
-          buildLocationTree: () => _PathLocation(
+          buildRouteNodeTree: () => _PathLocation(
             id: _Id.root,
             path: '',
             children: [
@@ -523,10 +539,51 @@ void main() {
         expect(router.nullableData!.uri.path, '/a/b');
       },
     );
+
+    testWidgets(
+      'supports self-built locations alongside legacy buildRootPages',
+      (tester) async {
+        final router = WorkingRouter<_MigratingId>(
+          buildRouteNodeTree: () => _MigratingRootLocation(
+            id: _MigratingId.root,
+            children: [
+              _SelfBuiltAccountLocation(id: _MigratingId.account),
+            ],
+          ),
+          buildRootPages: (_, location, _) {
+            return switch (location.id) {
+              _MigratingId.root => [
+                ChildLocationPageSkeleton(
+                  child: const Text('legacy-root'),
+                ),
+              ],
+              _ => const [],
+            };
+          },
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(
+          Uri(path: '/accounts/42', queryParameters: {'tab': 'overview'}),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('legacy-root', skipOffstage: false), findsOneWidget);
+        expect(find.text('42:overview'), findsOneWidget);
+      },
+    );
   });
 }
 
 Future<void> _pumpApp(WidgetTester tester, WorkingRouter<_Id> router) async {
+  await _pumpRouterApp(tester, router);
+}
+
+Future<void> _pumpRouterApp<ID>(
+  WidgetTester tester,
+  WorkingRouter<ID> router,
+) async {
   await tester.pumpWidget(MaterialApp.router(routerConfig: router));
   await tester.pump();
 }
@@ -544,7 +601,7 @@ WorkingRouter<_Id> _buildRouter({
   );
 
   return WorkingRouter<_Id>(
-    buildLocationTree: () => _PathLocation(
+    buildRouteNodeTree: () => _PathLocation(
       id: _Id.root,
       path: '',
       children: [
@@ -583,7 +640,7 @@ WorkingRouter<_Id> _buildOrderRouter({
   Future<bool> Function()? beforeLeaveB,
 }) {
   return WorkingRouter<_Id>(
-    buildLocationTree: () => _PathLocation(
+    buildRouteNodeTree: () => _PathLocation(
       id: _Id.root,
       path: '',
       children: [
@@ -631,7 +688,7 @@ WorkingRouter<_Id> _buildOrderRouter({
 
 WorkingRouter<_ParamId> _buildParamRouter() {
   return WorkingRouter<_ParamId>(
-    buildLocationTree: () => _ParamRootLocation(
+    buildRouteNodeTree: () => _ParamRootLocation(
       id: _ParamId.root,
       children: [
         _ItemLocation(
@@ -656,6 +713,8 @@ WorkingRouter<_ParamId> _buildParamRouter() {
 enum _Id { root, a, b, c }
 
 enum _ParamId { root, item, details }
+
+enum _MigratingId { root, account }
 
 class _PathLocation extends Location<_Id> {
   final List<PathSegment> _path;
@@ -693,14 +752,22 @@ class _ParamRootLocation extends _ParamPathLocation {
 }
 
 class _ItemLocation extends _ParamPathLocation {
+  final idParameter = pathParam(const StringRouteParamCodec());
+
   _ItemLocation({
     required super.id,
     super.children = const [],
-  }) : super(path: 'item/:id');
+  }) : super(path: 'item');
 
   @override
-  Map<String, QueryParamConfig<dynamic>> get queryParameters => const {
-    'keep': QueryParamConfig(StringRouteParamCodec()),
+  List<PathSegment> get path => [
+    ...super.path,
+    idParameter,
+  ];
+
+  @override
+  Map<String, QueryParam<dynamic>> get queryParameters => const {
+    'keep': QueryParam(StringRouteParamCodec()),
   };
 }
 
@@ -711,9 +778,50 @@ class _DetailLocation extends _ParamPathLocation {
   });
 
   @override
-  Map<String, QueryParamConfig<dynamic>> get queryParameters => const {
-    'detail': QueryParamConfig(StringRouteParamCodec()),
+  Map<String, QueryParam<dynamic>> get queryParameters => const {
+    'detail': QueryParam(StringRouteParamCodec()),
   };
+}
+
+class _MigratingRootLocation extends Location<_MigratingId> {
+  _MigratingRootLocation({
+    required super.id,
+    super.children = const [],
+  });
+
+  @override
+  List<PathSegment> get path => const [];
+}
+
+class _SelfBuiltAccountLocation extends Location<_MigratingId> {
+  final accountId = pathParam(const StringRouteParamCodec());
+  final tab = queryParam(const StringRouteParamCodec());
+
+  _SelfBuiltAccountLocation({
+    required super.id,
+  });
+
+  @override
+  bool get buildsOwnPage => true;
+
+  @override
+  List<PathSegment> get path => [
+    literal('accounts'),
+    accountId,
+  ];
+
+  @override
+  Map<String, QueryParam<dynamic>> get queryParameters => {
+    'tab': tab,
+  };
+
+  @override
+  Widget buildWidget(
+    BuildContext context,
+    WorkingRouterData<_MigratingId> data,
+  ) {
+    return Text('${data.pathParameter(accountId)}:${data.queryParameter(tab)}');
+  }
 }
 
 List<PathSegment> _pathSegments(String path) {
@@ -726,9 +834,8 @@ List<PathSegment> _pathSegments(String path) {
       .split('/')
       .map((segment) {
         if (segment.startsWith(':')) {
-          return PathSegment.param<String>(
-            segment.substring(1),
-            codec: const StringRouteParamCodec(),
+          throw UnsupportedError(
+            'Use a PathParam field instead of inline dynamic path segments.',
           );
         }
         return PathSegment.literal(segment);

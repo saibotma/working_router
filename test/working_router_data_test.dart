@@ -3,6 +3,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:working_router/working_router.dart';
 
 void main() {
+  group('WorkingRouterData path helpers', () {
+    test('pathTemplateUpToNode ignores hydrated path parameter values', () {
+      final itemId = pathParam(const StringRouteParamCodec());
+      final list = _TestLocation(id: 'list', path: '/items');
+      final detail = _ParamOnlyLocation(id: 'detail', parameter: itemId);
+      final data = WorkingRouterData<String>(
+        uri: Uri(path: '/items/123'),
+        nodes: [list, detail].toIList(),
+        pathParameters: {itemId: '123'}.lock,
+        queryParameters: IMap(),
+      );
+
+      expect(data.pathUpToNode(detail), '/items/123');
+      expect(data.pathTemplateUpToNode(detail), '/items/*');
+    });
+  });
+
   group('WorkingRouterData.isChildOf', () {
     final root = _TestLocation(id: 'root', path: '/');
     final parent = _TestLocation(id: 'parent', path: '/parent');
@@ -12,7 +29,7 @@ void main() {
     WorkingRouterData<String> buildData(IList<Location<String>> locations) {
       return WorkingRouterData(
         uri: Uri(path: '/parent/child'),
-        locations: locations,
+        nodes: locations.cast<RouteNode<String>>().toIList(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -68,6 +85,15 @@ class _TestLocation extends Location<String> {
     : path = _pathSegments(path);
 }
 
+class _ParamOnlyLocation extends Location<String> {
+  final PathParam<String> parameter;
+
+  _ParamOnlyLocation({required super.id, required this.parameter});
+
+  @override
+  List<PathSegment> get path => [parameter];
+}
+
 List<PathSegment> _pathSegments(String path) {
   final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
   if (normalizedPath.isEmpty) {
@@ -78,9 +104,8 @@ List<PathSegment> _pathSegments(String path) {
       .split('/')
       .map((segment) {
         if (segment.startsWith(':')) {
-          return PathSegment.param<String>(
-            segment.substring(1),
-            codec: const StringRouteParamCodec(),
+          throw UnsupportedError(
+            'Use a PathParam field instead of inline dynamic path segments.',
           );
         }
         return PathSegment.literal(segment);

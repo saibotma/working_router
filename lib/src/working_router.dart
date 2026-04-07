@@ -6,11 +6,11 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/working_router.dart';
 
-/// Rebuilds the root [Location] tree for a router instance.
+/// Rebuilds the root [RouteNode] tree for a router instance.
 ///
 /// This callback is used at startup and again on [WorkingRouter.refresh] so the
 /// runtime tree can react to changing application state such as permissions.
-typedef BuildLocationTree<ID> = Location<ID> Function();
+typedef BuildRouteNodeTree<ID> = RouteNode<ID> Function();
 
 class WorkingRouter<ID> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
@@ -35,7 +35,7 @@ class WorkingRouter<ID> extends ChangeNotifier
         ),
       );
 
-  late Location<ID> _locationTree;
+  late RouteNode<ID> _routeNodeTree;
   final List<LocationObserverState> _observers = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
 
@@ -58,12 +58,12 @@ class WorkingRouter<ID> extends ChangeNotifier
   ///
   /// When using `@WorkingRouterLocationTree`, pass a closure here that builds
   /// the same route tree shape as the annotated generator entrypoint.
-  final BuildLocationTree<ID> buildLocationTree;
+  final BuildRouteNodeTree<ID> buildRouteNodeTree;
   final LocationChildWrapper<ID>? wrapLocationChild;
 
   WorkingRouter({
-    required this.buildLocationTree,
-    required BuildPages<ID> buildRootPages,
+    required this.buildRouteNodeTree,
+    BuildPages<ID>? buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     this.wrapLocationChild,
@@ -73,7 +73,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _decideTransition = decideTransition,
        _redirectLimit = redirectLimit {
-    _locationTree = buildLocationTree();
+    _routeNodeTree = buildRouteNodeTree();
     _rootDelegate = WorkingRouterDelegate<ID>(
       debugLabel: "root",
       isRootDelegate: true,
@@ -110,9 +110,12 @@ class WorkingRouter<ID> extends ChangeNotifier
   @override
   RouterDelegate<Uri> get routerDelegate => _rootDelegate;
 
-  /// Rebuilds the location tree for this router instance.
+  @internal
+  GlobalKey<NavigatorState> get rootNavigatorKey => _rootDelegate.navigatorKey;
+
+  /// Rebuilds the route node tree for this router instance.
   void refresh() {
-    _locationTree = buildLocationTree();
+    _routeNodeTree = buildRouteNodeTree();
     final currentData = nullableData;
     if (currentData != null) {
       // Delegate refresh only rebuilds pages from the current router data.
@@ -154,10 +157,11 @@ class WorkingRouter<ID> extends ChangeNotifier
   @override
   void routeToId(
     ID id, {
-    Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
+    WritePathParameters<ID>? writePathParameters,
   }) {
-    final matches = _locationTree.matchId(id);
+    final matchedNodes = _routeNodeTree.matchId(id);
+    final matchedLocations = matchedNodes.locations;
     final currentData = nullableData;
     final keptQueryParameterKeys = currentData == null
         ? <String>{}
@@ -165,16 +169,19 @@ class WorkingRouter<ID> extends ChangeNotifier
               .expand((location) => location.queryParameters.keys)
               .toSet()
               .intersection(
-                matches
+                matchedLocations
                     .expand((location) => location.queryParameters.keys)
                     .toSet(),
               );
 
     _routeTo(
       targetData: _buildData(
-        locations: matches,
+        nodes: matchedNodes,
         fallback: null,
-        pathParameters: pathParameters.toIMap(),
+        pathParameters: _resolvePathParameterWrites(
+          matchedLocations,
+          writePathParameters,
+        ).toIMap(),
         queryParameters:
             (currentData?.queryParameters.keepKeys(keptQueryParameterKeys) ??
                     IMap<String, String>())
@@ -186,20 +193,20 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   @override
   void slideIn(ID id) {
-    final idMatches = _locationTree.matchId(id);
-    final targetLocation = idMatches.lastOrNull;
+    final idMatches = _routeNodeTree.matchId(id);
+    final targetLocation = idMatches.locations.lastOrNull;
     final currentLocation = nullableData?.activeLocation;
     if (targetLocation == null || currentLocation == null) {
       return;
     }
 
-    final relativeMatches = targetLocation.matchRelative(
+    final relativeMatchNodes = targetLocation.matchRelative(
       (location) => location.runtimeType == currentLocation.runtimeType,
     );
 
     _routeTo(
       targetData: _buildData(
-        locations: idMatches.addAll(relativeMatches),
+        nodes: idMatches.addAll(relativeMatchNodes),
         fallback: null,
         pathParameters: nullableData!.pathParameters,
         queryParameters: nullableData!.queryParameters,
@@ -211,8 +218,8 @@ class WorkingRouter<ID> extends ChangeNotifier
   @override
   void routeToChildWhere(
     bool Function(Location<ID> location) predicate, {
-    Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
+    WritePathParameters<ID>? writePathParameters,
   }) {
     final data = nullableData!;
     final currentLocation = data.activeLocation;
@@ -220,16 +227,22 @@ class WorkingRouter<ID> extends ChangeNotifier
       return;
     }
 
-    final matches = currentLocation.matchRelative(predicate);
-    if (matches.isEmpty) {
+    final matchedNodes = currentLocation.matchRelative(predicate);
+    if (matchedNodes.isEmpty) {
       return;
     }
+    final matchedLocations = matchedNodes.locations;
 
     _routeTo(
       targetData: _buildData(
-        locations: data.locations.addAll(matches),
+        nodes: data.nodes.addAll(matchedNodes),
         fallback: null,
-        pathParameters: data.pathParameters.addAll(pathParameters.toIMap()),
+        pathParameters: data.pathParameters.addAll(
+          _resolvePathParameterWrites(
+            data.locations.addAll(matchedLocations),
+            writePathParameters,
+          ).toIMap(),
+        ),
         queryParameters: data.queryParameters.addAll(queryParameters.toIMap()),
       ),
       reason: RouteTransitionReason.programmatic,
@@ -238,13 +251,13 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   @override
   void routeToChild<T>({
-    Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
+    WritePathParameters<ID>? writePathParameters,
   }) {
     routeToChildWhere(
       (it) => it is T,
-      pathParameters: pathParameters,
       queryParameters: queryParameters,
+      writePathParameters: writePathParameters,
     );
   }
 
@@ -282,14 +295,12 @@ class WorkingRouter<ID> extends ChangeNotifier
 
     // Keep everything up to and including the matched location
     final newLocations = locations.sublist(0, matchIndex + 1);
+    final newNodes = _trimNodesToLastMatchingLocation(data, newLocations.last);
     final newPathParameters = data.pathParameters.keepKeys(
-      newLocations
-          .expand(
-            (location) => location.path.whereType<ParamPathSegment>().map(
-              (segment) => segment.key,
-            ),
-          )
-          .toSet(),
+      {
+        for (final location in newLocations)
+          ...location.path.whereType<PathParam<dynamic>>(),
+      },
     );
 
     final newQueryParameters = data.queryParameters.keepKeys(
@@ -298,7 +309,7 @@ class WorkingRouter<ID> extends ChangeNotifier
 
     _routeTo(
       targetData: _buildData(
-        locations: newLocations,
+        nodes: newNodes,
         fallback: null,
         pathParameters: newPathParameters,
         queryParameters: newQueryParameters,
@@ -435,13 +446,18 @@ class WorkingRouter<ID> extends ChangeNotifier
               currentData = _buildDataForUri(uri);
             case RedirectToId(
               :final id,
-              :final pathParameters,
               :final queryParameters,
+              :final writePathParameters,
             ):
+              final matchedNodes = _routeNodeTree.matchId(id);
+              final matchedLocations = matchedNodes.locations;
               currentData = _buildData(
-                locations: _locationTree.matchId(id),
+                nodes: matchedNodes,
                 fallback: null,
-                pathParameters: pathParameters.toIMap(),
+                pathParameters: _resolvePathParameterWrites(
+                  matchedLocations,
+                  writePathParameters,
+                ).toIMap(),
                 queryParameters: queryParameters.toIMap(),
               );
           }
@@ -462,37 +478,36 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   WorkingRouterData<ID> _buildDataForUri(Uri uri) {
-    final matchResult = _locationTree.match(uri.pathSegments.toIList());
-    final matches = matchResult.$1;
-    final pathParameters = matchResult.$2;
+    final matchResult = _routeNodeTree.match(uri.pathSegments.toIList());
     return _buildData(
-      locations: matches,
+      nodes: matchResult.nodes,
       fallback: uri,
-      pathParameters: pathParameters,
+      pathParameters: matchResult.pathParameters,
       queryParameters: uri.queryParameters.toIMap(),
     );
   }
 
   WorkingRouterData<ID> _buildData({
-    required IList<Location<ID>> locations,
+    required IList<RouteNode<ID>> nodes,
     required Uri? fallback,
-    required IMap<String, String> pathParameters,
+    required IMap<PathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
+    final locations = nodes.locations;
     assert(
       locations.isNotEmpty || (fallback != null),
       'Fallback must not be null when locations are empty.',
     );
 
     return WorkingRouterData(
-      uri: locations.isEmpty
-          ? fallback!
-          : _uriFromLocations(
-              locations: locations,
-              queryParameters: queryParameters,
-              pathParameters: pathParameters,
-            ),
-      locations: locations,
+      uri:
+          fallback ??
+          _uriFromLocations(
+            locations: locations,
+            queryParameters: queryParameters,
+            pathParameters: pathParameters,
+          ),
+      nodes: nodes,
       pathParameters: locations.isEmpty ? const IMapConst({}) : pathParameters,
       queryParameters: locations.isEmpty
           ? fallback!.queryParameters.toIMap()
@@ -510,13 +525,52 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   Uri _uriFromLocations({
     required IList<Location<ID>> locations,
-    required IMap<String, String> pathParameters,
+    required IMap<PathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
     return Uri(
       path: locations.buildPath(pathParameters),
       queryParameters: queryParameters.isEmpty ? null : queryParameters.unlock,
     );
+  }
+
+  IList<RouteNode<ID>> _trimNodesToLastMatchingLocation(
+    WorkingRouterData<ID> data,
+    Location<ID> lastRemainingLocation,
+  ) {
+    final lastRemainingNodeIndex = data.nodes.indexWhere(
+      (node) => identical(node, lastRemainingLocation),
+    );
+    return data.nodes.take(lastRemainingNodeIndex + 1).toIList();
+  }
+
+  Map<PathParam<dynamic>, String> _resolvePathParameterWrites(
+    Iterable<Location<ID>> locations,
+    WritePathParameters<ID>? writePathParameters,
+  ) {
+    if (writePathParameters == null) {
+      return const {};
+    }
+
+    final resolved = <PathParam<dynamic>, String>{};
+    for (final location in locations) {
+      writePathParameters(
+        location,
+        <T>(PathParam<T> parameter, T value) {
+          final isDeclared = location.path.any(
+            (segment) => identical(segment, parameter),
+          );
+          if (!isDeclared) {
+            throw StateError(
+              'The path parameter `$parameter` is not declared by '
+              '${location.runtimeType}.',
+            );
+          }
+          resolved[parameter] = parameter.codec.encode(value);
+        },
+      );
+    }
+    return resolved;
   }
 
   /// Notifies all location observers after a route change.

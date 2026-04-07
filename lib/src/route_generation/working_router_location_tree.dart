@@ -2,14 +2,14 @@
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or function
-/// returning `Location<ID>`.
+/// returning `RouteNode<ID>`.
 ///
 /// Example:
 /// ```dart
 /// part 'app_routes.g.dart';
 ///
 /// @WorkingRouterLocationTree()
-/// Location<AppRouteId> buildLocationTree() => _appLocationTree;
+/// RouteNode<AppRouteId> buildRouteNodeTree() => _appRouteTree;
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
@@ -35,6 +35,9 @@
 /// - top-level, static, or local helper functions
 /// - helper function arguments when the tree-relevant expressions remain
 ///   statically recoverable from source
+/// - `PathParam` instance fields declared on the location class
+/// - `QueryParam` instance fields when the location class mixes in the
+///   generated `_LocationNameGenerated` mixin
 /// - children passed directly to a location constructor
 /// - children passed to `super(children: [...])` inside a location constructor
 /// - collection `if` elements and spreads inside children lists

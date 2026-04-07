@@ -10,7 +10,7 @@ It supports:
 
 ## Route Helper Generation
 
-Annotate the canonical `buildLocationTree` entrypoint with
+Annotate the canonical `buildRouteNodeTree` entrypoint with
 `@WorkingRouterLocationTree()` and run `build_runner`.
 
 ```dart
@@ -28,6 +28,8 @@ class SplashLocation extends Location<LocationId> {
 }
 
 class LessonLocation extends Location<LocationId> {
+  final lessonId = pathParam(const IntRouteParamCodec());
+
   LessonLocation({required super.id})
     : super(
         children: [
@@ -38,16 +40,13 @@ class LessonLocation extends Location<LocationId> {
   @override
   List<PathSegment> get path => [
     PathSegment.literal('lessons'),
-    PathSegment.param<int>(
-      'lessonId',
-      codec: IntRouteParamCodec(),
-    ),
+    lessonId,
   ];
 
   @override
-  Map<String, QueryParamConfig<dynamic>> get queryParameters => const {
-    'coursePeriodId': QueryParamConfig(IntRouteParamCodec()),
-    'sourceDateTime': QueryParamConfig(
+  Map<String, QueryParam<dynamic>> get queryParameters => const {
+    'coursePeriodId': QueryParam(IntRouteParamCodec()),
+    'sourceDateTime': QueryParam(
       DateTimeIsoRouteParamCodec(),
       optional: true,
     ),
@@ -64,7 +63,7 @@ class LessonEditLocation extends Location<LocationId> {
 }
 
 @WorkingRouterLocationTree()
-Location<LocationId> buildLocationTree({
+Location<LocationId> buildRouteNodeTree({
   required bool includeLessons,
 }) => SplashLocation(
       id: LocationId.splash,
@@ -74,7 +73,7 @@ Location<LocationId> buildLocationTree({
     );
 
 final router = WorkingRouter<LocationId>(
-  buildLocationTree: () => buildLocationTree(includeLessons: true),
+  buildRouteNodeTree: () => buildRouteNodeTree(includeLessons: true),
   noContentWidget: const SizedBox(),
   buildRootPages: (_, location, __) => [],
 );
@@ -106,7 +105,7 @@ That means generated helpers guarantee parameter completeness, but a helper may
 still target a route that is currently pruned from the live runtime tree.
 
 The annotated builder used for code generation may take parameters. At runtime,
-pass a closure to `WorkingRouter.buildLocationTree` that binds those values.
+pass a closure to `WorkingRouter.buildRouteNodeTree` that binds those values.
 
 ## Setup
 
@@ -134,7 +133,7 @@ of routes that can appear. Supported patterns include:
 - children passed directly to a location constructor
 - children passed via `super(children: [...])` inside a location constructor
 - collection `if` elements and spreads in children lists
-- query parameters declared as `Map<String, QueryParamConfig>`
+- query parameters declared as `Map<String, QueryParam>`
 
 ## Unsupported Patterns
 

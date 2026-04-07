@@ -1,3 +1,4 @@
+import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
 
 /// Why this transition was triggered.
@@ -50,13 +51,13 @@ final class RedirectToUri<ID> extends RedirectTarget<ID> {
 
 final class RedirectToId<ID> extends RedirectTarget<ID> {
   final ID id;
-  final Map<String, String> pathParameters;
   final Map<String, String> queryParameters;
+  final WritePathParameters<ID>? writePathParameters;
 
   const RedirectToId(
     this.id, {
-    this.pathParameters = const {},
     this.queryParameters = const {},
+    this.writePathParameters,
   });
 }
 
@@ -81,14 +82,14 @@ final class RedirectTransition<ID> extends TransitionDecision<ID> {
 
   factory RedirectTransition.toId(
     ID id, {
-    Map<String, String> pathParameters = const {},
     Map<String, String> queryParameters = const {},
+    WritePathParameters<ID>? writePathParameters,
   }) {
     return RedirectTransition(
       RedirectToId(
         id,
-        pathParameters: pathParameters,
         queryParameters: queryParameters,
+        writePathParameters: writePathParameters,
       ),
     );
   }
