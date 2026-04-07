@@ -11,6 +11,7 @@ export 'src/nested_location_page_skeleton.dart';
 export 'src/route_generation/working_router_location_tree.dart';
 export 'src/route_node.dart';
 export 'src/route_param_codec.dart';
+export 'src/route_target.dart';
 export 'src/shell.dart';
 export 'src/shared/keep_keys.dart';
 export 'src/transition_decision.dart';

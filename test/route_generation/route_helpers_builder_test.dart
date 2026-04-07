@@ -86,17 +86,32 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
         'working_router|lib/app_routes.working_router.g.part': decodedMatches(
           allOf(
             allOf(
-              contains('extension AppLocationTreeGeneratedRoutes'),
-              contains('void routeToRoot()'),
-              contains(
-                'void routeToItem({required String itemId, required String keep}) {',
+              allOf(
+                contains(
+                  'final class ItemRouteTarget extends IdRouteTarget<AppRouteId> {',
+                ),
+                contains(
+                  'final class ChildItemRouteTarget extends ChildRouteTarget<AppRouteId> {',
+                ),
+                contains('extension AppLocationTreeGeneratedRoutes'),
+                contains('void routeToRoot()'),
+                contains(
+                  'void routeToItem({required String itemId, required String keep}) {',
+                ),
               ),
-              contains(
-                'void routeToChildItem({required String itemId, required String keep}) {',
+              allOf(
+                contains(
+                  'void routeToChildItem({required String itemId, required String keep}) {',
+                ),
+                contains(
+                  'routeTo(ItemRouteTarget(itemId: itemId, keep: keep));',
+                ),
+                contains(
+                  'routeTo(ChildItemRouteTarget(itemId: itemId, keep: keep));',
+                ),
+                contains('writePathParameters: (() {'),
+                contains('path(location.itemId, itemId);'),
               ),
-              contains('routeToChild<_ItemLocation>('),
-              contains('writePathParameters: (location, path) {'),
-              contains('path(location.itemId, itemId);'),
             ),
             allOf(
               contains(
@@ -109,7 +124,12 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
               contains(
                 'void routeToChildItemDetails({required String detail}) {',
               ),
-              contains('routeToChild<_ItemDetailsLocation>('),
+              contains(
+                'final class ChildItemDetailsRouteTarget extends ChildRouteTarget<AppRouteId> {',
+              ),
+              contains(
+                'routeTo(ChildItemDetailsRouteTarget(detail: detail));',
+              ),
               contains('queryParameters: {'),
               contains("'keep': StringRouteParamCodec().encode(keep),"),
               contains(
@@ -373,7 +393,8 @@ final Location<TypedRouteId> appLocationTree =
                     contains('int? page,'),
                   ),
                   allOf(
-                    contains('writePathParameters: (location, path) {'),
+                    contains('final class ItemRouteTarget extends IdRouteTarget<TypedRouteId> {'),
+                    contains('writePathParameters: (() {'),
                     contains('path(location.itemId, itemId);'),
                     contains('queryParameters: {'),
                     contains(
@@ -987,7 +1008,10 @@ RouteNode<ShellRootRouteId> get appLocationTree => AppShell(
                 contains('extension AppLocationTreeGeneratedRoutes'),
                 contains('void routeToChild()'),
                 contains('void routeToChildChild()'),
-                contains('routeToChild<ChildLocation>('),
+                contains(
+                  'final class ChildChildRouteTarget extends ChildRouteTarget<ShellRootRouteId> {',
+                ),
+                contains('routeTo(ChildChildRouteTarget());'),
               ),
             ),
       },

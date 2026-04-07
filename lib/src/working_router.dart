@@ -130,15 +130,23 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   @override
   void routeToUriString(String uriString) {
-    _routeToUri(
-      Uri.parse(uriString),
-      reason: RouteTransitionReason.programmatic,
-    );
+    routeTo(UriRouteTarget(Uri.parse(uriString)));
   }
 
   @override
   void routeToUri(Uri uri) {
-    _routeToUri(uri, reason: RouteTransitionReason.programmatic);
+    routeTo(UriRouteTarget(uri));
+  }
+
+  @override
+  void routeTo(RouteTarget<ID> target) {
+    _routeTo(
+      targetData: _buildDataForTarget(
+        target,
+        currentData: nullableData,
+      ),
+      reason: RouteTransitionReason.programmatic,
+    );
   }
 
   @internal
@@ -160,34 +168,12 @@ class WorkingRouter<ID> extends ChangeNotifier
     Map<String, String> queryParameters = const {},
     WritePathParameters<ID>? writePathParameters,
   }) {
-    final matchedNodes = _routeNodeTree.matchId(id);
-    final matchedLocations = matchedNodes.locations;
-    final currentData = nullableData;
-    final keptQueryParameterKeys = currentData == null
-        ? <String>{}
-        : currentData.locations
-              .expand((location) => location.queryParameters.keys)
-              .toSet()
-              .intersection(
-                matchedLocations
-                    .expand((location) => location.queryParameters.keys)
-                    .toSet(),
-              );
-
-    _routeTo(
-      targetData: _buildData(
-        nodes: matchedNodes,
-        fallback: null,
-        pathParameters: _resolvePathParameterWrites(
-          matchedLocations,
-          writePathParameters,
-        ).toIMap(),
-        queryParameters:
-            (currentData?.queryParameters.keepKeys(keptQueryParameterKeys) ??
-                    IMap<String, String>())
-                .addAll(queryParameters.toIMap()),
+    routeTo(
+      IdRouteTarget(
+        id,
+        queryParameters: queryParameters,
+        writePathParameters: writePathParameters,
       ),
-      reason: RouteTransitionReason.programmatic,
     );
   }
 
@@ -221,31 +207,12 @@ class WorkingRouter<ID> extends ChangeNotifier
     Map<String, String> queryParameters = const {},
     WritePathParameters<ID>? writePathParameters,
   }) {
-    final data = nullableData!;
-    final currentLocation = data.activeLocation;
-    if (currentLocation == null) {
-      return;
-    }
-
-    final matchedNodes = currentLocation.matchRelative(predicate);
-    if (matchedNodes.isEmpty) {
-      return;
-    }
-    final matchedLocations = matchedNodes.locations;
-
-    _routeTo(
-      targetData: _buildData(
-        nodes: data.nodes.addAll(matchedNodes),
-        fallback: null,
-        pathParameters: data.pathParameters.addAll(
-          _resolvePathParameterWrites(
-            data.locations.addAll(matchedLocations),
-            writePathParameters,
-          ).toIMap(),
-        ),
-        queryParameters: data.queryParameters.addAll(queryParameters.toIMap()),
+    routeTo(
+      ChildRouteTarget(
+        predicate,
+        queryParameters: queryParameters,
+        writePathParameters: writePathParameters,
       ),
-      reason: RouteTransitionReason.programmatic,
     );
   }
 
@@ -441,26 +408,11 @@ class WorkingRouter<ID> extends ChangeNotifier
             );
           }
           final previousUri = currentData.uri;
-          switch (to) {
-            case RedirectToUri(:final uri):
-              currentData = _buildDataForUri(uri);
-            case RedirectToId(
-              :final id,
-              :final queryParameters,
-              :final writePathParameters,
-            ):
-              final matchedNodes = _routeNodeTree.matchId(id);
-              final matchedLocations = matchedNodes.locations;
-              currentData = _buildData(
-                nodes: matchedNodes,
-                fallback: null,
-                pathParameters: _resolvePathParameterWrites(
-                  matchedLocations,
-                  writePathParameters,
-                ).toIMap(),
-                queryParameters: queryParameters.toIMap(),
-              );
-          }
+          currentData = _buildDataForTarget(
+            to,
+            currentData: currentData,
+            retainSharedQueryParameters: false,
+          );
 
           if (currentData.uri == previousUri) {
             return currentData;
@@ -485,6 +437,80 @@ class WorkingRouter<ID> extends ChangeNotifier
       pathParameters: matchResult.pathParameters,
       queryParameters: uri.queryParameters.toIMap(),
     );
+  }
+
+  WorkingRouterData<ID> _buildDataForTarget(
+    RouteTarget<ID> target, {
+    required WorkingRouterData<ID>? currentData,
+    bool retainSharedQueryParameters = true,
+  }) {
+    switch (target) {
+      case UriRouteTarget(:final uri):
+        return _buildDataForUri(uri);
+      case IdRouteTarget(
+        :final id,
+        :final queryParameters,
+        :final writePathParameters,
+      ):
+        final matchedNodes = _routeNodeTree.matchId(id);
+        final matchedLocations = matchedNodes.locations;
+        final keptQueryParameterKeys =
+            !retainSharedQueryParameters || currentData == null
+            ? <String>{}
+            : currentData.locations
+                  .expand((location) => location.queryParameters.keys)
+                  .toSet()
+                  .intersection(
+                    matchedLocations
+                        .expand((location) => location.queryParameters.keys)
+                        .toSet(),
+                  );
+
+        return _buildData(
+          nodes: matchedNodes,
+          fallback: null,
+          pathParameters: _resolvePathParameterWrites(
+            matchedLocations,
+            writePathParameters,
+          ).toIMap(),
+          queryParameters:
+              ((retainSharedQueryParameters
+                          ? currentData?.queryParameters.keepKeys(
+                              keptQueryParameterKeys,
+                            )
+                          : null) ??
+                      IMap<String, String>())
+                  .addAll(queryParameters.toIMap()),
+        );
+      case ChildRouteTarget(
+        :final predicate,
+        :final queryParameters,
+        :final writePathParameters,
+      ):
+        final data = currentData!;
+        final currentLocation = data.activeLocation;
+        if (currentLocation == null) {
+          return data;
+        }
+
+        final matchedNodes = currentLocation.matchRelative(predicate);
+        if (matchedNodes.isEmpty) {
+          return data;
+        }
+        final matchedLocations = matchedNodes.locations;
+
+        return _buildData(
+          nodes: data.nodes.addAll(matchedNodes),
+          fallback: null,
+          pathParameters: data.pathParameters.addAll(
+            _resolvePathParameterWrites(
+              data.locations.addAll(matchedLocations),
+              writePathParameters,
+            ).toIMap(),
+          ),
+          queryParameters: data.queryParameters.addAll(queryParameters.toIMap()),
+        );
+    }
   }
 
   WorkingRouterData<ID> _buildData({

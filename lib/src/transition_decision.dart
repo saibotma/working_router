@@ -1,4 +1,5 @@
 import 'package:working_router/src/route_node.dart';
+import 'package:working_router/src/route_target.dart';
 import 'package:working_router/src/working_router_data.dart';
 
 /// Why this transition was triggered.
@@ -39,28 +40,6 @@ final class BlockTransition<ID> extends TransitionDecision<ID> {
   const BlockTransition();
 }
 
-sealed class RedirectTarget<ID> {
-  const RedirectTarget();
-}
-
-final class RedirectToUri<ID> extends RedirectTarget<ID> {
-  final Uri uri;
-
-  const RedirectToUri(this.uri);
-}
-
-final class RedirectToId<ID> extends RedirectTarget<ID> {
-  final ID id;
-  final Map<String, String> queryParameters;
-  final WritePathParameters<ID>? writePathParameters;
-
-  const RedirectToId(
-    this.id, {
-    this.queryParameters = const {},
-    this.writePathParameters,
-  });
-}
-
 /// Redirects to a new candidate destination.
 ///
 /// The router does not stop immediately after this decision. Instead it
@@ -68,7 +47,7 @@ final class RedirectToId<ID> extends RedirectTarget<ID> {
 /// [RouteTransition.reason] set to [RouteTransitionReason.redirect]. That
 /// second pass is required for chained redirects.
 final class RedirectTransition<ID> extends TransitionDecision<ID> {
-  final RedirectTarget<ID> to;
+  final RouteTarget<ID> to;
 
   const RedirectTransition(this.to);
 
@@ -77,7 +56,7 @@ final class RedirectTransition<ID> extends TransitionDecision<ID> {
   }
 
   factory RedirectTransition.toUri(Uri uri) {
-    return RedirectTransition(RedirectToUri(uri));
+    return RedirectTransition(UriRouteTarget(uri));
   }
 
   factory RedirectTransition.toId(
@@ -86,7 +65,7 @@ final class RedirectTransition<ID> extends TransitionDecision<ID> {
     WritePathParameters<ID>? writePathParameters,
   }) {
     return RedirectTransition(
-      RedirectToId(
+      IdRouteTarget(
         id,
         queryParameters: queryParameters,
         writePathParameters: writePathParameters,

@@ -1,6 +1,8 @@
 import 'package:working_router/working_router.dart';
 
 abstract class WorkingRouterSailor<ID> {
+  void routeTo(RouteTarget<ID> target);
+
   void routeToUriString(String uriString);
 
   void routeToUri(Uri uri);

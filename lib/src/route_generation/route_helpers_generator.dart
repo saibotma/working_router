@@ -40,6 +40,10 @@ class RouteHelpersGenerator
     }
 
     if (methods.isNotEmpty) {
+      for (final method in methods) {
+        buffer.writeln(method.renderTargetClass());
+      }
+
       final extensionName =
           '${_toUpperCamelCase(declarationElement.displayName)}GeneratedRoutes';
       buffer.writeln(
@@ -47,7 +51,7 @@ class RouteHelpersGenerator
       );
 
       for (final method in methods) {
-        buffer.writeln(method.render());
+        buffer.writeln(method.renderMethod());
       }
 
       buffer.writeln('}');
@@ -170,6 +174,8 @@ class RouteHelpersGenerator
   ) {
     final methodName =
         'routeTo${_toUpperCamelCase(idExpression.split('.').last)}';
+    final targetClassName =
+        '${_toUpperCamelCase(idExpression.split('.').last)}RouteTarget';
     final (pathParameters, queryParameters) = _collectParameters(
       chain,
       element: element,
@@ -183,7 +189,9 @@ class RouteHelpersGenerator
     );
 
     return _GeneratedRouteMethod.toId(
+      idTypeSource: _idTypeSource(element),
       name: methodName,
+      targetClassName: targetClassName,
       idExpression: idExpression,
       pathWrites: pathWrites,
       pathParameters: pathParameters,
@@ -194,6 +202,8 @@ class RouteHelpersGenerator
   _GeneratedRouteMethod _buildChildMethod(_RouteNode node, Element element) {
     final methodName =
         'routeToChild${_toUpperCamelCase(_childMethodBaseName(node.locationTypeSource))}';
+    final targetClassName =
+        'Child${_toUpperCamelCase(_childMethodBaseName(node.locationTypeSource))}RouteTarget';
     final (pathParameters, queryParameters) = _collectParameters(
       [node],
       element: element,
@@ -207,7 +217,9 @@ class RouteHelpersGenerator
     );
 
     return _GeneratedRouteMethod.toChild(
+      idTypeSource: _idTypeSource(element),
       name: methodName,
+      targetClassName: targetClassName,
       childLocationTypeSource: node.locationTypeSource,
       pathWrites: pathWrites,
       pathParameters: pathParameters,
@@ -2798,7 +2810,9 @@ class _RouteNode {
 }
 
 class _GeneratedRouteMethod {
+  final String idTypeSource;
   final String name;
+  final String targetClassName;
   final String? idExpression;
   final String? childLocationTypeSource;
   final List<_GeneratedPathWrite> pathWrites;
@@ -2806,7 +2820,9 @@ class _GeneratedRouteMethod {
   final Map<String, _GeneratedRouteParameter> queryParameters;
 
   const _GeneratedRouteMethod._({
+    required this.idTypeSource,
     required this.name,
+    required this.targetClassName,
     required this.idExpression,
     required this.childLocationTypeSource,
     required this.pathWrites,
@@ -2815,14 +2831,18 @@ class _GeneratedRouteMethod {
   });
 
   factory _GeneratedRouteMethod.toId({
+    required String idTypeSource,
     required String name,
+    required String targetClassName,
     required String idExpression,
     required List<_GeneratedPathWrite> pathWrites,
     required Map<String, _GeneratedRouteParameter> pathParameters,
     required Map<String, _GeneratedRouteParameter> queryParameters,
   }) {
     return _GeneratedRouteMethod._(
+      idTypeSource: idTypeSource,
       name: name,
+      targetClassName: targetClassName,
       idExpression: idExpression,
       childLocationTypeSource: null,
       pathWrites: pathWrites,
@@ -2832,14 +2852,18 @@ class _GeneratedRouteMethod {
   }
 
   factory _GeneratedRouteMethod.toChild({
+    required String idTypeSource,
     required String name,
+    required String targetClassName,
     required String childLocationTypeSource,
     required List<_GeneratedPathWrite> pathWrites,
     required Map<String, _GeneratedRouteParameter> pathParameters,
     required Map<String, _GeneratedRouteParameter> queryParameters,
   }) {
     return _GeneratedRouteMethod._(
+      idTypeSource: idTypeSource,
       name: name,
+      targetClassName: targetClassName,
       idExpression: null,
       childLocationTypeSource: childLocationTypeSource,
       pathWrites: pathWrites,
@@ -2850,6 +2874,7 @@ class _GeneratedRouteMethod {
 
   bool isEquivalent(_GeneratedRouteMethod other) {
     return name == other.name &&
+        targetClassName == other.targetClassName &&
         idExpression == other.idExpression &&
         childLocationTypeSource == other.childLocationTypeSource &&
         _pathWritesEquivalent(pathWrites, other.pathWrites) &&
@@ -2900,7 +2925,7 @@ class _GeneratedRouteMethod {
     return true;
   }
 
-  String render() {
+  String renderMethod() {
     final buffer = StringBuffer();
     final parameters = [
       ...pathParameters.entries,
@@ -2909,7 +2934,7 @@ class _GeneratedRouteMethod {
 
     if (parameters.isEmpty) {
       buffer.writeln('  void $name() {');
-      _writeInvocation(buffer);
+      buffer.writeln('    routeTo($targetClassName());');
       buffer.writeln('  }');
       return buffer.toString();
     }
@@ -2926,12 +2951,63 @@ class _GeneratedRouteMethod {
       );
     }
     buffer.writeln('  }) {');
-    _writeInvocation(buffer);
+    buffer.writeln('    routeTo(');
+    buffer.writeln('      $targetClassName(');
+    for (final parameter in parameters) {
+      buffer.writeln(
+        '        ${parameter.value.parameterName}: '
+        '${parameter.value.parameterName},',
+      );
+    }
+    buffer.writeln('      ),');
+    buffer.writeln('    );');
     buffer.writeln('  }');
     return buffer.toString();
   }
 
-  void _writeInvocation(StringBuffer buffer) {
+  String renderTargetClass() {
+    final buffer = StringBuffer();
+    final parameters = [
+      ...pathParameters.entries,
+      ...queryParameters.entries,
+    ];
+    final canUseConstConstructor =
+        idExpression != null && parameters.isEmpty;
+
+    if (idExpression != null) {
+      buffer.writeln(
+        'final class $targetClassName extends IdRouteTarget<$idTypeSource> {',
+      );
+    } else {
+      buffer.writeln(
+        'final class $targetClassName extends ChildRouteTarget<$idTypeSource> {',
+      );
+    }
+
+    if (parameters.isEmpty) {
+      final constKeyword = canUseConstConstructor ? 'const ' : '';
+      buffer.writeln('  $constKeyword$targetClassName()');
+    } else {
+      buffer.writeln('  $targetClassName({');
+      for (final parameter in parameters) {
+        final generatedParameter = parameter.value;
+        final typeSource = generatedParameter.optional
+            ? '${generatedParameter.dartTypeSource}?'
+            : generatedParameter.dartTypeSource;
+        final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+        buffer.writeln(
+          '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+        );
+      }
+      buffer.writeln('  })');
+    }
+
+    _writeSuperInvocation(buffer);
+    buffer.writeln('}');
+    return buffer.toString();
+  }
+
+  void _writeSuperInvocation(StringBuffer buffer) {
     final pathWritesByLocationType = <String, Map<int, List<_GeneratedPathWrite>>>{};
     for (final pathWrite in pathWrites) {
       final byOccurrence = pathWritesByLocationType.putIfAbsent(
@@ -2941,68 +3017,72 @@ class _GeneratedRouteMethod {
       byOccurrence.putIfAbsent(pathWrite.occurrenceIndex, () => []).add(pathWrite);
     }
 
-    for (final entry in pathWritesByLocationType.entries) {
-      final counterName =
-          '${_toParameterIdentifier(entry.key)}MatchIndex';
-      buffer.writeln('    var $counterName = 0;');
-    }
-
     if (idExpression != null) {
-      buffer.writeln('    routeToId(');
-      buffer.writeln('      $idExpression,');
+      buffer.writeln('      : super(');
+      buffer.writeln('          $idExpression,');
     } else {
-      buffer.writeln('    routeToChild<$childLocationTypeSource>(');
+      buffer.writeln('      : super(');
+      buffer.writeln(
+        '          (location) => location is $childLocationTypeSource,',
+      );
     }
 
     if (pathWrites.isNotEmpty) {
-      buffer.writeln('      writePathParameters: (location, path) {');
+      buffer.writeln('          writePathParameters: (() {');
+      for (final entry in pathWritesByLocationType.entries) {
+        final counterName =
+            '${_toParameterIdentifier(entry.key)}MatchIndex';
+        buffer.writeln('            var $counterName = 0;');
+      }
+      buffer.writeln('            return (location, path) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName =
             '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
-          '        if (location is ${entry.key}) {',
+          '              if (location is ${entry.key}) {',
         );
-        buffer.writeln('          switch ($counterName++) {');
+        buffer.writeln('                switch ($counterName++) {');
         final occurrences = entry.value.entries.toList()
           ..sort((left, right) => left.key.compareTo(right.key));
         for (final occurrence in occurrences) {
-          buffer.writeln('            case ${occurrence.key}:');
+          buffer.writeln('                  case ${occurrence.key}:');
           for (final pathWrite in occurrence.value) {
             buffer.writeln(
-              '              path(location.${pathWrite.memberName}, '
+              '                    path(location.${pathWrite.memberName}, '
               '${pathWrite.parameterName});',
             );
           }
-          buffer.writeln('              break;');
+          buffer.writeln('                    break;');
         }
-        buffer.writeln('          }');
-        buffer.writeln('        }');
+        buffer.writeln('                }');
+        buffer.writeln('              }');
       }
-      buffer.writeln('      },');
+      buffer.writeln('            };');
+      buffer.writeln('          })(),');
     }
 
     if (queryParameters.isNotEmpty) {
-      buffer.writeln('      queryParameters: {');
+      buffer.writeln('          queryParameters: {');
       for (final parameter in queryParameters.entries) {
         final generatedParameter = parameter.value;
         if (generatedParameter.optional) {
           buffer.writeln(
-            "        if (${generatedParameter.parameterName} != null) "
+            "            if (${generatedParameter.parameterName} != null) "
             "'${parameter.key}': ${generatedParameter.codecExpressionSource}"
             '.encode(${generatedParameter.parameterName}),',
           );
         } else {
           buffer.writeln(
-            "        '${parameter.key}': "
+            "            '${parameter.key}': "
             "${generatedParameter.codecExpressionSource}.encode("
             "${generatedParameter.parameterName}),",
           );
         }
       }
-      buffer.writeln('      },');
+      buffer.writeln('          },');
     }
 
-    buffer.writeln('    );');
+    buffer.writeln('        );');
   }
 }
 
