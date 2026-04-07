@@ -57,7 +57,7 @@ abstract class Location<ID> extends RouteNode<ID> {
   /// parameters are generated as nullable arguments and omitted when null.
   ///
   /// When a location instead declares `final foo = queryParam(...)` fields,
-  /// mix in the generated `_LocationNameGenerated` mixin so those field
+  /// mix in the generated `LocationNameGenerated` mixin so those field
   /// names become the runtime query parameter keys.
   Map<String, QueryParam<dynamic>> get queryParameters => const {};
 

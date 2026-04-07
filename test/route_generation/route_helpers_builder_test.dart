@@ -435,7 +435,7 @@ enum InferredQueryParamRouteId { item }
 enum ItemFilter { all, active }
 
 class ItemLocation extends Location<InferredQueryParamRouteId>
-    with _ItemLocationGenerated {
+    with ItemLocationGenerated {
   final itemId = pathParam(const IntRouteParamCodec());
   final filter = queryParam(
     EnumNameRouteParamCodec(ItemFilter.values),
@@ -463,17 +463,23 @@ final Location<InferredQueryParamRouteId> appLocationTree =
           'working_router|lib/inferred_query_param_routes.working_router.g.part':
               decodedMatches(
                 allOf(
-                  contains(
-                    'mixin _ItemLocationGenerated on ItemLocation {',
+                  allOf(
+                    contains(
+                      'mixin ItemLocationGenerated on Location<InferredQueryParamRouteId> {',
+                    ),
+                    contains('QueryParam<ItemFilter> get filter;'),
+                    contains('QueryParam<int> get page;'),
+                    contains("'filter': filter,"),
+                    contains("'page': page,"),
                   ),
-                  contains("'filter': filter,"),
-                  contains("'page': page,"),
-                  contains(
-                    'void routeToItem({',
+                  allOf(
+                    contains(
+                      'void routeToItem({',
+                    ),
+                    contains('required int itemId,'),
+                    contains('required ItemFilter filter,'),
+                    contains('int? page,'),
                   ),
-                  contains('required int itemId,'),
-                  contains('required ItemFilter filter,'),
-                  contains('int? page,'),
                 ),
               ),
         },
@@ -504,7 +510,7 @@ part 'derived_child_ids_routes.g.dart';
 enum DerivedChildRouteId { chatChannel, chatChannelSend }
 
 class ChatChannelLocation extends Location<DerivedChildRouteId>
-    with _ChatChannelLocationGenerated {
+    with ChatChannelLocationGenerated {
   final channelId = pathParam(const StringRouteParamCodec());
 
   ChatChannelLocation({super.id})
@@ -697,7 +703,7 @@ class ChatSearchLocation extends Location<ParameterizedRouteId> {
 }
 
 class ChatChannelLocation extends Location<ParameterizedRouteId>
-    with _ChatChannelLocationGenerated {
+    with ChatChannelLocationGenerated {
   final channelId = pathParam(const StringRouteParamCodec());
 
   ChatChannelLocation({super.id, super.children = const []});

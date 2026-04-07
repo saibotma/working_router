@@ -37,7 +37,7 @@
 ///   statically recoverable from source
 /// - `PathParam` instance fields declared on the location class
 /// - `QueryParam` instance fields when the location class mixes in the
-///   generated `_LocationNameGenerated` mixin
+///   generated `LocationNameGenerated` mixin
 /// - children passed directly to a location constructor
 /// - children passed to `super(children: [...])` inside a location constructor
 /// - collection `if` elements and spreads inside children lists

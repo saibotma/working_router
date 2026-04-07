@@ -378,6 +378,17 @@ class RouteHelpersGenerator
     return null;
   }
 
+  InterfaceType? _locationSupertype(InterfaceType type) {
+    InterfaceType? current = type;
+    while (current != null) {
+      if (current.element.name == 'Location') {
+        return current;
+      }
+      current = current.superclass;
+    }
+    return null;
+  }
+
   Future<List<_GeneratedLocationMixin>> _collectQueryParameterMixins(
     _RouteNode root,
     BuildStep buildStep,
@@ -402,7 +413,9 @@ class RouteHelpersGenerator
                 mixinName: _generatedLocationMixinName(
                   node.locationClassElement.displayName,
                 ),
-                locationTypeSource: node.locationTypeSource,
+                locationBaseTypeSource:
+                    _locationSupertype(node.locationClassElement.thisType)!
+                        .getDisplayString(),
                 queryParameters: inferredQueryParameters,
               ),
             );
@@ -3145,18 +3158,24 @@ class _RouteQueryParameterMetadata {
 
 class _GeneratedLocationMixin {
   final String mixinName;
-  final String locationTypeSource;
+  final String locationBaseTypeSource;
   final List<_RouteQueryParameterMetadata> queryParameters;
 
   const _GeneratedLocationMixin({
     required this.mixinName,
-    required this.locationTypeSource,
+    required this.locationBaseTypeSource,
     required this.queryParameters,
   });
 
   String render() {
     final buffer = StringBuffer()
-      ..writeln('mixin $mixinName on $locationTypeSource {');
+      ..writeln('mixin $mixinName on $locationBaseTypeSource {');
+
+    for (final parameter in queryParameters) {
+      buffer.writeln(
+        '  QueryParam<${parameter.dartTypeSource}> get ${parameter.memberName};',
+      );
+    }
 
     if (queryParameters.isNotEmpty) {
       buffer
@@ -3251,7 +3270,7 @@ String _generatedLocationMixinName(String locationTypeSource) {
     RegExp('^_+'),
     '',
   );
-  return '_${normalizedTypeSource}Generated';
+  return '${normalizedTypeSource}Generated';
 }
 
 String _toParameterIdentifier(String value) {
