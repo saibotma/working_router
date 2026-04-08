@@ -11,7 +11,6 @@ abstract class Location<ID> extends RouteNode<ID> {
 
   Location({
     this.id,
-    super.children = const [],
     super.parentNavigatorKey,
     Iterable<LocationTag> tags = const [],
   }) : tags = tags.toISet();
@@ -52,7 +51,7 @@ abstract class Location<ID> extends RouteNode<ID> {
   /// are filtered to the union of the keys declared by the remaining
   /// locations.
   ///
-  /// When using `@WorkingRouterLocationTree`, required query parameters are
+  /// When using `@RouteNodes`, required query parameters are
   /// generated as required `routeToX(...)` arguments. Optional query
   /// parameters are generated as nullable arguments and omitted when null.
   ///

@@ -6,11 +6,11 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/working_router.dart';
 
-/// Rebuilds the root [RouteNode] tree for a router instance.
+/// Rebuilds the top-level [RouteNode] list for a router instance.
 ///
 /// This callback is used at startup and again on [WorkingRouter.refresh] so the
 /// runtime tree can react to changing application state such as permissions.
-typedef BuildRouteNodeTree<ID> = RouteNode<ID> Function();
+typedef BuildRouteNodes<ID> = Iterable<RouteNode<ID>> Function();
 
 class WorkingRouter<ID> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
@@ -35,7 +35,7 @@ class WorkingRouter<ID> extends ChangeNotifier
         ),
       );
 
-  late RouteNode<ID> _routeNodeTree;
+  late IList<RouteNode<ID>> _routeNodeTree;
   final List<LocationObserverState> _observers = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
 
@@ -56,13 +56,13 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   /// Rebuilds the routing tree used by this router instance.
   ///
-  /// When using `@WorkingRouterLocationTree`, pass a closure here that builds
+  /// When using `@RouteNodes`, pass a closure here that builds
   /// the same route tree shape as the annotated generator entrypoint.
-  final BuildRouteNodeTree<ID> buildRouteNodeTree;
+  final BuildRouteNodes<ID> buildRouteNodes;
   final LocationChildWrapper<ID>? wrapLocationChild;
 
   WorkingRouter({
-    required this.buildRouteNodeTree,
+    required this.buildRouteNodes,
     BuildPages<ID>? buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
@@ -73,7 +73,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _decideTransition = decideTransition,
        _redirectLimit = redirectLimit {
-    _routeNodeTree = buildRouteNodeTree();
+    _routeNodeTree = buildRouteNodes().toIList();
     _rootDelegate = WorkingRouterDelegate<ID>(
       debugLabel: "root",
       isRootDelegate: true,
@@ -115,7 +115,7 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   /// Rebuilds the route node tree for this router instance.
   void refresh() {
-    _routeNodeTree = buildRouteNodeTree();
+    _routeNodeTree = buildRouteNodes().toIList();
     final currentData = nullableData;
     if (currentData != null) {
       // Delegate refresh only rebuilds pages from the current router data.

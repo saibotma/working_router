@@ -7,7 +7,6 @@ abstract class Shell<ID> extends RouteNode<ID> {
 
   Shell({
     required this.navigatorKey,
-    super.children = const [],
     super.parentNavigatorKey,
   });
 

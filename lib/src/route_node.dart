@@ -46,13 +46,13 @@ class QueryParam<T> {
 }
 
 abstract class RouteNode<ID> {
-  final IList<RouteNode<ID>> children;
   final GlobalKey<NavigatorState>? parentNavigatorKey;
 
   RouteNode({
-    Iterable<RouteNode<ID>> children = const [],
     this.parentNavigatorKey,
-  }) : children = children.toIList();
+  });
+
+  List<RouteNode<ID>> get children => const [];
 
   /// Builds the default [Page] key for this node.
   ///
@@ -73,11 +73,10 @@ abstract class RouteNode<ID> {
   }
 }
 
-typedef RouteMatch<ID> =
-    ({
-      IList<RouteNode<ID>> nodes,
-      IMap<PathParam<dynamic>, String> pathParameters,
-    });
+typedef RouteMatch<ID> = ({
+  IList<RouteNode<ID>> nodes,
+  IMap<PathParam<dynamic>, String> pathParameters,
+});
 
 RouteMatch<ID> emptyRouteMatch<ID>() => (
   nodes: const IListConst([]),
@@ -90,6 +89,26 @@ extension RouteMatchX<ID> on RouteMatch<ID> {
 
 extension RouteNodesX<ID> on Iterable<RouteNode<ID>> {
   IList<Location<ID>> get locations => whereType<Location<ID>>().toIList();
+
+  RouteMatch<ID> match(IList<String> uriPathSegments) {
+    for (final node in this) {
+      final match = node.match(uriPathSegments);
+      if (!match.isEmpty) {
+        return match;
+      }
+    }
+    return emptyRouteMatch();
+  }
+
+  IList<RouteNode<ID>> matchId(ID id) {
+    for (final node in this) {
+      final match = node.matchId(id);
+      if (match.isNotEmpty) {
+        return match;
+      }
+    }
+    return emptyNodeMatch();
+  }
 }
 
 IList<RouteNode<ID>> emptyNodeMatch<ID>() => const IListConst([]);

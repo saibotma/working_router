@@ -24,7 +24,12 @@ part 'app_routes.working_router.g.dart';
 enum AppRouteId { root, item, itemDetails }
 
 class _RootLocation extends Location<AppRouteId> {
-  _RootLocation({required super.id, super.children = const []});
+  _RootLocation({required super.id});
+
+  @override
+  late final List<RouteNode<AppRouteId>> children = [
+    _ItemLocation(id: AppRouteId.item),
+  ];
 
   @override
   List<PathSegment> get path => const [];
@@ -33,7 +38,12 @@ class _RootLocation extends Location<AppRouteId> {
 class _ItemLocation extends Location<AppRouteId> {
   final itemId = pathParam(const StringRouteParamCodec());
 
-  _ItemLocation({required super.id, super.children = const []});
+  _ItemLocation({required super.id});
+
+  @override
+  late final List<RouteNode<AppRouteId>> children = [
+    ...buildItemChildren(),
+  ];
 
   @override
   List<PathSegment> get path => [
@@ -48,7 +58,7 @@ class _ItemLocation extends Location<AppRouteId> {
 }
 
 class _ItemDetailsLocation extends Location<AppRouteId> {
-  _ItemDetailsLocation({required super.id, super.children = const []});
+  _ItemDetailsLocation({required super.id});
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('details')];
@@ -59,26 +69,15 @@ class _ItemDetailsLocation extends Location<AppRouteId> {
   };
 }
 
-List<Location<AppRouteId>> buildItemChildren() => [
+List<RouteNode<AppRouteId>> buildItemChildren() => [
   _ItemDetailsLocation(
     id: AppRouteId.itemDetails,
-    children: const [],
   ),
 ];
 
-final _appLocationTree = _RootLocation(
-  id: AppRouteId.root,
-  children: [
-    _ItemLocation(
-      id: AppRouteId.item,
-      children: [
-        ...buildItemChildren(),
-      ],
-    ),
-  ],
-);
+final _appLocationTree = _RootLocation(id: AppRouteId.root);
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 Location<AppRouteId> get appLocationTree => _appLocationTree;
 ''',
       },
@@ -163,14 +162,19 @@ part 'static_routes.g.dart';
 enum StaticRouteId { root, child }
 
 class _RootLocation extends Location<StaticRouteId> {
-  _RootLocation({required super.id, super.children = const []});
+  _RootLocation({required super.id});
+
+  @override
+  late final List<RouteNode<StaticRouteId>> children = [
+    _ChildLocation(id: StaticRouteId.child),
+  ];
 
   @override
   List<PathSegment> get path => const [];
 }
 
 class _ChildLocation extends Location<StaticRouteId> {
-  _ChildLocation({required super.id, super.children = const []});
+  _ChildLocation({required super.id});
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('child')];
@@ -179,15 +183,12 @@ class _ChildLocation extends Location<StaticRouteId> {
 class AppRoutes {
   static final _tree = _RootLocation(
     id: StaticRouteId.root,
-    children: [
-      _ChildLocation(id: StaticRouteId.child),
-    ],
   );
 
   static Location<StaticRouteId> get tree => _tree;
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 Location<StaticRouteId> get appLocationTree => AppRoutes.tree;
 ''',
       },
@@ -206,7 +207,7 @@ Location<StaticRouteId> get appLocationTree => AppRoutes.tree;
   });
 
   test(
-    'supports static children declared inside the location constructor',
+    'supports children declared on the location instance',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions(const {}),
@@ -227,15 +228,24 @@ part 'constructor_children_routes.g.dart';
 enum ConstructorRouteId { root, lesson, lessonEdit }
 
 class RootLocation extends Location<ConstructorRouteId> {
-  RootLocation() : super(children: [LessonLocation(id: ConstructorRouteId.lesson)]);
+  RootLocation();
+
+  @override
+  late final List<RouteNode<ConstructorRouteId>> children = [
+    LessonLocation(id: ConstructorRouteId.lesson),
+  ];
 
   @override
   List<PathSegment> get path => const [];
 }
 
 class LessonLocation extends Location<ConstructorRouteId> {
-  LessonLocation({required super.id})
-      : super(children: [LessonEditLocation(id: ConstructorRouteId.lessonEdit)]);
+  LessonLocation({required super.id});
+
+  @override
+  late final List<RouteNode<ConstructorRouteId>> children = [
+    LessonEditLocation(id: ConstructorRouteId.lessonEdit),
+  ];
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('lessons')];
@@ -254,7 +264,7 @@ class LessonEditLocation extends Location<ConstructorRouteId> {
   List<PathSegment> get path => const [PathSegment.literal('edit')];
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 final Location<ConstructorRouteId> appLocationTree = RootLocation();
 ''',
         },
@@ -314,7 +324,7 @@ class LessonLocation extends Location<ConstQueryRouteId> {
   };
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 final Location<ConstQueryRouteId> appLocationTree =
     LessonLocation(id: ConstQueryRouteId.lesson);
 ''',
@@ -378,7 +388,7 @@ class ItemLocation extends Location<TypedRouteId> {
   };
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 final Location<TypedRouteId> appLocationTree =
     ItemLocation(id: TypedRouteId.item);
 ''',
@@ -393,7 +403,9 @@ final Location<TypedRouteId> appLocationTree =
                     contains('int? page,'),
                   ),
                   allOf(
-                    contains('final class ItemRouteTarget extends IdRouteTarget<TypedRouteId> {'),
+                    contains(
+                      'final class ItemRouteTarget extends IdRouteTarget<TypedRouteId> {',
+                    ),
                     contains('writePathParameters: (() {'),
                     contains('path(location.itemId, itemId);'),
                     contains('queryParameters: {'),
@@ -454,7 +466,7 @@ class ItemLocation extends Location<InferredQueryParamRouteId>
   ];
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 final Location<InferredQueryParamRouteId> appLocationTree =
     ItemLocation(id: InferredQueryParamRouteId.item);
 ''',
@@ -513,14 +525,14 @@ class ChatChannelLocation extends Location<DerivedChildRouteId>
     with ChatChannelLocationGenerated {
   final channelId = pathParam(const StringRouteParamCodec());
 
-  ChatChannelLocation({super.id})
-      : super(
-          children: [
-            ChatChannelSendLocation(
-              id: id != null ? DerivedChildRouteId.chatChannelSend : null,
-            ),
-          ],
-        );
+  ChatChannelLocation({super.id});
+
+  @override
+  late final List<RouteNode<DerivedChildRouteId>> children = [
+    ChatChannelSendLocation(
+      id: id != null ? DerivedChildRouteId.chatChannelSend : null,
+    ),
+  ];
 
   @override
   List<PathSegment> get path => [
@@ -536,7 +548,7 @@ class ChatChannelSendLocation extends Location<DerivedChildRouteId> {
   List<PathSegment> get path => const [PathSegment.literal('send')];
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 final Location<DerivedChildRouteId> appLocationTree =
     ChatChannelLocation(id: DerivedChildRouteId.chatChannel);
 ''',
@@ -584,37 +596,36 @@ bool get includeMaybe => throw UnimplementedError();
 bool get includeSpread => throw UnimplementedError();
 
 class RootLocation extends Location<IfUnionRouteId> {
-  RootLocation()
-      : super(
-          id: IfUnionRouteId.root,
-          children: [
-            _ChildLocation(
-              id: IfUnionRouteId.always,
-              path: [PathSegment.literal('always')],
-            ),
-            if (includeMaybe)
-              _ChildLocation(
-                id: IfUnionRouteId.maybe,
-                path: [PathSegment.literal('maybe')],
-              ),
-            if (includeSpread) ...[
-              _ChildLocation(
-                id: IfUnionRouteId.maybeSpread,
-                path: [PathSegment.literal('spread')],
-              ),
-            ],
-            if (includeMaybe)
-              _ChildLocation(
-                id: IfUnionRouteId.maybeElseA,
-                path: [PathSegment.literal('else-a')],
-              )
-            else
-              _ChildLocation(
-                id: IfUnionRouteId.maybeElseB,
-                path: [PathSegment.literal('else-b')],
-              ),
-          ],
-        );
+  RootLocation() : super(id: IfUnionRouteId.root);
+
+  @override
+  late final List<RouteNode<IfUnionRouteId>> children = [
+    _ChildLocation(
+      id: IfUnionRouteId.always,
+      path: [PathSegment.literal('always')],
+    ),
+    if (includeMaybe)
+      _ChildLocation(
+        id: IfUnionRouteId.maybe,
+        path: [PathSegment.literal('maybe')],
+      ),
+    if (includeSpread) ...[
+      _ChildLocation(
+        id: IfUnionRouteId.maybeSpread,
+        path: [PathSegment.literal('spread')],
+      ),
+    ],
+    if (includeMaybe)
+      _ChildLocation(
+        id: IfUnionRouteId.maybeElseA,
+        path: [PathSegment.literal('else-a')],
+      )
+    else
+      _ChildLocation(
+        id: IfUnionRouteId.maybeElseB,
+        path: [PathSegment.literal('else-b')],
+      ),
+  ];
 
   @override
   List<PathSegment> get path => const [];
@@ -630,7 +641,7 @@ class _ChildLocation extends Location<IfUnionRouteId> {
   List<PathSegment> get path => _path;
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 Location<IfUnionRouteId> buildLocationTree() => RootLocation();
 ''',
         },
@@ -679,24 +690,39 @@ class Permissions {
 }
 
 class RootLocation extends Location<ParameterizedRouteId> {
-  RootLocation({required super.id, super.children = const []});
+  @override
+  final List<RouteNode<ParameterizedRouteId>> children;
+
+  RootLocation({
+    required super.id,
+    this.children = const [],
+  });
 
   @override
   List<PathSegment> get path => const [];
 }
 
 class ChatLocation extends Location<ParameterizedRouteId> {
-  ChatLocation({required super.id, super.children = const []});
+  @override
+  final List<RouteNode<ParameterizedRouteId>> children;
+
+  ChatLocation({
+    required super.id,
+    this.children = const [],
+  });
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('chat')];
 }
 
 class ChatSearchLocation extends Location<ParameterizedRouteId> {
+  @override
+  final List<RouteNode<ParameterizedRouteId>> children;
+
   ChatSearchLocation({
     required ParameterizedRouteId id,
-    List<Location<ParameterizedRouteId>> children = const [],
-  }) : super(id: id, children: children);
+    this.children = const [],
+  }) : super(id: id);
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('search')];
@@ -706,7 +732,13 @@ class ChatChannelLocation extends Location<ParameterizedRouteId>
     with ChatChannelLocationGenerated {
   final channelId = pathParam(const StringRouteParamCodec());
 
-  ChatChannelLocation({super.id, super.children = const []});
+  @override
+  final List<RouteNode<ParameterizedRouteId>> children;
+
+  ChatChannelLocation({
+    super.id,
+    this.children = const [],
+  });
 
   @override
   List<PathSegment> get path => [
@@ -729,11 +761,11 @@ class ExtraLocation extends Location<ParameterizedRouteId> {
   List<PathSegment> get path => const [PathSegment.literal('extra')];
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 Location<ParameterizedRouteId> buildLocationTree({
   required Permissions permissions,
 }) {
-  List<Location<ParameterizedRouteId>> sharedChatLocations({
+  List<RouteNode<ParameterizedRouteId>> sharedChatLocations({
     required bool shouldSetIds,
   }) {
     return [
@@ -811,17 +843,26 @@ part 'aliased_children_routes.g.dart';
 enum AliasedChildrenRouteId { root, search, leaf }
 
 class RootLocation extends Location<AliasedChildrenRouteId> {
-  RootLocation({required super.id, super.children = const []});
+  @override
+  final List<RouteNode<AliasedChildrenRouteId>> children;
+
+  RootLocation({
+    required super.id,
+    this.children = const [],
+  });
 
   @override
   List<PathSegment> get path => const [];
 }
 
 class SearchLocation extends Location<AliasedChildrenRouteId> {
+  @override
+  final List<RouteNode<AliasedChildrenRouteId>> children;
+
   SearchLocation({
     required AliasedChildrenRouteId id,
-    List<Location<AliasedChildrenRouteId>> children = const [],
-  }) : super(id: id, children: children);
+    this.children = const [],
+  }) : super(id: id);
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('search')];
@@ -834,10 +875,10 @@ class LeafLocation extends Location<AliasedChildrenRouteId> {
   List<PathSegment> get path => const [PathSegment.literal('leaf')];
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 Location<AliasedChildrenRouteId> buildLocationTree() {
-  List<Location<AliasedChildrenRouteId>> buildSearchBranch({
-    required List<Location<AliasedChildrenRouteId>> children,
+  List<RouteNode<AliasedChildrenRouteId>> buildSearchBranch({
+    required List<RouteNode<AliasedChildrenRouteId>> children,
   }) {
     return [
       SearchLocation(
@@ -897,38 +938,57 @@ part 'default_forwarded_children_routes.g.dart';
 enum DefaultForwardedChildrenRouteId { root, parent, branch, leaf }
 
 class RootLocation extends Location<DefaultForwardedChildrenRouteId> {
-  RootLocation({required super.id, super.children = const []});
+  @override
+  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
+
+  RootLocation({
+    required super.id,
+    this.children = const [],
+  });
 
   @override
   List<PathSegment> get path => const [];
 }
 
 class ParentLocation extends Location<DefaultForwardedChildrenRouteId> {
-  ParentLocation({required super.id, super.children});
+  @override
+  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
+
+  ParentLocation({
+    required super.id,
+    required this.children,
+  });
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('parent')];
 }
 
 class BranchLocation extends Location<DefaultForwardedChildrenRouteId> {
-  BranchLocation({required super.id})
-    : super(children: [LeafLocation(id: DefaultForwardedChildrenRouteId.leaf)]);
+  BranchLocation({required super.id});
+
+  @override
+  late final List<RouteNode<DefaultForwardedChildrenRouteId>> children = [
+    LeafLocation(id: DefaultForwardedChildrenRouteId.leaf),
+  ];
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('branch')];
 }
 
 class LeafLocation extends Location<DefaultForwardedChildrenRouteId> {
+  @override
+  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
+
   LeafLocation({
     required DefaultForwardedChildrenRouteId id,
-    List<Location<DefaultForwardedChildrenRouteId>> children = const [],
-  }) : super(id: id, children: children);
+    this.children = const [],
+  }) : super(id: id);
 
   @override
   List<PathSegment> get path => const [PathSegment.literal('leaf')];
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 Location<DefaultForwardedChildrenRouteId> buildLocationTree() {
   return RootLocation(
     id: DefaultForwardedChildrenRouteId.root,
@@ -981,7 +1041,13 @@ part 'shell_root_routes.g.dart';
 enum ShellRootRouteId { child }
 
 class AppShell extends Shell<ShellRootRouteId> {
-  AppShell({required super.navigatorKey, super.children = const []});
+  @override
+  final List<RouteNode<ShellRootRouteId>> children;
+
+  AppShell({
+    required super.navigatorKey,
+    this.children = const [],
+  });
 
   @override
   Widget buildWidget(
@@ -998,7 +1064,7 @@ class ChildLocation extends Location<ShellRootRouteId> {
   List<PathSegment> get path => const [PathSegment.literal('child')];
 }
 
-@WorkingRouterLocationTree()
+@RouteNodes()
 RouteNode<ShellRootRouteId> get appLocationTree => AppShell(
   navigatorKey: GlobalKey<NavigatorState>(),
   children: [

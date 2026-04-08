@@ -7,10 +7,9 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:collection/collection.dart';
 import 'package:source_gen/source_gen.dart';
-import 'package:working_router/src/route_generation/working_router_location_tree.dart';
+import 'package:working_router/src/route_generation/route_nodes.dart';
 
-class RouteHelpersGenerator
-    extends GeneratorForAnnotation<WorkingRouterLocationTree> {
+class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   @override
   FutureOr<String> generateForAnnotatedElement(
     Element element,
@@ -23,10 +22,10 @@ class RouteHelpersGenerator
       buildStep: buildStep,
       rootElement: declarationElement,
     );
-    final root = await extractor.extract(declarationElement);
-    final methods = _collectRouteMethods(root, declarationElement);
+    final roots = await extractor.extract(declarationElement);
+    final methods = _collectRouteMethods(roots, declarationElement);
     final queryParameterMixins = await _collectQueryParameterMixins(
-      root,
+      roots,
       buildStep,
     );
     if (methods.isEmpty && queryParameterMixins.isEmpty) {
@@ -64,7 +63,7 @@ class RouteHelpersGenerator
       ExecutableElement() => element.returnType,
       PropertyInducingElement() => element.type,
       _ => throw InvalidGenerationSourceError(
-        '@WorkingRouterLocationTree can only be applied to top-level location '
+        '@RouteNodes can only be applied to top-level location '
         'builders, getters, or variables.',
         element: element,
       ),
@@ -74,15 +73,17 @@ class RouteHelpersGenerator
 
     if (type is! InterfaceType) {
       throw InvalidGenerationSourceError(
-        'The annotated declaration must have type RouteNode<ID>.',
+        'The annotated declaration must have type RouteNode<ID> or '
+        'Iterable<RouteNode<ID>>.',
         element: element,
       );
     }
 
-    final routeNodeType = _routeNodeSupertype(type);
+    final routeNodeType = _routeNodeType(type);
     if (routeNodeType == null || routeNodeType.typeArguments.length != 1) {
       throw InvalidGenerationSourceError(
-        'The annotated declaration must have type RouteNode<ID>.',
+        'The annotated declaration must have type RouteNode<ID> or '
+        'Iterable<RouteNode<ID>>.',
         element: element,
       );
     }
@@ -102,7 +103,7 @@ class RouteHelpersGenerator
 
     if (!isSupported) {
       throw InvalidGenerationSourceError(
-        '@WorkingRouterLocationTree must target a top-level declaration. '
+        '@RouteNodes must target a top-level declaration. '
         'Static helper members inside the route tree are supported, but '
         'the annotated entrypoint itself must be top-level so source_gen '
         'can discover it.',
@@ -119,7 +120,7 @@ class RouteHelpersGenerator
   }
 
   List<_GeneratedRouteMethod> _collectRouteMethods(
-    _RouteNode root,
+    Iterable<_RouteNode> roots,
     Element element,
   ) {
     final methods = <_GeneratedRouteMethod>[];
@@ -163,7 +164,9 @@ class RouteHelpersGenerator
       }
     }
 
-    visit(root, const []);
+    for (final root in roots) {
+      visit(root, const []);
+    }
     return methods;
   }
 
@@ -337,7 +340,8 @@ class RouteHelpersGenerator
     for (final node in nodes) {
       final occurrenceIndex = locationOccurrences[node.locationTypeSource] ?? 0;
       for (final segment
-          in node.pathSegments.whereType<_RoutePathParameterSegmentMetadata>()) {
+          in node.pathSegments
+              .whereType<_RoutePathParameterSegmentMetadata>()) {
         final memberName = segment.memberName;
         if (memberName == null) {
           throw InvalidGenerationSourceError(
@@ -378,6 +382,23 @@ class RouteHelpersGenerator
     return null;
   }
 
+  InterfaceType? _routeNodeType(DartType type) {
+    if (type is! InterfaceType) {
+      return null;
+    }
+
+    final directRouteNode = _routeNodeSupertype(type);
+    if (directRouteNode != null) {
+      return directRouteNode;
+    }
+
+    if (type.typeArguments.length == 1) {
+      return _routeNodeType(type.typeArguments.single);
+    }
+
+    return null;
+  }
+
   InterfaceType? _locationSupertype(InterfaceType type) {
     InterfaceType? current = type;
     while (current != null) {
@@ -390,7 +411,7 @@ class RouteHelpersGenerator
   }
 
   Future<List<_GeneratedLocationMixin>> _collectQueryParameterMixins(
-    _RouteNode root,
+    Iterable<_RouteNode> roots,
     BuildStep buildStep,
   ) async {
     final mixins = <_GeneratedLocationMixin>[];
@@ -413,9 +434,9 @@ class RouteHelpersGenerator
                 mixinName: _generatedLocationMixinName(
                   node.locationClassElement.displayName,
                 ),
-                locationBaseTypeSource:
-                    _locationSupertype(node.locationClassElement.thisType)!
-                        .getDisplayString(),
+                locationBaseTypeSource: _locationSupertype(
+                  node.locationClassElement.thisType,
+                )!.getDisplayString(),
                 queryParameters: inferredQueryParameters,
               ),
             );
@@ -428,7 +449,9 @@ class RouteHelpersGenerator
       }
     }
 
-    await visit(root);
+    for (final root in roots) {
+      await visit(root);
+    }
     return mixins;
   }
 
@@ -456,8 +479,7 @@ class RouteHelpersGenerator
     }
 
     final declaresQueryParameters = _declaresMember(node, 'queryParameters');
-    final stillNeedsMixin =
-        requiresQueryMetadata && !declaresQueryParameters;
+    final stillNeedsMixin = requiresQueryMetadata && !declaresQueryParameters;
     if (!stillNeedsMixin) {
       return false;
     }
@@ -493,9 +515,60 @@ class _StaticRouteTreeExtractor {
     required this.rootElement,
   });
 
-  Future<_RouteNode> extract(Element element) async {
+  Future<List<_RouteNode>> extract(Element element) async {
     final expression = await _declarationExpression(element);
-    return _locationFromExpression(expression);
+    return _routeNodesFromTreeExpression(expression);
+  }
+
+  Future<List<_RouteNode>> _routeNodesFromTreeExpression(
+    Expression expression, {
+    _ExpressionContext? evaluationContext,
+  }) async {
+    final normalizedExpression = _unwrapExpression(expression);
+
+    if (evaluationContext != null &&
+        _canResolveThroughContext(normalizedExpression)) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null) {
+        return _routeNodesFromTreeExpression(
+          boundExpression,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
+
+    final helperInvocation = await _helperInvocation(
+      normalizedExpression,
+      evaluationContext: evaluationContext,
+    );
+    if (helperInvocation != null) {
+      return _routeNodesFromTreeExpression(
+        helperInvocation.expression,
+        evaluationContext: helperInvocation.context,
+      );
+    }
+
+    final referencedElement = _expressionElement(normalizedExpression);
+    if (referencedElement != null) {
+      final targetExpression = await _declarationExpression(referencedElement);
+      return _routeNodesFromTreeExpression(targetExpression);
+    }
+
+    if (normalizedExpression is ListLiteral) {
+      return _locationsFromListExpression(
+        normalizedExpression,
+        evaluationContext: evaluationContext,
+      );
+    }
+
+    return [
+      await _locationFromExpression(
+        normalizedExpression,
+        evaluationContext: evaluationContext,
+      ),
+    ];
   }
 
   Future<Expression> _declarationExpression(Element element) async {
@@ -681,12 +754,7 @@ class _StaticRouteTreeExtractor {
             evaluationContext: context,
           )
         : const <String, _RouteQueryParameterMetadata>{};
-    final childrenExpression =
-        _namedArgumentExpression(
-          expression.argumentList.arguments,
-          'children',
-        ) ??
-        await context.locationChildrenExpression();
+    final childrenExpression = await context.locationChildrenExpression();
     final children = childrenExpression == null
         ? const <_RouteNode>[]
         : await _locationsFromListExpression(
@@ -1901,18 +1969,8 @@ class _InstanceStringContext implements _ExpressionContext {
     return _evaluateStringExpression(expression);
   }
 
-  Future<Expression?> locationChildrenExpression() async {
-    final superInvocation = constructorNode.initializers
-        .whereType<SuperConstructorInvocation>()
-        .firstOrNull;
-    if (superInvocation == null) {
-      return null;
-    }
-
-    return _namedArgumentExpression(
-      superInvocation.argumentList.arguments,
-      'children',
-    );
+  Future<Expression?> locationChildrenExpression() {
+    return _fieldExpression('children');
   }
 
   @override
@@ -2023,18 +2081,6 @@ class _InstanceStringContext implements _ExpressionContext {
       return _resolveIdExpression(branch, visited);
     }
     return normalizedExpression;
-  }
-
-  Expression? _namedArgumentExpression(
-    List<Expression> arguments,
-    String name,
-  ) {
-    for (final argument in arguments) {
-      if (argument is NamedExpression && argument.name.label.name == name) {
-        return argument.expression;
-      }
-    }
-    return null;
   }
 
   Map<String, _BoundStringExpression> _bindArguments({
@@ -2280,6 +2326,23 @@ class _InstanceStringContext implements _ExpressionContext {
   Future<Expression?> _fieldExpression(String name) async {
     final field = classElement.getField(name);
     if (field != null) {
+      final fieldFormalParameter = constructorNode.parameters.parameters
+          .firstWhereOrNull(
+            (parameter) => _formalParameterName(parameter) == name,
+          );
+      if (fieldFormalParameter != null &&
+          _unwrapFormalParameter(fieldFormalParameter)
+              is FieldFormalParameter) {
+        final binding = parameterBindings[name];
+        if (binding != null) {
+          return binding.expression;
+        }
+        if (fieldFormalParameter is DefaultFormalParameter &&
+            fieldFormalParameter.defaultValue != null) {
+          return fieldFormalParameter.defaultValue;
+        }
+      }
+
       final fieldInitializer = constructorNode.initializers
           .whereType<ConstructorFieldInitializer>()
           .firstWhereOrNull(
@@ -2984,8 +3047,7 @@ class _GeneratedRouteMethod {
       ...pathParameters.entries,
       ...queryParameters.entries,
     ];
-    final canUseConstConstructor =
-        idExpression != null && parameters.isEmpty;
+    final canUseConstConstructor = idExpression != null && parameters.isEmpty;
 
     if (idExpression != null) {
       buffer.writeln(
@@ -3021,13 +3083,16 @@ class _GeneratedRouteMethod {
   }
 
   void _writeSuperInvocation(StringBuffer buffer) {
-    final pathWritesByLocationType = <String, Map<int, List<_GeneratedPathWrite>>>{};
+    final pathWritesByLocationType =
+        <String, Map<int, List<_GeneratedPathWrite>>>{};
     for (final pathWrite in pathWrites) {
       final byOccurrence = pathWritesByLocationType.putIfAbsent(
         pathWrite.locationTypeSource,
         () => <int, List<_GeneratedPathWrite>>{},
       );
-      byOccurrence.putIfAbsent(pathWrite.occurrenceIndex, () => []).add(pathWrite);
+      byOccurrence
+          .putIfAbsent(pathWrite.occurrenceIndex, () => [])
+          .add(pathWrite);
     }
 
     if (idExpression != null) {
@@ -3043,14 +3108,12 @@ class _GeneratedRouteMethod {
     if (pathWrites.isNotEmpty) {
       buffer.writeln('          writePathParameters: (() {');
       for (final entry in pathWritesByLocationType.entries) {
-        final counterName =
-            '${_toParameterIdentifier(entry.key)}MatchIndex';
+        final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln('            var $counterName = 0;');
       }
       buffer.writeln('            return (location, path) {');
       for (final entry in pathWritesByLocationType.entries) {
-        final counterName =
-            '${_toParameterIdentifier(entry.key)}MatchIndex';
+        final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
           '              if (location is ${entry.key}) {',
         );

@@ -2,14 +2,14 @@
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or function
-/// returning `RouteNode<ID>`.
+/// returning an `Iterable<RouteNode<ID>>`.
 ///
 /// Example:
 /// ```dart
 /// part 'app_routes.g.dart';
 ///
-/// @WorkingRouterLocationTree()
-/// RouteNode<AppRouteId> buildRouteNodeTree() => _appRouteTree;
+/// @RouteNodes()
+/// List<RouteNode<AppRouteId>> buildRouteNodes() => [_appRouteTree];
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
@@ -38,16 +38,15 @@
 /// - `PathParam` instance fields declared on the location class
 /// - `QueryParam` instance fields when the location class mixes in the
 ///   generated `LocationNameGenerated` mixin
-/// - children passed directly to a location constructor
-/// - children passed to `super(children: [...])` inside a location constructor
+/// - children declared on the location or shell instance via a `children`
+///   field or getter
 /// - collection `if` elements and spreads inside children lists
 ///
 /// Not supported:
 /// - annotating instance members or static class members directly
 /// - loops or other arbitrary collection-building constructs
-/// - resolving children from an overridden `children` getter
 ///
 /// The generated extension targets `WorkingRouterSailor<ID>`.
-class WorkingRouterLocationTree {
-  const WorkingRouterLocationTree();
+class RouteNodes {
+  const RouteNodes();
 }

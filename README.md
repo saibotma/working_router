@@ -1,115 +1,95 @@
 # working_router
 
-A Flutter router built around a typed `Location` tree.
+A Flutter router built around a typed route tree.
 
-It supports:
-- nested routing from a declarative location tree
-- routing by `id`
-- path and query parameter handling
-- generated `routeToX(...)` helpers with compile-time checked parameters
+## Core Ideas
 
-## Route Helper Generation
+- `Location<ID>` is a semantic route node with an optional `id`, path
+  segments, optional query parameters, and optional `buildWidget` /
+  `buildPage` overrides.
+- `Shell<ID>` is a structural node that inserts a nested navigator and wraps
+  its matched child content.
+- `WorkingRouterData<ID>` gives you typed access to the currently matched
+  route chain.
+- `@RouteNodes()` generates typed navigation helpers, typed
+  route targets, and location metadata mixins.
 
-Annotate the canonical `buildRouteNodeTree` entrypoint with
-`@WorkingRouterLocationTree()` and run `build_runner`.
+## Recommended Setup
 
-```dart
-import 'package:working_router/working_router.dart';
+The generator works best when you keep one canonical route-tree file and let
+everything else import it.
 
-part 'main.g.dart';
+1. Create a dedicated route-tree file such as
+   [`example/lib/app_routes.dart`](example/lib/app_routes.dart).
+2. Put `part 'app_routes.g.dart';` in that file.
+3. Annotate the canonical `buildRouteNodes` entrypoint with
+   `@RouteNodes()`.
+4. Return a top-level `List<RouteNode<ID>>` from that entrypoint.
+5. Build the router with `buildRouteNodes: buildRouteNodes`.
+6. In location files that declare query-parameter fields, mix in the generated
+   public `XLocationGenerated` mixin from the route-tree library.
 
-enum LocationId { splash, lesson, lessonEdit }
+See:
+- [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
+- [`example/lib/locations/abc_location.dart`](example/lib/locations/abc_location.dart)
+- [`example/lib/locations/alphabet_shell.dart`](example/lib/locations/alphabet_shell.dart)
+- [`example/lib/main.dart`](example/lib/main.dart)
 
-class SplashLocation extends Location<LocationId> {
-  SplashLocation({super.id, super.children = const []});
+## Defining Parameters
 
-  @override
-  List<PathSegment> get path => const [];
-}
+Path parameters should be declared as fields and then referenced from `path`:
 
-class LessonLocation extends Location<LocationId> {
-  final lessonId = pathParam(const IntRouteParamCodec());
+- `final idParameter = pathParam(const StringRouteParamCodec());`
 
-  LessonLocation({required super.id})
-    : super(
-        children: [
-          LessonEditLocation(id: LocationId.lessonEdit),
-        ],
-      );
+Query parameters can either be declared manually in `queryParameters`, or
+preferably as fields:
 
-  @override
-  List<PathSegment> get path => [
-    PathSegment.literal('lessons'),
-    lessonId,
-  ];
+- `final b = queryParam(const StringRouteParamCodec());`
+- `final c = queryParam(const StringRouteParamCodec());`
 
-  @override
-  Map<String, QueryParam<dynamic>> get queryParameters => const {
-    'coursePeriodId': QueryParam(IntRouteParamCodec()),
-    'sourceDateTime': QueryParam(
-      DateTimeIsoRouteParamCodec(),
-      optional: true,
-    ),
-  };
-}
+When you use query-parameter fields, mix in the generated `XLocationGenerated`
+mixin so those field names become the runtime query parameter keys.
 
-class LessonEditLocation extends Location<LocationId> {
-  LessonEditLocation({required super.id});
+## Generated API
 
-  @override
-  List<PathSegment> get path => const [
-    PathSegment.literal('edit'),
-  ];
-}
+From the annotated route tree, the generator currently emits:
 
-@WorkingRouterLocationTree()
-Location<LocationId> buildRouteNodeTree({
-  required bool includeLessons,
-}) => SplashLocation(
-      id: LocationId.splash,
-      children: [
-        if (includeLessons) LessonLocation(id: LocationId.lesson),
-      ],
-    );
+- `routeToX(...)` helpers on `WorkingRouterSailor`
+- `XRouteTarget(...)` classes for typed imperative navigation and redirects
+- `XLocationGenerated` mixins for field-based query-parameter metadata
 
-final router = WorkingRouter<LocationId>(
-  buildRouteNodeTree: () => buildRouteNodeTree(includeLessons: true),
-  noContentWidget: const SizedBox(),
-  buildRootPages: (_, location, __) => [],
-);
-```
+That means you can navigate either with the generated helper:
 
-Generated API:
+- `router.routeToAbc(idParameter: 'test', b: 'bee', c: 'see')`
 
-```dart
-router.routeToSplash();
-router.routeToLesson(
-  lessonId: 42,
-  coursePeriodId: 7,
-  sourceDateTime: DateTime.parse('2026-04-04T10:00:00Z'),
-);
-router.routeToLessonEdit(
-  lessonId: 42,
-  coursePeriodId: 7,
-);
-```
+or with the generated target directly:
 
-The generated helper name comes from the `id` enum case. Its required
-parameters are the full ancestor-chain union of:
-- path parameters
-- query parameters declared through `Location.queryParameters`
+- `router.routeTo(AbcRouteTarget(idParameter: 'test', b: 'bee', c: 'see'))`
 
-The generator is union-based, not exact-runtime-based. In children lists it
-includes routes from collection `if` branches without evaluating the condition.
-That means generated helpers guarantee parameter completeness, but a helper may
-still target a route that is currently pruned from the live runtime tree.
+Redirects can use the same typed targets:
 
-The annotated builder used for code generation may take parameters. At runtime,
-pass a closure to `WorkingRouter.buildRouteNodeTree` that binds those values.
+- `return RedirectTransition(AbcRouteTarget(...));`
 
-## Setup
+## Building Pages
 
-Add `build_runner` to the consuming app's `dev_dependencies`, then run:
+The current recommended style is location-owned page building:
+
+- override `buildsOwnPage => true`
+- implement `buildWidget(...)`
+- optionally override `buildPage(...)` for a custom `Page`
+
+See:
+- [`example/lib/locations/splash_location.dart`](example/lib/locations/splash_location.dart)
+- [`example/lib/locations/ab_location.dart`](example/lib/locations/ab_location.dart)
+- [`example/lib/locations/abc_location.dart`](example/lib/locations/abc_location.dart)
+- [`example/lib/locations/adc_location.dart`](example/lib/locations/adc_location.dart)
+
+The legacy `buildRootPages` / skeleton flow still exists for incremental
+migration, but the main example no longer uses it.
+
+## Running The Generator
+
+Add `build_runner` to your app's `dev_dependencies`, then run:
 
 ```sh
 flutter pub run build_runner build --delete-conflicting-outputs
@@ -121,23 +101,18 @@ Or during development:
 flutter pub run build_runner watch --delete-conflicting-outputs
 ```
 
-## Supported Tree Shapes
+## Example
 
-The generator resolves a canonical tree from source and generates for the union
-of routes that can appear. Supported patterns include:
-- a top-level annotated field, getter, or function returning the root `Location`
-- inline child lists
-- top-level or static helper fields and getters
-- top-level, static, or local helper functions
-- helper function arguments when the tree-relevant expressions stay statically recoverable
-- children passed directly to a location constructor
-- children passed via `super(children: [...])` inside a location constructor
-- collection `if` elements and spreads in children lists
-- query parameters declared as `Map<String, QueryParam>`
+The package example demonstrates:
 
-## Unsupported Patterns
+- the old splash -> a -> ab/abc and ad/adc route flow on the new API
+- top-level sibling routes without a dummy root shell
+- a shell-wrapped `/a...` subtree
+- self-built locations
+- field-based path and query params
+- generated query-parameter mixins
+- generated `routeToX(...)` helpers
+- generated `XRouteTarget(...)` classes
+- a custom modal page built from `buildPage(...)`
 
-These patterns are intentionally not supported:
-- annotating instance members or static class members directly
-- loops or other arbitrary collection-building constructs
-- resolving children from an overridden `children` getter
+Run it from [`example`](example).
