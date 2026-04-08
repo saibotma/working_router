@@ -1,29 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-import '../location_id.dart';
-import '../platform_modal/platform_modal_page.dart';
-import '../pop_until_target.dart';
+import 'location_id.dart';
+import 'pop_until_target.dart';
 
-class ADCLocation extends Location<LocationId> {
-  ADCLocation({
-    required super.id,
-    required super.parentNavigatorKey,
-  });
+class ADCScreen extends StatelessWidget {
+  const ADCScreen({super.key});
 
   @override
-  List<PathSegment> get path => [literal('c')];
-
-  @override
-  bool get buildsOwnPage => true;
-
-  @override
-  Page<dynamic> buildPage(LocalKey? key, Widget child) {
-    return PlatformModalPage<dynamic>(key: key, child: child);
-  }
-
-  @override
-  Widget buildWidget(BuildContext context, WorkingRouterData<LocationId> data) {
+  Widget build(BuildContext context) {
     return Material(
       color: Colors.green,
       child: SizedBox(

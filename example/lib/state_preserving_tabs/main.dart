@@ -15,14 +15,16 @@ void main() {
   runApp(const StatePreservingTabs());
 }
 
-List<RouteNode<String>> buildRouteNodes() => [
-      ScaffoldLocation(
-        children: [
-          Tab1Location(),
-          Tab2Location(),
-        ],
-      ),
-    ];
+void buildRouteNodes(RouteNodesBuilder<String> builder) {
+  builder.child(
+    ScaffoldLocation(
+      children: [
+        Tab1Location(),
+        Tab2Location(),
+      ],
+    ),
+  );
+}
 
 class StatePreservingTabs extends StatefulWidget {
   const StatePreservingTabs({Key? key}) : super(key: key);

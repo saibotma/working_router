@@ -6,11 +6,11 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/working_router.dart';
 
-/// Rebuilds the top-level [RouteNode] list for a router instance.
+/// Rebuilds the top-level route tree for a router instance.
 ///
 /// This callback is used at startup and again on [WorkingRouter.refresh] so the
 /// runtime tree can react to changing application state such as permissions.
-typedef BuildRouteNodes<ID> = Iterable<RouteNode<ID>> Function();
+typedef BuildRouteNodes<ID> = void Function(RouteNodesBuilder<ID> builder);
 
 class WorkingRouter<ID> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
@@ -73,7 +73,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _decideTransition = decideTransition,
        _redirectLimit = redirectLimit {
-    _routeNodeTree = buildRouteNodes().toIList();
+    _routeNodeTree = _buildRouteNodeTree();
     _rootDelegate = WorkingRouterDelegate<ID>(
       debugLabel: "root",
       isRootDelegate: true,
@@ -115,7 +115,7 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   /// Rebuilds the route node tree for this router instance.
   void refresh() {
-    _routeNodeTree = buildRouteNodes().toIList();
+    _routeNodeTree = _buildRouteNodeTree();
     final currentData = nullableData;
     if (currentData != null) {
       // Delegate refresh only rebuilds pages from the current router data.
@@ -126,6 +126,12 @@ class WorkingRouter<ID> extends ChangeNotifier
     for (final it in [_rootDelegate, ..._nestedDelegates]) {
       it.refresh();
     }
+  }
+
+  IList<RouteNode<ID>> _buildRouteNodeTree() {
+    final builder = RouteNodesBuilder<ID>();
+    buildRouteNodes(builder);
+    return builder.children.toIList();
   }
 
   @override

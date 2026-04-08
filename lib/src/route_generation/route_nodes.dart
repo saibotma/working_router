@@ -2,14 +2,17 @@
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or function
-/// returning an `Iterable<RouteNode<ID>>`.
+/// returning an `Iterable<RouteNode<ID>>`, or a top-level builder function
+/// taking a `RouteNodesBuilder<ID>`.
 ///
 /// Example:
 /// ```dart
 /// part 'app_routes.g.dart';
 ///
 /// @RouteNodes()
-/// List<RouteNode<AppRouteId>> buildRouteNodes() => [_appRouteTree];
+/// void buildRouteNodes(RouteNodesBuilder<AppRouteId> builder) {
+///   builder.child(_appRouteTree);
+/// }
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on

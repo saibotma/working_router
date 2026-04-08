@@ -23,7 +23,7 @@ final class ARouteTarget extends IdRouteTarget<LocationId> {
 final class ChildARouteTarget extends ChildRouteTarget<LocationId> {
   ChildARouteTarget()
       : super(
-          (location) => location is ALocation,
+          (location) => location.id == LocationId.a,
         );
 }
 
@@ -37,7 +37,7 @@ final class AbRouteTarget extends IdRouteTarget<LocationId> {
 final class ChildAbRouteTarget extends ChildRouteTarget<LocationId> {
   ChildAbRouteTarget()
       : super(
-          (location) => location is ABLocation,
+          (location) => location.id == LocationId.ab,
         );
 }
 
@@ -54,7 +54,7 @@ final class AbcRouteTarget extends IdRouteTarget<LocationId> {
               if (location is ABCLocation) {
                 switch (abclocationMatchIndex++) {
                   case 0:
-                    path(location.idParam, id);
+                    path(location.pathParameters[0] as PathParam<String>, id);
                     break;
                 }
               }
@@ -80,7 +80,7 @@ final class ChildAbcRouteTarget extends ChildRouteTarget<LocationId> {
               if (location is ABCLocation) {
                 switch (abclocationMatchIndex++) {
                   case 0:
-                    path(location.idParam, id);
+                    path(location.pathParameters[0] as PathParam<String>, id);
                     break;
                 }
               }
@@ -103,7 +103,7 @@ final class AdRouteTarget extends IdRouteTarget<LocationId> {
 final class ChildAdRouteTarget extends ChildRouteTarget<LocationId> {
   ChildAdRouteTarget()
       : super(
-          (location) => location is ADLocation,
+          (location) => location.id == LocationId.ad,
         );
 }
 
@@ -117,7 +117,7 @@ final class AdcRouteTarget extends IdRouteTarget<LocationId> {
 final class ChildAdcRouteTarget extends ChildRouteTarget<LocationId> {
   ChildAdcRouteTarget()
       : super(
-          (location) => location is ADCLocation,
+          (location) => location.id == LocationId.adc,
         );
 }
 

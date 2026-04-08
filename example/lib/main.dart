@@ -42,10 +42,13 @@ class _DependentMaterialAppState extends State<_DependentMaterialApp> {
   late final WorkingRouter<LocationId> router = WorkingRouter<LocationId>(
     navigatorKey: rootNavigatorKey,
     noContentWidget: const Center(child: Text('No matching route.')),
-    buildRouteNodes: () => buildRouteNodes(
-      rootNavigatorKey: rootNavigatorKey,
-      alphabetNavigatorKey: alphabetNavigatorKey,
-    ),
+    buildRouteNodes: (builder) {
+      buildRouteNodes(
+        builder,
+        rootNavigatorKey: rootNavigatorKey,
+        alphabetNavigatorKey: alphabetNavigatorKey,
+      );
+    },
   );
 
   @override

@@ -8,6 +8,8 @@ export 'src/location_page.dart';
 export 'src/location_page_skeleton.dart';
 export 'src/location_tag.dart';
 export 'src/nested_location_page_skeleton.dart';
+export 'src/route_builder.dart';
+export 'src/route_builder_nodes.dart';
 export 'src/route_generation/route_nodes.dart';
 export 'src/route_node.dart';
 export 'src/route_param_codec.dart';

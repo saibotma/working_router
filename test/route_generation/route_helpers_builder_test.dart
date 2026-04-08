@@ -210,6 +210,67 @@ Location<ParamSuffixRouteId> get appLocationTree => RootLocation();
     );
   });
 
+  test('supports inline DSL child locations with generated params', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions(const {}),
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/dsl_field_params_routes.dart': '''
+library dsl_field_params_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'dsl_field_params_routes.g.dart';
+
+enum FieldDslRouteId { root, item }
+
+class RootLocation extends Location<FieldDslRouteId> {
+  RootLocation();
+
+  @override
+  void build(LocationBuilder<FieldDslRouteId> builder) {
+    builder.legacy();
+    builder.location((builder) {
+      builder.id(FieldDslRouteId.item);
+      builder.pathLiteral('item');
+      final itemId = builder.pathParam(const StringRouteParamCodec());
+      final keep = builder.queryParam('keep', const StringRouteParamCodec());
+      builder.legacy();
+    });
+  }
+}
+
+@RouteNodes()
+Location<FieldDslRouteId> get appLocationTree => RootLocation();
+''',
+      },
+      outputs: {
+        'working_router|lib/dsl_field_params_routes.working_router.g.part': decodedMatches(
+          allOf(
+            contains(
+              'void routeToItem({required String itemId, required String keep}) {',
+            ),
+            contains(
+              'ItemRouteTarget({required String itemId, required String keep})',
+            ),
+            contains(
+              'path(location.pathParameters[0] as PathParam<String>, itemId);',
+            ),
+            contains(
+              "queryParameters: {'keep': const StringRouteParamCodec().encode(keep)}",
+            ),
+          ),
+        ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
+
   test('supports static helper declarations inside tree composition', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions(const {}),
@@ -1110,10 +1171,14 @@ class ChildLocation extends Location<ShellRootRouteId> {
 @RouteNodes()
 RouteNode<ShellRootRouteId> get appLocationTree => Shell<ShellRootRouteId>(
   navigatorKey: GlobalKey<NavigatorState>(),
-  children: [
-    ChildLocation(id: ShellRootRouteId.child),
-  ],
-  buildWidget: (context, data, child) => child,
+  build: (builder) {
+    builder.buildWidget((context, data, child) => child);
+    builder.location((builder) {
+      builder.id(ShellRootRouteId.child);
+      builder.pathLiteral('child');
+      builder.legacy();
+    });
+  },
 );
 ''',
       },
