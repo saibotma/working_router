@@ -77,12 +77,12 @@ class WorkingRouterData<ID> {
 
   T? queryParameterOrNull<T>(QueryParam<T> parameter) {
     for (final location in locations) {
-      for (final entry in location.queryParameters.entries) {
-        if (!identical(entry.value, parameter)) {
+      for (final declaredParameter in location.queryParameters) {
+        if (!identical(declaredParameter, parameter)) {
           continue;
         }
 
-        final rawValue = queryParameters[entry.key];
+        final rawValue = queryParameters[parameter.name];
         if (rawValue == null) {
           return null;
         }

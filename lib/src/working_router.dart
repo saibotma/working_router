@@ -271,7 +271,9 @@ class WorkingRouter<ID> extends ChangeNotifier
     );
 
     final newQueryParameters = data.queryParameters.keepKeys(
-      newLocations.expand((location) => location.queryParameters.keys).toSet(),
+      newLocations
+          .expand((location) => location.queryParameters.map((it) => it.name))
+          .toSet(),
     );
 
     _routeTo(
@@ -458,11 +460,16 @@ class WorkingRouter<ID> extends ChangeNotifier
             !retainSharedQueryParameters || currentData == null
             ? <String>{}
             : currentData.locations
-                  .expand((location) => location.queryParameters.keys)
+                  .expand(
+                    (location) => location.queryParameters.map((it) => it.name),
+                  )
                   .toSet()
                   .intersection(
                     matchedLocations
-                        .expand((location) => location.queryParameters.keys)
+                        .expand(
+                          (location) =>
+                              location.queryParameters.map((it) => it.name),
+                        )
                         .toSet(),
                   );
 
@@ -508,7 +515,9 @@ class WorkingRouter<ID> extends ChangeNotifier
               writePathParameters,
             ).toIMap(),
           ),
-          queryParameters: data.queryParameters.addAll(queryParameters.toIMap()),
+          queryParameters: data.queryParameters.addAll(
+            queryParameters.toIMap(),
+          ),
         );
     }
   }

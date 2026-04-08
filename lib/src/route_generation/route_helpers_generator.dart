@@ -24,37 +24,27 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     );
     final roots = await extractor.extract(declarationElement);
     final methods = _collectRouteMethods(roots, declarationElement);
-    final queryParameterMixins = await _collectQueryParameterMixins(
-      roots,
-      buildStep,
-    );
-    if (methods.isEmpty && queryParameterMixins.isEmpty) {
+    if (methods.isEmpty) {
       return '';
     }
 
     final buffer = StringBuffer();
 
-    for (final mixin in queryParameterMixins) {
-      buffer.writeln(mixin.render());
+    for (final method in methods) {
+      buffer.writeln(method.renderTargetClass());
     }
 
-    if (methods.isNotEmpty) {
-      for (final method in methods) {
-        buffer.writeln(method.renderTargetClass());
-      }
+    final extensionName =
+        '${_toUpperCamelCase(declarationElement.displayName)}GeneratedRoutes';
+    buffer.writeln(
+      'extension $extensionName on WorkingRouterSailor<$typeSource> {',
+    );
 
-      final extensionName =
-          '${_toUpperCamelCase(declarationElement.displayName)}GeneratedRoutes';
-      buffer.writeln(
-        'extension $extensionName on WorkingRouterSailor<$typeSource> {',
-      );
-
-      for (final method in methods) {
-        buffer.writeln(method.renderMethod());
-      }
-
-      buffer.writeln('}');
+    for (final method in methods) {
+      buffer.writeln(method.renderMethod());
     }
+
+    buffer.writeln('}');
     return buffer.toString();
   }
 
@@ -397,112 +387,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     return null;
-  }
-
-  InterfaceType? _locationSupertype(InterfaceType type) {
-    InterfaceType? current = type;
-    while (current != null) {
-      if (current.element.name == 'Location') {
-        return current;
-      }
-      current = current.superclass;
-    }
-    return null;
-  }
-
-  Future<List<_GeneratedLocationMixin>> _collectQueryParameterMixins(
-    Iterable<_RouteNode> roots,
-    BuildStep buildStep,
-  ) async {
-    final mixins = <_GeneratedLocationMixin>[];
-    final seenClassNames = <String>{};
-
-    Future<void> visit(_RouteNode node) async {
-      if (node.isLocation && seenClassNames.add(node.locationTypeSource)) {
-        final inferredQueryParameters = node.queryParameters.values
-            .where((parameter) => parameter.memberName != null)
-            .toList(growable: false);
-        if (inferredQueryParameters.isNotEmpty) {
-          final shouldGenerateMixin = await _shouldGenerateMixin(
-            node.locationClassElement,
-            buildStep,
-            requiresQueryMetadata: inferredQueryParameters.isNotEmpty,
-          );
-          if (shouldGenerateMixin) {
-            mixins.add(
-              _GeneratedLocationMixin(
-                mixinName: _generatedLocationMixinName(
-                  node.locationClassElement.displayName,
-                ),
-                locationBaseTypeSource: _locationSupertype(
-                  node.locationClassElement.thisType,
-                )!.getDisplayString(),
-                queryParameters: inferredQueryParameters,
-              ),
-            );
-          }
-        }
-      }
-
-      for (final child in node.children) {
-        await visit(child);
-      }
-    }
-
-    for (final root in roots) {
-      await visit(root);
-    }
-    return mixins;
-  }
-
-  Future<bool> _shouldGenerateMixin(
-    InterfaceElement classElement,
-    BuildStep buildStep, {
-    required bool requiresQueryMetadata,
-  }) async {
-    final node = await buildStep.resolver.astNodeFor(
-      classElement.firstFragment,
-      resolve: true,
-    );
-    if (node is! ClassDeclaration) {
-      return false;
-    }
-
-    final mixinName = _generatedLocationMixinName(classElement.displayName);
-    final usedMixinNames =
-        node.withClause?.mixinTypes
-            .map((mixinType) => mixinType.name.lexeme)
-            .toSet() ??
-        const <String>{};
-    if (usedMixinNames.contains(mixinName)) {
-      return true;
-    }
-
-    final declaresQueryParameters = _declaresMember(node, 'queryParameters');
-    final stillNeedsMixin = requiresQueryMetadata && !declaresQueryParameters;
-    if (!stillNeedsMixin) {
-      return false;
-    }
-
-    throw InvalidGenerationSourceError(
-      '`${classElement.displayName}` declares generated QueryParam fields but '
-      'does not '
-      'mix in `$mixinName`. Add `with $mixinName` to `${classElement.displayName}` '
-      'so the generated route metadata is used at runtime.',
-      element: classElement,
-    );
-  }
-
-  bool _declaresMember(ClassDeclaration node, String memberName) {
-    return node.members.any((member) {
-      return switch (member) {
-        MethodDeclaration(name: final name) => name.lexeme == memberName,
-        FieldDeclaration(fields: final fields) => fields.variables.any(
-          (variable) => variable.name.lexeme == memberName,
-        ),
-        _ => false,
-      };
-    });
   }
 }
 
@@ -1005,63 +889,14 @@ class _StaticRouteTreeExtractor {
         _ => throw StateError('Unreachable'),
       };
       final expression = _bodyExpression(body, getter);
-      return _queryParameterMapLiteral(
+      return _queryParameterListLiteral(
         expression,
         getter,
         evaluationContext: evaluationContext,
       );
     }
 
-    return _queryParametersFromDeclaredFields(classElement);
-  }
-
-  Future<Map<String, _RouteQueryParameterMetadata>>
-  _queryParametersFromDeclaredFields(
-    InterfaceElement classElement,
-  ) async {
-    final node = await buildStep.resolver.astNodeFor(
-      classElement.firstFragment,
-      resolve: true,
-    );
-    if (node is! ClassDeclaration) {
-      return <String, _RouteQueryParameterMetadata>{};
-    }
-
-    final result = <String, _RouteQueryParameterMetadata>{};
-    for (final member in node.members.whereType<FieldDeclaration>()) {
-      if (member.isStatic) {
-        continue;
-      }
-
-      for (final variable in member.fields.variables) {
-        final fieldElement = variable.declaredFragment?.element;
-        if (fieldElement == null || !_isQueryParamType(fieldElement.type)) {
-          continue;
-        }
-
-        final initializer = variable.initializer;
-        if (initializer == null) {
-          throw InvalidGenerationSourceError(
-            'QueryParam field `${variable.name.lexeme}` in `${classElement.name}` '
-            'needs an initializer.',
-            element: fieldElement,
-          );
-        }
-
-        final metadata = await _queryParameterMetadata(
-          initializer,
-          key: variable.name.lexeme,
-          element: fieldElement,
-        );
-        _registerQueryParameterMetadata(
-          metadata.copyWith(memberName: variable.name.lexeme),
-          result,
-          element: fieldElement,
-        );
-      }
-    }
-
-    return result;
+    return const <String, _RouteQueryParameterMetadata>{};
   }
 
   Future<List<_PathSegmentMetadata>> _pathSegmentListLiteral(
@@ -1156,6 +991,22 @@ class _StaticRouteTreeExtractor {
       );
     }
 
+    if (normalizedExpression is MethodInvocation &&
+        normalizedExpression.methodName.name == 'literal') {
+      final valueExpression = normalizedExpression.argumentList.arguments
+          .whereType<Expression>()
+          .firstOrNull;
+      if (valueExpression == null) {
+        throw InvalidGenerationSourceError(
+          'literal(...) requires a string value.',
+          element: element,
+        );
+      }
+      return _LiteralPathSegmentMetadata(
+        value: _stringLiteral(valueExpression, element),
+      );
+    }
+
     if (normalizedExpression is! InstanceCreationExpression) {
       final referencedElement = _expressionElement(normalizedExpression);
       if (referencedElement != null) {
@@ -1169,7 +1020,8 @@ class _StaticRouteTreeExtractor {
         );
       }
       throw InvalidGenerationSourceError(
-        'Only route path segment constructor calls are supported in path.',
+        'Only route path segment constructor calls and literal(...) are '
+        'supported in path.',
         element: element,
       );
     }
@@ -1230,7 +1082,7 @@ class _StaticRouteTreeExtractor {
 
     return _pathParameterMetadata(
       fieldNode.initializer!,
-      key: fieldElement.displayName,
+      key: _pathParameterRouteKey(fieldElement.displayName),
       memberName: fieldElement.displayName,
       element: element,
       evaluationContext: evaluationContext,
@@ -1303,7 +1155,16 @@ class _StaticRouteTreeExtractor {
     );
   }
 
-  Future<Map<String, _RouteQueryParameterMetadata>> _queryParameterMapLiteral(
+  String _pathParameterRouteKey(String memberName) {
+    for (final suffix in ['Parameter', 'Param']) {
+      if (memberName.endsWith(suffix) && memberName.length > suffix.length) {
+        return memberName.substring(0, memberName.length - suffix.length);
+      }
+    }
+    return memberName;
+  }
+
+  Future<Map<String, _RouteQueryParameterMetadata>> _queryParameterListLiteral(
     Expression expression,
     Element element, {
     _ExpressionContext? evaluationContext,
@@ -1315,7 +1176,7 @@ class _StaticRouteTreeExtractor {
         normalizedExpression,
       );
       if (boundExpression != null) {
-        return _queryParameterMapLiteral(
+        return _queryParameterListLiteral(
           boundExpression,
           element,
           evaluationContext: evaluationContext,
@@ -1323,11 +1184,10 @@ class _StaticRouteTreeExtractor {
       }
     }
 
-    if (normalizedExpression is SetOrMapLiteral &&
-        normalizedExpression.isMap == true) {
+    if (normalizedExpression is ListLiteral) {
       final result = <String, _RouteQueryParameterMetadata>{};
       for (final item in normalizedExpression.elements) {
-        final metadataByKey = await _queryParametersFromMapElement(
+        final metadataByKey = await _queryParametersFromListElement(
           item,
           elementForErrors: element,
           evaluationContext: evaluationContext,
@@ -1348,7 +1208,7 @@ class _StaticRouteTreeExtractor {
       evaluationContext: evaluationContext,
     );
     if (helperInvocation != null) {
-      return _queryParameterMapLiteral(
+      return _queryParameterListLiteral(
         helperInvocation.expression,
         element,
         evaluationContext: helperInvocation.context,
@@ -1358,7 +1218,7 @@ class _StaticRouteTreeExtractor {
     final referencedElement = _expressionElement(normalizedExpression);
     if (referencedElement != null) {
       final targetExpression = await _declarationExpression(referencedElement);
-      return _queryParameterMapLiteral(
+      return _queryParameterListLiteral(
         targetExpression,
         referencedElement,
         evaluationContext: evaluationContext,
@@ -1366,29 +1226,27 @@ class _StaticRouteTreeExtractor {
     }
 
     throw InvalidGenerationSourceError(
-      'Only literal query parameter maps are supported.',
+      'Only literal query parameter lists are supported.',
       element: element,
     );
   }
 
   Future<Map<String, _RouteQueryParameterMetadata>>
-  _queryParametersFromMapElement(
+  _queryParametersFromListElement(
     CollectionElement element, {
     required Element elementForErrors,
     _ExpressionContext? evaluationContext,
   }) async {
     switch (element) {
-      case MapLiteralEntry():
-        final key = _stringLiteral(element.key, elementForErrors);
+      case Expression():
         final metadata = await _queryParameterMetadata(
-          element.value,
-          key: key,
+          element,
           element: elementForErrors,
           evaluationContext: evaluationContext,
         );
         return {metadata.key: metadata};
       case SpreadElement():
-        return _queryParameterMapLiteral(
+        return _queryParameterListLiteral(
           element.expression,
           elementForErrors,
           evaluationContext: evaluationContext,
@@ -1399,7 +1257,7 @@ class _StaticRouteTreeExtractor {
           element.thenElement,
           if (element.elseElement != null) element.elseElement!,
         ]) {
-          final branchMetadata = await _queryParametersFromMapElement(
+          final branchMetadata = await _queryParametersFromListElement(
             branchElement,
             elementForErrors: elementForErrors,
             evaluationContext: evaluationContext,
@@ -1423,7 +1281,6 @@ class _StaticRouteTreeExtractor {
 
   Future<_RouteQueryParameterMetadata> _queryParameterMetadata(
     Expression expression, {
-    required String key,
     required Element element,
     _ExpressionContext? evaluationContext,
   }) async {
@@ -1436,7 +1293,6 @@ class _StaticRouteTreeExtractor {
       if (boundExpression != null) {
         return _queryParameterMetadata(
           boundExpression,
-          key: key,
           element: element,
           evaluationContext: evaluationContext,
         );
@@ -1450,7 +1306,6 @@ class _StaticRouteTreeExtractor {
       if (helperInvocation != null) {
         return _queryParameterMetadata(
           helperInvocation.expression,
-          key: key,
           element: element,
           evaluationContext: helperInvocation.context,
         );
@@ -1463,7 +1318,6 @@ class _StaticRouteTreeExtractor {
         );
         return _queryParameterMetadata(
           targetExpression,
-          key: key,
           element: referencedElement,
           evaluationContext: evaluationContext,
         );
@@ -1487,28 +1341,37 @@ class _StaticRouteTreeExtractor {
       );
     }
 
-    final keyExpression = _namedArgumentExpression(
-      normalizedExpression.argumentList.arguments,
-      'key',
-    );
+    final positionalArguments = normalizedExpression.argumentList.arguments
+        .where((argument) => argument is! NamedExpression)
+        .whereType<Expression>()
+        .toList(growable: false);
+    final keyExpression = positionalArguments.firstOrNull;
     final codecExpression =
         _namedArgumentExpression(
           normalizedExpression.argumentList.arguments,
           'codec',
         ) ??
-        normalizedExpression.argumentList.arguments
-            .whereType<Expression>()
-            .skip(keyExpression == null ? 0 : 1)
-            .firstOrNull;
+        positionalArguments.skip(1).firstOrNull;
     final optionalExpression = _namedArgumentExpression(
       normalizedExpression.argumentList.arguments,
       'optional',
     );
-    if (codecExpression == null) {
+    if (keyExpression == null || codecExpression == null) {
       throw InvalidGenerationSourceError(
-        'QueryParam requires a codec.',
+        'QueryParam requires a string name and a codec.',
         element: element,
       );
+    }
+
+    var resolvedKeyExpression = keyExpression;
+    if (evaluationContext != null &&
+        _canResolveThroughContext(_unwrapExpression(keyExpression))) {
+      final boundKeyExpression = await evaluationContext.resolveExpression(
+        _unwrapExpression(keyExpression),
+      );
+      if (boundKeyExpression != null) {
+        resolvedKeyExpression = boundKeyExpression;
+      }
     }
 
     var resolvedCodecExpression = codecExpression;
@@ -1523,7 +1386,7 @@ class _StaticRouteTreeExtractor {
     }
 
     return _RouteQueryParameterMetadata(
-      key: key,
+      key: _stringLiteral(resolvedKeyExpression, element),
       dartTypeSource: _codecValueTypeSourceForExpression(
         resolvedCodecExpression,
         element,
@@ -1699,13 +1562,6 @@ class _StaticRouteTreeExtractor {
       current = current.element.supertype;
     }
     return null;
-  }
-
-  bool _isQueryParamType(DartType? type) {
-    if (type is! InterfaceType) {
-      return false;
-    }
-    return _supertypeNamed(type, 'QueryParam') != null;
   }
 
   bool _isPathParamType(DartType? type) {
@@ -3191,14 +3047,12 @@ class _RouteQueryParameterMetadata {
   final String dartTypeSource;
   final String codecExpressionSource;
   final bool optional;
-  final String? memberName;
 
   const _RouteQueryParameterMetadata({
     required this.key,
     required this.dartTypeSource,
     required this.codecExpressionSource,
     required this.optional,
-    this.memberName,
   });
 
   _RouteQueryParameterMetadata copyWith({
@@ -3206,7 +3060,6 @@ class _RouteQueryParameterMetadata {
     String? dartTypeSource,
     String? codecExpressionSource,
     bool? optional,
-    String? memberName,
   }) {
     return _RouteQueryParameterMetadata(
       key: key ?? this.key,
@@ -3214,46 +3067,7 @@ class _RouteQueryParameterMetadata {
       codecExpressionSource:
           codecExpressionSource ?? this.codecExpressionSource,
       optional: optional ?? this.optional,
-      memberName: memberName ?? this.memberName,
     );
-  }
-}
-
-class _GeneratedLocationMixin {
-  final String mixinName;
-  final String locationBaseTypeSource;
-  final List<_RouteQueryParameterMetadata> queryParameters;
-
-  const _GeneratedLocationMixin({
-    required this.mixinName,
-    required this.locationBaseTypeSource,
-    required this.queryParameters,
-  });
-
-  String render() {
-    final buffer = StringBuffer()
-      ..writeln('mixin $mixinName on $locationBaseTypeSource {');
-
-    for (final parameter in queryParameters) {
-      buffer.writeln(
-        '  QueryParam<${parameter.dartTypeSource}> get ${parameter.memberName};',
-      );
-    }
-
-    if (queryParameters.isNotEmpty) {
-      buffer
-        ..writeln('  @override')
-        ..writeln(
-          '  Map<String, QueryParam<dynamic>> get queryParameters => {',
-        );
-      for (final parameter in queryParameters) {
-        buffer.writeln("    '${parameter.key}': ${parameter.memberName},");
-      }
-      buffer.writeln('  };');
-    }
-
-    buffer.writeln('}');
-    return buffer.toString();
   }
 }
 
@@ -3326,14 +3140,6 @@ String _childMethodBaseName(String locationTypeSource) {
   }
 
   return locationTypeSource;
-}
-
-String _generatedLocationMixinName(String locationTypeSource) {
-  final normalizedTypeSource = locationTypeSource.replaceFirst(
-    RegExp('^_+'),
-    '',
-  );
-  return '${normalizedTypeSource}Generated';
 }
 
 String _toParameterIdentifier(String value) {

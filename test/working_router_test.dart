@@ -786,9 +786,9 @@ class _ItemLocation extends _ParamPathLocation {
   ];
 
   @override
-  Map<String, QueryParam<dynamic>> get queryParameters => const {
-    'keep': QueryParam(StringRouteParamCodec()),
-  };
+  List<QueryParam<dynamic>> get queryParameters => const [
+    QueryParam('keep', StringRouteParamCodec()),
+  ];
 }
 
 class _DetailLocation extends _ParamPathLocation {
@@ -798,9 +798,9 @@ class _DetailLocation extends _ParamPathLocation {
   });
 
   @override
-  Map<String, QueryParam<dynamic>> get queryParameters => const {
-    'detail': QueryParam(StringRouteParamCodec()),
-  };
+  List<QueryParam<dynamic>> get queryParameters => const [
+    QueryParam('detail', StringRouteParamCodec()),
+  ];
 }
 
 class _MigratingRootLocation extends Location<_MigratingId> {
@@ -818,7 +818,7 @@ class _MigratingRootLocation extends Location<_MigratingId> {
 
 class _SelfBuiltAccountLocation extends Location<_MigratingId> {
   final accountId = pathParam(const StringRouteParamCodec());
-  final tab = queryParam(const StringRouteParamCodec());
+  final tab = queryParam('tab', const StringRouteParamCodec());
 
   _SelfBuiltAccountLocation({
     required super.id,
@@ -834,9 +834,7 @@ class _SelfBuiltAccountLocation extends Location<_MigratingId> {
   ];
 
   @override
-  Map<String, QueryParam<dynamic>> get queryParameters => {
-    'tab': tab,
-  };
+  List<QueryParam<dynamic>> get queryParameters => [tab];
 
   @override
   Widget buildWidget(
@@ -861,7 +859,7 @@ List<PathSegment> _pathSegments(String path) {
             'Use a PathParam field instead of inline dynamic path segments.',
           );
         }
-        return PathSegment.literal(segment);
+        return literal(segment);
       })
       .toList(growable: false);
 }

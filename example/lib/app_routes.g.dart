@@ -6,16 +6,6 @@ part of 'app_routes.dart';
 // RouteHelpersGenerator
 // **************************************************************************
 
-mixin ABCLocationGenerated on Location<LocationId> {
-  QueryParam<String> get bParam;
-  QueryParam<String> get cParam;
-  @override
-  Map<String, QueryParam<dynamic>> get queryParameters => {
-        'bParam': bParam,
-        'cParam': cParam,
-      };
-}
-
 final class SplashRouteTarget extends IdRouteTarget<LocationId> {
   const SplashRouteTarget()
       : super(
@@ -53,9 +43,9 @@ final class ChildAbRouteTarget extends ChildRouteTarget<LocationId> {
 
 final class AbcRouteTarget extends IdRouteTarget<LocationId> {
   AbcRouteTarget({
-    required String idParam,
-    required String bParam,
-    required String cParam,
+    required String id,
+    required String b,
+    required String c,
   }) : super(
           LocationId.abc,
           writePathParameters: (() {
@@ -64,24 +54,24 @@ final class AbcRouteTarget extends IdRouteTarget<LocationId> {
               if (location is ABCLocation) {
                 switch (abclocationMatchIndex++) {
                   case 0:
-                    path(location.idParam, idParam);
+                    path(location.idParam, id);
                     break;
                 }
               }
             };
           })(),
           queryParameters: {
-            'bParam': const StringRouteParamCodec().encode(bParam),
-            'cParam': const StringRouteParamCodec().encode(cParam),
+            'b': const StringRouteParamCodec().encode(b),
+            'c': const StringRouteParamCodec().encode(c),
           },
         );
 }
 
 final class ChildAbcRouteTarget extends ChildRouteTarget<LocationId> {
   ChildAbcRouteTarget({
-    required String idParam,
-    required String bParam,
-    required String cParam,
+    required String id,
+    required String b,
+    required String c,
   }) : super(
           (location) => location is ABCLocation,
           writePathParameters: (() {
@@ -90,15 +80,15 @@ final class ChildAbcRouteTarget extends ChildRouteTarget<LocationId> {
               if (location is ABCLocation) {
                 switch (abclocationMatchIndex++) {
                   case 0:
-                    path(location.idParam, idParam);
+                    path(location.idParam, id);
                     break;
                 }
               }
             };
           })(),
           queryParameters: {
-            'bParam': const StringRouteParamCodec().encode(bParam),
-            'cParam': const StringRouteParamCodec().encode(cParam),
+            'b': const StringRouteParamCodec().encode(b),
+            'c': const StringRouteParamCodec().encode(c),
           },
         );
 }
@@ -153,29 +143,29 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor<LocationId> {
   }
 
   void routeToAbc({
-    required String idParam,
-    required String bParam,
-    required String cParam,
+    required String id,
+    required String b,
+    required String c,
   }) {
     routeTo(
       AbcRouteTarget(
-        idParam: idParam,
-        bParam: bParam,
-        cParam: cParam,
+        id: id,
+        b: b,
+        c: c,
       ),
     );
   }
 
   void routeToChildAbc({
-    required String idParam,
-    required String bParam,
-    required String cParam,
+    required String id,
+    required String b,
+    required String c,
   }) {
     routeTo(
       ChildAbcRouteTarget(
-        idParam: idParam,
-        bParam: bParam,
-        cParam: cParam,
+        id: id,
+        b: b,
+        c: c,
       ),
     );
   }

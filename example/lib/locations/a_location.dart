@@ -27,7 +27,7 @@ class ALocation extends Location<LocationId> {
   ];
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('a')];
+  List<PathSegment> get path => [literal('a')];
 
   @override
   bool get buildsOwnPage => true;

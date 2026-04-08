@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-import '../app_routes.dart';
 import '../location_id.dart';
 import '../platform_modal/platform_modal_page.dart';
 
-class ABCLocation extends Location<LocationId> with ABCLocationGenerated {
+class ABCLocation extends Location<LocationId> {
   final idParam = pathParam(const StringRouteParamCodec());
-  @override
-  final bParam = queryParam(const StringRouteParamCodec());
-  @override
-  final cParam = queryParam(const StringRouteParamCodec());
+  final bParam = queryParam('b', const StringRouteParamCodec());
+  final cParam = queryParam('c', const StringRouteParamCodec());
 
   ABCLocation({
     super.id,
@@ -19,9 +16,12 @@ class ABCLocation extends Location<LocationId> with ABCLocationGenerated {
 
   @override
   List<PathSegment> get path => [
-        PathSegment.literal('c'),
+        literal('c'),
         idParam,
       ];
+
+  @override
+  List<QueryParam<dynamic>> get queryParameters => [bParam, cParam];
 
   @override
   bool get buildsOwnPage => true;

@@ -7,8 +7,6 @@ import 'package:working_router/src/working_router_data.dart';
 
 sealed class PathSegment {
   const PathSegment();
-
-  const factory PathSegment.literal(String value) = LiteralPathSegment;
 }
 
 LiteralPathSegment literal(String value) => LiteralPathSegment(value);
@@ -16,9 +14,10 @@ LiteralPathSegment literal(String value) => LiteralPathSegment(value);
 PathParam<T> pathParam<T>(RouteParamCodec<T> codec) => PathParam<T>(codec);
 
 QueryParam<T> queryParam<T>(
+  String name,
   RouteParamCodec<T> codec, {
   bool optional = false,
-}) => QueryParam<T>(codec, optional: optional);
+}) => QueryParam<T>(name, codec, optional: optional);
 
 typedef WritePathParameters<ID> =
     void Function(
@@ -39,10 +38,11 @@ class PathParam<T> extends PathSegment {
 }
 
 class QueryParam<T> {
+  final String name;
   final RouteParamCodec<T> codec;
   final bool optional;
 
-  const QueryParam(this.codec, {this.optional = false});
+  const QueryParam(this.name, this.codec, {this.optional = false});
 }
 
 abstract class RouteNode<ID> {

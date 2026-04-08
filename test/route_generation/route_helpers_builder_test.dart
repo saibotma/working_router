@@ -47,26 +47,26 @@ class _ItemLocation extends Location<AppRouteId> {
 
   @override
   List<PathSegment> get path => [
-    PathSegment.literal('item'),
+    literal('item'),
     itemId,
   ];
 
   @override
-  get queryParameters => const {
-    'keep': QueryParam(StringRouteParamCodec()),
-  };
+  get queryParameters => const [
+    QueryParam('keep', StringRouteParamCodec()),
+  ];
 }
 
 class _ItemDetailsLocation extends Location<AppRouteId> {
   _ItemDetailsLocation({required super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('details')];
+  List<PathSegment> get path => [literal('details')];
 
   @override
-  get queryParameters => const {
-    'detail': QueryParam(StringRouteParamCodec()),
-  };
+  get queryParameters => const [
+    QueryParam('detail', StringRouteParamCodec()),
+  ];
 }
 
 List<RouteNode<AppRouteId>> buildItemChildren() => [
@@ -142,6 +142,74 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
     );
   });
 
+  test('strips Param and Parameter suffixes from generated path names', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions(const {}),
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/param_suffix_routes.dart': '''
+library param_suffix_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'param_suffix_routes.g.dart';
+
+enum ParamSuffixRouteId { root, detail }
+
+class RootLocation extends Location<ParamSuffixRouteId> {
+  RootLocation();
+
+  @override
+  late final List<RouteNode<ParamSuffixRouteId>> children = [
+    DetailLocation(id: ParamSuffixRouteId.detail),
+  ];
+
+  @override
+  List<PathSegment> get path => const [];
+}
+
+class DetailLocation extends Location<ParamSuffixRouteId> {
+  final idParam = pathParam(const StringRouteParamCodec());
+  final slugParameter = pathParam(const StringRouteParamCodec());
+
+  DetailLocation({required super.id});
+
+  @override
+  List<PathSegment> get path => [
+    literal('detail'),
+    idParam,
+    slugParameter,
+  ];
+}
+
+@RouteNodes()
+Location<ParamSuffixRouteId> get appLocationTree => RootLocation();
+''',
+      },
+      outputs: {
+        'working_router|lib/param_suffix_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains(
+                  'void routeToDetail({required String id, required String slug}) {',
+                ),
+                contains(
+                  'DetailRouteTarget({required String id, required String slug})',
+                ),
+                contains('path(location.idParam, id);'),
+                contains('path(location.slugParameter, slug);'),
+              ),
+            ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
+
   test('supports static helper declarations inside tree composition', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions(const {}),
@@ -177,7 +245,7 @@ class _ChildLocation extends Location<StaticRouteId> {
   _ChildLocation({required super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('child')];
+  List<PathSegment> get path => [literal('child')];
 }
 
 class AppRoutes {
@@ -248,20 +316,20 @@ class LessonLocation extends Location<ConstructorRouteId> {
   ];
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('lessons')];
+  List<PathSegment> get path => [literal('lessons')];
 
   @override
-  get queryParameters => const {
-    'coursePeriodId': QueryParam(StringRouteParamCodec()),
-    'sourceDateTime': QueryParam(StringRouteParamCodec()),
-  };
+  get queryParameters => const [
+    QueryParam('coursePeriodId', StringRouteParamCodec()),
+    QueryParam('sourceDateTime', StringRouteParamCodec()),
+  ];
 }
 
 class LessonEditLocation extends Location<ConstructorRouteId> {
   LessonEditLocation({required super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('edit')];
+  List<PathSegment> get path => [literal('edit')];
 }
 
 @RouteNodes()
@@ -315,13 +383,13 @@ class LessonLocation extends Location<ConstQueryRouteId> {
   LessonLocation({required super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('lessons')];
+  List<PathSegment> get path => [literal('lessons')];
 
   @override
-  get queryParameters => const {
-    coursePeriodIdKey: QueryParam(StringRouteParamCodec()),
-    sourceDateTimeKey: QueryParam(StringRouteParamCodec()),
-  };
+  get queryParameters => const [
+    QueryParam(coursePeriodIdKey, StringRouteParamCodec()),
+    QueryParam(sourceDateTimeKey, StringRouteParamCodec()),
+  ];
 }
 
 @RouteNodes()
@@ -372,20 +440,22 @@ class ItemLocation extends Location<TypedRouteId> {
 
   @override
   List<PathSegment> get path => [
-    PathSegment.literal('items'),
+    literal('items'),
     itemId,
   ];
 
   @override
-  get queryParameters => const {
-    'filter': QueryParam(
+  get queryParameters => const [
+    QueryParam(
+      'filter',
       EnumNameRouteParamCodec(ItemFilter.values),
     ),
-    'page': QueryParam(
+    QueryParam(
+      'page',
       IntRouteParamCodec(),
       optional: true,
     ),
-  };
+  ];
 }
 
 @RouteNodes()
@@ -425,7 +495,7 @@ final Location<TypedRouteId> appLocationTree =
   );
 
   test(
-    'infers query parameter keys from QueryParam fields and generates a mixin',
+    'uses explicit query parameter names from QueryParam fields',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions(const {}),
@@ -446,13 +516,14 @@ part 'inferred_query_param_routes.g.dart';
 enum InferredQueryParamRouteId { item }
 enum ItemFilter { all, active }
 
-class ItemLocation extends Location<InferredQueryParamRouteId>
-    with ItemLocationGenerated {
+class ItemLocation extends Location<InferredQueryParamRouteId> {
   final itemId = pathParam(const IntRouteParamCodec());
-  final filter = queryParam(
+  final filterParam = queryParam(
+    'filter',
     EnumNameRouteParamCodec(ItemFilter.values),
   );
-  final page = queryParam(
+  final pageParam = queryParam(
+    'page',
     IntRouteParamCodec(),
     optional: true,
   );
@@ -461,9 +532,12 @@ class ItemLocation extends Location<InferredQueryParamRouteId>
 
   @override
   List<PathSegment> get path => [
-    PathSegment.literal('items'),
+    literal('items'),
     itemId,
   ];
+
+  @override
+  List<QueryParam<dynamic>> get queryParameters => [filterParam, pageParam];
 }
 
 @RouteNodes()
@@ -475,23 +549,11 @@ final Location<InferredQueryParamRouteId> appLocationTree =
           'working_router|lib/inferred_query_param_routes.working_router.g.part':
               decodedMatches(
                 allOf(
-                  allOf(
-                    contains(
-                      'mixin ItemLocationGenerated on Location<InferredQueryParamRouteId> {',
-                    ),
-                    contains('QueryParam<ItemFilter> get filter;'),
-                    contains('QueryParam<int> get page;'),
-                    contains("'filter': filter,"),
-                    contains("'page': page,"),
-                  ),
-                  allOf(
-                    contains(
-                      'void routeToItem({',
-                    ),
-                    contains('required int itemId,'),
-                    contains('required ItemFilter filter,'),
-                    contains('int? page,'),
-                  ),
+                  contains('void routeToItem({'),
+                  contains('required int itemId,'),
+                  contains('required ItemFilter filter,'),
+                  contains('int? page,'),
+                  isNot(contains('ItemLocationGenerated')),
                 ),
               ),
         },
@@ -521,8 +583,7 @@ part 'derived_child_ids_routes.g.dart';
 
 enum DerivedChildRouteId { chatChannel, chatChannelSend }
 
-class ChatChannelLocation extends Location<DerivedChildRouteId>
-    with ChatChannelLocationGenerated {
+class ChatChannelLocation extends Location<DerivedChildRouteId> {
   final channelId = pathParam(const StringRouteParamCodec());
 
   ChatChannelLocation({super.id});
@@ -536,7 +597,7 @@ class ChatChannelLocation extends Location<DerivedChildRouteId>
 
   @override
   List<PathSegment> get path => [
-    PathSegment.literal('channels'),
+    literal('channels'),
     channelId,
   ];
 }
@@ -545,7 +606,7 @@ class ChatChannelSendLocation extends Location<DerivedChildRouteId> {
   ChatChannelSendLocation({super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('send')];
+  List<PathSegment> get path => [literal('send')];
 }
 
 @RouteNodes()
@@ -602,28 +663,28 @@ class RootLocation extends Location<IfUnionRouteId> {
   late final List<RouteNode<IfUnionRouteId>> children = [
     _ChildLocation(
       id: IfUnionRouteId.always,
-      path: [PathSegment.literal('always')],
+      path: [literal('always')],
     ),
     if (includeMaybe)
       _ChildLocation(
         id: IfUnionRouteId.maybe,
-        path: [PathSegment.literal('maybe')],
+        path: [literal('maybe')],
       ),
     if (includeSpread) ...[
       _ChildLocation(
         id: IfUnionRouteId.maybeSpread,
-        path: [PathSegment.literal('spread')],
+        path: [literal('spread')],
       ),
     ],
     if (includeMaybe)
       _ChildLocation(
         id: IfUnionRouteId.maybeElseA,
-        path: [PathSegment.literal('else-a')],
+        path: [literal('else-a')],
       )
     else
       _ChildLocation(
         id: IfUnionRouteId.maybeElseB,
-        path: [PathSegment.literal('else-b')],
+        path: [literal('else-b')],
       ),
   ];
 
@@ -712,7 +773,7 @@ class ChatLocation extends Location<ParameterizedRouteId> {
   });
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('chat')];
+  List<PathSegment> get path => [literal('chat')];
 }
 
 class ChatSearchLocation extends Location<ParameterizedRouteId> {
@@ -725,11 +786,10 @@ class ChatSearchLocation extends Location<ParameterizedRouteId> {
   }) : super(id: id);
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('search')];
+  List<PathSegment> get path => [literal('search')];
 }
 
-class ChatChannelLocation extends Location<ParameterizedRouteId>
-    with ChatChannelLocationGenerated {
+class ChatChannelLocation extends Location<ParameterizedRouteId> {
   final channelId = pathParam(const StringRouteParamCodec());
 
   @override
@@ -742,7 +802,7 @@ class ChatChannelLocation extends Location<ParameterizedRouteId>
 
   @override
   List<PathSegment> get path => [
-    PathSegment.literal('channels'),
+    literal('channels'),
     channelId,
   ];
 }
@@ -751,14 +811,14 @@ class ChatChannelSendLocation extends Location<ParameterizedRouteId> {
   ChatChannelSendLocation({super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('send')];
+  List<PathSegment> get path => [literal('send')];
 }
 
 class ExtraLocation extends Location<ParameterizedRouteId> {
   ExtraLocation();
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('extra')];
+  List<PathSegment> get path => [literal('extra')];
 }
 
 @RouteNodes()
@@ -865,14 +925,14 @@ class SearchLocation extends Location<AliasedChildrenRouteId> {
   }) : super(id: id);
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('search')];
+  List<PathSegment> get path => [literal('search')];
 }
 
 class LeafLocation extends Location<AliasedChildrenRouteId> {
   LeafLocation({required super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('leaf')];
+  List<PathSegment> get path => [literal('leaf')];
 }
 
 @RouteNodes()
@@ -960,7 +1020,7 @@ class ParentLocation extends Location<DefaultForwardedChildrenRouteId> {
   });
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('parent')];
+  List<PathSegment> get path => [literal('parent')];
 }
 
 class BranchLocation extends Location<DefaultForwardedChildrenRouteId> {
@@ -972,7 +1032,7 @@ class BranchLocation extends Location<DefaultForwardedChildrenRouteId> {
   ];
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('branch')];
+  List<PathSegment> get path => [literal('branch')];
 }
 
 class LeafLocation extends Location<DefaultForwardedChildrenRouteId> {
@@ -985,7 +1045,7 @@ class LeafLocation extends Location<DefaultForwardedChildrenRouteId> {
   }) : super(id: id);
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('leaf')];
+  List<PathSegment> get path => [literal('leaf')];
 }
 
 @RouteNodes()
@@ -1061,7 +1121,7 @@ class ChildLocation extends Location<ShellRootRouteId> {
   ChildLocation({required super.id});
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('child')];
+  List<PathSegment> get path => [literal('child')];
 }
 
 @RouteNodes()

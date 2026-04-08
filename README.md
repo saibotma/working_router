@@ -11,8 +11,8 @@ A Flutter router built around a typed route tree.
   its matched child content.
 - `WorkingRouterData<ID>` gives you typed access to the currently matched
   route chain.
-- `@RouteNodes()` generates typed navigation helpers, typed
-  route targets, and location metadata mixins.
+- `@RouteNodes()` generates typed navigation helpers and typed
+  route targets.
 
 ## Recommended Setup
 
@@ -26,8 +26,6 @@ everything else import it.
    `@RouteNodes()`.
 4. Return a top-level `List<RouteNode<ID>>` from that entrypoint.
 5. Build the router with `buildRouteNodes: buildRouteNodes`.
-6. In location files that declare query-parameter fields, mix in the generated
-   public `XLocationGenerated` mixin from the route-tree library.
 
 See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
@@ -41,14 +39,12 @@ Path parameters should be declared as fields and then referenced from `path`:
 
 - `final idParameter = pathParam(const StringRouteParamCodec());`
 
-Query parameters can either be declared manually in `queryParameters`, or
-preferably as fields:
+Query parameters should be declared as named fields and then exposed through
+`queryParameters`:
 
-- `final b = queryParam(const StringRouteParamCodec());`
-- `final c = queryParam(const StringRouteParamCodec());`
-
-When you use query-parameter fields, mix in the generated `XLocationGenerated`
-mixin so those field names become the runtime query parameter keys.
+- `final bParam = queryParam('b', const StringRouteParamCodec());`
+- `final cParam = queryParam('c', const StringRouteParamCodec());`
+- `@override List<QueryParam<dynamic>> get queryParameters => [bParam, cParam];`
 
 ## Generated API
 
@@ -56,15 +52,14 @@ From the annotated route tree, the generator currently emits:
 
 - `routeToX(...)` helpers on `WorkingRouterSailor`
 - `XRouteTarget(...)` classes for typed imperative navigation and redirects
-- `XLocationGenerated` mixins for field-based query-parameter metadata
 
 That means you can navigate either with the generated helper:
 
-- `router.routeToAbc(idParameter: 'test', b: 'bee', c: 'see')`
+- `router.routeToAbc(idParam: 'test', b: 'bee', c: 'see')`
 
 or with the generated target directly:
 
-- `router.routeTo(AbcRouteTarget(idParameter: 'test', b: 'bee', c: 'see'))`
+- `router.routeTo(AbcRouteTarget(idParam: 'test', b: 'bee', c: 'see'))`
 
 Redirects can use the same typed targets:
 
@@ -110,7 +105,6 @@ The package example demonstrates:
 - a shell-wrapped `/a...` subtree
 - self-built locations
 - field-based path and query params
-- generated query-parameter mixins
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes
 - a custom modal page built from `buildPage(...)`

@@ -108,7 +108,7 @@ List<PathSegment> _pathSegments(String path) {
             'Use a PathParam field instead of inline dynamic path segments.',
           );
         }
-        return PathSegment.literal(segment);
+        return literal(segment);
       })
       .toList(growable: false);
 }

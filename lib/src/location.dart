@@ -51,14 +51,13 @@ abstract class Location<ID> extends RouteNode<ID> {
   /// are filtered to the union of the keys declared by the remaining
   /// locations.
   ///
-  /// When using `@RouteNodes`, required query parameters are
-  /// generated as required `routeToX(...)` arguments. Optional query
-  /// parameters are generated as nullable arguments and omitted when null.
+  /// When using `@RouteNodes`, required query parameters are generated as
+  /// required `routeToX(...)` arguments. Optional query parameters are
+  /// generated as nullable arguments and omitted when null.
   ///
-  /// When a location instead declares `final foo = queryParam(...)` fields,
-  /// mix in the generated `LocationNameGenerated` mixin so those field
-  /// names become the runtime query parameter keys.
-  Map<String, QueryParam<dynamic>> get queryParameters => const {};
+  /// Query parameter names are defined directly on each [QueryParam], so
+  /// locations just expose the parameters they use here.
+  List<QueryParam<dynamic>> get queryParameters => const [];
 
   Location<ID>? pop() {
     return null;

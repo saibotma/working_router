@@ -22,7 +22,7 @@ class ADLocation extends Location<LocationId> {
   ];
 
   @override
-  List<PathSegment> get path => const [PathSegment.literal('d')];
+  List<PathSegment> get path => [literal('d')];
 
   @override
   bool get buildsOwnPage => true;

@@ -43,9 +43,9 @@ class NestedScreen extends StatelessWidget {
                 onPressed: () {
                   router.routeTo(
                     AbcRouteTarget(
-                      idParam: 'test',
-                      bParam: 'bee',
-                      cParam: 'see',
+                      id: 'test',
+                      b: 'bee',
+                      c: 'see',
                     ),
                   );
                 },
