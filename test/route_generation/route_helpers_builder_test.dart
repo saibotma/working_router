@@ -1100,23 +1100,6 @@ part 'shell_root_routes.g.dart';
 
 enum ShellRootRouteId { child }
 
-class AppShell extends Shell<ShellRootRouteId> {
-  @override
-  final List<RouteNode<ShellRootRouteId>> children;
-
-  AppShell({
-    required super.navigatorKey,
-    this.children = const [],
-  });
-
-  @override
-  Widget buildWidget(
-    BuildContext context,
-    WorkingRouterData<ShellRootRouteId> data,
-    Widget child,
-  ) => child;
-}
-
 class ChildLocation extends Location<ShellRootRouteId> {
   ChildLocation({required super.id});
 
@@ -1125,11 +1108,12 @@ class ChildLocation extends Location<ShellRootRouteId> {
 }
 
 @RouteNodes()
-RouteNode<ShellRootRouteId> get appLocationTree => AppShell(
+RouteNode<ShellRootRouteId> get appLocationTree => Shell<ShellRootRouteId>(
   navigatorKey: GlobalKey<NavigatorState>(),
   children: [
     ChildLocation(id: ShellRootRouteId.child),
   ],
+  buildWidget: (context, data, child) => child,
 );
 ''',
       },

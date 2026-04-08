@@ -3,7 +3,9 @@ import 'package:working_router/working_router.dart';
 
 import '../app_routes.dart';
 import '../location_id.dart';
-import 'alphabet_shell.dart';
+import '../nested_screen.dart';
+import '../pop_until_target.dart';
+import 'a_location.dart';
 
 class SplashLocation extends Location<LocationId> {
   final GlobalKey<NavigatorState> rootNavigatorKey;
@@ -17,9 +19,18 @@ class SplashLocation extends Location<LocationId> {
 
   @override
   late final children = [
-    AlphabetShell(
+    Shell(
       navigatorKey: alphabetNavigatorKey,
-      rootNavigatorKey: rootNavigatorKey,
+      children: [
+        ALocation(
+          id: LocationId.a,
+          rootNavigatorKey: rootNavigatorKey,
+          tags: [PopUntilTarget()],
+        ),
+      ],
+      buildWidget: (context, data, child) {
+        return NestedScreen(child: child);
+      },
     ),
   ];
 

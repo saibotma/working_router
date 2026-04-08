@@ -622,15 +622,18 @@ class _StaticRouteTreeExtractor {
       );
     }
 
-    final context = await _InstanceStringContext.fromCreation(
-      buildStep: buildStep,
-      creation: expression,
-      rootElement: rootElement,
-      parentContext: evaluationContext,
-    );
     final isLocation = _isLocationClass(classElement);
+    final isDirectShell = !isLocation && classElement.displayName == 'Shell';
+    final context = isDirectShell
+        ? null
+        : await _InstanceStringContext.fromCreation(
+            buildStep: buildStep,
+            creation: expression,
+            rootElement: rootElement,
+            parentContext: evaluationContext,
+          );
     final pathSegments = isLocation
-        ? await _resolvePathSegments(context)
+        ? await _resolvePathSegments(context!)
         : const <_PathSegmentMetadata>[];
     final queryParameters = isLocation
         ? await _resolveQueryParameters(
@@ -638,12 +641,17 @@ class _StaticRouteTreeExtractor {
             evaluationContext: context,
           )
         : const <String, _RouteQueryParameterMetadata>{};
-    final childrenExpression = await context.locationChildrenExpression();
+    final childrenExpression = isDirectShell
+        ? _namedArgumentExpression(
+            expression.argumentList.arguments,
+            'children',
+          )
+        : await context?.locationChildrenExpression();
     final children = childrenExpression == null
         ? const <_RouteNode>[]
         : await _locationsFromListExpression(
             childrenExpression,
-            evaluationContext: context,
+            evaluationContext: context ?? evaluationContext,
           );
 
     return _RouteNode(

@@ -30,7 +30,7 @@ everything else import it.
 See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
 - [`example/lib/locations/abc_location.dart`](example/lib/locations/abc_location.dart)
-- [`example/lib/locations/alphabet_shell.dart`](example/lib/locations/alphabet_shell.dart)
+- [`example/lib/locations/splash_location.dart`](example/lib/locations/splash_location.dart)
 - [`example/lib/main.dart`](example/lib/main.dart)
 
 ## Defining Parameters
@@ -55,11 +55,11 @@ From the annotated route tree, the generator currently emits:
 
 That means you can navigate either with the generated helper:
 
-- `router.routeToAbc(idParam: 'test', b: 'bee', c: 'see')`
+- `router.routeToAbc(id: 'test', b: 'bee', c: 'see')`
 
 or with the generated target directly:
 
-- `router.routeTo(AbcRouteTarget(idParam: 'test', b: 'bee', c: 'see'))`
+- `router.routeTo(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'))`
 
 Redirects can use the same typed targets:
 
@@ -101,8 +101,7 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 The package example demonstrates:
 
 - the old splash -> a -> ab/abc and ad/adc route flow on the new API
-- top-level sibling routes without a dummy root shell
-- a shell-wrapped `/a...` subtree
+- a direct `Shell(...)` wrapping the `/a...` subtree
 - self-built locations
 - field-based path and query params
 - generated `routeToX(...)` helpers
