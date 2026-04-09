@@ -1817,8 +1817,9 @@ class _StaticRouteTreeExtractor {
     if (normalizedExpression is MethodInvocation &&
         normalizedExpression.methodName.name == 'pathParam') {
       throw InvalidGenerationSourceError(
-        'Inline pathParam(...) calls in path are not supported. Declare a '
-        'field like `final foo = pathParam(...)` and use that field in path.',
+        'Inline builder.pathParam(...) calls in path are not supported. '
+        'Declare a field like `final foo = PathParam(...)` and use that '
+        'field in path.',
         element: element,
       );
     }
@@ -1852,8 +1853,7 @@ class _StaticRouteTreeExtractor {
         );
       }
       throw InvalidGenerationSourceError(
-        'Only route path segment constructor calls and literal(...) are '
-        'supported in path.',
+        'Only route path segment constructor calls are supported in path.',
         element: element,
       );
     }
@@ -1884,7 +1884,7 @@ class _StaticRouteTreeExtractor {
     if (constructorTypeName == 'PathParam') {
       throw InvalidGenerationSourceError(
         'Inline PathParam(...) constructor calls in path are not supported. '
-        'Declare a field like `final foo = pathParam(...)` and use that field '
+        'Declare a field like `final foo = PathParam(...)` and use that field '
         'in path.',
         element: element,
       );
@@ -1961,7 +1961,7 @@ class _StaticRouteTreeExtractor {
 
     if (codecExpression == null) {
       throw InvalidGenerationSourceError(
-        'Only pathParam(...) values are supported for generated path params.',
+        'Only PathParam(...) values are supported for generated path params.',
         element: element,
       );
     }

@@ -10,16 +10,6 @@ sealed class PathSegment {
   const PathSegment();
 }
 
-LiteralPathSegment literal(String value) => LiteralPathSegment(value);
-
-PathParam<T> pathParam<T>(RouteParamCodec<T> codec) => PathParam<T>(codec);
-
-QueryParam<T> queryParam<T>(
-  String name,
-  RouteParamCodec<T> codec, {
-  bool optional = false,
-}) => QueryParam<T>(name, codec, optional: optional);
-
 typedef WritePathParameters<ID> =
     void Function(
       AnyLocation<ID> location,
@@ -72,7 +62,6 @@ abstract class LocationTreeElement<ID> {
   IList<LocationTreeElement<ID>> matchId(ID id) {
     return _matchNodeById(this, id);
   }
-
 }
 
 typedef RouteMatch<ID> = ({
@@ -152,8 +141,8 @@ RouteMatch<ID> _matchNode<ID>(
       ? uriPathSegments
       : uriPathSegments.sublist(node.path.length);
   for (final child in node.children) {
-      final childMatch = _matchNode(child, nextPathSegments);
-      if (!childMatch.isEmpty) {
+    final childMatch = _matchNode(child, nextPathSegments);
+    if (!childMatch.isEmpty) {
       matches.addAll(childMatch.elements);
       pathParameters.addAll(childMatch.pathParameters.unlock);
       break;

@@ -68,7 +68,7 @@ class LocationBuilder<ID> {
   }
 
   LiteralPathSegment pathLiteral(String value) {
-    return pathSegment(literal(value));
+    return pathSegment(LiteralPathSegment(value));
   }
 
   PathParam<T> pathParam<T>(RouteParamCodec<T> codec) {

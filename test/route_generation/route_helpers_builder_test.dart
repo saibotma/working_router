@@ -36,7 +36,7 @@ class _RootLocation extends Location<AppRouteId, _RootLocation> {
 }
 
 class _ItemLocation extends Location<AppRouteId, _ItemLocation> {
-  final itemId = pathParam(const StringRouteParamCodec());
+  final itemId = PathParam(const StringRouteParamCodec());
 
   _ItemLocation({required super.id});
 
@@ -47,7 +47,7 @@ class _ItemLocation extends Location<AppRouteId, _ItemLocation> {
 
   @override
   List<PathSegment> get path => [
-    literal('item'),
+    LiteralPathSegment('item'),
     itemId,
   ];
 
@@ -61,7 +61,7 @@ class _ItemDetailsLocation extends Location<AppRouteId, _ItemDetailsLocation> {
   _ItemDetailsLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [literal('details')];
+  List<PathSegment> get path => [LiteralPathSegment('details')];
 
   @override
   get queryParameters => const [
@@ -191,14 +191,14 @@ class RootLocation extends Location<ParamSuffixRouteId, RootLocation> {
 }
 
 class DetailLocation extends Location<ParamSuffixRouteId, DetailLocation> {
-  final idParam = pathParam(const StringRouteParamCodec());
-  final slugParameter = pathParam(const StringRouteParamCodec());
+  final idParam = PathParam(const StringRouteParamCodec());
+  final slugParameter = PathParam(const StringRouteParamCodec());
 
   DetailLocation({required super.id});
 
   @override
   List<PathSegment> get path => [
-    literal('detail'),
+    LiteralPathSegment('detail'),
     idParam,
     slugParameter,
   ];
@@ -331,7 +331,7 @@ class _ChildLocation extends Location<StaticRouteId, _ChildLocation> {
   _ChildLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [literal('child')];
+  List<PathSegment> get path => [LiteralPathSegment('child')];
 }
 
 class AppRoutes {
@@ -402,7 +402,7 @@ class LessonLocation extends Location<ConstructorRouteId, LessonLocation> {
   ];
 
   @override
-  List<PathSegment> get path => [literal('lessons')];
+  List<PathSegment> get path => [LiteralPathSegment('lessons')];
 
   @override
   get queryParameters => const [
@@ -416,7 +416,7 @@ class LessonEditLocation
   LessonEditLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [literal('edit')];
+  List<PathSegment> get path => [LiteralPathSegment('edit')];
 }
 
 @Locations()
@@ -470,7 +470,7 @@ class LessonLocation extends Location<ConstQueryRouteId, LessonLocation> {
   LessonLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [literal('lessons')];
+  List<PathSegment> get path => [LiteralPathSegment('lessons')];
 
   @override
   get queryParameters => const [
@@ -521,13 +521,13 @@ enum TypedRouteId { item }
 enum ItemFilter { all, active }
 
 class ItemLocation extends Location<TypedRouteId, ItemLocation> {
-  final itemId = pathParam(const IntRouteParamCodec());
+  final itemId = PathParam(const IntRouteParamCodec());
 
   ItemLocation({required super.id});
 
   @override
   List<PathSegment> get path => [
-    literal('items'),
+    LiteralPathSegment('items'),
     itemId,
   ];
 
@@ -605,12 +605,12 @@ enum ItemFilter { all, active }
 
 class ItemLocation
     extends Location<InferredQueryParamRouteId, ItemLocation> {
-  final itemId = pathParam(const IntRouteParamCodec());
-  final filterParam = queryParam(
+  final itemId = PathParam(const IntRouteParamCodec());
+  final filterParam = QueryParam(
     'filter',
     EnumNameRouteParamCodec(ItemFilter.values),
   );
-  final pageParam = queryParam(
+  final pageParam = QueryParam(
     'page',
     IntRouteParamCodec(),
     optional: true,
@@ -620,7 +620,7 @@ class ItemLocation
 
   @override
   List<PathSegment> get path => [
-    literal('items'),
+    LiteralPathSegment('items'),
     itemId,
   ];
 
@@ -673,7 +673,7 @@ enum DerivedChildRouteId { chatChannel, chatChannelSend }
 
 class ChatChannelLocation
     extends Location<DerivedChildRouteId, ChatChannelLocation> {
-  final channelId = pathParam(const StringRouteParamCodec());
+  final channelId = PathParam(const StringRouteParamCodec());
 
   ChatChannelLocation({super.id});
 
@@ -686,7 +686,7 @@ class ChatChannelLocation
 
   @override
   List<PathSegment> get path => [
-    literal('channels'),
+    LiteralPathSegment('channels'),
     channelId,
   ];
 }
@@ -696,7 +696,7 @@ class ChatChannelSendLocation
   ChatChannelSendLocation({super.id});
 
   @override
-  List<PathSegment> get path => [literal('send')];
+  List<PathSegment> get path => [LiteralPathSegment('send')];
 }
 
 @Locations()
@@ -753,28 +753,28 @@ class RootLocation extends Location<IfUnionRouteId, RootLocation> {
   late final List<LocationTreeElement<IfUnionRouteId>> children = [
     _ChildLocation(
       id: IfUnionRouteId.always,
-      path: [literal('always')],
+      path: [LiteralPathSegment('always')],
     ),
     if (includeMaybe)
       _ChildLocation(
         id: IfUnionRouteId.maybe,
-        path: [literal('maybe')],
+        path: [LiteralPathSegment('maybe')],
       ),
     if (includeSpread) ...[
       _ChildLocation(
         id: IfUnionRouteId.maybeSpread,
-        path: [literal('spread')],
+        path: [LiteralPathSegment('spread')],
       ),
     ],
     if (includeMaybe)
       _ChildLocation(
         id: IfUnionRouteId.maybeElseA,
-        path: [literal('else-a')],
+        path: [LiteralPathSegment('else-a')],
       )
     else
       _ChildLocation(
         id: IfUnionRouteId.maybeElseB,
-        path: [literal('else-b')],
+        path: [LiteralPathSegment('else-b')],
       ),
   ];
 
@@ -863,7 +863,7 @@ class ChatLocation extends Location<ParameterizedRouteId, ChatLocation> {
   });
 
   @override
-  List<PathSegment> get path => [literal('chat')];
+  List<PathSegment> get path => [LiteralPathSegment('chat')];
 }
 
 class ChatSearchLocation
@@ -877,12 +877,12 @@ class ChatSearchLocation
   }) : super(id: id);
 
   @override
-  List<PathSegment> get path => [literal('search')];
+  List<PathSegment> get path => [LiteralPathSegment('search')];
 }
 
 class ChatChannelLocation
     extends Location<ParameterizedRouteId, ChatChannelLocation> {
-  final channelId = pathParam(const StringRouteParamCodec());
+  final channelId = PathParam(const StringRouteParamCodec());
 
   @override
   final List<LocationTreeElement<ParameterizedRouteId>> children;
@@ -894,7 +894,7 @@ class ChatChannelLocation
 
   @override
   List<PathSegment> get path => [
-    literal('channels'),
+    LiteralPathSegment('channels'),
     channelId,
   ];
 }
@@ -904,14 +904,14 @@ class ChatChannelSendLocation
   ChatChannelSendLocation({super.id});
 
   @override
-  List<PathSegment> get path => [literal('send')];
+  List<PathSegment> get path => [LiteralPathSegment('send')];
 }
 
 class ExtraLocation extends Location<ParameterizedRouteId, ExtraLocation> {
   ExtraLocation();
 
   @override
-  List<PathSegment> get path => [literal('extra')];
+  List<PathSegment> get path => [LiteralPathSegment('extra')];
 }
 
 @Locations()
@@ -1019,14 +1019,14 @@ class SearchLocation
   }) : super(id: id);
 
   @override
-  List<PathSegment> get path => [literal('search')];
+  List<PathSegment> get path => [LiteralPathSegment('search')];
 }
 
 class LeafLocation extends Location<AliasedChildrenRouteId, LeafLocation> {
   LeafLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [literal('leaf')];
+  List<PathSegment> get path => [LiteralPathSegment('leaf')];
 }
 
 @Locations()
@@ -1116,7 +1116,7 @@ class ParentLocation
   });
 
   @override
-  List<PathSegment> get path => [literal('parent')];
+  List<PathSegment> get path => [LiteralPathSegment('parent')];
 }
 
 class BranchLocation
@@ -1129,7 +1129,7 @@ class BranchLocation
   ];
 
   @override
-  List<PathSegment> get path => [literal('branch')];
+  List<PathSegment> get path => [LiteralPathSegment('branch')];
 }
 
 class LeafLocation
@@ -1143,7 +1143,7 @@ class LeafLocation
   }) : super(id: id);
 
   @override
-  List<PathSegment> get path => [literal('leaf')];
+  List<PathSegment> get path => [LiteralPathSegment('leaf')];
 }
 
 @Locations()
@@ -1202,7 +1202,7 @@ class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
   ChildLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [literal('child')];
+  List<PathSegment> get path => [LiteralPathSegment('child')];
 }
 
 @Locations()

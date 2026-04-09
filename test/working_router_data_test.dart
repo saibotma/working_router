@@ -5,7 +5,7 @@ import 'package:working_router/working_router.dart';
 void main() {
   group('WorkingRouterData path helpers', () {
     test('pathTemplateUpToNode ignores hydrated path parameter values', () {
-      final itemId = pathParam(const StringRouteParamCodec());
+      const itemId = PathParam(StringRouteParamCodec());
       final list = _TestLocation(id: 'list', path: '/items');
       final detail = _ParamOnlyLocation(id: 'detail', parameter: itemId);
       final data = WorkingRouterData<String>(
@@ -116,7 +116,7 @@ List<PathSegment> _pathSegments(String path) {
             'Use a PathParam field instead of inline dynamic path segments.',
           );
         }
-        return literal(segment);
+        return LiteralPathSegment(segment);
       })
       .toList(growable: false);
 }

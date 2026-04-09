@@ -817,7 +817,9 @@ class _ParamPathLocation extends Location<_ParamId, _ParamPathLocation> {
     builder.children = children;
   }
 
-  List<LocationTreeElement<_ParamId>> register(LocationBuilder<_ParamId> builder) {
+  List<LocationTreeElement<_ParamId>> register(
+    LocationBuilder<_ParamId> builder,
+  ) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
@@ -833,8 +835,8 @@ class _ParamRootLocation extends _ParamPathLocation {
 }
 
 class _ItemLocation extends _ParamPathLocation {
-  final idParameter = pathParam(const StringRouteParamCodec());
-  final keep = queryParam('keep', const StringRouteParamCodec());
+  final idParameter = const PathParam(StringRouteParamCodec());
+  final keep = const QueryParam('keep', StringRouteParamCodec());
 
   _ItemLocation({
     required super.id,
@@ -842,7 +844,9 @@ class _ItemLocation extends _ParamPathLocation {
   }) : super(path: 'item');
 
   @override
-  List<LocationTreeElement<_ParamId>> register(LocationBuilder<_ParamId> builder) {
+  List<LocationTreeElement<_ParamId>> register(
+    LocationBuilder<_ParamId> builder,
+  ) {
     final children = super.register(builder);
     builder.pathSegment(idParameter);
     builder.query(keep);
@@ -857,9 +861,11 @@ class _DetailLocation extends _ParamPathLocation {
   });
 
   @override
-  List<LocationTreeElement<_ParamId>> register(LocationBuilder<_ParamId> builder) {
+  List<LocationTreeElement<_ParamId>> register(
+    LocationBuilder<_ParamId> builder,
+  ) {
     final children = super.register(builder);
-    builder.query(queryParam('detail', const StringRouteParamCodec()));
+    builder.query(const QueryParam('detail', StringRouteParamCodec()));
     return children;
   }
 }
@@ -922,7 +928,7 @@ List<PathSegment> _pathSegments(String path) {
             'Use a PathParam field instead of inline dynamic path segments.',
           );
         }
-        return literal(segment);
+        return LiteralPathSegment(segment);
       })
       .toList(growable: false);
 }
