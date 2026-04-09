@@ -66,9 +66,19 @@ class WorkingRouterData<ID> {
   }
 
   T queryParam<T>(QueryParam<T> parameter) {
+    if (!_hasDeclaredQueryParam(parameter)) {
+      throw StateError(
+        'The requested QueryParam is not part of the current matched route chain.',
+      );
+    }
+
     final value = queryParamOrNull(parameter);
-    if (value != null || parameter.optional) {
-      return value as T;
+    if (value != null) {
+      return value;
+    }
+    final defaultValue = parameter.defaultValue;
+    if (defaultValue != null) {
+      return defaultValue.value;
     }
     throw StateError(
       'The requested QueryParam is not present in the current router data.',
@@ -76,20 +86,27 @@ class WorkingRouterData<ID> {
   }
 
   T? queryParamOrNull<T>(QueryParam<T> parameter) {
+    if (!_hasDeclaredQueryParam(parameter)) {
+      return null;
+    }
+
+    final rawValue = queryParameters[parameter.name];
+    if (rawValue == null) {
+      return null;
+    }
+    return parameter.codec.decode(rawValue);
+  }
+
+  bool _hasDeclaredQueryParam<T>(QueryParam<T> parameter) {
     for (final location in locations) {
       for (final declaredParameter in location.queryParameters) {
         if (!identical(declaredParameter, parameter)) {
           continue;
         }
-
-        final rawValue = queryParameters[parameter.name];
-        if (rawValue == null) {
-          return null;
-        }
-        return parameter.codec.decode(rawValue);
+        return true;
       }
     }
-    return null;
+    return false;
   }
 
   String pathUpToLocation(AnyLocation<ID> location) {

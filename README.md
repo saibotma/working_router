@@ -52,11 +52,14 @@ final example = ExampleLocation(
   build: (builder, location) {
     builder.pathLiteral('items');
     final itemId = builder.stringPathParam();
-    final filter = builder.stringQueryParam('filter', optional: true);
+    final filter = builder.stringQueryParam(
+      'filter',
+      defaultValue: Default('all'),
+    );
 
     builder.widget((context, data) {
       return Text(
-        '${data.pathParam(itemId)}:${data.queryParamOrNull(filter)}',
+        '${data.pathParam(itemId)}:${data.queryParam(filter)}',
       );
     });
 
@@ -72,8 +75,10 @@ Important details:
 - Path order is defined by call order inside `build(...)`.
 - Query parameter names are explicit strings on `queryParam(...)`.
 - The builder also exposes typed shortcuts like `stringPathParam()`,
-  `intQueryParam('page')`, `uriPathParam()`, `uriQueryParam('next')`,
-  `enumPathParam(MyEnum.values)`, and `enumQueryParam('filter', MyEnum.values)`.
+  `intQueryParam('page')`, `intQueryParam('page', defaultValue: Default(1))`,
+  `uriPathParam()`, `uriQueryParam('next')`,
+  `enumPathParam(MyEnum.values)`, and
+  `enumQueryParam('filter', MyEnum.values, defaultValue: Default(MyEnum.all))`.
 - Child routes are assigned with `builder.children = [...]`.
 - Named `Location` subclasses are the route-authoring model.
 - `Shell(...)` stays directly constructible and is not meant to be subclassed.

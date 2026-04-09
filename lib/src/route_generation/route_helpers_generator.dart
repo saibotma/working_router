@@ -1465,7 +1465,7 @@ class _StaticRouteTreeExtractor {
             elementForErrors,
           ),
           codecExpressionSource: _expressionSource(arguments[1]),
-          optional: namedArguments['optional']?.toSource() == 'true',
+          optional: namedArguments.containsKey('defaultValue'),
         );
       case 'stringQueryParam':
       case 'intQueryParam':
@@ -1528,7 +1528,7 @@ class _StaticRouteTreeExtractor {
           key: _stringLiteral(nameExpression, elementForErrors),
           dartTypeSource: codecMetadata.dartTypeSource,
           codecExpressionSource: codecMetadata.codecExpressionSource,
-          optional: namedArguments['optional']?.toSource() == 'true',
+          optional: namedArguments.containsKey('defaultValue'),
         );
       default:
         return null;
@@ -2230,9 +2230,9 @@ class _StaticRouteTreeExtractor {
           'codec',
         ) ??
         positionalArguments.skip(1).firstOrNull;
-    final optionalExpression = _namedArgumentExpression(
+    final defaultValueExpression = _namedArgumentExpression(
       normalizedExpression.argumentList.arguments,
-      'optional',
+      'defaultValue',
     );
     if (keyExpression == null || codecExpression == null) {
       throw InvalidGenerationSourceError(
@@ -2270,13 +2270,7 @@ class _StaticRouteTreeExtractor {
         element,
       ),
       codecExpressionSource: _expressionSource(resolvedCodecExpression),
-      optional:
-          optionalExpression != null &&
-          await _boolExpression(
-            optionalExpression,
-            element,
-            evaluationContext: evaluationContext,
-          ),
+      optional: defaultValueExpression != null,
     );
   }
 
@@ -2322,41 +2316,6 @@ class _StaticRouteTreeExtractor {
 
     throw InvalidGenerationSourceError(
       'Only constant strings are supported in generated route metadata.',
-      element: element,
-    );
-  }
-
-  Future<bool> _boolExpression(
-    Expression expression,
-    Element element, {
-    _ExpressionContext? evaluationContext,
-  }) async {
-    final normalizedExpression = _unwrapExpression(expression);
-    if (evaluationContext != null &&
-        _canResolveThroughContext(normalizedExpression)) {
-      final boundExpression = await evaluationContext.resolveExpression(
-        normalizedExpression,
-      );
-      if (boundExpression != null) {
-        return _boolExpression(
-          boundExpression,
-          element,
-          evaluationContext: evaluationContext,
-        );
-      }
-    }
-    if (normalizedExpression is BooleanLiteral) {
-      return normalizedExpression.value;
-    }
-
-    final constantValue = normalizedExpression.computeConstantValue();
-    final boolValue = constantValue?.value?.toBoolValue();
-    if (boolValue != null) {
-      return boolValue;
-    }
-
-    throw InvalidGenerationSourceError(
-      'Only constant booleans are supported in generated route metadata.',
       element: element,
     );
   }

@@ -537,11 +537,7 @@ class ItemLocation extends Location<TypedRouteId, ItemLocation> {
       'filter',
       EnumRouteParamCodec(ItemFilter.values),
     ),
-    QueryParam(
-      'page',
-      IntRouteParamCodec(),
-      optional: true,
-    ),
+    QueryParam('page', IntRouteParamCodec(), defaultValue: Default(1)),
   ];
 }
 
@@ -613,7 +609,7 @@ class ItemLocation
   final pageParam = QueryParam(
     'page',
     IntRouteParamCodec(),
-    optional: true,
+    defaultValue: Default(1),
   );
 
   ItemLocation({required super.id});
@@ -687,7 +683,10 @@ List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
       builder.pathLiteral('items');
       final itemUri = builder.uriPathParam();
       final filter = builder.enumQueryParam('filter', ItemFilter.values);
-      final from = builder.uriQueryParam('from', optional: true);
+      final from = builder.uriQueryParam(
+        'from',
+        defaultValue: Default(Uri.parse('/home')),
+      );
 
       builder.widget((context, data) => const SizedBox.shrink());
     },
@@ -696,24 +695,23 @@ List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
 ''',
         },
         outputs: {
-          'working_router|lib/shortcut_param_routes.working_router.g.part':
-              decodedMatches(
-                allOf(
-                  contains('void routeToItem({'),
-                  contains('required Uri itemUri,'),
-                  contains('required ItemFilter filter,'),
-                  contains('Uri? from,'),
-                  contains(
-                    "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
-                  ),
-                  contains(
-                    "if (from != null) 'from': const UriRouteParamCodec().encode(from),",
-                  ),
-                  contains(
-                    'path(location.pathParameters[0] as PathParam<Uri>, itemUri);',
-                  ),
-                ),
+          'working_router|lib/shortcut_param_routes.working_router.g.part': decodedMatches(
+            allOf(
+              contains('void routeToItem({'),
+              contains('required Uri itemUri,'),
+              contains('required ItemFilter filter,'),
+              contains('Uri? from,'),
+              contains(
+                "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
               ),
+              contains(
+                "if (from != null) 'from': const UriRouteParamCodec().encode(from),",
+              ),
+              contains(
+                'path(location.pathParameters[0] as PathParam<Uri>, itemUri);',
+              ),
+            ),
+          ),
         },
         readerWriter: readerWriter,
       );

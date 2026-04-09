@@ -111,66 +111,86 @@ class LocationBuilder<ID> {
   QueryParam<T> queryParam<T>(
     String name,
     RouteParamCodec<T> codec, {
-    bool optional = false,
+    Default<T>? defaultValue,
   }) {
-    return query(QueryParam<T>(name, codec, optional: optional));
+    return query(QueryParam<T>(name, codec, defaultValue: defaultValue));
   }
 
   QueryParam<String> stringQueryParam(
     String name, {
-    bool optional = false,
+    Default<String>? defaultValue,
   }) {
-    return queryParam(name, const StringRouteParamCodec(), optional: optional);
+    return queryParam(
+      name,
+      const StringRouteParamCodec(),
+      defaultValue: defaultValue,
+    );
   }
 
   QueryParam<int> intQueryParam(
     String name, {
-    bool optional = false,
+    Default<int>? defaultValue,
   }) {
-    return queryParam(name, const IntRouteParamCodec(), optional: optional);
+    return queryParam(
+      name,
+      const IntRouteParamCodec(),
+      defaultValue: defaultValue,
+    );
   }
 
   QueryParam<double> doubleQueryParam(
     String name, {
-    bool optional = false,
+    Default<double>? defaultValue,
   }) {
-    return queryParam(name, const DoubleRouteParamCodec(), optional: optional);
+    return queryParam(
+      name,
+      const DoubleRouteParamCodec(),
+      defaultValue: defaultValue,
+    );
   }
 
   QueryParam<bool> boolQueryParam(
     String name, {
-    bool optional = false,
+    Default<bool>? defaultValue,
   }) {
-    return queryParam(name, const BoolRouteParamCodec(), optional: optional);
+    return queryParam(
+      name,
+      const BoolRouteParamCodec(),
+      defaultValue: defaultValue,
+    );
   }
 
   QueryParam<DateTime> dateTimeQueryParam(
     String name, {
-    bool optional = false,
+    Default<DateTime>? defaultValue,
   }) {
     return queryParam(
       name,
       const DateTimeIsoRouteParamCodec(),
-      optional: optional,
+      defaultValue: defaultValue,
     );
   }
 
   QueryParam<Uri> uriQueryParam(
     String name, {
-    bool optional = false,
+    Default<Uri>? defaultValue,
   }) {
-    return queryParam(name, const UriRouteParamCodec(), optional: optional);
+    return queryParam(
+      name,
+      const UriRouteParamCodec(),
+      defaultValue: defaultValue,
+    );
   }
 
   QueryParam<T> enumQueryParam<T extends Enum>(
     String name,
     List<T> values, {
-    bool optional = false,
+    Default<T>? defaultValue,
   }) {
     return queryParam(
       name,
       EnumRouteParamCodec(values),
-      optional: optional,
+      defaultValue: defaultValue,
     );
   }
 

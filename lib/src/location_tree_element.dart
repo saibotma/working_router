@@ -28,12 +28,18 @@ class PathParam<T> extends PathSegment {
   const PathParam(this.codec);
 }
 
+class Default<T> {
+  final T value;
+
+  const Default(this.value);
+}
+
 class QueryParam<T> {
   final String name;
   final RouteParamCodec<T> codec;
-  final bool optional;
+  final Default<T>? defaultValue;
 
-  const QueryParam(this.name, this.codec, {this.optional = false});
+  const QueryParam(this.name, this.codec, {this.defaultValue});
 }
 
 abstract class LocationTreeElement<ID> {

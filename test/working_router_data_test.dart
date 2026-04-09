@@ -20,6 +20,26 @@ void main() {
     });
   });
 
+  group('WorkingRouterData query param helpers', () {
+    test('queryParam returns the configured default for missing values', () {
+      const tab = QueryParam(
+        'tab',
+        StringRouteParamCodec(),
+        defaultValue: Default('all'),
+      );
+      final location = _QueryLocation(id: 'query', parameter: tab);
+      final data = WorkingRouterData<String>(
+        uri: Uri(path: '/query'),
+        elements: [location].toIList(),
+        pathParameters: IMap(),
+        queryParameters: IMap(),
+      );
+
+      expect(data.queryParam(tab), 'all');
+      expect(data.queryParamOrNull(tab), isNull);
+    });
+  });
+
   group('WorkingRouterData.isChildOf', () {
     final root = _TestLocation(id: 'root', path: '/');
     final parent = _TestLocation(id: 'parent', path: '/parent');
@@ -102,6 +122,19 @@ class _ParamOnlyLocation extends Location<String, _ParamOnlyLocation> {
   void build(LocationBuilder<String> builder) {
     builder.pathSegment(parameter);
   }
+}
+
+class _QueryLocation extends Location<String, _QueryLocation> {
+  final QueryParam<String> parameter;
+
+  _QueryLocation({required String id, required this.parameter})
+    : super.override(id: id);
+
+  @override
+  List<QueryParam<dynamic>> get queryParameters => [parameter];
+
+  @override
+  void build(LocationBuilder<String> builder) {}
 }
 
 List<PathSegment> _pathSegments(String path) {
