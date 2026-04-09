@@ -116,16 +116,11 @@ class RenderInsetAwareContentBodyConstraints extends BoxConstraints {
 
   const RenderInsetAwareContentBodyConstraints({
     required this.bottomViewInsets,
-    required double minWidth,
-    required double maxWidth,
-    required double minHeight,
-    required double maxHeight,
-  }) : super(
-          minWidth: minWidth,
-          maxWidth: maxWidth,
-          minHeight: minHeight,
-          maxHeight: maxHeight,
-        );
+    required super.minWidth,
+    required super.maxWidth,
+    required super.minHeight,
+    required super.maxHeight,
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -179,8 +174,8 @@ class InsetAwareContent extends StatelessWidget {
     required this.child,
     this.childConstraints,
     this.padding,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

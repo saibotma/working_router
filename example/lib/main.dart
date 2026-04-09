@@ -34,23 +34,21 @@ class _DependentMaterialApp extends StatefulWidget {
 }
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
-  final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-  final alphabetNavigatorKey = GlobalKey<NavigatorState>(
-    debugLabel: 'alphabet',
-  );
-
   late final WorkingRouter<LocationId> router = WorkingRouter<LocationId>(
-    navigatorKey: rootNavigatorKey,
     noContentWidget: const Center(child: Text('No matching route.')),
-    buildRouteNodes: () => buildRouteNodes(
-      rootNavigatorKey: rootNavigatorKey,
-      alphabetNavigatorKey: alphabetNavigatorKey,
+    buildLocations: (rootRouterKey) => buildLocations(
+      screenSize: widget.screenSize,
+      rootRouterKey: rootRouterKey,
     ),
   );
 
   @override
   void didUpdateWidget(covariant _DependentMaterialApp oldWidget) {
     if (oldWidget.screenSize != widget.screenSize) {
+      debugPrint(
+        'Refreshing router for screen size change: '
+        '${oldWidget.screenSize} -> ${widget.screenSize}',
+      );
       router.refresh();
     }
     super.didUpdateWidget(oldWidget);

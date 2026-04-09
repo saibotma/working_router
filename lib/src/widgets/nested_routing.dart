@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 
 import 'package:working_router/working_router.dart';
 
+/// Hosts a nested [WorkingRouterDelegate] inside widget state.
+///
+/// The nested delegate keeps owning its `Navigator` key and page stack across
+/// parent route-tree rebuilds, so shell navigators can survive
+/// [WorkingRouter.refresh] as long as the surrounding shell widget is reused.
+/// This is what lets working_router support dynamic route trees without
+/// immediately discarding nested navigator state on every refresh.
 class NestedRouting<ID> extends StatefulWidget {
   final WorkingRouter<ID> router;
   final BuildPages<ID> buildPages;
-  final GlobalKey<NavigatorState>? navigatorKey;
+  final WorkingRouterKey routerKey;
   final String? debugLabel;
 
   const NestedRouting({
     required this.router,
     required this.buildPages,
-    required this.navigatorKey,
+    required this.routerKey,
     this.debugLabel,
     super.key,
   });
@@ -23,11 +30,22 @@ class NestedRouting<ID> extends StatefulWidget {
 class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
   late WorkingRouterDelegate<ID>? _delegate = WorkingRouterDelegate(
     isRootDelegate: false,
+    routerKey: widget.routerKey,
     router: widget.router,
     buildPages: widget.buildPages,
-    navigatorKey: widget.navigatorKey,
     debugLabel: widget.debugLabel,
   );
+
+  @override
+  void didUpdateWidget(covariant NestedRouting<ID> oldWidget) {
+    // The stateful nested delegate is reused across widget updates, so keep
+    // its router ownership key in sync when the surrounding shell now targets
+    // a different nested router boundary.
+    if (!identical(oldWidget.routerKey, widget.routerKey)) {
+      _delegate!.updateRouterKey(widget.routerKey);
+    }
+    super.didUpdateWidget(oldWidget);
+  }
 
   @override
   void didChangeDependencies() {

@@ -7,11 +7,11 @@ typedef LocationChildBuilder<ID> =
 typedef LocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
 typedef LocationPageKeyBuilder<ID> =
-    LocalKey Function(Location<ID> location, WorkingRouterData<ID> data);
+    LocalKey Function(AnyLocation<ID> location, WorkingRouterData<ID> data);
 typedef LocationChildWrapper<ID> =
     Widget Function(
       BuildContext context,
-      Location<ID> location,
+      AnyLocation<ID> location,
       WorkingRouterData<ID> data,
       Widget child,
     );
@@ -20,7 +20,7 @@ abstract interface class LocationPageSkeleton<ID> {
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
-    required RouteNode<ID> node,
+    required LocationTreeElement<ID> node,
   });
 }
 
@@ -46,7 +46,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
-    required RouteNode<ID> node,
+    required LocationTreeElement<ID> node,
   }) {
     // Keep the widget subtree keyed by the fully hydrated matched path.
     // This lets inner widget state reset when a path parameter changes, while
@@ -56,7 +56,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
       key: childKey,
       builder: (context) {
         final child = buildChild(context, data);
-        if (node case final Location<ID> location) {
+        if (node case final AnyLocation<ID> location) {
           final wrapChild = router.wrapLocationChild;
           if (wrapChild != null) {
             return wrapChild(context, location, data, child);
@@ -71,7 +71,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
       // it animates out of view because of a routing event.
       data: data,
       child: switch (node) {
-        final Location<ID> location => NearestLocation<ID>(
+        final AnyLocation<ID> location => NearestLocation<ID>(
           location: location,
           child: NotificationListener(
             onNotification: (notification) {
@@ -92,7 +92,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
       },
     );
     final pageKey = node.buildPageKey(data);
-    final key = node is Location<ID>
+    final key = node is AnyLocation<ID>
         ? (buildPageKey?.call(node, data) ?? pageKey)
         : pageKey;
     return LocationPage(

@@ -5,7 +5,7 @@ class NestedLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
   NestedLocationPageSkeleton({
     required WorkingRouter<ID> router,
     required BuildPages<ID> buildPages,
-    GlobalKey<NavigatorState>? navigatorKey,
+    required WorkingRouterKey routerKey,
     Widget Function(
       BuildContext context,
       WorkingRouterData<ID> data,
@@ -20,7 +20,7 @@ class NestedLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
            final nested = NestedRouting(
              router: router,
              buildPages: buildPages,
-             navigatorKey: navigatorKey,
+             routerKey: routerKey,
              debugLabel: debugLabel,
            );
            if (buildChild == null) {

@@ -5,7 +5,7 @@ import 'package:working_router/working_router.dart';
 
 class WorkingRouterData<ID> {
   final Uri uri;
-  final IList<RouteNode<ID>> nodes;
+  final IList<LocationTreeElement<ID>> elements;
 
   // Keep matched path params in their encoded URI form even though they are
   // keyed by PathParam objects. The router core is still URI-first, so URI
@@ -20,7 +20,7 @@ class WorkingRouterData<ID> {
 
   WorkingRouterData({
     required this.uri,
-    required this.nodes,
+    required this.elements,
     required this.pathParameters,
     required this.queryParameters,
   });
@@ -43,9 +43,9 @@ class WorkingRouterData<ID> {
     return slice(data!.data);
   }
 
-  late final IList<Location<ID>> locations = nodes.locations;
+  late final IList<AnyLocation<ID>> locations = elements.locations;
 
-  Location<ID>? get activeLocation => locations.lastOrNull;
+  AnyLocation<ID>? get activeLocation => locations.lastOrNull;
 
   T pathParameter<T>(PathParam<T> parameter) {
     final value = pathParameterOrNull(parameter);
@@ -92,7 +92,7 @@ class WorkingRouterData<ID> {
     return null;
   }
 
-  String pathUpToLocation(Location<ID> location) {
+  String pathUpToLocation(AnyLocation<ID> location) {
     final locationIndex = locations.indexOf(location);
     if (locationIndex == -1) {
       return uri.path;
@@ -100,29 +100,29 @@ class WorkingRouterData<ID> {
     return locations.sublist(0, locationIndex + 1).buildPath(pathParameters);
   }
 
-  String pathUpToNode(RouteNode<ID> node) {
-    final nodeIndex = nodes.indexOf(node);
+  String pathUpToNode(LocationTreeElement<ID> node) {
+    final nodeIndex = elements.indexOf(node);
     if (nodeIndex == -1) {
       return uri.path;
     }
 
-    final locationsUpToNode = nodes.take(nodeIndex + 1).locations;
+    final locationsUpToNode = elements.take(nodeIndex + 1).locations;
     return locationsUpToNode.buildPath(pathParameters);
   }
 
-  String pathTemplateUpToNode(RouteNode<ID> node) {
-    final nodeIndex = nodes.indexOf(node);
+  String pathTemplateUpToNode(LocationTreeElement<ID> node) {
+    final nodeIndex = elements.indexOf(node);
     if (nodeIndex == -1) {
       return uri.path;
     }
 
-    final locationsUpToNode = nodes.take(nodeIndex + 1).locations;
+    final locationsUpToNode = elements.take(nodeIndex + 1).locations;
     return locationsUpToNode.buildPathTemplate();
   }
 
   bool isChildOf(
-    bool Function(Location<ID> location) parent,
-    Location<ID> child,
+    bool Function(AnyLocation<ID> location) parent,
+    AnyLocation<ID> child,
   ) {
     var sawParent = false;
 
@@ -168,7 +168,7 @@ class WorkingRouterData<ID> {
     });
   }
 
-  bool isMatched(bool Function(Location<ID> location) match) {
+  bool isMatched(bool Function(AnyLocation<ID> location) match) {
     return locations.any(match);
   }
 
@@ -194,7 +194,7 @@ class WorkingRouterData<ID> {
     });
   }
 
-  bool isActive(bool Function(Location<ID> location) match) {
+  bool isActive(bool Function(AnyLocation<ID> location) match) {
     final last = locations.lastOrNull;
     if (last == null) {
       return false;
@@ -204,13 +204,13 @@ class WorkingRouterData<ID> {
 
   WorkingRouterData<ID> copyWith({
     Uri? uri,
-    IList<RouteNode<ID>>? nodes,
+    IList<LocationTreeElement<ID>>? elements,
     IMap<PathParam<dynamic>, String>? pathParameters,
     IMap<String, String>? queryParameters,
   }) {
     return WorkingRouterData(
       uri: uri ?? this.uri,
-      nodes: nodes ?? this.nodes,
+      elements: elements ?? this.elements,
       pathParameters: pathParameters ?? this.pathParameters,
       queryParameters: queryParameters ?? this.queryParameters,
     );
@@ -222,7 +222,7 @@ class WorkingRouterData<ID> {
         other is WorkingRouterData &&
             runtimeType == other.runtimeType &&
             uri == other.uri &&
-            nodes == other.nodes &&
+            elements == other.elements &&
             pathParameters == other.pathParameters &&
             queryParameters == other.queryParameters;
   }
@@ -230,13 +230,13 @@ class WorkingRouterData<ID> {
   @override
   int get hashCode {
     return uri.hashCode ^
-        nodes.hashCode ^
+        elements.hashCode ^
         pathParameters.hashCode ^
         queryParameters.hashCode;
   }
 
   @override
   String toString() {
-    return 'WorkingRouterData{uri: $uri, nodes: $nodes, locations: $locations, pathParameters: $pathParameters, queryParameters: $queryParameters}';
+    return 'WorkingRouterData{uri: $uri, elements: $elements, locations: $locations, pathParameters: $pathParameters, queryParameters: $queryParameters}';
   }
 }

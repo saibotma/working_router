@@ -1,47 +1,72 @@
 import 'package:flutter/material.dart';
-import 'package:working_router/src/route_node.dart';
+import 'package:working_router/src/location_tree_element.dart';
+import 'package:working_router/src/route_builder.dart';
 import 'package:working_router/src/working_router_data.dart';
+import 'package:working_router/src/working_router_key.dart';
 
-typedef ShellWidgetBuilder<ID> =
-    Widget Function(
-      BuildContext context,
-      WorkingRouterData<ID> data,
-      Widget child,
-    );
+typedef BuildShell<ID> =
+    void Function(ShellBuilder<ID> builder, WorkingRouterKey routerKey);
 
-typedef ShellPageBuilder =
-    Page<dynamic> Function(
-      LocalKey? key,
-      Widget child,
-    );
-
-class Shell<ID> extends RouteNode<ID> {
-  final GlobalKey<NavigatorState> navigatorKey;
-  final ShellWidgetBuilder<ID> _buildWidget;
-  final ShellPageBuilder? _buildPage;
-
-  @override
-  final List<RouteNode<ID>> children;
+class Shell<ID> extends LocationTreeElement<ID> {
+  final WorkingRouterKey routerKey;
+  final BuildShell<ID>? _build;
 
   Shell({
-    required this.navigatorKey,
-    required this.children,
-    required ShellWidgetBuilder<ID> buildWidget,
-    ShellPageBuilder? buildPage,
-    super.parentNavigatorKey,
-  }) : _buildWidget = buildWidget,
-       _buildPage = buildPage;
+    WorkingRouterKey? routerKey,
+    BuildShell<ID>? build,
+    super.parentRouterKey,
+  }) : routerKey = routerKey ?? WorkingRouterKey(),
+       _build = build;
+
+  @protected
+  void build(ShellBuilder<ID> builder) {
+    final callback = _build;
+    if (callback == null) {
+      throw StateError(
+        'Shell $runtimeType must either override build(...) or provide '
+        'a build callback.',
+      );
+    }
+    callback(builder, routerKey);
+  }
+
+  late final BuiltShellDefinition<ID> _definition = _buildDefinition();
+
+  BuiltShellDefinition<ID> _buildDefinition() {
+    final builder = ShellBuilder<ID>();
+    build(builder);
+    final render = builder.render;
+    if (render == null) {
+      throw StateError(
+        'Shell $runtimeType must configure its render with '
+        'widget(...).',
+      );
+    }
+    return BuiltShellDefinition(
+      children: List.unmodifiable(builder.children),
+      buildPageKey: builder.buildPageKey,
+      render: render,
+    );
+  }
+
+  @override
+  List<LocationTreeElement<ID>> get children => _definition.children;
+
+  @override
+  LocalKey buildPageKey(WorkingRouterData<ID> data) {
+    return _definition.buildPageKey?.call(data) ?? super.buildPageKey(data);
+  }
 
   Widget buildWidget(
     BuildContext context,
     WorkingRouterData<ID> data,
     Widget child,
   ) {
-    return _buildWidget(context, data, child);
+    return _definition.render.buildWidget(context, data, child);
   }
 
   Page<dynamic> buildPage(LocalKey? key, Widget child) {
-    return _buildPage?.call(key, child) ??
+    return _definition.render.buildPage?.call(key, child) ??
         MaterialPage<dynamic>(key: key, child: child);
   }
 }

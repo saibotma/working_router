@@ -2,14 +2,16 @@
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or function
-/// returning an `Iterable<RouteNode<ID>>`.
+/// returning an `Iterable<LocationTreeElement<ID>>`.
 ///
 /// Example:
 /// ```dart
 /// part 'app_routes.g.dart';
 ///
-/// @RouteNodes()
-/// List<RouteNode<AppRouteId>> buildRouteNodes() => [_appRouteTree];
+/// @Locations()
+/// List<LocationTreeElement<AppRouteId>> buildLocations({
+///   required WorkingRouterKey rootRouterKey,
+/// }) => [_appRouteTree];
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
@@ -30,14 +32,14 @@
 /// for the full route vocabulary.
 ///
 /// Supported composition includes:
-/// - inline constructor trees
+/// - named `Location<ID, Self>` subclasses
+/// - direct `Shell(...)` nodes
 /// - top-level or static helper fields and getters
 /// - top-level, static, or local helper functions
 /// - helper function arguments when the tree-relevant expressions remain
 ///   statically recoverable from source
 /// - `PathParam` instance fields declared on the location class
-/// - `QueryParam` instance fields when the location class mixes in the
-///   generated `LocationNameGenerated` mixin
+/// - children returned from `build(...)` or a forwarded `builder:` callback
 /// - children declared on the location or shell instance via a `children`
 ///   field or getter
 /// - collection `if` elements and spreads inside children lists
@@ -47,6 +49,6 @@
 /// - loops or other arbitrary collection-building constructs
 ///
 /// The generated extension targets `WorkingRouterSailor<ID>`.
-class RouteNodes {
-  const RouteNodes();
+class Locations {
+  const Locations();
 }

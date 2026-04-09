@@ -7,16 +7,17 @@ import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_page_skeleton.dart';
+import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/nested_location_page_skeleton.dart';
-import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
+import 'package:working_router/src/working_router_key.dart';
 
 typedef BuildPages<ID> =
     List<LocationPageSkeleton<ID>> Function(
       WorkingRouter<ID> router,
-      Location<ID> location,
+      AnyLocation<ID> location,
       WorkingRouterData<ID> data,
     );
 
@@ -25,6 +26,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   @override
   late final GlobalKey<NavigatorState> navigatorKey;
 
+  WorkingRouterKey routerKey;
   final bool isRootDelegate;
   final WorkingRouter<ID> router;
   final BuildPages<ID>? buildPages;
@@ -41,6 +43,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   WorkingRouterDelegate({
     required this.isRootDelegate,
+    required this.routerKey,
     required this.router,
     required this.buildPages,
     this.noContentWidget,
@@ -153,35 +156,34 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   ///
   /// WorkingRouterData contains the full matched chain for the current URI,
   /// including both semantic locations and structural shells. Each shell
-  /// creates a navigator boundary via its navigatorKey, so deeper nodes may
-  /// belong to a nested delegate rather than this one. parentNavigatorKey can
-  /// also route a node back to a different ancestor navigator. This method
-  /// resolves that ownership and yields only the nodes assigned to the current
-  /// delegate's navigator.
-  Iterable<RouteNode<ID>> _matchedNodesForNavigator(
+  /// creates a routing boundary via its routerKey, so deeper nodes may belong
+  /// to a nested delegate rather than this one. parentRouterKey can also route
+  /// a node back to a different ancestor navigator. This method resolves that
+  /// ownership and yields only the nodes assigned to the current delegate's
+  /// navigator.
+  Iterable<LocationTreeElement<ID>> _matchedNodesForNavigator(
     WorkingRouterData<ID> data,
   ) sync* {
-    GlobalKey<NavigatorState>? childNavigatorKey = router.rootNavigatorKey;
+    WorkingRouterKey childRouterKey = router.rootRouterKey;
 
-    for (final node in data.nodes) {
-      final effectiveParentNavigatorKey =
-          node.parentNavigatorKey ?? childNavigatorKey;
+    for (final node in data.elements) {
+      final effectiveParentRouterKey = node.parentRouterKey ?? childRouterKey;
 
-      if (identical(effectiveParentNavigatorKey, navigatorKey)) {
+      if (identical(effectiveParentRouterKey, routerKey)) {
         yield node;
       }
 
       switch (node) {
         case Shell<ID>():
-          childNavigatorKey = node.navigatorKey;
-        case Location<ID>():
-          childNavigatorKey = effectiveParentNavigatorKey;
+          childRouterKey = node.routerKey;
+        case AnyLocation<ID>():
+          childRouterKey = effectiveParentRouterKey;
       }
     }
   }
 
   List<LocationPageSkeleton<ID>> _buildPagesForNode(
-    RouteNode<ID> node,
+    LocationTreeElement<ID> node,
     WorkingRouterData<ID> data,
   ) {
     if (node case final Shell<ID> shell) {
@@ -192,7 +194,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             location,
             data,
           ),
-          navigatorKey: shell.navigatorKey,
+          routerKey: shell.routerKey,
           buildChild: (context, nestedData, child) {
             return shell.buildWidget(context, nestedData, child);
           },
@@ -202,11 +204,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
       ];
     }
 
-    return _buildPagesForLocation(node as Location<ID>, data);
+    return _buildPagesForLocation(node as AnyLocation<ID>, data);
   }
 
   List<LocationPageSkeleton<ID>> _buildPagesForLocation(
-    Location<ID> location,
+    AnyLocation<ID> location,
     WorkingRouterData<ID> data,
   ) {
     final selfBuiltPages = _selfBuiltPages(location, data);
@@ -224,7 +226,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   /// existing skeleton-based delegate flow. Returns `null` when the location
   /// still relies on the legacy `buildPages` callback.
   List<LocationPageSkeleton<ID>>? _selfBuiltPages(
-    Location<ID> location,
+    AnyLocation<ID> location,
     WorkingRouterData<ID> data,
   ) {
     if (!location.buildsOwnPage) {
@@ -249,6 +251,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   void updateData(WorkingRouterData<ID> data) {
     _data = data;
+    refresh();
+  }
+
+  void updateRouterKey(WorkingRouterKey routerKey) {
+    this.routerKey = routerKey;
     refresh();
   }
 

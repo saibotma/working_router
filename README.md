@@ -1,18 +1,22 @@
 # working_router
 
-A Flutter router built around a typed route tree.
+A Flutter router built around a typed route tree and a DSL-style route
+definition API.
 
 ## Core Ideas
 
-- `Location<ID>` is a semantic route node with an optional `id`, path
-  segments, optional query parameters, and optional `buildWidget` /
-  `buildPage` overrides.
-- `Shell<ID>` is a structural node that inserts a nested navigator and wraps
-  its matched child content.
-- `WorkingRouterData<ID>` gives you typed access to the currently matched
-  route chain.
-- `@RouteNodes()` generates typed navigation helpers and typed
-  route targets.
+- `Location<ID, Self>` is a semantic route node.
+- `Shell<ID>` is a directly constructible structural route node that inserts a nested navigator.
+- Routes are defined in `build(...)` with ordered builder calls:
+  - `pathLiteral(...)`
+  - `pathParam(...)`
+  - `queryParam(...)`
+- The same `build(...)` method also decides whether the location is:
+  - legacy when no render is configured, so `buildRootPages` handles it
+  - self-built via `builder.widget(...)` or `builder.page(...)`
+  - and returns the child `LocationTreeElement`s as a list
+- `@Locations()` generates typed `routeToX(...)` helpers and `XRouteTarget`
+  classes from one canonical route-tree file.
 
 ## Recommended Setup
 
@@ -22,65 +26,131 @@ everything else import it.
 1. Create a dedicated route-tree file such as
    [`example/lib/app_routes.dart`](example/lib/app_routes.dart).
 2. Put `part 'app_routes.g.dart';` in that file.
-3. Annotate the canonical `buildRouteNodes` entrypoint with
-   `@RouteNodes()`.
-4. Return a top-level `List<RouteNode<ID>>` from that entrypoint.
-5. Build the router with `buildRouteNodes: buildRouteNodes`.
+3. Annotate the canonical `buildLocations(...)` entrypoint with `@Locations()`.
+4. Return the root nodes from that function.
+5. Build the router with `buildLocations: (rootRouterKey) => buildLocations(rootRouterKey: rootRouterKey, ...)`.
 
 See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
-- [`example/lib/locations/abc_location.dart`](example/lib/locations/abc_location.dart)
-- [`example/lib/locations/splash_location.dart`](example/lib/locations/splash_location.dart)
 - [`example/lib/main.dart`](example/lib/main.dart)
 
-## Defining Parameters
+## Defining Locations
 
-Path parameters should be declared as fields and then referenced from `path`:
+The route API is centered around lightweight location subclasses that forward a
+typed `build:` callback.
 
-- `final idParameter = pathParam(const StringRouteParamCodec());`
+```dart
+class ExampleLocation extends Location<MyRouteId, ExampleLocation> {
+  ExampleLocation({
+    super.id,
+    super.build,
+  });
+}
 
-Query parameters should be declared as named fields and then exposed through
-`queryParameters`:
+final example = ExampleLocation(
+  id: MyRouteId.example,
+  build: (builder, location) {
+    builder.pathLiteral('items');
+    final itemId = builder.stringPathParam();
+    final filter = builder.stringQueryParam('filter', optional: true);
 
-- `final bParam = queryParam('b', const StringRouteParamCodec());`
-- `final cParam = queryParam('c', const StringRouteParamCodec());`
-- `@override List<QueryParam<dynamic>> get queryParameters => [bParam, cParam];`
+    builder.page(
+      widget: (context, data) {
+        return Text(
+          '${data.pathParameter(itemId)}:${data.queryParameterOrNull(filter)}',
+        );
+      },
+    );
+
+    builder.children = [
+      DetailLocation(id: MyRouteId.detail),
+    ];
+  },
+);
+```
+
+Important details:
+
+- Path order is defined by call order inside `build(...)`.
+- Query parameter names are explicit strings on `queryParam(...)`.
+- The builder also exposes typed shortcuts like `stringPathParam()` and
+  `intQueryParam('page')` for the built-in codecs.
+- Child routes are assigned with `builder.children = [...]`.
+- Named `Location` subclasses are the route-authoring model.
+- `Shell(...)` stays directly constructible and is not meant to be subclassed.
+- Custom page-key behavior can be registered with `builder.pageKey = ...`.
+- `builder.widget(...)` and `builder.page(...)` mark a location as self-built.
+- If neither is called, the location is treated as legacy and resolved through
+  `buildRootPages`.
+
+See:
+- [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
+- [`example/lib/locations.dart`](example/lib/locations.dart)
+
+## Defining Shells
+
+`Shell` stays directly constructible:
+
+```dart
+Shell(
+  build: (builder, routerKey) {
+    builder.widget((context, data, child) {
+      return Scaffold(body: child);
+    });
+
+    builder.children = [
+      SomeLocation(id: MyRouteId.some),
+    ];
+  },
+)
+```
+
+Shells create their own nested navigator keys internally. If a child should be
+rendered on the root navigator instead, thread the `rootRouterKey` from the
+top-level `buildLocations(...)` entrypoint into the location that needs it and
+pass that value as `parentRouterKey:`.
+
+Nested shell routing is hosted by a stateful `NestedRouting` widget, so the
+nested delegate keeps its own navigator key and stack across
+`WorkingRouter.refresh()` as long as that shell widget is reused. That is what
+makes dynamic route-tree refreshes practical here, because nested navigator
+state can survive tree changes that still keep the same shell alive.
+
+This is shown in the package example in
+[`example/lib/app_routes.dart`](example/lib/app_routes.dart).
 
 ## Generated API
 
-From the annotated route tree, the generator currently emits:
+From `@Locations()`, the generator emits:
 
 - `routeToX(...)` helpers on `WorkingRouterSailor`
 - `XRouteTarget(...)` classes for typed imperative navigation and redirects
 
-That means you can navigate either with the generated helper:
+That means you can navigate either with:
 
-- `router.routeToAbc(id: 'test', b: 'bee', c: 'see')`
+```dart
+router.routeToAbc(id: 'test', b: 'bee', c: 'see');
+```
 
-or with the generated target directly:
+or:
 
-- `router.routeTo(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'))`
+```dart
+router.routeTo(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'));
+```
 
-Redirects can use the same typed targets:
+Redirects can use the same targets:
 
-- `return RedirectTransition(AbcRouteTarget(...));`
+```dart
+return RedirectTransition(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'));
+```
 
-## Building Pages
+## Legacy `buildRootPages`
 
-The current recommended style is location-owned page building:
+The old `buildRootPages` / skeleton flow still exists for migration.
 
-- override `buildsOwnPage => true`
-- implement `buildWidget(...)`
-- optionally override `buildPage(...)` for a custom `Page`
-
-See:
-- [`example/lib/locations/splash_location.dart`](example/lib/locations/splash_location.dart)
-- [`example/lib/locations/ab_location.dart`](example/lib/locations/ab_location.dart)
-- [`example/lib/locations/abc_location.dart`](example/lib/locations/abc_location.dart)
-- [`example/lib/locations/adc_location.dart`](example/lib/locations/adc_location.dart)
-
-The legacy `buildRootPages` / skeleton flow still exists for incremental
-migration, but the main example no longer uses it.
+For that case, a location simply does not call `builder.widget(...)` or
+`builder.page(...)`. The route stays in the tree while page construction still
+happens in `buildRootPages`.
 
 ## Running The Generator
 
@@ -100,12 +170,14 @@ flutter pub run build_runner watch --delete-conflicting-outputs
 
 The package example demonstrates:
 
-- the old splash -> a -> ab/abc and ad/adc route flow on the new API
-- a direct `Shell(...)` wrapping the `/a...` subtree
-- self-built locations
-- field-based path and query params
+- the splash -> a -> ab/abc and ad/adc flow
+- a responsive route tree where small screens stack on top of `/a` while
+  medium/large screens keep the alphabet sidebar visible in a shell
+- lightweight `Location` subclasses with forwarded `build:` callbacks
+- direct `Shell(...)` usage
+- typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes
-- a custom modal page built from `buildPage(...)`
+- a custom modal page from `builder.page(...)`
 
 Run it from [`example`](example).
