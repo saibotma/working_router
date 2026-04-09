@@ -443,7 +443,7 @@ void main() {
           _BuilderLocation<_Id>(
             id: _Id.root,
             build: (builder, location) {
-              builder.widget((_, _) => const Text('root'));
+              builder.widget(const Text('root'));
               builder.children = [
                 _BuilderLocation<_Id>(
                   id: _Id.a,
@@ -455,7 +455,7 @@ void main() {
                           data.activeLocation?.id == _Id.a;
                       return ValueKey('dsl:${data.uri.path}');
                     };
-                    builder.widget((_, _) => const Text('a'));
+                    builder.widget(const Text('a'));
                     builder.page((key, child) {
                       pageKey = key;
                       return MaterialPage<dynamic>(key: key, child: child);
@@ -895,7 +895,7 @@ class _SelfBuiltAccountLocation
     builder.pathLiteral('accounts');
     final accountId = builder.stringPathParam();
     final tab = builder.stringQueryParam('tab');
-    builder.widget((context, data) {
+    builder.widgetBuilder((context, data) {
       return Text(
         '${data.pathParam(accountId)}:${data.queryParam(tab)}',
       );

@@ -209,13 +209,17 @@ class LocationBuilder<ID> {
     _buildPageKey = buildPageKey;
   }
 
-  void widget(
+  void widget(Widget widget) {
+    widgetBuilder((context, data) => widget);
+  }
+
+  void widgetBuilder(
     LocationWidgetBuilder<ID> widget,
   ) {
     if (_buildWidget != null) {
       throw StateError(
         'LocationBuilder widget was already configured. '
-        'widget(...) may only be called once.',
+        'widget(...) or widgetBuilder(...) may only be called once.',
       );
     }
     _buildWidget = widget;
@@ -235,8 +239,8 @@ class LocationBuilder<ID> {
     if (_buildWidget == null) {
       if (_buildPage != null) {
         throw StateError(
-          'LocationBuilder page was configured without widget(...). '
-          'Call widget(...) before page(...).',
+          'LocationBuilder page was configured without widget(...) '
+          'or widgetBuilder(...). Call one of them before page(...).',
         );
       }
       return null;
@@ -274,11 +278,11 @@ class ShellBuilder<ID> {
     this.buildPageKey = buildPageKey;
   }
 
-  void widget(ShellWidgetBuilder<ID> widget) {
+  void widgetBuilder(ShellWidgetBuilder<ID> widget) {
     if (_buildWidget != null) {
       throw StateError(
         'ShellBuilder widget was already configured. '
-        'widget(...) may only be called once.',
+        'widgetBuilder(...) may only be called once.',
       );
     }
     _buildWidget = widget;
@@ -298,12 +302,12 @@ class ShellBuilder<ID> {
     if (_buildWidget == null) {
       if (_buildPage != null) {
         throw StateError(
-          'ShellBuilder page was configured without widget(...). '
-          'Call widget(...) before page(...).',
+          'ShellBuilder page was configured without widgetBuilder(...). '
+          'Call widgetBuilder(...) before page(...).',
         );
       }
       throw StateError(
-        'ShellBuilder must configure its render with widget(...).',
+        'ShellBuilder must configure its render with widgetBuilder(...).',
       );
     }
     return ShellBuildResult(buildWidget: _buildWidget!, buildPage: _buildPage);

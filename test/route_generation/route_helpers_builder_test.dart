@@ -688,7 +688,7 @@ List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
         defaultValue: Default(Uri.parse('/home')),
       );
 
-      builder.widget((context, data) => const SizedBox.shrink());
+      builder.widget(const SizedBox.shrink());
     },
   ),
 ];
@@ -783,7 +783,7 @@ List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
         defaultValue: Default<Uri?>(null),
       );
 
-      builder.widget((context, data) => const SizedBox.shrink());
+      builder.widget(const SizedBox.shrink());
     },
   ),
 ];
@@ -1363,7 +1363,7 @@ class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
 @Locations()
 LocationTreeElement<ShellRootRouteId> get appLocationTree => Shell(
   build: (builder, routerKey) {
-    builder.widget((context, data, child) => child);
+    builder.widgetBuilder((context, data, child) => child);
     builder.children = [
       ChildChildLocation(
         id: ShellRootRouteId.child,

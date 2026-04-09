@@ -13,7 +13,7 @@ definition API.
   - `queryParam(...)`
 - The same `build(...)` method also decides whether the location is:
   - legacy when no render is configured, so `buildRootPages` handles it
-  - self-built via `builder.widget(...)`, with an optional page override from `builder.page(...)`
+  - self-built via `builder.widget(...)` or `builder.widgetBuilder(...)`, with an optional page override from `builder.page(...)`
   - and returns the child `LocationTreeElement`s as a list
 - `@Locations()` generates typed `routeToX(...)` helpers and `XRouteTarget`
   classes from one canonical route-tree file.
@@ -57,7 +57,7 @@ final example = ExampleLocation(
       defaultValue: Default('all'),
     );
 
-    builder.widget((context, data) {
+    builder.widgetBuilder((context, data) {
       return Text(
         '${data.pathParam(itemId)}:${data.queryParam(filter)}',
       );
@@ -83,7 +83,8 @@ Important details:
 - Named `Location` subclasses are the route-authoring model.
 - `Shell(...)` stays directly constructible and is not meant to be subclassed.
 - Custom page-key behavior can be registered with `builder.pageKey = ...`.
-- `builder.widget(...)` marks a location as self-built.
+- `builder.widget(...)` is the shortcut for constant widgets.
+- `builder.widgetBuilder(...)` is the data-aware variant.
 - `builder.page(...)` only overrides the default page wrapper around that widget.
 - If neither is called, the location is treated as legacy and resolved through
   `buildRootPages`.
@@ -99,7 +100,7 @@ See:
 ```dart
 Shell(
   build: (builder, routerKey) {
-    builder.widget((context, data, child) {
+    builder.widgetBuilder((context, data, child) {
       return Scaffold(body: child);
     });
 
@@ -153,8 +154,9 @@ return RedirectTransition(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'));
 
 The old `buildRootPages` / skeleton flow still exists for migration.
 
-For that case, a location simply does not call `builder.widget(...)`. The route
-stays in the tree while page construction still happens in `buildRootPages`.
+For that case, a location simply does not call `builder.widget(...)` or
+`builder.widgetBuilder(...)`. The route stays in the tree while page
+construction still happens in `buildRootPages`.
 
 ## Running The Generator
 
