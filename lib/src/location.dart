@@ -146,8 +146,15 @@ abstract class Location<ID, Self extends AnyLocation<ID>>
     super.id,
     super.parentRouterKey,
     super.tags,
-    BuildLocation<ID, Self>? build,
+    required BuildLocation<ID, Self> build,
   }) : _build = build;
+
+  @protected
+  Location.override({
+    super.id,
+    super.parentRouterKey,
+    super.tags,
+  }) : _build = null;
 
   @override
   void build(LocationBuilder<ID> builder) {

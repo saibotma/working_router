@@ -80,8 +80,9 @@ void main() {
 class _TestLocation extends Location<String, _TestLocation> {
   final List<PathSegment> _segments;
 
-  _TestLocation({required super.id, required String path})
-    : _segments = _pathSegments(path);
+  _TestLocation({required String id, required String path})
+    : _segments = _pathSegments(path),
+      super.override(id: id);
 
   @override
   void build(LocationBuilder<String> builder) {
@@ -94,7 +95,8 @@ class _TestLocation extends Location<String, _TestLocation> {
 class _ParamOnlyLocation extends Location<String, _ParamOnlyLocation> {
   final PathParam<String> parameter;
 
-  _ParamOnlyLocation({required super.id, required this.parameter});
+  _ParamOnlyLocation({required String id, required this.parameter})
+    : super.override(id: id);
 
   @override
   void build(LocationBuilder<String> builder) {

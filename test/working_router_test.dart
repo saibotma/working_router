@@ -788,7 +788,7 @@ class _PathLocation extends Location<_Id, _PathLocation> {
     List<LocationTreeElement<_Id>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
-       super(id: id);
+       super.override(id: id);
 
   @override
   void build(LocationBuilder<_Id> builder) {
@@ -809,7 +809,7 @@ class _ParamPathLocation extends Location<_ParamId, _ParamPathLocation> {
     List<LocationTreeElement<_ParamId>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
-       super(id: id);
+       super.override(id: id);
 
   @override
   void build(LocationBuilder<_ParamId> builder) {
@@ -875,9 +875,10 @@ class _MigratingRootLocation
   final List<LocationTreeElement<_MigratingId>> _childNodes;
 
   _MigratingRootLocation({
-    required super.id,
+    required _MigratingId id,
     List<LocationTreeElement<_MigratingId>> children = const [],
-  }) : _childNodes = children;
+  }) : _childNodes = children,
+       super.override(id: id);
 
   @override
   void build(LocationBuilder<_MigratingId> builder) {
@@ -888,8 +889,8 @@ class _MigratingRootLocation
 class _SelfBuiltAccountLocation
     extends Location<_MigratingId, _SelfBuiltAccountLocation> {
   _SelfBuiltAccountLocation({
-    required super.id,
-  });
+    required _MigratingId id,
+  }) : super.override(id: id);
 
   @override
   void build(LocationBuilder<_MigratingId> builder) {
@@ -910,7 +911,7 @@ class _BuilderLocation<ID> extends Location<ID, _BuilderLocation<ID>> {
   _BuilderLocation({
     required super.id,
     super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 

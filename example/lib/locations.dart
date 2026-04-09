@@ -16,7 +16,7 @@ class SplashLocation extends Location<LocationId, SplashLocation> {
   SplashLocation({
     super.id,
     super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 
@@ -24,7 +24,7 @@ class ABLocation extends Location<LocationId, ABLocation> {
   ABLocation({
     super.id,
     super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 
@@ -32,7 +32,7 @@ class ABCLocation extends Location<LocationId, ABCLocation> {
   ABCLocation({
     super.id,
     required super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 
@@ -40,7 +40,7 @@ class ADLocation extends Location<LocationId, ADLocation> {
   ADLocation({
     super.id,
     super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 
@@ -48,7 +48,7 @@ class ADShellLocation extends Location<LocationId, ADShellLocation> {
   ADShellLocation({
     super.id,
     super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 
@@ -56,7 +56,7 @@ class ADCLocation extends Location<LocationId, ADCLocation> {
   ADCLocation({
     super.id,
     super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 
@@ -64,7 +64,7 @@ class ADELocation extends Location<LocationId, ADELocation> {
   ADELocation({
     super.id,
     super.parentRouterKey,
-    super.build,
+    required super.build,
   });
 }
 
@@ -79,9 +79,9 @@ class ALocation extends Location<LocationId, ALocation> {
     required this.rendersStandaloneSidebar,
     required this.rootRouterKey,
     this.outerShellRouterKey,
-  }) : super(
-          tags: [PopUntilTarget()],
-        );
+  }) : super.override(
+         tags: [PopUntilTarget()],
+       );
 
   @override
   void build(LocationBuilder<LocationId> builder) {
