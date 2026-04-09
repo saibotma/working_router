@@ -71,8 +71,9 @@ Important details:
 
 - Path order is defined by call order inside `build(...)`.
 - Query parameter names are explicit strings on `queryParam(...)`.
-- The builder also exposes typed shortcuts like `stringPathParam()` and
-  `intQueryParam('page')` for the built-in codecs.
+- The builder also exposes typed shortcuts like `stringPathParam()`,
+  `intQueryParam('page')`, `uriPathParam()`, `uriQueryParam('next')`,
+  `enumPathParam(MyEnum.values)`, and `enumQueryParam('filter', MyEnum.values)`.
 - Child routes are assigned with `builder.children = [...]`.
 - Named `Location` subclasses are the route-authoring model.
 - `Shell(...)` stays directly constructible and is not meant to be subclassed.

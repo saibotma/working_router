@@ -65,10 +65,20 @@ class DateTimeIsoRouteParamCodec extends RouteParamCodec<DateTime> {
   DateTime decode(String value) => DateTime.parse(value);
 }
 
-class EnumNameRouteParamCodec<T extends Enum> extends RouteParamCodec<T> {
+class UriRouteParamCodec extends RouteParamCodec<Uri> {
+  const UriRouteParamCodec();
+
+  @override
+  String encode(Uri value) => value.toString();
+
+  @override
+  Uri decode(String value) => Uri.parse(value);
+}
+
+class EnumRouteParamCodec<T extends Enum> extends RouteParamCodec<T> {
   final List<T> values;
 
-  const EnumNameRouteParamCodec(this.values);
+  const EnumRouteParamCodec(this.values);
 
   @override
   String encode(T value) => value.name;

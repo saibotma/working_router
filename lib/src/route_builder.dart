@@ -95,6 +95,14 @@ class LocationBuilder<ID> {
     return pathParam(const DateTimeIsoRouteParamCodec());
   }
 
+  PathParam<Uri> uriPathParam() {
+    return pathParam(const UriRouteParamCodec());
+  }
+
+  PathParam<T> enumPathParam<T extends Enum>(List<T> values) {
+    return pathParam(EnumRouteParamCodec(values));
+  }
+
   QueryParam<T> query<T>(QueryParam<T> parameter) {
     _queryParameters.add(parameter);
     return parameter;
@@ -143,6 +151,25 @@ class LocationBuilder<ID> {
     return queryParam(
       name,
       const DateTimeIsoRouteParamCodec(),
+      optional: optional,
+    );
+  }
+
+  QueryParam<Uri> uriQueryParam(
+    String name, {
+    bool optional = false,
+  }) {
+    return queryParam(name, const UriRouteParamCodec(), optional: optional);
+  }
+
+  QueryParam<T> enumQueryParam<T extends Enum>(
+    String name,
+    List<T> values, {
+    bool optional = false,
+  }) {
+    return queryParam(
+      name,
+      EnumRouteParamCodec(values),
       optional: optional,
     );
   }

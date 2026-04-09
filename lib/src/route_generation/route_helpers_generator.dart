@@ -1200,6 +1200,8 @@ class _StaticRouteTreeExtractor {
       case 'doublePathParam':
       case 'boolPathParam':
       case 'dateTimePathParam':
+      case 'uriPathParam':
+      case 'enumPathParam':
         if (!isLocation) {
           return;
         }
@@ -1236,6 +1238,8 @@ class _StaticRouteTreeExtractor {
       case 'doubleQueryParam':
       case 'boolQueryParam':
       case 'dateTimeQueryParam':
+      case 'uriQueryParam':
+      case 'enumQueryParam':
         if (!isLocation) {
           return;
         }
@@ -1412,6 +1416,26 @@ class _StaticRouteTreeExtractor {
         dartTypeSource: 'DateTime',
         codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
       ),
+      'uriPathParam' => const _DslCodecMetadata(
+        dartTypeSource: 'Uri',
+        codecExpressionSource: 'const UriRouteParamCodec()',
+      ),
+      'enumPathParam' => (() {
+        final valuesExpression = invocation.argumentList.arguments
+            .whereType<Expression>()
+            .firstOrNull;
+        if (valuesExpression == null) {
+          return null;
+        }
+        return _DslCodecMetadata(
+          dartTypeSource: _enumValuesTypeSourceForExpression(
+            valuesExpression,
+            elementForErrors,
+          ),
+          codecExpressionSource:
+              'EnumRouteParamCodec(${_expressionSource(valuesExpression)})',
+        );
+      })(),
       _ => null,
     };
   }
@@ -1448,6 +1472,8 @@ class _StaticRouteTreeExtractor {
       case 'doubleQueryParam':
       case 'boolQueryParam':
       case 'dateTimeQueryParam':
+      case 'uriQueryParam':
+      case 'enumQueryParam':
         final nameExpression = arguments.firstOrNull;
         if (nameExpression == null) {
           return null;
@@ -1473,6 +1499,26 @@ class _StaticRouteTreeExtractor {
             dartTypeSource: 'DateTime',
             codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
           ),
+          'uriQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'Uri',
+            codecExpressionSource: 'const UriRouteParamCodec()',
+          ),
+          'enumQueryParam' => (() {
+            final valuesExpression = arguments.length >= 2
+                ? arguments[1]
+                : null;
+            if (valuesExpression == null) {
+              return null;
+            }
+            return _DslCodecMetadata(
+              dartTypeSource: _enumValuesTypeSourceForExpression(
+                valuesExpression,
+                elementForErrors,
+              ),
+              codecExpressionSource:
+                  'EnumRouteParamCodec(${_expressionSource(valuesExpression)})',
+            );
+          })(),
           _ => null,
         };
         if (codecMetadata == null) {
@@ -2359,7 +2405,7 @@ class _StaticRouteTreeExtractor {
         .toSource()
         .split('<')
         .first;
-    if (codecTypeName == 'EnumNameRouteParamCodec') {
+    if (codecTypeName == 'EnumRouteParamCodec') {
       final valuesExpression = expression.argumentList.arguments
           .whereType<Expression>()
           .firstOrNull;
@@ -2383,6 +2429,28 @@ class _StaticRouteTreeExtractor {
     }
 
     return null;
+  }
+
+  String _enumValuesTypeSourceForExpression(
+    Expression valuesExpression,
+    Element element,
+  ) {
+    final valuesType = valuesExpression.staticType;
+    if (valuesType is InterfaceType) {
+      if (valuesType.typeArguments.length == 1) {
+        return valuesType.typeArguments.single.getDisplayString();
+      }
+
+      final iterableType = _supertypeNamed(valuesType, 'Iterable');
+      if (iterableType != null && iterableType.typeArguments.length == 1) {
+        return iterableType.typeArguments.single.getDisplayString();
+      }
+    }
+
+    throw InvalidGenerationSourceError(
+      'Enum param shortcuts require a concrete enum values list.',
+      element: element,
+    );
   }
 
   InterfaceType? _supertypeNamed(InterfaceType type, String name) {

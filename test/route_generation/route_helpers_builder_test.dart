@@ -535,7 +535,7 @@ class ItemLocation extends Location<TypedRouteId, ItemLocation> {
   get queryParameters => const [
     QueryParam(
       'filter',
-      EnumNameRouteParamCodec(ItemFilter.values),
+      EnumRouteParamCodec(ItemFilter.values),
     ),
     QueryParam(
       'page',
@@ -567,7 +567,7 @@ final LocationTreeElement<TypedRouteId> appLocationTree =
                     contains('path(location.itemId, itemId);'),
                     contains('queryParameters: {'),
                     contains(
-                      "'filter': EnumNameRouteParamCodec(ItemFilter.values).encode(filter),",
+                      "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
                     ),
                     contains(
                       "if (page != null) 'page': IntRouteParamCodec().encode(page),",
@@ -608,7 +608,7 @@ class ItemLocation
   final itemId = PathParam(const IntRouteParamCodec());
   final filterParam = QueryParam(
     'filter',
-    EnumNameRouteParamCodec(ItemFilter.values),
+    EnumRouteParamCodec(ItemFilter.values),
   );
   final pageParam = QueryParam(
     'page',
@@ -642,6 +642,76 @@ final LocationTreeElement<InferredQueryParamRouteId> appLocationTree =
                   contains('required ItemFilter filter,'),
                   contains('int? page,'),
                   isNot(contains('ItemLocationGenerated')),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'supports uri and enum param shortcut methods in the DSL',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/shortcut_param_routes.dart': '''
+library shortcut_param_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'shortcut_param_routes.g.dart';
+
+enum ShortcutRouteId { item }
+enum ItemFilter { all, active }
+
+class ItemLocation extends Location<ShortcutRouteId, ItemLocation> {
+  ItemLocation({
+    required super.id,
+    required super.build,
+  });
+}
+
+@Locations()
+List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
+  ItemLocation(
+    id: ShortcutRouteId.item,
+    build: (builder, location) {
+      builder.pathLiteral('items');
+      final itemUri = builder.uriPathParam();
+      final filter = builder.enumQueryParam('filter', ItemFilter.values);
+      final from = builder.uriQueryParam('from', optional: true);
+
+      builder.widget((context, data) => const SizedBox.shrink());
+    },
+  ),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/shortcut_param_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToItem({'),
+                  contains('required Uri itemUri,'),
+                  contains('required ItemFilter filter,'),
+                  contains('Uri? from,'),
+                  contains(
+                    "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
+                  ),
+                  contains(
+                    "if (from != null) 'from': const UriRouteParamCodec().encode(from),",
+                  ),
+                  contains(
+                    'path(location.pathParameters[0] as PathParam<Uri>, itemUri);',
+                  ),
                 ),
               ),
         },
