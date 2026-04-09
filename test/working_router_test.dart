@@ -627,6 +627,59 @@ void main() {
         expect(find.text('42:overview'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'groups share query params with children without building pages',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  Group<_Id>(
+                    build: (builder) {
+                      final languageCode = builder.stringQueryParam(
+                        'languageCode',
+                        defaultValue: const Default('en'),
+                      );
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.a,
+                          build: (builder, location) {
+                            builder.pathLiteral('privacy');
+                            builder.widgetBuilder((context, data) {
+                              return Text(data.queryParam(languageCode));
+                            });
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          buildRootPages: (_, location, _) {
+            return [
+              ChildLocationPageSkeleton(child: Text('${location.id}')),
+            ];
+          },
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(
+          Uri(path: '/privacy', queryParameters: {'languageCode': 'de'}),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('de'), findsOneWidget);
+
+        router.routeToUri(Uri(path: '/privacy'));
+        await tester.pumpAndSettle();
+        expect(find.text('en'), findsOneWidget);
+      },
+    );
   });
 }
 

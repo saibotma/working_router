@@ -44,6 +44,8 @@ class WorkingRouterData<ID> {
   }
 
   late final IList<AnyLocation<ID>> locations = elements.locations;
+  late final IList<PathLocationTreeElement<ID>> pathElements =
+      elements.pathElements;
 
   AnyLocation<ID>? get activeLocation => locations.lastOrNull;
 
@@ -98,7 +100,7 @@ class WorkingRouterData<ID> {
   }
 
   bool _hasDeclaredQueryParam<T>(QueryParam<T> parameter) {
-    for (final location in locations) {
+    for (final location in pathElements) {
       for (final declaredParameter in location.queryParameters) {
         if (!identical(declaredParameter, parameter)) {
           continue;
@@ -110,11 +112,14 @@ class WorkingRouterData<ID> {
   }
 
   String pathUpToLocation(AnyLocation<ID> location) {
-    final locationIndex = locations.indexOf(location);
+    final locationIndex = elements.indexOf(location);
     if (locationIndex == -1) {
       return uri.path;
     }
-    return locations.sublist(0, locationIndex + 1).buildPath(pathParameters);
+    final pathElementsUpToLocation = elements
+        .take(locationIndex + 1)
+        .pathElements;
+    return pathElementsUpToLocation.buildPath(pathParameters);
   }
 
   String pathUpToNode(LocationTreeElement<ID> node) {
@@ -123,8 +128,8 @@ class WorkingRouterData<ID> {
       return uri.path;
     }
 
-    final locationsUpToNode = elements.take(nodeIndex + 1).locations;
-    return locationsUpToNode.buildPath(pathParameters);
+    final pathElementsUpToNode = elements.take(nodeIndex + 1).pathElements;
+    return pathElementsUpToNode.buildPath(pathParameters);
   }
 
   String pathTemplateUpToNode(LocationTreeElement<ID> node) {
@@ -133,8 +138,8 @@ class WorkingRouterData<ID> {
       return uri.path;
     }
 
-    final locationsUpToNode = elements.take(nodeIndex + 1).locations;
-    return locationsUpToNode.buildPathTemplate();
+    final pathElementsUpToNode = elements.take(nodeIndex + 1).pathElements;
+    return pathElementsUpToNode.buildPathTemplate();
   }
 
   bool isChildOf(

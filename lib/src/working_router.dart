@@ -545,9 +545,9 @@ class WorkingRouter<ID> extends ChangeNotifier
     required IMap<PathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
-    final locations = elements.locations;
+    final pathElements = elements.pathElements;
     assert(
-      locations.isNotEmpty || (fallback != null),
+      pathElements.isNotEmpty || (fallback != null),
       'Fallback must not be null when locations are empty.',
     );
 
@@ -555,13 +555,15 @@ class WorkingRouter<ID> extends ChangeNotifier
       uri:
           fallback ??
           _uriFromLocations(
-            locations: locations,
+            locations: pathElements,
             queryParameters: queryParameters,
             pathParameters: pathParameters,
           ),
       elements: elements,
-      pathParameters: locations.isEmpty ? const IMapConst({}) : pathParameters,
-      queryParameters: locations.isEmpty
+      pathParameters: pathElements.isEmpty
+          ? const IMapConst({})
+          : pathParameters,
+      queryParameters: pathElements.isEmpty
           ? fallback!.queryParameters.toIMap()
           : queryParameters,
     );
@@ -576,7 +578,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   Uri _uriFromLocations({
-    required IList<AnyLocation<ID>> locations,
+    required IList<PathLocationTreeElement<ID>> locations,
     required IMap<PathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
@@ -597,7 +599,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   Map<PathParam<dynamic>, String> _resolvePathParameterWrites(
-    Iterable<AnyLocation<ID>> locations,
+    Iterable<PathLocationTreeElement<ID>> locations,
     WritePathParameters<ID>? writePathParameters,
   ) {
     if (writePathParameters == null) {

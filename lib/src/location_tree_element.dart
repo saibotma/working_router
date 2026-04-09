@@ -1,6 +1,7 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
+import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
@@ -12,7 +13,7 @@ sealed class PathSegment {
 
 typedef WritePathParameters<ID> =
     void Function(
-      AnyLocation<ID> location,
+      PathLocationTreeElement<ID> location,
       void Function<T>(PathParam<T> parameter, T value) path,
     );
 
@@ -88,6 +89,9 @@ extension TreeElementsX<ID> on Iterable<LocationTreeElement<ID>> {
   IList<AnyLocation<ID>> get locations =>
       whereType<AnyLocation<ID>>().toIList();
 
+  IList<PathLocationTreeElement<ID>> get pathElements =>
+      whereType<PathLocationTreeElement<ID>>().toIList();
+
   RouteMatch<ID> match(IList<String> uriPathSegments) {
     for (final node in this) {
       final match = node.match(uriPathSegments);
@@ -128,7 +132,7 @@ RouteMatch<ID> _matchNode<ID>(
     return emptyRouteMatch();
   }
 
-  if (node is! AnyLocation<ID>) {
+  if (node is! PathLocationTreeElement<ID>) {
     return emptyRouteMatch();
   }
 
@@ -179,11 +183,11 @@ IList<LocationTreeElement<ID>> _matchNodeById<ID>(
     return emptyNodeMatch();
   }
 
-  if (node is! AnyLocation<ID>) {
+  if (node is! PathLocationTreeElement<ID>) {
     return emptyNodeMatch();
   }
 
-  if (node.id == id) {
+  if (node case final AnyLocation<ID> location when location.id == id) {
     return [node].toIList();
   }
 
@@ -211,11 +215,11 @@ IList<LocationTreeElement<ID>> matchRelativeNode<ID>(
     return emptyNodeMatch();
   }
 
-  if (node is! AnyLocation<ID>) {
+  if (node is! PathLocationTreeElement<ID>) {
     return emptyNodeMatch();
   }
 
-  if (predicate(node)) {
+  if (node case final AnyLocation<ID> location when predicate(location)) {
     return [node].toIList();
   }
 
@@ -256,7 +260,7 @@ Map<PathParam<dynamic>, String>? startsWith(
   return pathParameters;
 }
 
-extension LocationPathBuilder<ID> on Iterable<AnyLocation<ID>> {
+extension LocationPathBuilder<ID> on Iterable<PathLocationTreeElement<ID>> {
   String buildPath(IMap<PathParam<dynamic>, String> pathParameters) {
     final uriPathSegments = <String>[];
     for (final location in this) {

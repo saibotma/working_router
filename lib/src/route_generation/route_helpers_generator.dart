@@ -181,7 +181,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
       if (node.idExpression != null && node.isLocation) {
         for (var i = 0; i < chain.length; i++) {
           final owner = chain[i];
-          if (!owner.isLocation || owner.locationTypeSource == 'Location') {
+          if (!owner.isLocation ||
+              owner.locationTypeSource == 'Location' ||
+              owner.locationTypeSource == 'Group') {
             continue;
           }
 
@@ -746,9 +748,10 @@ class _StaticRouteTreeExtractor {
       );
     }
 
-    final isLocation = _isLocationClass(classElement);
+    final isLocation = _isLocationLikeClass(classElement);
     final isDirectBaseNode =
         classElement.displayName == 'Location' ||
+        classElement.displayName == 'Group' ||
         classElement.displayName == 'Shell';
     final context = isDirectBaseNode
         ? evaluationContext
@@ -792,7 +795,7 @@ class _StaticRouteTreeExtractor {
         })();
 
     return _RouteNode(
-      idExpression: isLocation
+      idExpression: isLocation && classElement.displayName != 'Group'
           ? await _resolveIdExpression(
               _namedArgumentExpression(
                 expression.argumentList.arguments,
@@ -827,7 +830,9 @@ class _StaticRouteTreeExtractor {
       );
     }
 
-    if (classElement.displayName == (isLocation ? 'Location' : 'Shell')) {
+    if (classElement.displayName == 'Location' ||
+        classElement.displayName == 'Group' ||
+        classElement.displayName == 'Shell') {
       return null;
     }
 
@@ -836,8 +841,9 @@ class _StaticRouteTreeExtractor {
       library: classElement.library,
     );
     if (buildMethod == null ||
-        buildMethod.enclosingElement?.displayName ==
-            (isLocation ? 'Location' : 'Shell')) {
+        buildMethod.enclosingElement?.displayName == 'Location' ||
+        buildMethod.enclosingElement?.displayName == 'Group' ||
+        buildMethod.enclosingElement?.displayName == 'Shell') {
       return null;
     }
 
@@ -2570,10 +2576,11 @@ class _StaticRouteTreeExtractor {
     return false;
   }
 
-  bool _isLocationClass(InterfaceElement classElement) {
+  bool _isLocationLikeClass(InterfaceElement classElement) {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
-      if (current.element.name == 'Location') {
+      if (current.element.name == 'Location' ||
+          current.element.name == 'Group') {
         return true;
       }
       current = current.element.supertype;
@@ -2585,7 +2592,9 @@ class _StaticRouteTreeExtractor {
 bool _isFrameworkRouteMemberOwner(Element? element) {
   final ownerName = element?.displayName;
   return ownerName == 'LocationTreeElement' ||
+      ownerName == 'PathLocationTreeElement' ||
       ownerName == 'AnyLocation' ||
+      ownerName == 'Group' ||
       ownerName == 'Location' ||
       ownerName == 'Shell';
 }

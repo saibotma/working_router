@@ -806,6 +806,73 @@ List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
   );
 
   test(
+    'inherits query parameters from groups into child route helpers',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/group_query_routes.dart': '''
+library group_query_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'group_query_routes.g.dart';
+
+enum GroupQueryRouteId { privacy }
+
+class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
+  PrivacyLocation({
+    required super.id,
+    required super.build,
+  });
+}
+
+@Locations()
+List<LocationTreeElement<GroupQueryRouteId>> buildLocations() => [
+  Group(
+    build: (builder) {
+      final languageCode = builder.stringQueryParam(
+        'languageCode',
+        defaultValue: Default('en'),
+      );
+      builder.children = [
+        PrivacyLocation(
+          id: GroupQueryRouteId.privacy,
+          build: (builder, location) {
+            builder.pathLiteral('privacy');
+            builder.widget(const SizedBox.shrink());
+          },
+        ),
+      ];
+    },
+  ),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/group_query_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToPrivacy({String? languageCode})'),
+                  contains(
+                    "'languageCode': const StringRouteParamCodec().encode(languageCode),",
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'supports child ids derived from whether the parent id is null',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

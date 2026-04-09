@@ -2,12 +2,94 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location_tag.dart';
 import 'package:working_router/src/location_tree_element.dart';
-import 'package:working_router/src/route_builder.dart';
+import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/working_router_data.dart';
-import 'package:working_router/src/working_router_sailor.dart';
 
 typedef BuildLocation<ID, Self extends AnyLocation<ID>> =
     void Function(LocationBuilder<ID> builder, Self location);
+typedef LocationWidgetBuilder<ID> =
+    Widget Function(BuildContext context, WorkingRouterData<ID> data);
+typedef SelfBuiltLocationPageBuilder =
+    Page<dynamic> Function(LocalKey? key, Widget child);
+
+sealed class LocationBuildResult<ID> {
+  const LocationBuildResult();
+}
+
+final class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
+  final LocationWidgetBuilder<ID> buildWidget;
+  final SelfBuiltLocationPageBuilder? buildPage;
+
+  const SelfBuiltLocationBuildResult({
+    required this.buildWidget,
+    this.buildPage,
+  });
+}
+
+class LocationBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
+  LocationWidgetBuilder<ID>? _buildWidget;
+  SelfBuiltLocationPageBuilder? _buildPage;
+
+  LocationBuilder();
+
+  void widget(Widget widget) {
+    widgetBuilder((context, data) => widget);
+  }
+
+  void widgetBuilder(LocationWidgetBuilder<ID> widget) {
+    if (_buildWidget != null) {
+      throw StateError(
+        'LocationBuilder widget was already configured. '
+        'widget(...) or widgetBuilder(...) may only be called once.',
+      );
+    }
+    _buildWidget = widget;
+  }
+
+  void page(SelfBuiltLocationPageBuilder page) {
+    if (_buildPage != null) {
+      throw StateError(
+        'LocationBuilder page was already configured. '
+        'page(...) may only be called once.',
+      );
+    }
+    _buildPage = page;
+  }
+
+  LocationBuildResult<ID>? resolveRender() {
+    if (_buildWidget == null) {
+      if (_buildPage != null) {
+        throw StateError(
+          'LocationBuilder page was configured without widget(...) '
+          'or widgetBuilder(...). Call one of them before page(...).',
+        );
+      }
+      return null;
+    }
+    return SelfBuiltLocationBuildResult(
+      buildWidget: _buildWidget!,
+      buildPage: _buildPage,
+    );
+  }
+}
+
+class BuiltLocationDefinition<ID> {
+  final List<PathSegment> path;
+  final List<PathParam<dynamic>> pathParameters;
+  final List<QueryParam<dynamic>> queryParameters;
+  final List<LocationTreeElement<ID>> children;
+  final LocationTreeElementPageKeyBuilder<ID>? buildPageKey;
+  final LocationBuildResult<ID>? render;
+
+  const BuiltLocationDefinition({
+    required this.path,
+    required this.pathParameters,
+    required this.queryParameters,
+    required this.children,
+    required this.buildPageKey,
+    required this.render,
+  });
+}
 
 /// Erased router-facing base type for all locations.
 ///
@@ -22,7 +104,7 @@ typedef BuildLocation<ID, Self extends AnyLocation<ID>> =
 /// a single common type that means "any location in the tree" without exposing
 /// that self-type parameter everywhere. This base provides that erased view,
 /// while [`Location`] remains the authoring API that route subclasses extend.
-abstract class AnyLocation<ID> extends LocationTreeElement<ID> {
+abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
   final ID? id;
   final ISet<LocationTag> tags;
 
@@ -32,42 +114,13 @@ abstract class AnyLocation<ID> extends LocationTreeElement<ID> {
     Iterable<LocationTag> tags = const [],
   }) : tags = tags.toISet();
 
-  @protected
-  void build(LocationBuilder<ID> builder);
-
-  late final BuiltLocationDefinition<ID> _definition = _buildDefinition();
-
-  BuiltLocationDefinition<ID> _buildDefinition() {
-    final builder = LocationBuilder<ID>();
-    build(builder);
-    final render = builder.resolveRender();
-    return BuiltLocationDefinition(
-      path: List.unmodifiable(builder.path),
-      pathParameters: List.unmodifiable(builder.pathParameters),
-      queryParameters: List.unmodifiable(builder.queryParameters),
-      children: List.unmodifiable(builder.children),
-      buildPageKey: builder.buildPageKey,
-      render: render,
-    );
-  }
-
-  List<PathSegment> get path => _definition.path;
-
-  List<PathParam<dynamic>> get pathParameters => _definition.pathParameters;
-
-  @override
-  List<LocationTreeElement<ID>> get children => _definition.children;
+  bool get contributesPage => true;
 
   bool get buildsOwnPage =>
-      _definition.render is SelfBuiltLocationBuildResult<ID>;
-
-  @override
-  LocalKey buildPageKey(WorkingRouterData<ID> data) {
-    return _definition.buildPageKey?.call(data) ?? super.buildPageKey(data);
-  }
+      definition.render is SelfBuiltLocationBuildResult<ID>;
 
   Widget? buildWidget(BuildContext context, WorkingRouterData<ID> data) {
-    final render = _definition.render;
+    final render = definition.render;
     if (render is! SelfBuiltLocationBuildResult<ID>) {
       return null;
     }
@@ -75,7 +128,7 @@ abstract class AnyLocation<ID> extends LocationTreeElement<ID> {
   }
 
   Page<dynamic> buildPage(LocalKey? key, Widget child) {
-    final render = _definition.render;
+    final render = definition.render;
     if (render is! SelfBuiltLocationBuildResult<ID>) {
       return MaterialPage<dynamic>(key: key, child: child);
     }
@@ -99,21 +152,6 @@ abstract class AnyLocation<ID> extends LocationTreeElement<ID> {
 
     return emptyNodeMatch();
   }
-
-  /// Query parameter definitions associated with this location.
-  ///
-  /// The final query parameters of the route resulting from [Navigator.pop],
-  /// [WorkingRouterSailor.routeBack] or [WorkingRouterSailor.routeBackUntil]
-  /// are filtered to the union of the keys declared by the remaining
-  /// locations.
-  ///
-  /// When using `@Locations`, required query parameters are generated as
-  /// required `routeToX(...)` arguments. Optional query parameters are
-  /// generated as nullable arguments and omitted when null.
-  ///
-  /// Query parameter names are defined directly on each [QueryParam], so
-  /// locations just expose the parameters they use here.
-  List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   AnyLocation<ID>? pop() {
     return null;
@@ -139,7 +177,8 @@ abstract class AnyLocation<ID> extends LocationTreeElement<ID> {
 }
 
 abstract class Location<ID, Self extends AnyLocation<ID>>
-    extends AnyLocation<ID> {
+    extends AnyLocation<ID>
+    implements BuildsWithLocationBuilder<ID> {
   final BuildLocation<ID, Self>? _build;
 
   Location({
@@ -155,6 +194,9 @@ abstract class Location<ID, Self extends AnyLocation<ID>>
     super.parentRouterKey,
     super.tags,
   }) : _build = null;
+
+  @override
+  LocationBuilder<ID> createBuilder() => LocationBuilder<ID>();
 
   @override
   void build(LocationBuilder<ID> builder) {

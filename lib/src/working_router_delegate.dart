@@ -9,6 +9,7 @@ import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_page_skeleton.dart';
 import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/nested_location_page_skeleton.dart';
+import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
@@ -176,7 +177,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
       switch (node) {
         case Shell<ID>():
           childRouterKey = node.routerKey;
-        case AnyLocation<ID>():
+        case PathLocationTreeElement<ID>():
           childRouterKey = effectiveParentRouterKey;
       }
     }
@@ -204,13 +205,20 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
       ];
     }
 
-    return _buildPagesForLocation(node as AnyLocation<ID>, data);
+    if (node case final AnyLocation<ID> location) {
+      return _buildPagesForLocation(location, data);
+    }
+
+    return const [];
   }
 
   List<LocationPageSkeleton<ID>> _buildPagesForLocation(
     AnyLocation<ID> location,
     WorkingRouterData<ID> data,
   ) {
+    if (!location.contributesPage) {
+      return const [];
+    }
     final selfBuiltPages = _selfBuiltPages(location, data);
     if (selfBuiltPages != null) {
       return selfBuiltPages;
