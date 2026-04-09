@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:working_router/working_router.dart';
 
-import 'app_routes.dart';
-import 'location_id.dart';
+import 'alphabet_sidebar.dart';
 
 class NestedScreen extends StatelessWidget {
   final Widget child;
@@ -11,66 +9,38 @@ class NestedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final router = WorkingRouter.of<LocationId>(context);
-
-    return Row(
-      children: [
-        Container(
-          color: Colors.yellow,
-          width: 200,
-          child: Column(
-            children: [
-              MaterialButton(
-                child: const Text('pop'),
-                onPressed: () {
-                  router.routeBack();
-                },
+    return ColoredBox(
+      color: const Color(0xFFF6EEC5),
+      child: Column(
+        children: [
+          Container(
+            height: 44,
+            width: double.infinity,
+            color: const Color(0xFFD5B74A),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: const Text(
+              'Outer shell navigator',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF3F2E00),
               ),
-              MaterialButton(
-                child: const Text('/a'),
-                onPressed: () {
-                  router.routeToA();
-                },
-              ),
-              MaterialButton(
-                child: const Text('/a/b'),
-                onPressed: () {
-                  router.routeToAb();
-                },
-              ),
-              MaterialButton(
-                child: const Text('/a/b/c/test'),
-                onPressed: () {
-                  router.routeTo(
-                    AbcRouteTarget(
-                      id: 'test',
-                      b: 'bee',
-                      c: 'see',
-                    ),
-                  );
-                },
-              ),
-              MaterialButton(
-                child: const Text('/a/d'),
-                onPressed: () {
-                  router.routeToAd();
-                },
-              ),
-              MaterialButton(
-                child: const Text('/a/d/c'),
-                onPressed: () {
-                  router.routeToAdc();
-                },
-              ),
-            ],
+            ),
           ),
-        ),
-        Expanded(
-          child: ClipRect(
-            child: child,
+          Expanded(
+            child: Row(
+              children: [
+                const AlphabetSidebar(showInnerShellBypassRoute: true),
+                Expanded(
+                  child: ClipRect(
+                    child: child,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

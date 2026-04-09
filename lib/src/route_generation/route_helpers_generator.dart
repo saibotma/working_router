@@ -7,9 +7,9 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:collection/collection.dart';
 import 'package:source_gen/source_gen.dart';
-import 'package:working_router/src/route_generation/route_nodes.dart';
+import 'package:working_router/src/route_generation/locations.dart';
 
-class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
+class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
   @override
   FutureOr<String> generateForAnnotatedElement(
     Element element,
@@ -24,7 +24,11 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     );
     final roots = await extractor.extract(declarationElement);
     final methods = _collectRouteMethods(roots, declarationElement);
-    if (methods.isEmpty) {
+    final locationChildTargetMethods = _collectLocationChildTargetMethods(
+      roots,
+      declarationElement,
+    );
+    if (methods.isEmpty && locationChildTargetMethods.isEmpty) {
       return '';
     }
 
@@ -33,7 +37,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     for (final method in methods) {
       buffer.writeln(method.renderTargetClass());
     }
-
     final extensionName =
         '${_toUpperCamelCase(declarationElement.displayName)}GeneratedRoutes';
     buffer.writeln(
@@ -45,6 +48,20 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     buffer.writeln('}');
+
+    final childMethodsByOwner = groupBy(
+      locationChildTargetMethods,
+      (method) => method.ownerTypeSource,
+    );
+    for (final entry in childMethodsByOwner.entries) {
+      buffer.writeln(
+        'extension ${entry.key}GeneratedChildTargets on ${entry.key} {',
+      );
+      for (final method in entry.value) {
+        buffer.writeln(method.renderMethod());
+      }
+      buffer.writeln('}');
+    }
     return buffer.toString();
   }
 
@@ -56,15 +73,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       if (routeNodeType != null && routeNodeType.typeArguments.length == 1) {
         return routeNodeType.typeArguments.single.getDisplayString();
       }
-
-      final builderParameterType = element.formalParameters.firstOrNull?.type;
-      final routeNodesBuilderType = _routeNodesBuilderType(
-        builderParameterType,
-      );
-      if (routeNodesBuilderType != null &&
-          routeNodesBuilderType.typeArguments.length == 1) {
-        return routeNodesBuilderType.typeArguments.single.getDisplayString();
-      }
     }
 
     if (element case PropertyInducingElement()) {
@@ -75,9 +83,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     throw InvalidGenerationSourceError(
-      'The annotated declaration must have type RouteNode<ID>, '
-      'Iterable<RouteNode<ID>>, or be a builder function taking '
-      'RouteNodesBuilder<ID>.',
+      'The annotated declaration must have type LocationTreeElement<ID> or '
+      'Iterable<LocationTreeElement<ID>>.',
       element: element,
     );
   }
@@ -94,7 +101,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     if (!isSupported) {
       throw InvalidGenerationSourceError(
-        '@RouteNodes must target a top-level declaration. '
+        '@Locations must target a top-level declaration. '
         'Static helper members inside the route tree are supported, but '
         'the annotated entrypoint itself must be top-level so source_gen '
         'can discover it.',
@@ -147,6 +154,61 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         if (previousMethod == null) {
           usedMethodsByName[childMethod.name] = childMethod;
           methods.add(childMethod);
+        }
+      }
+
+      for (final child in node.children) {
+        visit(child, nextChain);
+      }
+    }
+
+    for (final root in roots) {
+      visit(root, const []);
+    }
+    return methods;
+  }
+
+  List<_GeneratedLocationChildTargetMethod> _collectLocationChildTargetMethods(
+    Iterable<_RouteNode> roots,
+    Element element,
+  ) {
+    final methods = <_GeneratedLocationChildTargetMethod>[];
+    final usedMethodsByOwnerAndName =
+        <String, _GeneratedLocationChildTargetMethod>{};
+
+    void visit(_RouteNode node, List<_RouteNode> chain) {
+      final nextChain = [...chain, node];
+      if (node.idExpression != null && node.isLocation) {
+        for (var i = 0; i < chain.length; i++) {
+          final owner = chain[i];
+          if (!owner.isLocation || owner.locationTypeSource == 'Location') {
+            continue;
+          }
+
+          final relativeChain = nextChain.sublist(i + 1);
+          if (relativeChain.isEmpty) {
+            continue;
+          }
+
+          final method = _buildLocationChildTargetMethod(
+            owner: owner,
+            relativeChain: relativeChain,
+            target: node,
+            element: element,
+          );
+          final methodKey = '${method.ownerTypeSource}.${method.name}';
+          final previousMethod = usedMethodsByOwnerAndName[methodKey];
+          if (previousMethod != null && !previousMethod.isEquivalent(method)) {
+            throw InvalidGenerationSourceError(
+              'Duplicate generated child target method `${method.name}` '
+              'for `${method.ownerTypeSource}`.',
+              element: element,
+            );
+          }
+          if (previousMethod == null) {
+            usedMethodsByOwnerAndName[methodKey] = method;
+            methods.add(method);
+          }
         }
       }
 
@@ -215,6 +277,38 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       name: methodName,
       targetClassName: targetClassName,
       childLocationMatchSource: _routeNodeMatchSource(node),
+      pathWrites: pathWrites,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
+  }
+
+  _GeneratedLocationChildTargetMethod _buildLocationChildTargetMethod({
+    required _RouteNode owner,
+    required List<_RouteNode> relativeChain,
+    required _RouteNode target,
+    required Element element,
+  }) {
+    final childMethodBaseName = _childMethodBaseNameForNode(target);
+    final (pathParameters, queryParameters) = _collectParameters(
+      relativeChain,
+      element: element,
+      errorContext:
+          '${owner.locationTypeSource} -> ${target.idExpression ?? target.locationTypeSource}',
+    );
+    final pathWrites = _collectPathWrites(
+      relativeChain,
+      pathParameters,
+      element: element,
+      errorContext:
+          '${owner.locationTypeSource} -> ${target.idExpression ?? target.locationTypeSource}',
+    );
+
+    return _GeneratedLocationChildTargetMethod(
+      ownerTypeSource: owner.locationTypeSource,
+      idTypeSource: _idTypeSource(element),
+      name: 'child${_toUpperCamelCase(childMethodBaseName)}Target',
+      childLocationMatchSource: _routeNodeMatchSource(target),
       pathWrites: pathWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
@@ -394,7 +488,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   InterfaceType? _routeNodeSupertype(InterfaceType type) {
     InterfaceType? current = type;
     while (current != null) {
-      if (current.element.name == 'RouteNode') {
+      if (current.element.name == 'LocationTreeElement') {
         return current;
       }
       current = current.superclass;
@@ -418,22 +512,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     return null;
   }
-
-  InterfaceType? _routeNodesBuilderType(DartType? type) {
-    if (type is! InterfaceType) {
-      return null;
-    }
-
-    InterfaceType? current = type;
-    while (current != null) {
-      if (current.element.name == 'RouteNodesBuilder') {
-        return current;
-      }
-      current = current.superclass;
-    }
-
-    return null;
-  }
 }
 
 class _StaticRouteTreeExtractor {
@@ -446,98 +524,8 @@ class _StaticRouteTreeExtractor {
   });
 
   Future<List<_RouteNode>> extract(Element element) async {
-    final builderRoots = await _extractFromRouteNodesBuilderDeclaration(
-      element,
-    );
-    if (builderRoots != null) {
-      return builderRoots;
-    }
-
     final expression = await _declarationExpression(element);
     return _routeNodesFromTreeExpression(expression);
-  }
-
-  Future<List<_RouteNode>?> _extractFromRouteNodesBuilderDeclaration(
-    Element element,
-  ) async {
-    if (element is! ExecutableElement) {
-      return null;
-    }
-
-    final builderParameter = element.formalParameters.firstOrNull;
-    if (builderParameter == null ||
-        _routeNodesBuilderType(builderParameter.type) == null) {
-      return null;
-    }
-
-    final node = await buildStep.resolver.astNodeFor(
-      _fragmentFor(_normalizeDeclarationElement(element)),
-      resolve: true,
-    );
-
-    FunctionBody? body;
-    String? builderParameterName;
-    switch (node) {
-      case FunctionDeclaration():
-        body = node.functionExpression.body;
-        final builderParameter =
-            node.functionExpression.parameters?.parameters.firstOrNull;
-        builderParameterName = builderParameter == null
-            ? null
-            : _formalParameterName(builderParameter);
-      case FunctionDeclarationStatement():
-        body = node.functionDeclaration.functionExpression.body;
-        final builderParameter = node
-            .functionDeclaration
-            .functionExpression
-            .parameters
-            ?.parameters
-            .firstOrNull;
-        builderParameterName = builderParameter == null
-            ? null
-            : _formalParameterName(builderParameter);
-      case MethodDeclaration():
-        body = node.body;
-        final builderParameter = node.parameters?.parameters.firstOrNull;
-        builderParameterName = builderParameter == null
-            ? null
-            : _formalParameterName(builderParameter);
-      default:
-        return null;
-    }
-
-    if (builderParameterName == null) {
-      throw InvalidGenerationSourceError(
-        'Builder-based @RouteNodes entrypoints must take a single '
-        'RouteNodesBuilder parameter.',
-        element: element,
-      );
-    }
-
-    final definition = await _resolveDslDefinitionFromBody(
-      body: body,
-      builderParameterName: builderParameterName,
-      evaluationContext: _NoopExpressionContext(),
-      elementForErrors: element,
-      isLocation: false,
-    );
-    return definition.children;
-  }
-
-  InterfaceType? _routeNodesBuilderType(DartType? type) {
-    if (type is! InterfaceType) {
-      return null;
-    }
-
-    InterfaceType? current = type;
-    while (current != null) {
-      if (current.element.name == 'RouteNodesBuilder') {
-        return current;
-      }
-      current = current.superclass;
-    }
-
-    return null;
   }
 
   Future<List<_RouteNode>> _routeNodesFromTreeExpression(
@@ -753,7 +741,7 @@ class _StaticRouteTreeExtractor {
 
     if (!_isRouteNodeClass(classElement)) {
       throw InvalidGenerationSourceError(
-        '`${expression.toSource()}` does not create a RouteNode.',
+        '`${expression.toSource()}` does not create a LocationTreeElement.',
         element: rootElement,
       );
     }
@@ -831,15 +819,16 @@ class _StaticRouteTreeExtractor {
       creation.argumentList.arguments,
       'build',
     );
-    if (classElement.displayName == (isLocation ? 'Location' : 'Shell')) {
-      if (directBuildExpression == null) {
-        return null;
-      }
+    if (directBuildExpression != null) {
       return _resolveDslDefinitionFromExpression(
         directBuildExpression,
         evaluationContext: evaluationContext,
         isLocation: isLocation,
       );
+    }
+
+    if (classElement.displayName == (isLocation ? 'Location' : 'Shell')) {
+      return null;
     }
 
     final buildMethod = classElement.lookUpMethod(
@@ -863,14 +852,13 @@ class _StaticRouteTreeExtractor {
       );
     }
 
-    final builderParameter = node.parameters?.parameters.firstOrNull;
-    final builderParameterName = builderParameter == null
-        ? null
-        : _formalParameterName(builderParameter);
+    final builderParameterName = _buildCallbackBuilderParameterName(
+      node.parameters?.parameters,
+    );
     if (builderParameterName == null) {
       throw InvalidGenerationSourceError(
-        'build(...) on `${classElement.name}` must take a single builder '
-        'parameter.',
+        'build(...) on `${classElement.name}` must take either a builder '
+        'parameter or builder and location parameters.',
         element: buildMethod,
       );
     }
@@ -891,14 +879,13 @@ class _StaticRouteTreeExtractor {
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is FunctionExpression) {
-      final builderParameter =
-          normalizedExpression.parameters?.parameters.firstOrNull;
-      final builderParameterName = builderParameter == null
-          ? null
-          : _formalParameterName(builderParameter);
+      final builderParameterName = _buildCallbackBuilderParameterName(
+        normalizedExpression.parameters?.parameters,
+      );
       if (builderParameterName == null) {
         throw InvalidGenerationSourceError(
-          'Route build callbacks must take a single builder parameter.',
+          'Route build callbacks must take either a builder parameter or '
+          'builder and location parameters.',
           element: rootElement,
         );
       }
@@ -918,14 +905,13 @@ class _StaticRouteTreeExtractor {
         resolve: true,
       );
       if (node is FunctionDeclaration) {
-        final builderParameter =
-            node.functionExpression.parameters?.parameters.firstOrNull;
-        final builderParameterName = builderParameter == null
-            ? null
-            : _formalParameterName(builderParameter);
+        final builderParameterName = _buildCallbackBuilderParameterName(
+          node.functionExpression.parameters?.parameters,
+        );
         if (builderParameterName == null) {
           throw InvalidGenerationSourceError(
-            'Route build helpers must take a single builder parameter.',
+            'Route build helpers must take either a builder parameter or '
+            'builder and location parameters.',
             element: referencedElement,
           );
         }
@@ -956,6 +942,12 @@ class _StaticRouteTreeExtractor {
     final result = _ResolvedDslDefinition.empty();
 
     if (body is ExpressionFunctionBody) {
+      result.children.addAll(
+        await _locationsFromListExpression(
+          body.expression,
+          evaluationContext: context,
+        ),
+      );
       return result;
     }
     if (body is! BlockFunctionBody) {
@@ -989,6 +981,15 @@ class _StaticRouteTreeExtractor {
   }) async {
     switch (statement) {
       case ExpressionStatement():
+        if (await _resolveDslChildrenAssignment(
+          statement.expression,
+          builderParameterName: builderParameterName,
+          context: context,
+          result: result,
+          elementForErrors: elementForErrors,
+        )) {
+          return;
+        }
         await _resolveDslExpression(
           statement.expression,
           variableName: null,
@@ -1052,10 +1053,55 @@ class _StaticRouteTreeExtractor {
           result.merge(elseResult);
         }
       case ReturnStatement():
+        final expression = statement.expression;
+        if (expression != null) {
+          result.children.addAll(
+            await _locationsFromListExpression(
+              expression,
+              evaluationContext: context,
+            ),
+          );
+        }
         return;
       default:
         return;
     }
+  }
+
+  Future<bool> _resolveDslChildrenAssignment(
+    Expression expression, {
+    required String builderParameterName,
+    required _DslStatementContext context,
+    required _ResolvedDslDefinition result,
+    required Element elementForErrors,
+  }) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is! AssignmentExpression ||
+        normalizedExpression.operator.lexeme != '=') {
+      return false;
+    }
+
+    final target = normalizedExpression.leftHandSide;
+    final isBuilderChildren = switch (target) {
+      PrefixedIdentifier(:final prefix, :final identifier) =>
+        prefix.name == builderParameterName && identifier.name == 'children',
+      PropertyAccess(:final target?, :final propertyName) =>
+        target is SimpleIdentifier &&
+            target.name == builderParameterName &&
+            propertyName.name == 'children',
+      _ => false,
+    };
+    if (!isBuilderChildren) {
+      return false;
+    }
+
+    result.children.addAll(
+      await _locationsFromListExpression(
+        normalizedExpression.rightHandSide,
+        evaluationContext: context,
+      ),
+    );
+    return true;
   }
 
   Future<void> _resolveDslExpression(
@@ -1149,21 +1195,28 @@ class _StaticRouteTreeExtractor {
           ),
         );
       case 'pathParam':
+      case 'stringPathParam':
+      case 'intPathParam':
+      case 'doublePathParam':
+      case 'boolPathParam':
+      case 'dateTimePathParam':
         if (!isLocation) {
           return;
         }
-        final codecExpression = normalizedExpression.argumentList.arguments
-            .whereType<Expression>()
-            .firstOrNull;
-        if (codecExpression == null) {
+        final codecMetadata = _dslPathParamCodecMetadata(
+          normalizedExpression,
+          elementForErrors,
+        );
+        if (codecMetadata == null) {
           throw InvalidGenerationSourceError(
-            'pathParam(...) requires a codec.',
+            '${normalizedExpression.methodName.name}(...) requires a codec.',
             element: elementForErrors,
           );
         }
         if (variableName == null) {
           throw InvalidGenerationSourceError(
-            'Store the result of pathParam(...) in a local variable so '
+            'Store the result of ${normalizedExpression.methodName.name}(...) '
+            'in a local variable so '
             'generated route helpers can name that parameter.',
             element: elementForErrors,
           );
@@ -1171,44 +1224,34 @@ class _StaticRouteTreeExtractor {
         result.pathSegments.add(
           _RoutePathParameterSegmentMetadata(
             key: _stripParamSuffix(variableName),
-            dartTypeSource: _codecValueTypeSourceForExpression(
-              codecExpression,
-              elementForErrors,
-            ),
-            codecExpressionSource: _expressionSource(codecExpression),
+            dartTypeSource: codecMetadata.dartTypeSource,
+            codecExpressionSource: codecMetadata.codecExpressionSource,
             pathParameterIndex: result.pathParameterCount,
           ),
         );
         result.pathParameterCount += 1;
       case 'queryParam':
+      case 'stringQueryParam':
+      case 'intQueryParam':
+      case 'doubleQueryParam':
+      case 'boolQueryParam':
+      case 'dateTimeQueryParam':
         if (!isLocation) {
           return;
         }
-        final arguments = normalizedExpression.argumentList.arguments
-            .whereType<Expression>()
-            .toList(growable: false);
-        if (arguments.length < 2) {
+        final queryParameterMetadata = _dslQueryParamMetadata(
+          normalizedExpression,
+          elementForErrors,
+        );
+        if (queryParameterMetadata == null) {
           throw InvalidGenerationSourceError(
-            'queryParam(...) requires a name and a codec.',
+            '${normalizedExpression.methodName.name}(...) requires a name '
+            'and a codec.',
             element: elementForErrors,
           );
         }
-        final namedArguments = {
-          for (final argument
-              in normalizedExpression.argumentList.arguments
-                  .whereType<NamedExpression>())
-            argument.name.label.name: argument.expression,
-        };
         _registerQueryParameterMetadata(
-          _RouteQueryParameterMetadata(
-            key: _stringLiteral(arguments[0], elementForErrors),
-            dartTypeSource: _codecValueTypeSourceForExpression(
-              arguments[1],
-              elementForErrors,
-            ),
-            codecExpressionSource: _expressionSource(arguments[1]),
-            optional: namedArguments['optional']?.toSource() == 'true',
-          ),
+          queryParameterMetadata,
           result.queryParameters,
           element: elementForErrors,
         );
@@ -1241,7 +1284,7 @@ class _StaticRouteTreeExtractor {
             .firstOrNull;
         if (childExpression == null) {
           throw InvalidGenerationSourceError(
-            'child(...) requires a RouteNode.',
+            'child(...) requires a LocationTreeElement.',
             element: elementForErrors,
           );
         }
@@ -1326,6 +1369,124 @@ class _StaticRouteTreeExtractor {
         identifier.name == builderParameterName,
       _ => false,
     };
+  }
+
+  _DslCodecMetadata? _dslPathParamCodecMetadata(
+    MethodInvocation invocation,
+    Element elementForErrors,
+  ) {
+    final methodName = invocation.methodName.name;
+    return switch (methodName) {
+      'pathParam' => (() {
+        final codecExpression = invocation.argumentList.arguments
+            .whereType<Expression>()
+            .firstOrNull;
+        if (codecExpression == null) {
+          return null;
+        }
+        return _DslCodecMetadata(
+          dartTypeSource: _codecValueTypeSourceForExpression(
+            codecExpression,
+            elementForErrors,
+          ),
+          codecExpressionSource: _expressionSource(codecExpression),
+        );
+      })(),
+      'stringPathParam' => const _DslCodecMetadata(
+        dartTypeSource: 'String',
+        codecExpressionSource: 'const StringRouteParamCodec()',
+      ),
+      'intPathParam' => const _DslCodecMetadata(
+        dartTypeSource: 'int',
+        codecExpressionSource: 'const IntRouteParamCodec()',
+      ),
+      'doublePathParam' => const _DslCodecMetadata(
+        dartTypeSource: 'double',
+        codecExpressionSource: 'const DoubleRouteParamCodec()',
+      ),
+      'boolPathParam' => const _DslCodecMetadata(
+        dartTypeSource: 'bool',
+        codecExpressionSource: 'const BoolRouteParamCodec()',
+      ),
+      'dateTimePathParam' => const _DslCodecMetadata(
+        dartTypeSource: 'DateTime',
+        codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
+      ),
+      _ => null,
+    };
+  }
+
+  _RouteQueryParameterMetadata? _dslQueryParamMetadata(
+    MethodInvocation invocation,
+    Element elementForErrors,
+  ) {
+    final arguments = invocation.argumentList.arguments
+        .whereType<Expression>()
+        .toList(growable: false);
+    final namedArguments = {
+      for (final argument
+          in invocation.argumentList.arguments.whereType<NamedExpression>())
+        argument.name.label.name: argument.expression,
+    };
+    final methodName = invocation.methodName.name;
+    switch (methodName) {
+      case 'queryParam':
+        if (arguments.length < 2) {
+          return null;
+        }
+        return _RouteQueryParameterMetadata(
+          key: _stringLiteral(arguments[0], elementForErrors),
+          dartTypeSource: _codecValueTypeSourceForExpression(
+            arguments[1],
+            elementForErrors,
+          ),
+          codecExpressionSource: _expressionSource(arguments[1]),
+          optional: namedArguments['optional']?.toSource() == 'true',
+        );
+      case 'stringQueryParam':
+      case 'intQueryParam':
+      case 'doubleQueryParam':
+      case 'boolQueryParam':
+      case 'dateTimeQueryParam':
+        final nameExpression = arguments.firstOrNull;
+        if (nameExpression == null) {
+          return null;
+        }
+        final codecMetadata = switch (methodName) {
+          'stringQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'String',
+            codecExpressionSource: 'const StringRouteParamCodec()',
+          ),
+          'intQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'int',
+            codecExpressionSource: 'const IntRouteParamCodec()',
+          ),
+          'doubleQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'double',
+            codecExpressionSource: 'const DoubleRouteParamCodec()',
+          ),
+          'boolQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'bool',
+            codecExpressionSource: 'const BoolRouteParamCodec()',
+          ),
+          'dateTimeQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'DateTime',
+            codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
+          ),
+          _ => null,
+        };
+        if (codecMetadata == null) {
+          return null;
+        }
+        return _RouteQueryParameterMetadata(
+          key: _stringLiteral(nameExpression, elementForErrors),
+          dartTypeSource: codecMetadata.dartTypeSource,
+          codecExpressionSource: codecMetadata.codecExpressionSource,
+          optional: namedArguments['optional']?.toSource() == 'true',
+        );
+      default:
+        return null;
+    }
   }
 
   String _stripParamSuffix(String value) {
@@ -1504,11 +1665,9 @@ class _StaticRouteTreeExtractor {
       name: 'path',
       library: classElement.library,
     );
-    if (getter == null) {
-      throw InvalidGenerationSourceError(
-        '`${classElement.name}` does not define a path getter.',
-        element: classElement,
-      );
+    if (getter == null ||
+        _isFrameworkRouteMemberOwner(getter.enclosingElement)) {
+      return const <_PathSegmentMetadata>[];
     }
 
     final node = await buildStep.resolver.astNodeFor(
@@ -1543,7 +1702,8 @@ class _StaticRouteTreeExtractor {
       name: 'queryParameters',
       library: classElement.library,
     );
-    if (getter != null && getter.enclosingElement.displayName != 'Location') {
+    if (getter != null &&
+        !_isFrameworkRouteMemberOwner(getter.enclosingElement)) {
       final node = await buildStep.resolver.astNodeFor(
         getter.firstFragment,
         resolve: true,
@@ -2375,7 +2535,7 @@ class _StaticRouteTreeExtractor {
   bool _isRouteNodeClass(InterfaceElement classElement) {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
-      if (current.element.name == 'RouteNode') {
+      if (current.element.name == 'LocationTreeElement') {
         return true;
       }
       current = current.element.supertype;
@@ -2393,6 +2553,14 @@ class _StaticRouteTreeExtractor {
     }
     return false;
   }
+}
+
+bool _isFrameworkRouteMemberOwner(Element? element) {
+  final ownerName = element?.displayName;
+  return ownerName == 'LocationTreeElement' ||
+      ownerName == 'AnyLocation' ||
+      ownerName == 'Location' ||
+      ownerName == 'Shell';
 }
 
 abstract class _ExpressionContext {
@@ -3001,7 +3169,8 @@ class _InstanceStringContext implements _ExpressionContext {
       library: classElement.library,
     );
     if (getter != null &&
-        getter.enclosingElement != classElement.supertype?.element) {
+        getter.enclosingElement != classElement.supertype?.element &&
+        !_isFrameworkRouteMemberOwner(getter.enclosingElement)) {
       final getterNode = await buildStep.resolver.astNodeFor(
         getter.firstFragment,
         resolve: true,
@@ -3461,6 +3630,18 @@ String? _formalParameterName(FormalParameter parameter) {
   };
 }
 
+String? _buildCallbackBuilderParameterName(
+  Iterable<FormalParameter>? parameters,
+) {
+  final parameterList = parameters?.toList(growable: false);
+  if (parameterList == null ||
+      parameterList.isEmpty ||
+      parameterList.length > 2) {
+    return null;
+  }
+  return _formalParameterName(parameterList.first);
+}
+
 Future<ConstructorDeclaration?> _constructorDeclaration({
   required BuildStep buildStep,
   required InterfaceElement classElement,
@@ -3582,57 +3763,22 @@ class _GeneratedRouteMethod {
   }
 
   bool isEquivalent(_GeneratedRouteMethod other) {
-    return name == other.name &&
-        targetClassName == other.targetClassName &&
-        idExpression == other.idExpression &&
-        childLocationMatchSource == other.childLocationMatchSource &&
-        _pathWritesEquivalent(pathWrites, other.pathWrites) &&
-        _parametersEquivalent(pathParameters, other.pathParameters) &&
-        _parametersEquivalent(queryParameters, other.queryParameters);
-  }
-
-  bool _pathWritesEquivalent(
-    List<_GeneratedPathWrite> first,
-    List<_GeneratedPathWrite> second,
-  ) {
-    if (first.length != second.length) {
-      return false;
-    }
-
-    for (var i = 0; i < first.length; i++) {
-      final left = first[i];
-      final right = second[i];
-      if (left.locationMatchDiscriminator != right.locationMatchDiscriminator ||
-          left.locationMatchSource != right.locationMatchSource ||
-          left.parameterAccessorSource != right.parameterAccessorSource ||
-          left.parameterName != right.parameterName) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  bool _parametersEquivalent(
-    Map<String, _GeneratedRouteParameter> first,
-    Map<String, _GeneratedRouteParameter> second,
-  ) {
-    if (first.length != second.length) {
-      return false;
-    }
-
-    for (final entry in first.entries) {
-      final other = second[entry.key];
-      if (other == null ||
-          other.parameterName != entry.value.parameterName ||
-          other.dartTypeSource != entry.value.dartTypeSource ||
-          other.codecExpressionSource != entry.value.codecExpressionSource ||
-          other.optional != entry.value.optional) {
-        return false;
-      }
-    }
-
-    return true;
+    return _generatedTargetDefinitionEquivalent(
+      name: name,
+      targetClassName: targetClassName,
+      idExpression: idExpression,
+      childLocationMatchSource: childLocationMatchSource,
+      pathWrites: pathWrites,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+      otherName: other.name,
+      otherTargetClassName: other.targetClassName,
+      otherIdExpression: other.idExpression,
+      otherChildLocationMatchSource: other.childLocationMatchSource,
+      otherPathWrites: other.pathWrites,
+      otherPathParameters: other.pathParameters,
+      otherQueryParameters: other.queryParameters,
+    );
   }
 
   String renderMethod() {
@@ -3796,6 +3942,219 @@ class _GeneratedRouteMethod {
   }
 }
 
+class _GeneratedLocationChildTargetMethod {
+  final String ownerTypeSource;
+  final String idTypeSource;
+  final String name;
+  final String childLocationMatchSource;
+  final List<_GeneratedPathWrite> pathWrites;
+  final Map<String, _GeneratedRouteParameter> pathParameters;
+  final Map<String, _GeneratedRouteParameter> queryParameters;
+
+  const _GeneratedLocationChildTargetMethod({
+    required this.ownerTypeSource,
+    required this.idTypeSource,
+    required this.name,
+    required this.childLocationMatchSource,
+    required this.pathWrites,
+    required this.pathParameters,
+    required this.queryParameters,
+  });
+
+  bool isEquivalent(_GeneratedLocationChildTargetMethod other) {
+    return ownerTypeSource == other.ownerTypeSource &&
+        _generatedTargetDefinitionEquivalent(
+          name: name,
+          targetClassName: '',
+          idExpression: null,
+          childLocationMatchSource: childLocationMatchSource,
+          pathWrites: pathWrites,
+          pathParameters: pathParameters,
+          queryParameters: queryParameters,
+          otherName: other.name,
+          otherTargetClassName: '',
+          otherIdExpression: null,
+          otherChildLocationMatchSource: other.childLocationMatchSource,
+          otherPathWrites: other.pathWrites,
+          otherPathParameters: other.pathParameters,
+          otherQueryParameters: other.queryParameters,
+        );
+  }
+
+  String renderMethod() {
+    final buffer = StringBuffer();
+    final parameters = [
+      ...pathParameters.entries,
+      ...queryParameters.entries,
+    ];
+
+    if (parameters.isEmpty) {
+      buffer.writeln('  ChildRouteTarget<$idTypeSource> $name() {');
+      buffer.writeln('    return ChildRouteTarget<$idTypeSource>(');
+      buffer.writeln('      (location) => $childLocationMatchSource,');
+      _writeConstructorOptions(buffer);
+      buffer.writeln('    );');
+      buffer.writeln('  }');
+      return buffer.toString();
+    }
+
+    buffer.writeln('  ChildRouteTarget<$idTypeSource> $name({');
+    for (final parameter in parameters) {
+      final generatedParameter = parameter.value;
+      final typeSource = generatedParameter.optional
+          ? '${generatedParameter.dartTypeSource}?'
+          : generatedParameter.dartTypeSource;
+      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+      buffer.writeln(
+        '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      );
+    }
+    buffer.writeln('  }) {');
+    buffer.writeln('    return ChildRouteTarget<$idTypeSource>(');
+    buffer.writeln('      (location) => $childLocationMatchSource,');
+    _writeConstructorOptions(buffer);
+    buffer.writeln('    );');
+    buffer.writeln('  }');
+    return buffer.toString();
+  }
+
+  void _writeConstructorOptions(StringBuffer buffer) {
+    if (pathWrites.isNotEmpty) {
+      final pathWritesByLocationType =
+          <String, Map<int, List<_GeneratedPathWrite>>>{};
+      for (final pathWrite in pathWrites) {
+        final byOccurrence = pathWritesByLocationType.putIfAbsent(
+          pathWrite.locationMatchDiscriminator,
+          () => <int, List<_GeneratedPathWrite>>{},
+        );
+        byOccurrence
+            .putIfAbsent(pathWrite.occurrenceIndex, () => [])
+            .add(pathWrite);
+      }
+
+      buffer.writeln('      writePathParameters: (() {');
+      for (final entry in pathWritesByLocationType.entries) {
+        final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
+        buffer.writeln('        var $counterName = 0;');
+      }
+      buffer.writeln('        return (location, path) {');
+      for (final entry in pathWritesByLocationType.entries) {
+        final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
+        buffer.writeln(
+          '          if (${entry.value.values.first.first.locationMatchSource}) {',
+        );
+        buffer.writeln('            switch ($counterName++) {');
+        final occurrences = entry.value.entries.toList()
+          ..sort((left, right) => left.key.compareTo(right.key));
+        for (final occurrence in occurrences) {
+          buffer.writeln('              case ${occurrence.key}:');
+          for (final pathWrite in occurrence.value) {
+            buffer.writeln(
+              '                path(${pathWrite.parameterAccessorSource}, '
+              '${pathWrite.parameterName});',
+            );
+          }
+          buffer.writeln('                break;');
+        }
+        buffer.writeln('            }');
+        buffer.writeln('          }');
+      }
+      buffer.writeln('        };');
+      buffer.writeln('      })(),');
+    }
+
+    if (queryParameters.isNotEmpty) {
+      buffer.writeln('      queryParameters: {');
+      for (final parameter in queryParameters.entries) {
+        final generatedParameter = parameter.value;
+        if (generatedParameter.optional) {
+          buffer.writeln(
+            "        if (${generatedParameter.parameterName} != null) "
+            "'${parameter.key}': ${generatedParameter.codecExpressionSource}"
+            '.encode(${generatedParameter.parameterName}),',
+          );
+        } else {
+          buffer.writeln(
+            "        '${parameter.key}': "
+            "${generatedParameter.codecExpressionSource}.encode("
+            "${generatedParameter.parameterName}),",
+          );
+        }
+      }
+      buffer.writeln('      },');
+    }
+  }
+}
+
+bool _generatedTargetDefinitionEquivalent({
+  required String name,
+  required String targetClassName,
+  required String? idExpression,
+  required String? childLocationMatchSource,
+  required List<_GeneratedPathWrite> pathWrites,
+  required Map<String, _GeneratedRouteParameter> pathParameters,
+  required Map<String, _GeneratedRouteParameter> queryParameters,
+  required String otherName,
+  required String otherTargetClassName,
+  required String? otherIdExpression,
+  required String? otherChildLocationMatchSource,
+  required List<_GeneratedPathWrite> otherPathWrites,
+  required Map<String, _GeneratedRouteParameter> otherPathParameters,
+  required Map<String, _GeneratedRouteParameter> otherQueryParameters,
+}) {
+  return name == otherName &&
+      targetClassName == otherTargetClassName &&
+      idExpression == otherIdExpression &&
+      childLocationMatchSource == otherChildLocationMatchSource &&
+      _pathWritesEquivalent(pathWrites, otherPathWrites) &&
+      _parametersEquivalent(pathParameters, otherPathParameters) &&
+      _parametersEquivalent(queryParameters, otherQueryParameters);
+}
+
+bool _pathWritesEquivalent(
+  List<_GeneratedPathWrite> first,
+  List<_GeneratedPathWrite> second,
+) {
+  if (first.length != second.length) {
+    return false;
+  }
+
+  for (var i = 0; i < first.length; i++) {
+    final left = first[i];
+    final right = second[i];
+    if (left.locationMatchDiscriminator != right.locationMatchDiscriminator ||
+        left.locationMatchSource != right.locationMatchSource ||
+        left.parameterAccessorSource != right.parameterAccessorSource ||
+        left.parameterName != right.parameterName) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool _parametersEquivalent(
+  Map<String, _GeneratedRouteParameter> first,
+  Map<String, _GeneratedRouteParameter> second,
+) {
+  if (first.length != second.length) {
+    return false;
+  }
+
+  for (final entry in first.entries) {
+    final other = second[entry.key];
+    if (other == null ||
+        other.parameterName != entry.value.parameterName ||
+        other.dartTypeSource != entry.value.dartTypeSource ||
+        other.codecExpressionSource != entry.value.codecExpressionSource ||
+        other.optional != entry.value.optional) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 sealed class _PathSegmentMetadata {
   const _PathSegmentMetadata();
 }
@@ -3819,6 +4178,16 @@ class _RoutePathParameterSegmentMetadata extends _PathSegmentMetadata {
     required this.codecExpressionSource,
     this.memberName,
     this.pathParameterIndex,
+  });
+}
+
+class _DslCodecMetadata {
+  final String dartTypeSource;
+  final String codecExpressionSource;
+
+  const _DslCodecMetadata({
+    required this.dartTypeSource,
+    required this.codecExpressionSource,
   });
 }
 

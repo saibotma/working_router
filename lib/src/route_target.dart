@@ -1,5 +1,5 @@
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/route_node.dart';
+import 'package:working_router/src/location_tree_element.dart';
 
 sealed class RouteTarget<ID> {
   const RouteTarget();
@@ -24,7 +24,7 @@ base class IdRouteTarget<ID> extends RouteTarget<ID> {
 }
 
 base class ChildRouteTarget<ID> extends RouteTarget<ID> {
-  final bool Function(Location<ID> location) predicate;
+  final bool Function(AnyLocation<ID> location) predicate;
   final Map<String, String> queryParameters;
   final WritePathParameters<ID>? writePathParameters;
 

@@ -17,9 +17,9 @@ class PlatformModalPage<T> extends Page<T> {
     this.bottomSheetConstraints,
     this.dialogConstraints,
     this.handleDismiss,
-    LocalKey? key,
-    String? name,
-  }) : super(key: key, name: name);
+    super.key,
+    super.name,
+  });
 
   @override
   Route<T> createRoute(BuildContext context) {

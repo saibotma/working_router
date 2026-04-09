@@ -1,41 +1,39 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location_tag.dart';
+import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/route_builder.dart';
-import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_sailor.dart';
 
-typedef BuildLocation<ID> =
-    void Function(LocationBuilder<ID> builder);
+typedef BuildLocation<ID, Self extends AnyLocation<ID>> =
+    void Function(LocationBuilder<ID> builder, Self location);
 
-class Location<ID> extends RouteNode<ID> {
+/// Erased router-facing base type for all locations.
+///
+/// [`Location`] uses a self type so a forwarded `build:` callback can receive
+/// the concrete subclass instance:
+///
+/// ```dart
+/// class ALocation extends Location<RouteId, ALocation> { ... }
+/// ```
+///
+/// Router internals, matched location lists, and generic predicates still need
+/// a single common type that means "any location in the tree" without exposing
+/// that self-type parameter everywhere. This base provides that erased view,
+/// while [`Location`] remains the authoring API that route subclasses extend.
+abstract class AnyLocation<ID> extends LocationTreeElement<ID> {
   final ID? id;
   final ISet<LocationTag> tags;
-  final BuildLocation<ID>? _build;
-  final bool? _buildsOwnPage;
 
-  Location({
+  AnyLocation({
     this.id,
-    super.parentNavigatorKey,
+    super.parentRouterKey,
     Iterable<LocationTag> tags = const [],
-    BuildLocation<ID>? build,
-    bool? buildsOwnPage,
-  }) : tags = tags.toISet(),
-       _build = build,
-       _buildsOwnPage = buildsOwnPage;
+  }) : tags = tags.toISet();
 
   @protected
-  void build(LocationBuilder<ID> builder) {
-    final callback = _build;
-    if (callback == null) {
-      throw StateError(
-        'Location $runtimeType must either override build(...) or provide '
-        'a build callback.',
-      );
-    }
-    return callback(builder);
-  }
+  void build(LocationBuilder<ID> builder);
 
   late final BuiltLocationDefinition<ID> _definition = _buildDefinition();
 
@@ -43,24 +41,6 @@ class Location<ID> extends RouteNode<ID> {
     final builder = LocationBuilder<ID>();
     build(builder);
     final render = builder.render;
-    if (render == null) {
-      throw StateError(
-        'Location $runtimeType must configure its render with '
-        'buildWidget(...), buildPage(...), or legacy().',
-      );
-    }
-    if (_buildsOwnPage == true && render is LegacyLocationBuildResult<ID>) {
-      throw StateError(
-        'Location $runtimeType has buildsOwnPage == true but configured '
-        'legacy() from build(...).',
-      );
-    }
-    if (_buildsOwnPage == false && render is! LegacyLocationBuildResult<ID>) {
-      throw StateError(
-        'Location $runtimeType has buildsOwnPage == false but configured '
-        'a self-built page from build(...).',
-      );
-    }
     return BuiltLocationDefinition(
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
@@ -76,10 +56,9 @@ class Location<ID> extends RouteNode<ID> {
   List<PathParam<dynamic>> get pathParameters => _definition.pathParameters;
 
   @override
-  List<RouteNode<ID>> get children => _definition.children;
+  List<LocationTreeElement<ID>> get children => _definition.children;
 
   bool get buildsOwnPage =>
-      _buildsOwnPage ??
       _definition.render is SelfBuiltLocationBuildResult<ID>;
 
   @override
@@ -108,8 +87,8 @@ class Location<ID> extends RouteNode<ID> {
 
   bool hasTag(LocationTag tag) => tags.contains(tag);
 
-  IList<RouteNode<ID>> matchRelative(
-    bool Function(Location<ID> location) predicate,
+  IList<LocationTreeElement<ID>> matchRelative(
+    bool Function(AnyLocation<ID> location) predicate,
   ) {
     for (final child in children) {
       final childMatch = matchRelativeNode(child, predicate);
@@ -128,7 +107,7 @@ class Location<ID> extends RouteNode<ID> {
   /// are filtered to the union of the keys declared by the remaining
   /// locations.
   ///
-  /// When using `@RouteNodes`, required query parameters are generated as
+  /// When using `@Locations`, required query parameters are generated as
   /// required `routeToX(...)` arguments. Optional query parameters are
   /// generated as nullable arguments and omitted when null.
   ///
@@ -136,7 +115,7 @@ class Location<ID> extends RouteNode<ID> {
   /// locations just expose the parameters they use here.
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
-  Location<ID>? pop() {
+  AnyLocation<ID>? pop() {
     return null;
   }
 
@@ -150,9 +129,35 @@ class Location<ID> extends RouteNode<ID> {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is Location && runtimeType == other.runtimeType && id == other.id;
+        other is AnyLocation<dynamic> &&
+            runtimeType == other.runtimeType &&
+            id == other.id;
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, id);
+}
+
+abstract class Location<ID, Self extends AnyLocation<ID>>
+    extends AnyLocation<ID> {
+  final BuildLocation<ID, Self>? _build;
+
+  Location({
+    super.id,
+    super.parentRouterKey,
+    super.tags,
+    BuildLocation<ID, Self>? build,
+  }) : _build = build;
+
+  @override
+  void build(LocationBuilder<ID> builder) {
+    final callback = _build;
+    if (callback == null) {
+      throw StateError(
+        'Location $runtimeType must either override build(...) or provide '
+        'a build callback.',
+      );
+    }
+    callback(builder, this as Self);
+  }
 }

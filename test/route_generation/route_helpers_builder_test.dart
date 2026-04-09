@@ -6,7 +6,7 @@ import 'package:working_router/src/route_generation/builder.dart';
 void main() {
   test('generates routeToX helpers from a static location tree', () async {
     final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
+      BuilderOptions.empty,
     );
     final readerWriter = TestReaderWriter(rootPackage: 'working_router');
     await readerWriter.testing.loadIsolateSources();
@@ -23,11 +23,11 @@ part 'app_routes.working_router.g.dart';
 
 enum AppRouteId { root, item, itemDetails }
 
-class _RootLocation extends Location<AppRouteId> {
+class _RootLocation extends Location<AppRouteId, _RootLocation> {
   _RootLocation({required super.id});
 
   @override
-  late final List<RouteNode<AppRouteId>> children = [
+  late final List<LocationTreeElement<AppRouteId>> children = [
     _ItemLocation(id: AppRouteId.item),
   ];
 
@@ -35,13 +35,13 @@ class _RootLocation extends Location<AppRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class _ItemLocation extends Location<AppRouteId> {
+class _ItemLocation extends Location<AppRouteId, _ItemLocation> {
   final itemId = pathParam(const StringRouteParamCodec());
 
   _ItemLocation({required super.id});
 
   @override
-  late final List<RouteNode<AppRouteId>> children = [
+  late final List<LocationTreeElement<AppRouteId>> children = [
     ...buildItemChildren(),
   ];
 
@@ -57,7 +57,7 @@ class _ItemLocation extends Location<AppRouteId> {
   ];
 }
 
-class _ItemDetailsLocation extends Location<AppRouteId> {
+class _ItemDetailsLocation extends Location<AppRouteId, _ItemDetailsLocation> {
   _ItemDetailsLocation({required super.id});
 
   @override
@@ -69,7 +69,7 @@ class _ItemDetailsLocation extends Location<AppRouteId> {
   ];
 }
 
-List<RouteNode<AppRouteId>> buildItemChildren() => [
+List<LocationTreeElement<AppRouteId>> buildItemChildren() => [
   _ItemDetailsLocation(
     id: AppRouteId.itemDetails,
   ),
@@ -77,8 +77,8 @@ List<RouteNode<AppRouteId>> buildItemChildren() => [
 
 final _appLocationTree = _RootLocation(id: AppRouteId.root);
 
-@RouteNodes()
-Location<AppRouteId> get appLocationTree => _appLocationTree;
+@Locations()
+LocationTreeElement<AppRouteId> get appLocationTree => _appLocationTree;
 ''',
       },
       outputs: {
@@ -93,15 +93,17 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
                   'final class ChildItemRouteTarget extends ChildRouteTarget<AppRouteId> {',
                 ),
                 contains('extension AppLocationTreeGeneratedRoutes'),
+              ),
+              allOf(
                 contains('void routeToRoot()'),
                 contains(
                   'void routeToItem({required String itemId, required String keep}) {',
                 ),
-              ),
-              allOf(
                 contains(
                   'void routeToChildItem({required String itemId, required String keep}) {',
                 ),
+              ),
+              allOf(
                 contains(
                   'routeTo(ItemRouteTarget(itemId: itemId, keep: keep));',
                 ),
@@ -113,26 +115,41 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
               ),
             ),
             allOf(
-              contains(
-                'void routeToItemDetails({\n'
-                '    required String itemId,\n'
-                '    required String keep,\n'
-                '    required String detail,\n'
-                '  }) {',
+              allOf(
+                contains(
+                  'void routeToItemDetails({\n'
+                  '    required String itemId,\n'
+                  '    required String keep,\n'
+                  '    required String detail,\n'
+                  '  }) {',
+                ),
+                contains(
+                  'void routeToChildItemDetails({required String detail}) {',
+                ),
+                contains(
+                  'final class ChildItemDetailsRouteTarget extends ChildRouteTarget<AppRouteId> {',
+                ),
+                contains(
+                  'routeTo(ChildItemDetailsRouteTarget(detail: detail));',
+                ),
               ),
-              contains(
-                'void routeToChildItemDetails({required String detail}) {',
+              allOf(
+                contains('queryParameters: {'),
+                contains("'keep': StringRouteParamCodec().encode(keep),"),
+                contains(
+                  "'detail': StringRouteParamCodec().encode(detail),",
+                ),
               ),
-              contains(
-                'final class ChildItemDetailsRouteTarget extends ChildRouteTarget<AppRouteId> {',
-              ),
-              contains(
-                'routeTo(ChildItemDetailsRouteTarget(detail: detail));',
-              ),
-              contains('queryParameters: {'),
-              contains("'keep': StringRouteParamCodec().encode(keep),"),
-              contains(
-                "'detail': StringRouteParamCodec().encode(detail),",
+              allOf(
+                contains(
+                  'extension _ItemLocationGeneratedChildTargets on _ItemLocation {',
+                ),
+                contains(
+                  'ChildRouteTarget<AppRouteId> childItemDetailsTarget({',
+                ),
+                contains(
+                  'return ChildRouteTarget<AppRouteId>(',
+                ),
               ),
             ),
           ),
@@ -144,7 +161,7 @@ Location<AppRouteId> get appLocationTree => _appLocationTree;
 
   test('strips Param and Parameter suffixes from generated path names', () async {
     final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
+      BuilderOptions.empty,
     );
     final readerWriter = TestReaderWriter(rootPackage: 'working_router');
     await readerWriter.testing.loadIsolateSources();
@@ -161,11 +178,11 @@ part 'param_suffix_routes.g.dart';
 
 enum ParamSuffixRouteId { root, detail }
 
-class RootLocation extends Location<ParamSuffixRouteId> {
+class RootLocation extends Location<ParamSuffixRouteId, RootLocation> {
   RootLocation();
 
   @override
-  late final List<RouteNode<ParamSuffixRouteId>> children = [
+  late final List<LocationTreeElement<ParamSuffixRouteId>> children = [
     DetailLocation(id: ParamSuffixRouteId.detail),
   ];
 
@@ -173,7 +190,7 @@ class RootLocation extends Location<ParamSuffixRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class DetailLocation extends Location<ParamSuffixRouteId> {
+class DetailLocation extends Location<ParamSuffixRouteId, DetailLocation> {
   final idParam = pathParam(const StringRouteParamCodec());
   final slugParameter = pathParam(const StringRouteParamCodec());
 
@@ -187,8 +204,8 @@ class DetailLocation extends Location<ParamSuffixRouteId> {
   ];
 }
 
-@RouteNodes()
-Location<ParamSuffixRouteId> get appLocationTree => RootLocation();
+@Locations()
+LocationTreeElement<ParamSuffixRouteId> get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
@@ -212,7 +229,7 @@ Location<ParamSuffixRouteId> get appLocationTree => RootLocation();
 
   test('supports inline DSL child locations with generated params', () async {
     final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
+      BuilderOptions.empty,
     );
     final readerWriter = TestReaderWriter(rootPackage: 'working_router');
     await readerWriter.testing.loadIsolateSources();
@@ -229,24 +246,32 @@ part 'dsl_field_params_routes.g.dart';
 
 enum FieldDslRouteId { root, item }
 
-class RootLocation extends Location<FieldDslRouteId> {
+class RootLocation extends Location<FieldDslRouteId, RootLocation> {
   RootLocation();
 
   @override
-  void build(LocationBuilder<FieldDslRouteId> builder) {
-    builder.legacy();
-    builder.location((builder) {
-      builder.id(FieldDslRouteId.item);
-      builder.pathLiteral('item');
-      final itemId = builder.pathParam(const StringRouteParamCodec());
-      final keep = builder.queryParam('keep', const StringRouteParamCodec());
-      builder.legacy();
-    });
+  void build(
+    LocationBuilder<FieldDslRouteId> builder,
+  ) {
+    builder.children = [
+      ItemLocation(
+        id: FieldDslRouteId.item,
+        build: (builder, location) {
+          builder.pathLiteral('item');
+          final itemId = builder.stringPathParam();
+          final keep = builder.stringQueryParam('keep');
+        },
+      ),
+    ];
   }
 }
 
-@RouteNodes()
-Location<FieldDslRouteId> get appLocationTree => RootLocation();
+class ItemLocation extends Location<FieldDslRouteId, ItemLocation> {
+  ItemLocation({super.id, super.build});
+}
+
+@Locations()
+LocationTreeElement<FieldDslRouteId> get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
@@ -273,7 +298,7 @@ Location<FieldDslRouteId> get appLocationTree => RootLocation();
 
   test('supports static helper declarations inside tree composition', () async {
     final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
+      BuilderOptions.empty,
     );
     final readerWriter = TestReaderWriter(rootPackage: 'working_router');
     await readerWriter.testing.loadIsolateSources();
@@ -290,11 +315,11 @@ part 'static_routes.g.dart';
 
 enum StaticRouteId { root, child }
 
-class _RootLocation extends Location<StaticRouteId> {
+class _RootLocation extends Location<StaticRouteId, _RootLocation> {
   _RootLocation({required super.id});
 
   @override
-  late final List<RouteNode<StaticRouteId>> children = [
+  late final List<LocationTreeElement<StaticRouteId>> children = [
     _ChildLocation(id: StaticRouteId.child),
   ];
 
@@ -302,7 +327,7 @@ class _RootLocation extends Location<StaticRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class _ChildLocation extends Location<StaticRouteId> {
+class _ChildLocation extends Location<StaticRouteId, _ChildLocation> {
   _ChildLocation({required super.id});
 
   @override
@@ -314,11 +339,11 @@ class AppRoutes {
     id: StaticRouteId.root,
   );
 
-  static Location<StaticRouteId> get tree => _tree;
+  static LocationTreeElement<StaticRouteId> get tree => _tree;
 }
 
-@RouteNodes()
-Location<StaticRouteId> get appLocationTree => AppRoutes.tree;
+@Locations()
+LocationTreeElement<StaticRouteId> get appLocationTree => AppRoutes.tree;
 ''',
       },
       outputs: {
@@ -339,7 +364,7 @@ Location<StaticRouteId> get appLocationTree => AppRoutes.tree;
     'supports children declared on the location instance',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -356,11 +381,11 @@ part 'constructor_children_routes.g.dart';
 
 enum ConstructorRouteId { root, lesson, lessonEdit }
 
-class RootLocation extends Location<ConstructorRouteId> {
+class RootLocation extends Location<ConstructorRouteId, RootLocation> {
   RootLocation();
 
   @override
-  late final List<RouteNode<ConstructorRouteId>> children = [
+  late final List<LocationTreeElement<ConstructorRouteId>> children = [
     LessonLocation(id: ConstructorRouteId.lesson),
   ];
 
@@ -368,11 +393,11 @@ class RootLocation extends Location<ConstructorRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class LessonLocation extends Location<ConstructorRouteId> {
+class LessonLocation extends Location<ConstructorRouteId, LessonLocation> {
   LessonLocation({required super.id});
 
   @override
-  late final List<RouteNode<ConstructorRouteId>> children = [
+  late final List<LocationTreeElement<ConstructorRouteId>> children = [
     LessonEditLocation(id: ConstructorRouteId.lessonEdit),
   ];
 
@@ -386,15 +411,16 @@ class LessonLocation extends Location<ConstructorRouteId> {
   ];
 }
 
-class LessonEditLocation extends Location<ConstructorRouteId> {
+class LessonEditLocation
+    extends Location<ConstructorRouteId, LessonEditLocation> {
   LessonEditLocation({required super.id});
 
   @override
   List<PathSegment> get path => [literal('edit')];
 }
 
-@RouteNodes()
-final Location<ConstructorRouteId> appLocationTree = RootLocation();
+@Locations()
+final LocationTreeElement<ConstructorRouteId> appLocationTree = RootLocation();
 ''',
         },
         outputs: {
@@ -420,7 +446,7 @@ final Location<ConstructorRouteId> appLocationTree = RootLocation();
 
   test('supports const string identifiers in query parameter sets', () async {
     final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
+      BuilderOptions.empty,
     );
     final readerWriter = TestReaderWriter(rootPackage: 'working_router');
     await readerWriter.testing.loadIsolateSources();
@@ -440,7 +466,7 @@ enum ConstQueryRouteId { lesson }
 const coursePeriodIdKey = 'coursePeriodId';
 const sourceDateTimeKey = 'sourceDateTime';
 
-class LessonLocation extends Location<ConstQueryRouteId> {
+class LessonLocation extends Location<ConstQueryRouteId, LessonLocation> {
   LessonLocation({required super.id});
 
   @override
@@ -453,8 +479,8 @@ class LessonLocation extends Location<ConstQueryRouteId> {
   ];
 }
 
-@RouteNodes()
-final Location<ConstQueryRouteId> appLocationTree =
+@Locations()
+final LocationTreeElement<ConstQueryRouteId> appLocationTree =
     LessonLocation(id: ConstQueryRouteId.lesson);
 ''',
       },
@@ -476,7 +502,7 @@ final Location<ConstQueryRouteId> appLocationTree =
     'generates typed and optional parameters from codecs',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -494,7 +520,7 @@ part 'typed_route_params_routes.g.dart';
 enum TypedRouteId { item }
 enum ItemFilter { all, active }
 
-class ItemLocation extends Location<TypedRouteId> {
+class ItemLocation extends Location<TypedRouteId, ItemLocation> {
   final itemId = pathParam(const IntRouteParamCodec());
 
   ItemLocation({required super.id});
@@ -519,8 +545,8 @@ class ItemLocation extends Location<TypedRouteId> {
   ];
 }
 
-@RouteNodes()
-final Location<TypedRouteId> appLocationTree =
+@Locations()
+final LocationTreeElement<TypedRouteId> appLocationTree =
     ItemLocation(id: TypedRouteId.item);
 ''',
         },
@@ -559,7 +585,7 @@ final Location<TypedRouteId> appLocationTree =
     'uses explicit query parameter names from QueryParam fields',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -577,7 +603,8 @@ part 'inferred_query_param_routes.g.dart';
 enum InferredQueryParamRouteId { item }
 enum ItemFilter { all, active }
 
-class ItemLocation extends Location<InferredQueryParamRouteId> {
+class ItemLocation
+    extends Location<InferredQueryParamRouteId, ItemLocation> {
   final itemId = pathParam(const IntRouteParamCodec());
   final filterParam = queryParam(
     'filter',
@@ -601,8 +628,8 @@ class ItemLocation extends Location<InferredQueryParamRouteId> {
   List<QueryParam<dynamic>> get queryParameters => [filterParam, pageParam];
 }
 
-@RouteNodes()
-final Location<InferredQueryParamRouteId> appLocationTree =
+@Locations()
+final LocationTreeElement<InferredQueryParamRouteId> appLocationTree =
     ItemLocation(id: InferredQueryParamRouteId.item);
 ''',
         },
@@ -627,7 +654,7 @@ final Location<InferredQueryParamRouteId> appLocationTree =
     'supports child ids derived from whether the parent id is null',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -644,13 +671,14 @@ part 'derived_child_ids_routes.g.dart';
 
 enum DerivedChildRouteId { chatChannel, chatChannelSend }
 
-class ChatChannelLocation extends Location<DerivedChildRouteId> {
+class ChatChannelLocation
+    extends Location<DerivedChildRouteId, ChatChannelLocation> {
   final channelId = pathParam(const StringRouteParamCodec());
 
   ChatChannelLocation({super.id});
 
   @override
-  late final List<RouteNode<DerivedChildRouteId>> children = [
+  late final List<LocationTreeElement<DerivedChildRouteId>> children = [
     ChatChannelSendLocation(
       id: id != null ? DerivedChildRouteId.chatChannelSend : null,
     ),
@@ -663,15 +691,16 @@ class ChatChannelLocation extends Location<DerivedChildRouteId> {
   ];
 }
 
-class ChatChannelSendLocation extends Location<DerivedChildRouteId> {
+class ChatChannelSendLocation
+    extends Location<DerivedChildRouteId, ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
 
   @override
   List<PathSegment> get path => [literal('send')];
 }
 
-@RouteNodes()
-final Location<DerivedChildRouteId> appLocationTree =
+@Locations()
+final LocationTreeElement<DerivedChildRouteId> appLocationTree =
     ChatChannelLocation(id: DerivedChildRouteId.chatChannel);
 ''',
         },
@@ -697,7 +726,7 @@ final Location<DerivedChildRouteId> appLocationTree =
     'treats collection if branches as part of the generated route union',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -717,11 +746,11 @@ enum IfUnionRouteId { root, always, maybe, maybeSpread, maybeElseA, maybeElseB }
 bool get includeMaybe => throw UnimplementedError();
 bool get includeSpread => throw UnimplementedError();
 
-class RootLocation extends Location<IfUnionRouteId> {
+class RootLocation extends Location<IfUnionRouteId, RootLocation> {
   RootLocation() : super(id: IfUnionRouteId.root);
 
   @override
-  late final List<RouteNode<IfUnionRouteId>> children = [
+  late final List<LocationTreeElement<IfUnionRouteId>> children = [
     _ChildLocation(
       id: IfUnionRouteId.always,
       path: [literal('always')],
@@ -753,7 +782,7 @@ class RootLocation extends Location<IfUnionRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class _ChildLocation extends Location<IfUnionRouteId> {
+class _ChildLocation extends Location<IfUnionRouteId, _ChildLocation> {
   final List<PathSegment> _path;
 
   _ChildLocation({required super.id, required List<PathSegment> path})
@@ -763,8 +792,8 @@ class _ChildLocation extends Location<IfUnionRouteId> {
   List<PathSegment> get path => _path;
 }
 
-@RouteNodes()
-Location<IfUnionRouteId> buildLocationTree() => RootLocation();
+@Locations()
+LocationTreeElement<IfUnionRouteId> buildLocationTree() => RootLocation();
 ''',
         },
         outputs: {
@@ -788,7 +817,7 @@ Location<IfUnionRouteId> buildLocationTree() => RootLocation();
     'supports parameterized annotated builders, local helper functions, and forwarded children parameters',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -811,9 +840,9 @@ class Permissions {
   const Permissions({required this.maySeeExtra});
 }
 
-class RootLocation extends Location<ParameterizedRouteId> {
+class RootLocation extends Location<ParameterizedRouteId, RootLocation> {
   @override
-  final List<RouteNode<ParameterizedRouteId>> children;
+  final List<LocationTreeElement<ParameterizedRouteId>> children;
 
   RootLocation({
     required super.id,
@@ -824,9 +853,9 @@ class RootLocation extends Location<ParameterizedRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class ChatLocation extends Location<ParameterizedRouteId> {
+class ChatLocation extends Location<ParameterizedRouteId, ChatLocation> {
   @override
-  final List<RouteNode<ParameterizedRouteId>> children;
+  final List<LocationTreeElement<ParameterizedRouteId>> children;
 
   ChatLocation({
     required super.id,
@@ -837,9 +866,10 @@ class ChatLocation extends Location<ParameterizedRouteId> {
   List<PathSegment> get path => [literal('chat')];
 }
 
-class ChatSearchLocation extends Location<ParameterizedRouteId> {
+class ChatSearchLocation
+    extends Location<ParameterizedRouteId, ChatSearchLocation> {
   @override
-  final List<RouteNode<ParameterizedRouteId>> children;
+  final List<LocationTreeElement<ParameterizedRouteId>> children;
 
   ChatSearchLocation({
     required ParameterizedRouteId id,
@@ -850,11 +880,12 @@ class ChatSearchLocation extends Location<ParameterizedRouteId> {
   List<PathSegment> get path => [literal('search')];
 }
 
-class ChatChannelLocation extends Location<ParameterizedRouteId> {
+class ChatChannelLocation
+    extends Location<ParameterizedRouteId, ChatChannelLocation> {
   final channelId = pathParam(const StringRouteParamCodec());
 
   @override
-  final List<RouteNode<ParameterizedRouteId>> children;
+  final List<LocationTreeElement<ParameterizedRouteId>> children;
 
   ChatChannelLocation({
     super.id,
@@ -868,25 +899,26 @@ class ChatChannelLocation extends Location<ParameterizedRouteId> {
   ];
 }
 
-class ChatChannelSendLocation extends Location<ParameterizedRouteId> {
+class ChatChannelSendLocation
+    extends Location<ParameterizedRouteId, ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
 
   @override
   List<PathSegment> get path => [literal('send')];
 }
 
-class ExtraLocation extends Location<ParameterizedRouteId> {
+class ExtraLocation extends Location<ParameterizedRouteId, ExtraLocation> {
   ExtraLocation();
 
   @override
   List<PathSegment> get path => [literal('extra')];
 }
 
-@RouteNodes()
-Location<ParameterizedRouteId> buildLocationTree({
+@Locations()
+LocationTreeElement<ParameterizedRouteId> buildLocationTree({
   required Permissions permissions,
 }) {
-  List<RouteNode<ParameterizedRouteId>> sharedChatLocations({
+  List<LocationTreeElement<ParameterizedRouteId>> sharedChatLocations({
     required bool shouldSetIds,
   }) {
     return [
@@ -946,7 +978,7 @@ Location<ParameterizedRouteId> buildLocationTree({
     'resolves aliased children through helper and constructor forwarding chains',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -963,9 +995,9 @@ part 'aliased_children_routes.g.dart';
 
 enum AliasedChildrenRouteId { root, search, leaf }
 
-class RootLocation extends Location<AliasedChildrenRouteId> {
+class RootLocation extends Location<AliasedChildrenRouteId, RootLocation> {
   @override
-  final List<RouteNode<AliasedChildrenRouteId>> children;
+  final List<LocationTreeElement<AliasedChildrenRouteId>> children;
 
   RootLocation({
     required super.id,
@@ -976,9 +1008,10 @@ class RootLocation extends Location<AliasedChildrenRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class SearchLocation extends Location<AliasedChildrenRouteId> {
+class SearchLocation
+    extends Location<AliasedChildrenRouteId, SearchLocation> {
   @override
-  final List<RouteNode<AliasedChildrenRouteId>> children;
+  final List<LocationTreeElement<AliasedChildrenRouteId>> children;
 
   SearchLocation({
     required AliasedChildrenRouteId id,
@@ -989,17 +1022,17 @@ class SearchLocation extends Location<AliasedChildrenRouteId> {
   List<PathSegment> get path => [literal('search')];
 }
 
-class LeafLocation extends Location<AliasedChildrenRouteId> {
+class LeafLocation extends Location<AliasedChildrenRouteId, LeafLocation> {
   LeafLocation({required super.id});
 
   @override
   List<PathSegment> get path => [literal('leaf')];
 }
 
-@RouteNodes()
-Location<AliasedChildrenRouteId> buildLocationTree() {
-  List<RouteNode<AliasedChildrenRouteId>> buildSearchBranch({
-    required List<RouteNode<AliasedChildrenRouteId>> children,
+@Locations()
+LocationTreeElement<AliasedChildrenRouteId> buildLocationTree() {
+  List<LocationTreeElement<AliasedChildrenRouteId>> buildSearchBranch({
+    required List<LocationTreeElement<AliasedChildrenRouteId>> children,
   }) {
     return [
       SearchLocation(
@@ -1041,7 +1074,7 @@ Location<AliasedChildrenRouteId> buildLocationTree() {
     'resolves default forwarded children through nested constructor chains',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
-        BuilderOptions(const {}),
+        BuilderOptions.empty,
       );
       final readerWriter = TestReaderWriter(rootPackage: 'working_router');
       await readerWriter.testing.loadIsolateSources();
@@ -1058,9 +1091,10 @@ part 'default_forwarded_children_routes.g.dart';
 
 enum DefaultForwardedChildrenRouteId { root, parent, branch, leaf }
 
-class RootLocation extends Location<DefaultForwardedChildrenRouteId> {
+class RootLocation
+    extends Location<DefaultForwardedChildrenRouteId, RootLocation> {
   @override
-  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
+  final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children;
 
   RootLocation({
     required super.id,
@@ -1071,9 +1105,10 @@ class RootLocation extends Location<DefaultForwardedChildrenRouteId> {
   List<PathSegment> get path => const [];
 }
 
-class ParentLocation extends Location<DefaultForwardedChildrenRouteId> {
+class ParentLocation
+    extends Location<DefaultForwardedChildrenRouteId, ParentLocation> {
   @override
-  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
+  final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children;
 
   ParentLocation({
     required super.id,
@@ -1084,11 +1119,12 @@ class ParentLocation extends Location<DefaultForwardedChildrenRouteId> {
   List<PathSegment> get path => [literal('parent')];
 }
 
-class BranchLocation extends Location<DefaultForwardedChildrenRouteId> {
+class BranchLocation
+    extends Location<DefaultForwardedChildrenRouteId, BranchLocation> {
   BranchLocation({required super.id});
 
   @override
-  late final List<RouteNode<DefaultForwardedChildrenRouteId>> children = [
+  late final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children = [
     LeafLocation(id: DefaultForwardedChildrenRouteId.leaf),
   ];
 
@@ -1096,9 +1132,10 @@ class BranchLocation extends Location<DefaultForwardedChildrenRouteId> {
   List<PathSegment> get path => [literal('branch')];
 }
 
-class LeafLocation extends Location<DefaultForwardedChildrenRouteId> {
+class LeafLocation
+    extends Location<DefaultForwardedChildrenRouteId, LeafLocation> {
   @override
-  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
+  final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children;
 
   LeafLocation({
     required DefaultForwardedChildrenRouteId id,
@@ -1109,8 +1146,8 @@ class LeafLocation extends Location<DefaultForwardedChildrenRouteId> {
   List<PathSegment> get path => [literal('leaf')];
 }
 
-@RouteNodes()
-Location<DefaultForwardedChildrenRouteId> buildLocationTree() {
+@Locations()
+LocationTreeElement<DefaultForwardedChildrenRouteId> buildLocationTree() {
   return RootLocation(
     id: DefaultForwardedChildrenRouteId.root,
     children: [
@@ -1143,7 +1180,7 @@ Location<DefaultForwardedChildrenRouteId> buildLocationTree() {
 
   test('supports shell-rooted route trees', () async {
     final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions(const {}),
+      BuilderOptions.empty,
     );
     final readerWriter = TestReaderWriter(rootPackage: 'working_router');
     await readerWriter.testing.loadIsolateSources();
@@ -1161,25 +1198,31 @@ part 'shell_root_routes.g.dart';
 
 enum ShellRootRouteId { child }
 
-class ChildLocation extends Location<ShellRootRouteId> {
+class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
   ChildLocation({required super.id});
 
   @override
   List<PathSegment> get path => [literal('child')];
 }
 
-@RouteNodes()
-RouteNode<ShellRootRouteId> get appLocationTree => Shell<ShellRootRouteId>(
-  navigatorKey: GlobalKey<NavigatorState>(),
-  build: (builder) {
-    builder.buildWidget((context, data, child) => child);
-    builder.location((builder) {
-      builder.id(ShellRootRouteId.child);
-      builder.pathLiteral('child');
-      builder.legacy();
-    });
+@Locations()
+LocationTreeElement<ShellRootRouteId> get appLocationTree => Shell(
+  build: (builder, routerKey) {
+    builder.widget((context, data, child) => child);
+    builder.children = [
+      ChildChildLocation(
+        id: ShellRootRouteId.child,
+        build: (builder, location) {
+          builder.pathLiteral('child');
+        },
+      ),
+    ];
   },
 );
+
+class ChildChildLocation extends Location<ShellRootRouteId, ChildChildLocation> {
+  ChildChildLocation({super.id, super.build});
+}
 ''',
       },
       outputs: {
@@ -1188,11 +1231,9 @@ RouteNode<ShellRootRouteId> get appLocationTree => Shell<ShellRootRouteId>(
               allOf(
                 contains('extension AppLocationTreeGeneratedRoutes'),
                 contains('void routeToChild()'),
-                contains('void routeToChildChild()'),
-                contains(
-                  'final class ChildChildRouteTarget extends ChildRouteTarget<ShellRootRouteId> {',
-                ),
-                contains('routeTo(ChildChildRouteTarget());'),
+                contains('void routeToChildChildChild()'),
+                contains('final class ChildChildChildRouteTarget'),
+                contains('routeTo(ChildChildChildRouteTarget());'),
               ),
             ),
       },

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
 
 class NearestLocation<ID> extends InheritedWidget {
-  final Location<ID> location;
+  final AnyLocation<ID> location;
 
   const NearestLocation({
     required this.location,
@@ -10,7 +10,7 @@ class NearestLocation<ID> extends InheritedWidget {
     super.key,
   });
 
-  static Location<ID> of<ID>(BuildContext context) {
+  static AnyLocation<ID> of<ID>(BuildContext context) {
     final NearestLocation<ID>? nearestLocation = context
         .dependOnInheritedWidgetOfExactType<NearestLocation<ID>>();
     return nearestLocation!.location;

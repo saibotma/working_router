@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/route_builder.dart';
-import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
+import 'package:working_router/src/working_router_key.dart';
 
 typedef BuildShell<ID> =
-    void Function(ShellBuilder<ID> builder);
+    void Function(ShellBuilder<ID> builder, WorkingRouterKey routerKey);
 
-class Shell<ID> extends RouteNode<ID> {
-  final GlobalKey<NavigatorState> navigatorKey;
+class Shell<ID> extends LocationTreeElement<ID> {
+  final WorkingRouterKey routerKey;
   final BuildShell<ID>? _build;
 
   Shell({
-    required this.navigatorKey,
+    WorkingRouterKey? routerKey,
     BuildShell<ID>? build,
-    super.parentNavigatorKey,
-  }) : _build = build;
+    super.parentRouterKey,
+  }) : routerKey = routerKey ?? WorkingRouterKey(),
+       _build = build;
 
   @protected
   void build(ShellBuilder<ID> builder) {
@@ -25,7 +27,7 @@ class Shell<ID> extends RouteNode<ID> {
         'a build callback.',
       );
     }
-    return callback(builder);
+    callback(builder, routerKey);
   }
 
   late final BuiltShellDefinition<ID> _definition = _buildDefinition();
@@ -37,7 +39,7 @@ class Shell<ID> extends RouteNode<ID> {
     if (render == null) {
       throw StateError(
         'Shell $runtimeType must configure its render with '
-        'buildWidget(...).',
+        'widget(...).',
       );
     }
     return BuiltShellDefinition(
@@ -48,7 +50,7 @@ class Shell<ID> extends RouteNode<ID> {
   }
 
   @override
-  List<RouteNode<ID>> get children => _definition.children;
+  List<LocationTreeElement<ID>> get children => _definition.children;
 
   @override
   LocalKey buildPageKey(WorkingRouterData<ID> data) {

@@ -4,6 +4,7 @@ import 'package:working_router/src/location.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
+import 'package:working_router/src/working_router_key.dart';
 
 sealed class PathSegment {
   const PathSegment();
@@ -21,7 +22,7 @@ QueryParam<T> queryParam<T>(
 
 typedef WritePathParameters<ID> =
     void Function(
-      Location<ID> location,
+      AnyLocation<ID> location,
       void Function<T>(PathParam<T> parameter, T value) path,
     );
 
@@ -45,14 +46,14 @@ class QueryParam<T> {
   const QueryParam(this.name, this.codec, {this.optional = false});
 }
 
-abstract class RouteNode<ID> {
-  final GlobalKey<NavigatorState>? parentNavigatorKey;
+abstract class LocationTreeElement<ID> {
+  final WorkingRouterKey? parentRouterKey;
 
-  RouteNode({
-    this.parentNavigatorKey,
+  LocationTreeElement({
+    this.parentRouterKey,
   });
 
-  List<RouteNode<ID>> get children => const [];
+  List<LocationTreeElement<ID>> get children => const [];
 
   /// Builds the default [Page] key for this node.
   ///
@@ -68,27 +69,29 @@ abstract class RouteNode<ID> {
     return _matchNode(this, uriPathSegments);
   }
 
-  IList<RouteNode<ID>> matchId(ID id) {
+  IList<LocationTreeElement<ID>> matchId(ID id) {
     return _matchNodeById(this, id);
   }
+
 }
 
 typedef RouteMatch<ID> = ({
-  IList<RouteNode<ID>> nodes,
+  IList<LocationTreeElement<ID>> elements,
   IMap<PathParam<dynamic>, String> pathParameters,
 });
 
 RouteMatch<ID> emptyRouteMatch<ID>() => (
-  nodes: const IListConst([]),
+  elements: const IListConst([]),
   pathParameters: const IMapConst({}),
 );
 
 extension RouteMatchX<ID> on RouteMatch<ID> {
-  bool get isEmpty => nodes.isEmpty;
+  bool get isEmpty => elements.isEmpty;
 }
 
-extension RouteNodesX<ID> on Iterable<RouteNode<ID>> {
-  IList<Location<ID>> get locations => whereType<Location<ID>>().toIList();
+extension TreeElementsX<ID> on Iterable<LocationTreeElement<ID>> {
+  IList<AnyLocation<ID>> get locations =>
+      whereType<AnyLocation<ID>>().toIList();
 
   RouteMatch<ID> match(IList<String> uriPathSegments) {
     for (final node in this) {
@@ -100,7 +103,7 @@ extension RouteNodesX<ID> on Iterable<RouteNode<ID>> {
     return emptyRouteMatch();
   }
 
-  IList<RouteNode<ID>> matchId(ID id) {
+  IList<LocationTreeElement<ID>> matchId(ID id) {
     for (final node in this) {
       final match = node.matchId(id);
       if (match.isNotEmpty) {
@@ -111,10 +114,10 @@ extension RouteNodesX<ID> on Iterable<RouteNode<ID>> {
   }
 }
 
-IList<RouteNode<ID>> emptyNodeMatch<ID>() => const IListConst([]);
+IList<LocationTreeElement<ID>> emptyNodeMatch<ID>() => const IListConst([]);
 
 RouteMatch<ID> _matchNode<ID>(
-  RouteNode<ID> node,
+  LocationTreeElement<ID> node,
   IList<String> uriPathSegments,
 ) {
   if (node is Shell<ID>) {
@@ -122,7 +125,7 @@ RouteMatch<ID> _matchNode<ID>(
       final childMatch = _matchNode(child, uriPathSegments);
       if (!childMatch.isEmpty) {
         return (
-          nodes: [node, ...childMatch.nodes].toIList(),
+          elements: [node, ...childMatch.elements].toIList(),
           pathParameters: childMatch.pathParameters,
         );
       }
@@ -130,11 +133,11 @@ RouteMatch<ID> _matchNode<ID>(
     return emptyRouteMatch();
   }
 
-  if (node is! Location<ID>) {
+  if (node is! AnyLocation<ID>) {
     return emptyRouteMatch();
   }
 
-  final matches = <RouteNode<ID>>[];
+  final matches = <LocationTreeElement<ID>>[];
   final pathParameters = <PathParam<dynamic>, String>{};
 
   final thisPathParameters = startsWith(uriPathSegments, node.path);
@@ -149,9 +152,9 @@ RouteMatch<ID> _matchNode<ID>(
       ? uriPathSegments
       : uriPathSegments.sublist(node.path.length);
   for (final child in node.children) {
-    final childMatch = _matchNode(child, nextPathSegments);
-    if (!childMatch.isEmpty) {
-      matches.addAll(childMatch.nodes);
+      final childMatch = _matchNode(child, nextPathSegments);
+      if (!childMatch.isEmpty) {
+      matches.addAll(childMatch.elements);
       pathParameters.addAll(childMatch.pathParameters.unlock);
       break;
     }
@@ -162,12 +165,15 @@ RouteMatch<ID> _matchNode<ID>(
   }
 
   return (
-    nodes: matches.toIList(),
+    elements: matches.toIList(),
     pathParameters: pathParameters.toIMap(),
   );
 }
 
-IList<RouteNode<ID>> _matchNodeById<ID>(RouteNode<ID> node, ID id) {
+IList<LocationTreeElement<ID>> _matchNodeById<ID>(
+  LocationTreeElement<ID> node,
+  ID id,
+) {
   if (node is Shell<ID>) {
     for (final child in node.children) {
       final childMatch = _matchNodeById(child, id);
@@ -178,7 +184,7 @@ IList<RouteNode<ID>> _matchNodeById<ID>(RouteNode<ID> node, ID id) {
     return emptyNodeMatch();
   }
 
-  if (node is! Location<ID>) {
+  if (node is! AnyLocation<ID>) {
     return emptyNodeMatch();
   }
 
@@ -196,9 +202,9 @@ IList<RouteNode<ID>> _matchNodeById<ID>(RouteNode<ID> node, ID id) {
   return emptyNodeMatch();
 }
 
-IList<RouteNode<ID>> matchRelativeNode<ID>(
-  RouteNode<ID> node,
-  bool Function(Location<ID> location) predicate,
+IList<LocationTreeElement<ID>> matchRelativeNode<ID>(
+  LocationTreeElement<ID> node,
+  bool Function(AnyLocation<ID> location) predicate,
 ) {
   if (node is Shell<ID>) {
     for (final child in node.children) {
@@ -210,7 +216,7 @@ IList<RouteNode<ID>> matchRelativeNode<ID>(
     return emptyNodeMatch();
   }
 
-  if (node is! Location<ID>) {
+  if (node is! AnyLocation<ID>) {
     return emptyNodeMatch();
   }
 
@@ -255,7 +261,7 @@ Map<PathParam<dynamic>, String>? startsWith(
   return pathParameters;
 }
 
-extension LocationPathBuilder<ID> on Iterable<Location<ID>> {
+extension LocationPathBuilder<ID> on Iterable<AnyLocation<ID>> {
   String buildPath(IMap<PathParam<dynamic>, String> pathParameters) {
     final uriPathSegments = <String>[];
     for (final location in this) {

@@ -10,7 +10,7 @@ void main() {
       final detail = _ParamOnlyLocation(id: 'detail', parameter: itemId);
       final data = WorkingRouterData<String>(
         uri: Uri(path: '/items/123'),
-        nodes: [list, detail].toIList(),
+        elements: [list, detail].toIList(),
         pathParameters: {itemId: '123'}.lock,
         queryParameters: IMap(),
       );
@@ -26,10 +26,10 @@ void main() {
     final child = _TestLocation(id: 'child', path: '/child');
     final other = _TestLocation(id: 'other', path: '/other');
 
-    WorkingRouterData<String> buildData(IList<Location<String>> locations) {
+    WorkingRouterData<String> buildData(IList<AnyLocation<String>> locations) {
       return WorkingRouterData(
         uri: Uri(path: '/parent/child'),
-        nodes: locations.cast<RouteNode<String>>().toIList(),
+        elements: locations.cast<LocationTreeElement<String>>().toIList(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -77,7 +77,7 @@ void main() {
   });
 }
 
-class _TestLocation extends Location<String> {
+class _TestLocation extends Location<String, _TestLocation> {
   final List<PathSegment> _segments;
 
   _TestLocation({required super.id, required String path})
@@ -88,11 +88,10 @@ class _TestLocation extends Location<String> {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
-    builder.legacy();
   }
 }
 
-class _ParamOnlyLocation extends Location<String> {
+class _ParamOnlyLocation extends Location<String, _ParamOnlyLocation> {
   final PathParam<String> parameter;
 
   _ParamOnlyLocation({required super.id, required this.parameter});
@@ -100,7 +99,6 @@ class _ParamOnlyLocation extends Location<String> {
   @override
   void build(LocationBuilder<String> builder) {
     builder.pathSegment(parameter);
-    builder.legacy();
   }
 }
 

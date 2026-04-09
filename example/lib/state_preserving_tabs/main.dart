@@ -15,28 +15,29 @@ void main() {
   runApp(const StatePreservingTabs());
 }
 
-void buildRouteNodes(RouteNodesBuilder<String> builder) {
-  builder.child(
-    ScaffoldLocation(
-      children: [
-        Tab1Location(),
-        Tab2Location(),
-      ],
-    ),
-  );
-}
+List<LocationTreeElement<String>> buildLocations(WorkingRouterKey _) => [
+      ScaffoldLocation(
+        childNodes: [
+          Tab1Location(),
+          Tab2Location(),
+        ],
+      ),
+    ];
 
 class StatePreservingTabs extends StatefulWidget {
-  const StatePreservingTabs({Key? key}) : super(key: key);
+  const StatePreservingTabs({super.key});
 
   @override
   State<StatePreservingTabs> createState() => _StatePreservingTabsState();
 }
 
 class _StatePreservingTabsState extends State<StatePreservingTabs> {
+  final tab1RouterKey = WorkingRouterKey();
+  final tab2RouterKey = WorkingRouterKey();
+
   late final WorkingRouter<String> router = WorkingRouter<String>(
     noContentWidget: const Text("No content"),
-    buildRouteNodes: buildRouteNodes,
+    buildLocations: buildLocations,
     buildRootPages: (_, location, data) {
       // Need to have one nested navigator for each tab, because otherwise
       // the same navigator (with the same global navigator key) would be
@@ -72,6 +73,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
   LocationPageSkeleton<String> buildScaffoldPage({required int index}) {
     return NestedLocationPageSkeleton<String>(
       router: router,
+      routerKey: index == 0 ? tab1RouterKey : tab2RouterKey,
       buildChild: (context, _, child) {
         return StatePreservingScaffold(index: index, child: child);
       },
@@ -115,7 +117,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
 class ScreenWithState extends StatefulWidget {
   final Color color;
 
-  const ScreenWithState({required this.color, Key? key}) : super(key: key);
+  const ScreenWithState({required this.color, super.key});
 
   @override
   State<ScreenWithState> createState() => _ScreenWithStateState();
@@ -149,8 +151,8 @@ class StatePreservingScaffold extends StatefulWidget {
   const StatePreservingScaffold({
     required this.index,
     required this.child,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<StatePreservingScaffold> createState() =>

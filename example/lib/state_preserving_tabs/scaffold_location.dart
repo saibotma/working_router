@@ -1,11 +1,12 @@
 import 'package:working_router/working_router.dart';
 
-class ScaffoldLocation extends Location<String> {
-  @override
-  final List<RouteNode<String>> children;
+class ScaffoldLocation extends Location<String, ScaffoldLocation> {
+  final List<LocationTreeElement<String>> childNodes;
 
-  ScaffoldLocation({required this.children});
+  ScaffoldLocation({required this.childNodes});
 
   @override
-  List<PathSegment> get path => const [];
+  void build(LocationBuilder<String> builder) {
+    builder.children = childNodes;
+  }
 }

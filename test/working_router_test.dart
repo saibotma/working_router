@@ -389,23 +389,21 @@ void main() {
       final keys = <_Id, LocalKey>{};
 
       final router = WorkingRouter<_Id>(
-        buildRouteNodes: (builder) {
-          builder.child(
-            _PathLocation(
-              id: _Id.root,
-              path: '',
-              children: [
-                _PathLocation(
-                  id: _Id.a,
-                  path: 'a',
-                  children: [
-                    _PathLocation(id: _Id.b, path: 'b', children: []),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
+        buildLocations: (_) => [
+          _PathLocation(
+            id: _Id.root,
+            path: '',
+            children: [
+              _PathLocation(
+                id: _Id.a,
+                path: 'a',
+                children: [
+                  _PathLocation(id: _Id.b, path: 'b', children: []),
+                ],
+              ),
+            ],
+          ),
+        ],
         buildRootPages: (_, location, _) {
           return [
             ChildLocationPageSkeleton<_Id>(
@@ -441,39 +439,35 @@ void main() {
       LocalKey? pageKey;
 
       final router = WorkingRouter<_Id>(
-        buildRouteNodes: (builder) {
-          builder.child(
-            Location<_Id>(
-              id: _Id.root,
-              build: (builder) {
-                builder.child(
-                  Location<_Id>(
-                    id: _Id.a,
-                    build: (builder) {
-                      builder.pathLiteral('a');
-                      builder.pageKey((data) {
-                        sawExpectedData =
-                            data.uri.path == '/a' &&
-                            data.activeLocation?.id == _Id.a;
-                        return ValueKey('dsl:${data.uri.path}');
-                      });
-                      builder.buildPage(
-                        buildPage: (key, child) {
-                          pageKey = key;
-                          return MaterialPage<dynamic>(key: key, child: child);
-                        },
-                        buildWidget: (_, _) => const Text('a'),
-                      );
-                    },
-                  ),
-                );
-                builder.buildPage(
-                  buildWidget: (_, _) => const Text('root'),
-                );
-              },
-            ),
-          );
-        },
+        buildLocations: (_) => [
+          _BuilderLocation<_Id>(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.page(widget: (_, _) => const Text('root'));
+              builder.children = [
+                _BuilderLocation<_Id>(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('a');
+                    builder.pageKey = (data) {
+                      sawExpectedData =
+                          data.uri.path == '/a' &&
+                          data.activeLocation?.id == _Id.a;
+                      return ValueKey('dsl:${data.uri.path}');
+                    };
+                    builder.page(
+                      page: (key, child) {
+                        pageKey = key;
+                        return MaterialPage<dynamic>(key: key, child: child);
+                      },
+                      widget: (_, _) => const Text('a'),
+                    );
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
         noContentWidget: const SizedBox.shrink(),
       );
 
@@ -490,23 +484,21 @@ void main() {
       var sawExpectedData = false;
 
       final router = WorkingRouter<_Id>(
-        buildRouteNodes: (builder) {
-          builder.child(
-            _PathLocation(
-              id: _Id.root,
-              path: '',
-              children: [
-                _PathLocation(
-                  id: _Id.a,
-                  path: 'a',
-                  children: [
-                    _PathLocation(id: _Id.b, path: 'b', children: []),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
+        buildLocations: (_) => [
+          _PathLocation(
+            id: _Id.root,
+            path: '',
+            children: [
+              _PathLocation(
+                id: _Id.a,
+                path: 'a',
+                children: [
+                  _PathLocation(id: _Id.b, path: 'b', children: []),
+                ],
+              ),
+            ],
+          ),
+        ],
         buildRootPages: (_, location, _) {
           return [
             ChildLocationPageSkeleton<_Id>(
@@ -562,25 +554,23 @@ void main() {
       ) async {
         var includeB = true;
         final router = WorkingRouter<_Id>(
-          buildRouteNodes: (builder) {
-            builder.child(
-              _PathLocation(
-                id: _Id.root,
-                path: '',
-                children: [
-                  _PathLocation(
-                    id: _Id.a,
-                    path: 'a',
-                    children: includeB
-                        ? [
-                            _PathLocation(id: _Id.b, path: 'b', children: []),
-                          ]
-                        : const [],
-                  ),
-                ],
-              ),
-            );
-          },
+          buildLocations: (_) => [
+            _PathLocation(
+              id: _Id.root,
+              path: '',
+              children: [
+                _PathLocation(
+                  id: _Id.a,
+                  path: 'a',
+                  children: includeB
+                      ? [
+                          _PathLocation(id: _Id.b, path: 'b', children: []),
+                        ]
+                      : const [],
+                ),
+              ],
+            ),
+          ],
           buildRootPages: (_, location, _) {
             return [
               ChildLocationPageSkeleton<_Id>(
@@ -608,16 +598,14 @@ void main() {
       'supports self-built locations alongside legacy buildRootPages',
       (tester) async {
         final router = WorkingRouter<_MigratingId>(
-          buildRouteNodes: (builder) {
-            builder.child(
-              _MigratingRootLocation(
-                id: _MigratingId.root,
-                children: [
-                  _SelfBuiltAccountLocation(id: _MigratingId.account),
-                ],
-              ),
-            );
-          },
+          buildLocations: (_) => [
+            _MigratingRootLocation(
+              id: _MigratingId.root,
+              children: [
+                _SelfBuiltAccountLocation(id: _MigratingId.account),
+              ],
+            ),
+          ],
           buildRootPages: (_, location, _) {
             return switch (location.id) {
               _MigratingId.root => [
@@ -669,24 +657,22 @@ WorkingRouter<_Id> _buildRouter({
   );
 
   return WorkingRouter<_Id>(
-    buildRouteNodes: (builder) {
-      builder.child(
-        _PathLocation(
-          id: _Id.root,
-          path: '',
-          children: [
-            _PathLocation(
-              id: _Id.a,
-              path: 'a',
-              children: [
-                _PathLocation(id: _Id.b, path: 'b', children: []),
-              ],
-            ),
-            _PathLocation(id: _Id.c, path: 'c', children: []),
-          ],
-        ),
-      );
-    },
+    buildLocations: (_) => [
+      _PathLocation(
+        id: _Id.root,
+        path: '',
+        children: [
+          _PathLocation(
+            id: _Id.a,
+            path: 'a',
+            children: [
+              _PathLocation(id: _Id.b, path: 'b', children: []),
+            ],
+          ),
+          _PathLocation(id: _Id.c, path: 'c', children: []),
+        ],
+      ),
+    ],
     buildRootPages: (_, location, _) {
       switch (location.id) {
         case _Id.root:
@@ -712,24 +698,22 @@ WorkingRouter<_Id> _buildOrderRouter({
   Future<bool> Function()? beforeLeaveB,
 }) {
   return WorkingRouter<_Id>(
-    buildRouteNodes: (builder) {
-      builder.child(
-        _PathLocation(
-          id: _Id.root,
-          path: '',
-          children: [
-            _PathLocation(
-              id: _Id.a,
-              path: 'a',
-              children: [
-                _PathLocation(id: _Id.b, path: 'b', children: []),
-              ],
-            ),
-            _PathLocation(id: _Id.c, path: 'c', children: []),
-          ],
-        ),
-      );
-    },
+    buildLocations: (_) => [
+      _PathLocation(
+        id: _Id.root,
+        path: '',
+        children: [
+          _PathLocation(
+            id: _Id.a,
+            path: 'a',
+            children: [
+              _PathLocation(id: _Id.b, path: 'b', children: []),
+            ],
+          ),
+          _PathLocation(id: _Id.c, path: 'c', children: []),
+        ],
+      ),
+    ],
     buildRootPages: (_, location, _) {
       switch (location.id) {
         case _Id.root:
@@ -764,21 +748,19 @@ WorkingRouter<_Id> _buildOrderRouter({
 
 WorkingRouter<_ParamId> _buildParamRouter() {
   return WorkingRouter<_ParamId>(
-    buildRouteNodes: (builder) {
-      builder.child(
-        _ParamRootLocation(
-          id: _ParamId.root,
-          children: [
-            _ItemLocation(
-              id: _ParamId.item,
-              children: [
-                _DetailLocation(id: _ParamId.details, path: 'details'),
-              ],
-            ),
-          ],
-        ),
-      );
-    },
+    buildLocations: (_) => [
+      _ParamRootLocation(
+        id: _ParamId.root,
+        children: [
+          _ItemLocation(
+            id: _ParamId.item,
+            children: [
+              _DetailLocation(id: _ParamId.details, path: 'details'),
+            ],
+          ),
+        ],
+      ),
+    ],
     buildRootPages: (_, location, _) {
       return [
         ChildLocationPageSkeleton(
@@ -796,14 +778,14 @@ enum _ParamId { root, item, details }
 
 enum _MigratingId { root, account }
 
-class _PathLocation extends Location<_Id> {
+class _PathLocation extends Location<_Id, _PathLocation> {
   final List<PathSegment> _segments;
-  final List<RouteNode<_Id>> _childNodes;
+  final List<LocationTreeElement<_Id>> _childNodes;
 
   _PathLocation({
     required _Id id,
     required String path,
-    List<RouteNode<_Id>> children = const [],
+    List<LocationTreeElement<_Id>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
        super(id: id);
@@ -813,38 +795,33 @@ class _PathLocation extends Location<_Id> {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
-    for (final child in _childNodes) {
-      builder.child(child);
-    }
-    builder.legacy();
+    builder.children = _childNodes;
   }
 }
 
-class _ParamPathLocation extends Location<_ParamId> {
+class _ParamPathLocation extends Location<_ParamId, _ParamPathLocation> {
   final List<PathSegment> _segments;
-  final List<RouteNode<_ParamId>> _childNodes;
+  final List<LocationTreeElement<_ParamId>> _childNodes;
 
   _ParamPathLocation({
     required _ParamId id,
     required String path,
-    List<RouteNode<_ParamId>> children = const [],
+    List<LocationTreeElement<_ParamId>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
        super(id: id);
 
   @override
   void build(LocationBuilder<_ParamId> builder) {
-    register(builder);
-    builder.legacy();
+    final children = register(builder);
+    builder.children = children;
   }
 
-  void register(LocationBuilder<_ParamId> builder) {
+  List<LocationTreeElement<_ParamId>> register(LocationBuilder<_ParamId> builder) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
-    for (final child in _childNodes) {
-      builder.child(child);
-    }
+    return _childNodes;
   }
 }
 
@@ -865,10 +842,11 @@ class _ItemLocation extends _ParamPathLocation {
   }) : super(path: 'item');
 
   @override
-  void register(LocationBuilder<_ParamId> builder) {
-    super.register(builder);
+  List<LocationTreeElement<_ParamId>> register(LocationBuilder<_ParamId> builder) {
+    final children = super.register(builder);
     builder.pathSegment(idParameter);
     builder.query(keep);
+    return children;
   }
 }
 
@@ -879,30 +857,30 @@ class _DetailLocation extends _ParamPathLocation {
   });
 
   @override
-  void register(LocationBuilder<_ParamId> builder) {
-    super.register(builder);
+  List<LocationTreeElement<_ParamId>> register(LocationBuilder<_ParamId> builder) {
+    final children = super.register(builder);
     builder.query(queryParam('detail', const StringRouteParamCodec()));
+    return children;
   }
 }
 
-class _MigratingRootLocation extends Location<_MigratingId> {
-  final List<RouteNode<_MigratingId>> _childNodes;
+class _MigratingRootLocation
+    extends Location<_MigratingId, _MigratingRootLocation> {
+  final List<LocationTreeElement<_MigratingId>> _childNodes;
 
   _MigratingRootLocation({
     required super.id,
-    List<RouteNode<_MigratingId>> children = const [],
+    List<LocationTreeElement<_MigratingId>> children = const [],
   }) : _childNodes = children;
 
   @override
   void build(LocationBuilder<_MigratingId> builder) {
-    for (final child in _childNodes) {
-      builder.child(child);
-    }
-    builder.legacy();
+    builder.children = _childNodes;
   }
 }
 
-class _SelfBuiltAccountLocation extends Location<_MigratingId> {
+class _SelfBuiltAccountLocation
+    extends Location<_MigratingId, _SelfBuiltAccountLocation> {
   _SelfBuiltAccountLocation({
     required super.id,
   });
@@ -910,16 +888,24 @@ class _SelfBuiltAccountLocation extends Location<_MigratingId> {
   @override
   void build(LocationBuilder<_MigratingId> builder) {
     builder.pathLiteral('accounts');
-    final accountId = builder.pathParam(const StringRouteParamCodec());
-    final tab = builder.queryParam('tab', const StringRouteParamCodec());
-    builder.buildPage(
-      buildWidget: (context, data) {
+    final accountId = builder.stringPathParam();
+    final tab = builder.stringQueryParam('tab');
+    builder.page(
+      widget: (context, data) {
         return Text(
           '${data.pathParameter(accountId)}:${data.queryParameter(tab)}',
         );
       },
     );
   }
+}
+
+class _BuilderLocation<ID> extends Location<ID, _BuilderLocation<ID>> {
+  _BuilderLocation({
+    required super.id,
+    super.parentRouterKey,
+    super.build,
+  });
 }
 
 List<PathSegment> _pathSegments(String path) {

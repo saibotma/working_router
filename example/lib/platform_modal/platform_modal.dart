@@ -31,8 +31,8 @@ class PlatformModal<T> extends StatefulWidget {
     this.bottomSheetConstraints,
     this.dialogConstraints,
     this.isInsetAware = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<PlatformModal<T>> createState() => _PlatformModalState<T>();

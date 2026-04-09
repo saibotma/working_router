@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:working_router/src/route_node.dart';
+import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/working_router_data.dart';
 
@@ -19,10 +19,6 @@ typedef ShellPageBuilder = Page<dynamic> Function(LocalKey? key, Widget child);
 
 sealed class LocationBuildResult<ID> {
   const LocationBuildResult();
-}
-
-final class LegacyLocationBuildResult<ID> extends LocationBuildResult<ID> {
-  const LegacyLocationBuildResult();
 }
 
 final class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
@@ -49,16 +45,19 @@ class LocationBuilder<ID> {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
-  final List<RouteNode<ID>> _children = [];
+  List<LocationTreeElement<ID>> _children = const [];
+  bool _childrenAssigned = false;
   RouteNodePageKeyBuilder<ID>? _buildPageKey;
   LocationBuildResult<ID>? _render;
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
-  List<RouteNode<ID>> get children => _children;
+  List<LocationTreeElement<ID>> get children => _children;
   RouteNodePageKeyBuilder<ID>? get buildPageKey => _buildPageKey;
   LocationBuildResult<ID>? get render => _render;
+
+  LocationBuilder();
 
   T pathSegment<T extends PathSegment>(T segment) {
     _path.add(segment);
@@ -76,6 +75,26 @@ class LocationBuilder<ID> {
     return pathSegment(PathParam<T>(codec));
   }
 
+  PathParam<String> stringPathParam() {
+    return pathParam(const StringRouteParamCodec());
+  }
+
+  PathParam<int> intPathParam() {
+    return pathParam(const IntRouteParamCodec());
+  }
+
+  PathParam<double> doublePathParam() {
+    return pathParam(const DoubleRouteParamCodec());
+  }
+
+  PathParam<bool> boolPathParam() {
+    return pathParam(const BoolRouteParamCodec());
+  }
+
+  PathParam<DateTime> dateTimePathParam() {
+    return pathParam(const DateTimeIsoRouteParamCodec());
+  }
+
   QueryParam<T> query<T>(QueryParam<T> parameter) {
     _queryParameters.add(parameter);
     return parameter;
@@ -89,40 +108,83 @@ class LocationBuilder<ID> {
     return query(QueryParam<T>(name, codec, optional: optional));
   }
 
-  T child<T extends RouteNode<ID>>(T node) {
-    _children.add(node);
-    return node;
+  QueryParam<String> stringQueryParam(
+    String name, {
+    bool optional = false,
+  }) {
+    return queryParam(name, const StringRouteParamCodec(), optional: optional);
   }
 
-  void pageKey(RouteNodePageKeyBuilder<ID> buildPageKey) {
+  QueryParam<int> intQueryParam(
+    String name, {
+    bool optional = false,
+  }) {
+    return queryParam(name, const IntRouteParamCodec(), optional: optional);
+  }
+
+  QueryParam<double> doubleQueryParam(
+    String name, {
+    bool optional = false,
+  }) {
+    return queryParam(name, const DoubleRouteParamCodec(), optional: optional);
+  }
+
+  QueryParam<bool> boolQueryParam(
+    String name, {
+    bool optional = false,
+  }) {
+    return queryParam(name, const BoolRouteParamCodec(), optional: optional);
+  }
+
+  QueryParam<DateTime> dateTimeQueryParam(
+    String name, {
+    bool optional = false,
+  }) {
+    return queryParam(
+      name,
+      const DateTimeIsoRouteParamCodec(),
+      optional: optional,
+    );
+  }
+
+  set children(List<LocationTreeElement<ID>> children) {
+    if (_childrenAssigned) {
+      throw StateError(
+        'LocationBuilder children were already configured. '
+        'children may only be assigned once.',
+      );
+    }
+    _children = List.unmodifiable(children);
+    _childrenAssigned = true;
+  }
+
+  set pageKey(RouteNodePageKeyBuilder<ID> buildPageKey) {
     _buildPageKey = buildPageKey;
   }
 
-  void buildWidget(
-    LocationWidgetBuilder<ID> buildWidget,
+  void widget(
+    LocationWidgetBuilder<ID> widget,
   ) {
-    _setRender(SelfBuiltLocationBuildResult(buildWidget: buildWidget));
+    _setRender(SelfBuiltLocationBuildResult(buildWidget: widget));
   }
 
-  void buildPage({
-    required LocationWidgetBuilder<ID> buildWidget,
-    SelfBuiltLocationPageBuilder? buildPage,
+  void page({
+    required LocationWidgetBuilder<ID> widget,
+    SelfBuiltLocationPageBuilder? page,
   }) {
-    _setRender(SelfBuiltLocationBuildResult(
-      buildWidget: buildWidget,
-      buildPage: buildPage,
-    ));
-  }
-
-  void legacy() {
-    _setRender(const LegacyLocationBuildResult());
+    _setRender(
+      SelfBuiltLocationBuildResult(
+        buildWidget: widget,
+        buildPage: page,
+      ),
+    );
   }
 
   void _setRender(LocationBuildResult<ID> render) {
     if (_render != null) {
       throw StateError(
         'LocationBuilder render was already configured. Only one of '
-        'buildWidget(...), buildPage(...), or legacy() may be used.',
+        'widget(...) or page(...) may be used.',
       );
     }
     _render = render;
@@ -130,32 +192,42 @@ class LocationBuilder<ID> {
 }
 
 class ShellBuilder<ID> {
-  final List<RouteNode<ID>> children = [];
+  List<LocationTreeElement<ID>> _children = const [];
+  bool _childrenAssigned = false;
   RouteNodePageKeyBuilder<ID>? buildPageKey;
   ShellBuildResult<ID>? _render;
 
+  List<LocationTreeElement<ID>> get children => _children;
   ShellBuildResult<ID>? get render => _render;
 
-  T child<T extends RouteNode<ID>>(T node) {
-    children.add(node);
-    return node;
+  ShellBuilder();
+
+  set children(List<LocationTreeElement<ID>> children) {
+    if (_childrenAssigned) {
+      throw StateError(
+        'ShellBuilder children were already configured. '
+        'children may only be assigned once.',
+      );
+    }
+    _children = List.unmodifiable(children);
+    _childrenAssigned = true;
   }
 
-  void pageKey(RouteNodePageKeyBuilder<ID> buildPageKey) {
+  set pageKey(RouteNodePageKeyBuilder<ID> buildPageKey) {
     this.buildPageKey = buildPageKey;
   }
 
-  void buildWidget(
-    ShellWidgetBuilder<ID> buildWidget, {
-    ShellPageBuilder? buildPage,
+  void widget(
+    ShellWidgetBuilder<ID> widget, {
+    ShellPageBuilder? page,
   }) {
     if (_render != null) {
       throw StateError(
         'ShellBuilder render was already configured. '
-        'buildWidget(...) may only be called once.',
+        'widget(...) may only be called once.',
       );
     }
-    _render = ShellBuildResult(buildWidget: buildWidget, buildPage: buildPage);
+    _render = ShellBuildResult(buildWidget: widget, buildPage: page);
   }
 }
 
@@ -163,9 +235,9 @@ class BuiltLocationDefinition<ID> {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
-  final List<RouteNode<ID>> children;
+  final List<LocationTreeElement<ID>> children;
   final RouteNodePageKeyBuilder<ID>? buildPageKey;
-  final LocationBuildResult<ID> render;
+  final LocationBuildResult<ID>? render;
 
   const BuiltLocationDefinition({
     required this.path,
@@ -178,7 +250,7 @@ class BuiltLocationDefinition<ID> {
 }
 
 class BuiltShellDefinition<ID> {
-  final List<RouteNode<ID>> children;
+  final List<LocationTreeElement<ID>> children;
   final RouteNodePageKeyBuilder<ID>? buildPageKey;
   final ShellBuildResult<ID> render;
 

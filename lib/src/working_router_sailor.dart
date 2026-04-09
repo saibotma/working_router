@@ -24,7 +24,7 @@ abstract class WorkingRouterSailor<ID> {
   /// is both in the parent parameters and in the passed in parameters
   /// the passed in parameter overrides the parent parameter.
   void routeToChildWhere(
-    bool Function(Location<ID> location) predicate, {
+    bool Function(AnyLocation<ID> location) predicate, {
     Map<String, String> queryParameters = const {},
     WritePathParameters<ID>? writePathParameters,
   });
@@ -40,5 +40,5 @@ abstract class WorkingRouterSailor<ID> {
   /// Routes back until [match] returns true.
   /// Retains path parameters required by the remaining route chain and
   /// query parameters declared by the remaining locations.
-  void routeBackUntil(bool Function(Location<ID> location) match);
+  void routeBackUntil(bool Function(AnyLocation<ID> location) match);
 }
