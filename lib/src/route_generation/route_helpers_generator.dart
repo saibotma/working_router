@@ -3826,7 +3826,7 @@ class _GeneratedRouteMethod {
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
       final typeSource = generatedParameter.optional
-          ? '${generatedParameter.dartTypeSource}?'
+          ? _nullableTypeSource(generatedParameter.dartTypeSource)
           : generatedParameter.dartTypeSource;
       final requiredKeyword = generatedParameter.optional ? '' : 'required ';
       buffer.writeln(
@@ -3874,7 +3874,7 @@ class _GeneratedRouteMethod {
       for (final parameter in parameters) {
         final generatedParameter = parameter.value;
         final typeSource = generatedParameter.optional
-            ? '${generatedParameter.dartTypeSource}?'
+            ? _nullableTypeSource(generatedParameter.dartTypeSource)
             : generatedParameter.dartTypeSource;
         final requiredKeyword = generatedParameter.optional ? '' : 'required ';
         buffer.writeln(
@@ -4029,7 +4029,7 @@ class _GeneratedLocationChildTargetMethod {
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
       final typeSource = generatedParameter.optional
-          ? '${generatedParameter.dartTypeSource}?'
+          ? _nullableTypeSource(generatedParameter.dartTypeSource)
           : generatedParameter.dartTypeSource;
       final requiredKeyword = generatedParameter.optional ? '' : 'required ';
       buffer.writeln(
@@ -4294,6 +4294,10 @@ class _GeneratedRouteParameter {
       optional: optional ?? this.optional,
     );
   }
+}
+
+String _nullableTypeSource(String typeSource) {
+  return typeSource.endsWith('?') ? typeSource : '$typeSource?';
 }
 
 String _toUpperCamelCase(String value) {

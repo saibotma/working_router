@@ -719,6 +719,93 @@ List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
   );
 
   test(
+    'does not generate double-nullable optional query parameter types',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/nullable_query_param_routes.dart': '''
+library nullable_query_param_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'nullable_query_param_routes.g.dart';
+
+enum NullableQueryRouteId { item }
+
+class NullableStringRouteParamCodec extends RouteParamCodec<String?> {
+  const NullableStringRouteParamCodec();
+
+  @override
+  String encode(String? value) => value ?? '';
+
+  @override
+  String? decode(String value) => value.isEmpty ? null : value;
+}
+
+class NullableUriRouteParamCodec extends RouteParamCodec<Uri?> {
+  const NullableUriRouteParamCodec();
+
+  @override
+  String encode(Uri? value) => value?.toString() ?? '';
+
+  @override
+  Uri? decode(String value) => value.isEmpty ? null : Uri.parse(value);
+}
+
+class ItemLocation extends Location<NullableQueryRouteId, ItemLocation> {
+  ItemLocation({
+    required super.id,
+    required super.build,
+  });
+}
+
+@Locations()
+List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
+  ItemLocation(
+    id: NullableQueryRouteId.item,
+    build: (builder, location) {
+      builder.pathLiteral('items');
+      final filter = builder.queryParam(
+        'filter',
+        const NullableStringRouteParamCodec(),
+        defaultValue: Default<String?>(null),
+      );
+      final from = builder.queryParam(
+        'from',
+        const NullableUriRouteParamCodec(),
+        defaultValue: Default<Uri?>(null),
+      );
+
+      builder.widget((context, data) => const SizedBox.shrink());
+    },
+  ),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/nullable_query_param_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('ItemRouteTarget({String? filter, Uri? from})'),
+                  contains('void routeToItem({String? filter, Uri? from})'),
+                  isNot(contains('String??')),
+                  isNot(contains('Uri??')),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'supports child ids derived from whether the parent id is null',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
