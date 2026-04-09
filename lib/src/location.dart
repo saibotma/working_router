@@ -40,7 +40,7 @@ abstract class AnyLocation<ID> extends LocationTreeElement<ID> {
   BuiltLocationDefinition<ID> _buildDefinition() {
     final builder = LocationBuilder<ID>();
     build(builder);
-    final render = builder.render;
+    final render = builder.resolveRender();
     return BuiltLocationDefinition(
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),

@@ -35,13 +35,7 @@ class Shell<ID> extends LocationTreeElement<ID> {
   BuiltShellDefinition<ID> _buildDefinition() {
     final builder = ShellBuilder<ID>();
     build(builder);
-    final render = builder.render;
-    if (render == null) {
-      throw StateError(
-        'Shell $runtimeType must configure its render with '
-        'widget(...).',
-      );
-    }
+    final render = builder.resolveRender();
     return BuiltShellDefinition(
       children: List.unmodifiable(builder.children),
       buildPageKey: builder.buildPageKey,

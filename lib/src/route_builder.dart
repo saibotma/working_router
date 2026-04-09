@@ -48,14 +48,14 @@ class LocationBuilder<ID> {
   List<LocationTreeElement<ID>> _children = const [];
   bool _childrenAssigned = false;
   RouteNodePageKeyBuilder<ID>? _buildPageKey;
-  LocationBuildResult<ID>? _render;
+  LocationWidgetBuilder<ID>? _buildWidget;
+  SelfBuiltLocationPageBuilder? _buildPage;
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
   List<LocationTreeElement<ID>> get children => _children;
   RouteNodePageKeyBuilder<ID>? get buildPageKey => _buildPageKey;
-  LocationBuildResult<ID>? get render => _render;
 
   LocationBuilder();
 
@@ -165,29 +165,39 @@ class LocationBuilder<ID> {
   void widget(
     LocationWidgetBuilder<ID> widget,
   ) {
-    _setRender(SelfBuiltLocationBuildResult(buildWidget: widget));
-  }
-
-  void page({
-    required LocationWidgetBuilder<ID> widget,
-    SelfBuiltLocationPageBuilder? page,
-  }) {
-    _setRender(
-      SelfBuiltLocationBuildResult(
-        buildWidget: widget,
-        buildPage: page,
-      ),
-    );
-  }
-
-  void _setRender(LocationBuildResult<ID> render) {
-    if (_render != null) {
+    if (_buildWidget != null) {
       throw StateError(
-        'LocationBuilder render was already configured. Only one of '
-        'widget(...) or page(...) may be used.',
+        'LocationBuilder widget was already configured. '
+        'widget(...) may only be called once.',
       );
     }
-    _render = render;
+    _buildWidget = widget;
+  }
+
+  void page(SelfBuiltLocationPageBuilder page) {
+    if (_buildPage != null) {
+      throw StateError(
+        'LocationBuilder page was already configured. '
+        'page(...) may only be called once.',
+      );
+    }
+    _buildPage = page;
+  }
+
+  LocationBuildResult<ID>? resolveRender() {
+    if (_buildWidget == null) {
+      if (_buildPage != null) {
+        throw StateError(
+          'LocationBuilder page was configured without widget(...). '
+          'Call widget(...) before page(...).',
+        );
+      }
+      return null;
+    }
+    return SelfBuiltLocationBuildResult(
+      buildWidget: _buildWidget!,
+      buildPage: _buildPage,
+    );
   }
 }
 
@@ -195,10 +205,10 @@ class ShellBuilder<ID> {
   List<LocationTreeElement<ID>> _children = const [];
   bool _childrenAssigned = false;
   RouteNodePageKeyBuilder<ID>? buildPageKey;
-  ShellBuildResult<ID>? _render;
+  ShellWidgetBuilder<ID>? _buildWidget;
+  ShellPageBuilder? _buildPage;
 
   List<LocationTreeElement<ID>> get children => _children;
-  ShellBuildResult<ID>? get render => _render;
 
   ShellBuilder();
 
@@ -217,17 +227,39 @@ class ShellBuilder<ID> {
     this.buildPageKey = buildPageKey;
   }
 
-  void widget(
-    ShellWidgetBuilder<ID> widget, {
-    ShellPageBuilder? page,
-  }) {
-    if (_render != null) {
+  void widget(ShellWidgetBuilder<ID> widget) {
+    if (_buildWidget != null) {
       throw StateError(
-        'ShellBuilder render was already configured. '
+        'ShellBuilder widget was already configured. '
         'widget(...) may only be called once.',
       );
     }
-    _render = ShellBuildResult(buildWidget: widget, buildPage: page);
+    _buildWidget = widget;
+  }
+
+  void page(ShellPageBuilder page) {
+    if (_buildPage != null) {
+      throw StateError(
+        'ShellBuilder page was already configured. '
+        'page(...) may only be called once.',
+      );
+    }
+    _buildPage = page;
+  }
+
+  ShellBuildResult<ID> resolveRender() {
+    if (_buildWidget == null) {
+      if (_buildPage != null) {
+        throw StateError(
+          'ShellBuilder page was configured without widget(...). '
+          'Call widget(...) before page(...).',
+        );
+      }
+      throw StateError(
+        'ShellBuilder must configure its render with widget(...).',
+      );
+    }
+    return ShellBuildResult(buildWidget: _buildWidget!, buildPage: _buildPage);
   }
 }
 

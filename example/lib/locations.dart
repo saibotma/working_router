@@ -80,8 +80,8 @@ class ALocation extends Location<LocationId, ALocation> {
     required this.rootRouterKey,
     this.outerShellRouterKey,
   }) : super.override(
-         tags: [PopUntilTarget()],
-       );
+          tags: [PopUntilTarget()],
+        );
 
   @override
   void build(LocationBuilder<LocationId> builder) {
@@ -109,18 +109,16 @@ class ALocation extends Location<LocationId, ALocation> {
                 final bParam = builder.stringQueryParam('b');
                 final cParam = builder.stringQueryParam('c');
 
-                builder.page(
-                  page: (key, child) {
-                    return PlatformModalPage<dynamic>(key: key, child: child);
-                  },
-                  widget: (context, data) {
-                    return ABCScreen(
-                      id: data.pathParameter(id),
-                      b: data.queryParameter(bParam),
-                      c: data.queryParameter(cParam),
-                    );
-                  },
-                );
+                builder.widget((context, data) {
+                  return ABCScreen(
+                    id: data.pathParameter(id),
+                    b: data.queryParameter(bParam),
+                    c: data.queryParameter(cParam),
+                  );
+                });
+                builder.page((key, child) {
+                  return PlatformModalPage<dynamic>(key: key, child: child);
+                });
               },
             ),
           ];
@@ -138,12 +136,10 @@ class ALocation extends Location<LocationId, ALocation> {
               parentRouterKey: rootRouterKey,
               build: (builder, location) {
                 builder.pathLiteral('c');
-                builder.page(
-                  page: (key, child) {
-                    return PlatformModalPage<dynamic>(key: key, child: child);
-                  },
-                  widget: (context, data) => const ADCScreen(),
-                );
+                builder.widget((context, data) => const ADCScreen());
+                builder.page((key, child) {
+                  return PlatformModalPage<dynamic>(key: key, child: child);
+                });
               },
             ),
             if (outerShellRouterKey != null)
