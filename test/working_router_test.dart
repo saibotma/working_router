@@ -897,7 +897,7 @@ class _SelfBuiltAccountLocation
     final tab = builder.stringQueryParam('tab');
     builder.widget((context, data) {
       return Text(
-        '${data.pathParameter(accountId)}:${data.queryParameter(tab)}',
+        '${data.pathParam(accountId)}:${data.queryParam(tab)}',
       );
     });
   }

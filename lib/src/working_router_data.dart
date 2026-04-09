@@ -10,7 +10,7 @@ class WorkingRouterData<ID> {
   // Keep matched path params in their encoded URI form even though they are
   // keyed by PathParam objects. The router core is still URI-first, so URI
   // rebuilding, retention, and forwarding should work on raw URI values while
-  // decoding stays at typed access boundaries like pathParameter(...).
+  // decoding stays at typed access boundaries like pathParam(...).
   final IMap<PathParam<dynamic>, String> pathParameters;
 
   // Keep query params encoded and string-keyed for the same reason: the URI is
@@ -47,8 +47,8 @@ class WorkingRouterData<ID> {
 
   AnyLocation<ID>? get activeLocation => locations.lastOrNull;
 
-  T pathParameter<T>(PathParam<T> parameter) {
-    final value = pathParameterOrNull(parameter);
+  T pathParam<T>(PathParam<T> parameter) {
+    final value = pathParamOrNull(parameter);
     if (value != null) {
       return value;
     }
@@ -57,7 +57,7 @@ class WorkingRouterData<ID> {
     );
   }
 
-  T? pathParameterOrNull<T>(PathParam<T> parameter) {
+  T? pathParamOrNull<T>(PathParam<T> parameter) {
     final rawValue = pathParameters[parameter];
     if (rawValue == null) {
       return null;
@@ -65,8 +65,8 @@ class WorkingRouterData<ID> {
     return parameter.codec.decode(rawValue);
   }
 
-  T queryParameter<T>(QueryParam<T> parameter) {
-    final value = queryParameterOrNull(parameter);
+  T queryParam<T>(QueryParam<T> parameter) {
+    final value = queryParamOrNull(parameter);
     if (value != null || parameter.optional) {
       return value as T;
     }
@@ -75,7 +75,7 @@ class WorkingRouterData<ID> {
     );
   }
 
-  T? queryParameterOrNull<T>(QueryParam<T> parameter) {
+  T? queryParamOrNull<T>(QueryParam<T> parameter) {
     for (final location in locations) {
       for (final declaredParameter in location.queryParameters) {
         if (!identical(declaredParameter, parameter)) {

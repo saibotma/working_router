@@ -56,7 +56,7 @@ final example = ExampleLocation(
 
     builder.widget((context, data) {
       return Text(
-        '${data.pathParameter(itemId)}:${data.queryParameterOrNull(filter)}',
+        '${data.pathParam(itemId)}:${data.queryParamOrNull(filter)}',
       );
     });
 
