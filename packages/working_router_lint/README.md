@@ -9,6 +9,8 @@ manually rewriting `builder.children = [...]` lists.
 Current assists:
 - Wrap a `builder.children = [...]` entry with `Group`
 - Wrap a `builder.children = [...]` entry with `Shell`
+- Remove an element while keeping its children when the structure is
+  unambiguous
 
 ## Requirements
 
@@ -23,7 +25,7 @@ Enable the plugin in your app's `analysis_options.yaml`.
 
 ```yaml
 plugins:
-  working_router_lint: ^0.1.0
+  working_router_lint: ^0.1.2
 ```
 
 ### Local checkout

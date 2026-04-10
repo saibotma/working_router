@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:test/test.dart';
+import 'package:working_router_lint/src/assists/remove_location_tree_element_edit.dart';
 import 'package:working_router_lint/src/assists/wrap_location_tree_element_edit.dart';
 import 'package:working_router_lint/src/assists/wrap_with_group.dart';
 import 'package:working_router_lint/src/assists/wrap_with_shell.dart';
@@ -144,6 +145,147 @@ List<Object> buildLocations() {
 
     expect(edit, isNull);
   });
+
+  test('remove element unwraps a middle builder.children entry', () {
+    const source = '''
+void build(builder) {
+  builder.children = [
+    ALocation(),
+    Group(
+      build: (builder) {
+        builder.children = [
+          BLocation(),
+          CLocation(),
+        ];
+      },
+    ),
+    DLocation(),
+  ];
+}
+''';
+    final edit = _createRemoveEdit(source: source, snippet: 'Group(');
+
+    expect(edit, isNotNull);
+    final changedSource = _applyRemoveEdit(source, edit!);
+    expect(changedSource, isNot(contains('Group(')));
+    expect(
+      changedSource,
+      contains('''
+  builder.children = [
+    ALocation(),
+    BLocation(),
+    CLocation(),
+    DLocation(),
+  ];
+'''),
+    );
+  });
+
+  test('remove element unwraps the last builder.children entry cleanly', () {
+    const source = '''
+void build(builder) {
+  builder.children = [
+    ALocation(),
+    Group(
+      build: (builder) {
+        builder.children = [
+          BLocation(),
+          CLocation(),
+        ];
+      },
+    ),
+  ];
+}
+''';
+    final edit = _createRemoveEdit(source: source, snippet: 'Group(');
+
+    expect(edit, isNotNull);
+    final changedSource = _applyRemoveEdit(source, edit!);
+    expect(changedSource, isNot(contains('Group(')));
+    expect(
+      changedSource,
+      contains('''
+  builder.children = [
+    ALocation(),
+    BLocation(),
+    CLocation(),
+  ];
+'''),
+    );
+  });
+
+  test('remove element deletes a leaf entry when there are no children to unwrap', () {
+    const source = '''
+void build(builder) {
+  builder.children = [
+    ALocation(),
+    BLocation(),
+  ];
+}
+''';
+    final edit = _createRemoveEdit(source: source, snippet: 'BLocation(');
+
+    expect(edit, isNotNull);
+    final changedSource = _applyRemoveEdit(source, edit!);
+    expect(changedSource, isNot(contains('BLocation(')));
+    expect(changedSource, contains('builder.children = [\n    ALocation(),\n  ];'));
+  });
+
+  test('remove element unwraps a returned root entry with one direct children assignment', () {
+    const source = '''
+List<Object> buildLocations() {
+  return [
+    SplashLocation(
+      build: (builder, location) {
+        builder.widget('splash');
+        builder.children = [
+          ALocation(),
+        ];
+      },
+    ),
+  ];
+}
+''';
+    final edit = _createRemoveEdit(source: source, snippet: 'SplashLocation(');
+
+    expect(edit, isNotNull);
+    final changedSource = _applyRemoveEdit(source, edit!);
+    expect(changedSource, isNot(contains('SplashLocation(')));
+    expect(
+      changedSource,
+      contains('''
+  return [
+    ALocation(),
+  ];
+'''),
+    );
+  });
+
+  test('remove element is unavailable for returned root entry with conditional children', () {
+    const source = '''
+List<Object> buildLocations(bool showA) {
+  return [
+    SplashLocation(
+      build: (builder, location) {
+        builder.widget('splash');
+        if (showA) {
+          builder.children = [
+            ALocation(),
+          ];
+          return;
+        }
+        builder.children = [
+          BLocation(),
+        ];
+      },
+    ),
+  ];
+}
+''';
+    final edit = _createRemoveEdit(source: source, snippet: 'SplashLocation(');
+
+    expect(edit, isNull);
+  });
 }
 
 WrapLocationTreeElementEdit? _createEdit({
@@ -173,4 +315,26 @@ String _applyEdit(String source, WrapLocationTreeElementEdit edit) {
     edit.range.end,
     edit.replacement,
   );
+}
+
+RemoveLocationTreeElementEdit? _createRemoveEdit({
+  required String source,
+  required String snippet,
+}) {
+  final parsed = parseString(content: source);
+  final offset = source.indexOf(snippet);
+  if (offset == -1) {
+    throw StateError('Snippet `$snippet` not found in test source.');
+  }
+
+  return RemoveLocationTreeElementEdit.create(
+    unit: parsed.unit,
+    source: source,
+    selectionOffset: offset,
+    selectionLength: snippet.length,
+  );
+}
+
+String _applyRemoveEdit(String source, RemoveLocationTreeElementEdit edit) {
+  return source.replaceRange(edit.range.offset, edit.range.end, edit.replacement);
 }
