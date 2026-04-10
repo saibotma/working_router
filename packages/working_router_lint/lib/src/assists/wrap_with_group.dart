@@ -31,7 +31,7 @@ class WrapWithGroup extends WrapLocationTreeEntryProducer {
       }) {
         return [
           'Group(',
-          '${builderIndent}build: (builder) {',
+          '${builderIndent}build: (builder, group) {',
           '${bodyIndent}builder.children = [',
           '$selectedSource,',
           '$bodyIndent];',

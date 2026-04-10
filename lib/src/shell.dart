@@ -12,7 +12,11 @@ typedef ShellWidgetBuilder<ID> =
     );
 typedef ShellPageBuilder = Page<dynamic> Function(LocalKey? key, Widget child);
 typedef BuildShell<ID> =
-    void Function(ShellBuilder<ID> builder, WorkingRouterKey routerKey);
+    void Function(
+      ShellBuilder<ID> builder,
+      Shell<ID> shell,
+      WorkingRouterKey routerKey,
+    );
 
 final class ShellBuildResult<ID> extends PathLocationTreeElementRenderResult<ID> {
   final ShellWidgetBuilder<ID> buildWidget;
@@ -71,7 +75,7 @@ class BuiltShellDefinition<ID> {
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
   final List<LocationTreeElement<ID>> children;
-  final LocationTreeElementPageKeyBuilder<ID>? buildPageKey;
+  final PageKey<ID>? pageKey;
   final ShellBuildResult<ID> render;
 
   const BuiltShellDefinition({
@@ -79,7 +83,7 @@ class BuiltShellDefinition<ID> {
     required this.pathParameters,
     required this.queryParameters,
     required this.children,
-    required this.buildPageKey,
+    required this.pageKey,
     required this.render,
   });
 }
@@ -106,7 +110,7 @@ class Shell<ID> extends PathLocationTreeElement<ID>
         'a build callback.',
       );
     }
-    callback(builder, routerKey);
+    callback(builder, this, routerKey);
   }
 
   @override
@@ -123,7 +127,7 @@ class Shell<ID> extends PathLocationTreeElement<ID>
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
       children: List.unmodifiable(builder.children),
-      buildPageKey: builder.buildPageKey,
+      pageKey: builder.configuredPageKey,
       render: render,
     );
   }
@@ -142,7 +146,7 @@ class Shell<ID> extends PathLocationTreeElement<ID>
 
   @override
   LocalKey buildPageKey(WorkingRouterData<ID> data) {
-    return _definition.buildPageKey?.call(data) ?? super.buildPageKey(data);
+    return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
   }
 
   Widget buildWidget(

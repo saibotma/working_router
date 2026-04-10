@@ -144,7 +144,7 @@ class ALocation extends Location<LocationId, ALocation> {
             ),
             if (outerShellRouterKey != null)
               Shell(
-                build: (builder, routerKey) {
+                build: (builder, shell, routerKey) {
                   builder.widgetBuilder(
                     (context, data, child) => InnerShellScreen(child: child),
                   );

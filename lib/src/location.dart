@@ -79,7 +79,7 @@ class BuiltLocationDefinition<ID> {
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
   final List<LocationTreeElement<ID>> children;
-  final LocationTreeElementPageKeyBuilder<ID>? buildPageKey;
+  final PageKey<ID>? pageKey;
   final PathLocationTreeElementRenderResult<ID>? render;
 
   const BuiltLocationDefinition({
@@ -87,7 +87,7 @@ class BuiltLocationDefinition<ID> {
     required this.pathParameters,
     required this.queryParameters,
     required this.children,
-    required this.buildPageKey,
+    required this.pageKey,
     required this.render,
   });
 }

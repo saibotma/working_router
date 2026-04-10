@@ -82,7 +82,8 @@ Important details:
 - Child routes are assigned with `builder.children = [...]`.
 - Named `Location` subclasses are the route-authoring model.
 - `Shell(...)` stays directly constructible and is not meant to be subclassed.
-- Custom page-key behavior can be registered with `builder.pageKey = ...`.
+- Page keys can be configured with `builder.pageKey(...)`, using
+  `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
 - `builder.widget(...)` is the shortcut for constant widgets.
 - `builder.widgetBuilder(...)` is the data-aware variant.
 - `builder.page(...)` only overrides the default page wrapper around that widget.
@@ -93,13 +94,70 @@ See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
 - [`example/lib/locations.dart`](example/lib/locations.dart)
 
+## Page Keys
+
+By default, pages use `PageKey.templatePath()`.
+
+```dart
+builder.pageKey(const PageKey.templatePath());
+```
+
+This keys a page by its route template, not by hydrated path values. That
+means `/lesson/1` and `/lesson/2` reuse the same page identity, while
+`/lesson/1/edit` becomes a different page. This is usually the right default
+when changing a path parameter should update the existing page instead of
+replacing it.
+
+In practice, that means:
+- a detail screen can switch from item `1` to item `2` without replacing the
+  page
+- page-level state tied to that page key stays alive
+- nested widgets can still react to the new path parameter and rebuild
+- navigating to `/lesson/1/edit` still creates a different page
+
+If the hydrated path value should produce a different page identity, use
+`PageKey.path()` instead:
+
+```dart
+builder.pageKey(const PageKey.path());
+```
+
+This keys by the matched path, so `/lesson/1` and `/lesson/2` become different
+pages. Use it when route parameter changes should reset page-level state or
+animate like a page replacement.
+
+In practice, that means:
+- going from `/lesson/1` to `/lesson/2` behaves like a new page
+- page-level state is reset because the page key changes
+- page transitions can animate like a replacement instead of an in-place update
+
+Example:
+
+```dart
+LessonLocation(
+  id: RouteId.lesson,
+  build: (builder, location) {
+    final lessonId = builder.stringPathParam();
+    builder.widgetBuilder((context, data) {
+      return LessonScreen(lessonId: data.pathParam(lessonId));
+    });
+    builder.pageKey(const PageKey.templatePath());
+  },
+);
+```
+
+Use `PageKey.templatePath()` if changing `lessonId` should keep the same page.
+Use `PageKey.path()` if changing `lessonId` should replace that page.
+
+For everything else, use `PageKey.custom(...)`.
+
 ## Defining Shells
 
 `Shell` stays directly constructible:
 
 ```dart
 Shell(
-  build: (builder, routerKey) {
+  build: (builder, shell, routerKey) {
     builder.widgetBuilder((context, data, child) {
       return Scaffold(body: child);
     });

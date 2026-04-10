@@ -42,6 +42,77 @@ class QueryParam<T> {
   const QueryParam(this.name, this.codec, {this.defaultValue});
 }
 
+typedef CustomPageKeyBuilder<ID> = LocalKey Function(WorkingRouterData<ID> data);
+
+/// Describes how a [LocationTreeElement] builds its [Page] key.
+///
+/// Use [PageKey.templatePath] for the default route-template-based behavior:
+/// `/lesson/1` and `/lesson/2` reuse the same page, while
+/// `/lesson/1/edit` becomes a different page.
+/// In practice this means a detail page can swap from lesson `1` to lesson
+/// `2` without replacing the page itself.
+///
+/// Use [PageKey.path] when hydrated path parameter values should produce
+/// different pages, so `/lesson/1` and `/lesson/2` no longer reuse the same
+/// page identity. In practice this means navigating from lesson `1` to
+/// lesson `2` behaves like a page replacement and resets page-level state.
+///
+/// Use [PageKey.custom] for fully custom behavior.
+sealed class PageKey<ID> {
+  const PageKey();
+
+  /// Keys the page by `runtimeType` plus `data.pathTemplateUpToNode(node)`.
+  ///
+  /// This is the default and is usually what routes should use when page
+  /// identity should follow the route shape rather than the hydrated path
+  /// parameter values. Use it when `/item/1` -> `/item/2` should keep the same
+  /// page alive and just rebuild its contents.
+  const factory PageKey.templatePath() = _TemplatePathPageKey<ID>;
+
+  /// Keys the page by `runtimeType` plus `data.pathUpToNode(node)`.
+  ///
+  /// Use this when page identity should change together with hydrated path
+  /// parameter values, such as when `/item/1` and `/item/2` should become
+  /// distinct pages instead of reusing the same page. This is useful when the
+  /// route parameter should reset page-level state or animate like a new page.
+  const factory PageKey.path() = _PathPageKey<ID>;
+
+  /// Builds the page key from custom router data.
+  const factory PageKey.custom(CustomPageKeyBuilder<ID> build) =
+      _CustomPageKey<ID>;
+
+  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data);
+}
+
+final class _TemplatePathPageKey<ID> extends PageKey<ID> {
+  const _TemplatePathPageKey();
+
+  @override
+  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data) {
+    return ValueKey((node.runtimeType, data.pathTemplateUpToNode(node)));
+  }
+}
+
+final class _PathPageKey<ID> extends PageKey<ID> {
+  const _PathPageKey();
+
+  @override
+  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data) {
+    return ValueKey((node.runtimeType, data.pathUpToNode(node)));
+  }
+}
+
+final class _CustomPageKey<ID> extends PageKey<ID> {
+  final CustomPageKeyBuilder<ID> _build;
+
+  const _CustomPageKey(this._build);
+
+  @override
+  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data) {
+    return _build(data);
+  }
+}
+
 abstract class LocationTreeElement<ID> {
   final WorkingRouterKey? parentRouterKey;
 
@@ -57,8 +128,13 @@ abstract class LocationTreeElement<ID> {
   /// hydrated parameter values, so `/lesson/1` and `/lesson/2` reuse the same
   /// page and do not animate like a page replacement, while
   /// `/lesson/1/edit` still becomes a different page.
+  ///
+  /// We intentionally key by `runtimeType` plus the structural path template,
+  /// not by the node itself. If the same logical location class appears
+  /// multiple times in one branch, or is nested inside itself, page identity
+  /// must still follow the concrete tree position rather than node equality.
   LocalKey buildPageKey(WorkingRouterData<ID> data) {
-    return ValueKey((runtimeType, data.pathTemplateUpToNode(this)));
+    return PageKey<ID>.templatePath().build(this, data);
   }
 
   RouteMatch<ID> match(IList<String> uriPathSegments) {

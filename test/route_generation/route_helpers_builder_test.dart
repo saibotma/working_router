@@ -837,7 +837,7 @@ class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
 @Locations()
 List<LocationTreeElement<GroupQueryRouteId>> buildLocations() => [
   Group(
-    build: (builder) {
+    build: (builder, group) {
       final languageCode = builder.stringQueryParam(
         'languageCode',
         defaultValue: Default('en'),
@@ -1429,7 +1429,7 @@ class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
 
 @Locations()
 LocationTreeElement<ShellRootRouteId> get appLocationTree => Shell(
-  build: (builder, routerKey) {
+  build: (builder, shell, routerKey) {
     builder.widgetBuilder((context, data, child) => child);
     builder.children = [
       ChildChildLocation(
@@ -1490,7 +1490,7 @@ class DashboardLocation
 
 @Locations()
 LocationTreeElement<ShellParamsRouteId> get appLocationTree => Shell(
-  build: (builder, routerKey) {
+  build: (builder, shell, routerKey) {
     builder.pathLiteral('accounts');
     final accountId = builder.stringPathParam();
     final tab = builder.stringQueryParam('tab');

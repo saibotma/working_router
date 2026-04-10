@@ -31,7 +31,7 @@ class WrapWithShell extends WrapLocationTreeEntryProducer {
       }) {
         return [
           'Shell(',
-          '$builderIndent' 'build: (builder, routerKey) {',
+          '$builderIndent' 'build: (builder, shell, routerKey) {',
           '$bodyIndent'
               'builder.widgetBuilder((context, data, child) => child);',
           '$bodyIndent' 'builder.children = [',

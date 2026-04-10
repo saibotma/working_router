@@ -868,8 +868,9 @@ class _StaticRouteTreeExtractor {
     );
     if (builderParameterName == null) {
       throw InvalidGenerationSourceError(
-        'build(...) on `${classElement.name}` must take either a builder '
-        'parameter or builder and location parameters.',
+        'build(...) on `${classElement.name}` must take the builder as its '
+        'first parameter, optionally followed by location/group/shell '
+        'context parameters.',
         element: buildMethod,
       );
     }
@@ -897,8 +898,9 @@ class _StaticRouteTreeExtractor {
       );
       if (builderParameterName == null) {
         throw InvalidGenerationSourceError(
-          'Route build callbacks must take either a builder parameter or '
-          'builder and location parameters.',
+          'Route build callbacks must take the builder as their first '
+          'parameter, optionally followed by location/group/shell context '
+          'parameters.',
           element: rootElement,
         );
       }
@@ -924,8 +926,9 @@ class _StaticRouteTreeExtractor {
         );
         if (builderParameterName == null) {
           throw InvalidGenerationSourceError(
-            'Route build helpers must take either a builder parameter or '
-            'builder and location parameters.',
+            'Route build helpers must take the builder as their first '
+            'parameter, optionally followed by location/group/shell context '
+            'parameters.',
             element: referencedElement,
           );
         }
@@ -3694,7 +3697,7 @@ String? _buildCallbackBuilderParameterName(
   final parameterList = parameters?.toList(growable: false);
   if (parameterList == null ||
       parameterList.isEmpty ||
-      parameterList.length > 2) {
+      parameterList.length > 3) {
     return null;
   }
   return _formalParameterName(parameterList.first);

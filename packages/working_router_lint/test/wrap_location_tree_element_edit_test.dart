@@ -110,7 +110,7 @@ void build(builder) {
       contains('''
   builder.children = [
     Shell(
-      build: (builder, routerKey) {
+      build: (builder, shell, routerKey) {
         builder.widgetBuilder((context, data, child) => child);
         builder.children = [
           ALocation(
@@ -123,7 +123,7 @@ void build(builder) {
 List<Object> buildLocations() {
   return [
     Shell(
-      build: (builder, routerKey) {
+      build: (builder, shell, routerKey) {
         builder.widgetBuilder((context, data, child) => child);
         builder.children = [
           PrivacyLocation(
@@ -152,7 +152,7 @@ void build(builder) {
   builder.children = [
     ALocation(),
     Group(
-      build: (builder) {
+      build: (builder, group) {
         builder.children = [
           BLocation(),
           CLocation(),
@@ -187,7 +187,7 @@ void build(builder) {
   builder.children = [
     ALocation(),
     Group(
-      build: (builder) {
+      build: (builder, group) {
         builder.children = [
           BLocation(),
           CLocation(),

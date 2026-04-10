@@ -32,7 +32,7 @@ List<LocationTreeElement<LocationId>> buildLocations({
 
         builder.children = [
           Shell(
-            build: (builder, routerKey) {
+            build: (builder, shell, routerKey) {
               builder.widgetBuilder(
                 (context, data, child) => NestedScreen(child: child),
               );

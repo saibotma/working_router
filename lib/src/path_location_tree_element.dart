@@ -18,9 +18,6 @@ abstract interface class BuildsWithShellBuilder<ID> {
   void build(ShellBuilder<ID> builder);
 }
 
-typedef LocationTreeElementPageKeyBuilder<ID> =
-    LocalKey Function(WorkingRouterData<ID> data);
-
 abstract class PathLocationTreeElementRenderResult<ID> {
   const PathLocationTreeElementRenderResult();
 }
@@ -31,13 +28,13 @@ abstract class PathLocationTreeElementBuilder<ID> {
   final List<QueryParam<dynamic>> _queryParameters = [];
   List<LocationTreeElement<ID>> _children = const [];
   bool _childrenAssigned = false;
-  LocationTreeElementPageKeyBuilder<ID>? _buildPageKey;
+  PageKey<ID>? _pageKey;
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
   List<LocationTreeElement<ID>> get children => _children;
-  LocationTreeElementPageKeyBuilder<ID>? get buildPageKey => _buildPageKey;
+  PageKey<ID>? get configuredPageKey => _pageKey;
 
   PathLocationTreeElementBuilder();
 
@@ -187,8 +184,9 @@ abstract class PathLocationTreeElementBuilder<ID> {
     _childrenAssigned = true;
   }
 
-  set pageKey(LocationTreeElementPageKeyBuilder<ID> buildPageKey) {
-    _buildPageKey = buildPageKey;
+  // ignore: use_setters_to_change_properties
+  void pageKey(PageKey<ID> pageKey) {
+    _pageKey = pageKey;
   }
 }
 
@@ -242,7 +240,7 @@ abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
       children: List.unmodifiable(builder.children),
-      buildPageKey: builder.buildPageKey,
+      pageKey: builder.configuredPageKey,
       render: render,
     );
   }
@@ -258,6 +256,6 @@ abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
 
   @override
   LocalKey buildPageKey(WorkingRouterData<ID> data) {
-    return _definition.buildPageKey?.call(data) ?? super.buildPageKey(data);
+    return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
   }
 }

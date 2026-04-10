@@ -449,12 +449,12 @@ void main() {
                   id: _Id.a,
                   build: (builder, location) {
                     builder.pathLiteral('a');
-                    builder.pageKey = (data) {
+                    builder.pageKey(PageKey.custom((data) {
                       sawExpectedData =
                           data.uri.path == '/a' &&
                           data.activeLocation?.id == _Id.a;
                       return ValueKey('dsl:${data.uri.path}');
-                    };
+                    }));
                     builder.widget(const Text('a'));
                     builder.page((key, child) {
                       pageKey = key;
@@ -638,7 +638,7 @@ void main() {
               build: (builder, location) {
                 builder.children = [
                   Group<_Id>(
-                    build: (builder) {
+                    build: (builder, group) {
                       final languageCode = builder.stringQueryParam(
                         'languageCode',
                         defaultValue: const Default('en'),
@@ -691,7 +691,7 @@ void main() {
             build: (builder, location) {
               builder.children = [
                 Shell(
-                  build: (builder, routerKey) {
+                  build: (builder, shell, routerKey) {
                     builder.pathLiteral('accounts');
                     final accountId = builder.stringPathParam();
                     final tab = builder.stringQueryParam(
@@ -741,7 +741,7 @@ void main() {
             build: (builder, location) {
               builder.children = [
                 Shell(
-                  build: (builder, routerKey) {
+                  build: (builder, shell, routerKey) {
                     builder.pathLiteral('accounts');
                     builder.stringPathParam();
                     builder.widgetBuilder((context, data, child) => child);
@@ -780,7 +780,7 @@ void main() {
             build: (builder, location) {
               builder.children = [
                 Shell(
-                  build: (builder, routerKey) {
+                  build: (builder, shell, routerKey) {
                     builder.pathLiteral('accounts');
                     final accountId = builder.stringPathParam();
                     builder.widgetBuilder((context, data, child) => child);

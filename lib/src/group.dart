@@ -4,7 +4,7 @@ class GroupBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
   GroupBuilder();
 }
 
-typedef BuildGroup<ID> = void Function(GroupBuilder<ID> builder);
+typedef BuildGroup<ID> = void Function(GroupBuilder<ID> builder, Group<ID> group);
 
 class Group<ID> extends PathLocationTreeElement<ID>
     implements BuildsWithGroupBuilder<ID> {
@@ -27,6 +27,6 @@ class Group<ID> extends PathLocationTreeElement<ID>
         'a build callback.',
       );
     }
-    callback(builder);
+    callback(builder, this);
   }
 }
