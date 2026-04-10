@@ -967,7 +967,7 @@ enum _ParamId { root, item, details }
 
 enum _MigratingId { root, account }
 
-class _PathLocation extends Location<_Id, _PathLocation> {
+class _PathLocation extends AbstractLocation<_Id, _PathLocation> {
   final List<PathSegment> _segments;
   final List<LocationTreeElement<_Id>> _childNodes;
 
@@ -977,7 +977,7 @@ class _PathLocation extends Location<_Id, _PathLocation> {
     List<LocationTreeElement<_Id>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
-       super.override(id: id);
+       super(id: id);
 
   @override
   void build(LocationBuilder<_Id> builder) {
@@ -988,7 +988,8 @@ class _PathLocation extends Location<_Id, _PathLocation> {
   }
 }
 
-class _ParamPathLocation extends Location<_ParamId, _ParamPathLocation> {
+class _ParamPathLocation
+    extends AbstractLocation<_ParamId, _ParamPathLocation> {
   final List<PathSegment> _segments;
   final List<LocationTreeElement<_ParamId>> _childNodes;
 
@@ -998,7 +999,7 @@ class _ParamPathLocation extends Location<_ParamId, _ParamPathLocation> {
     List<LocationTreeElement<_ParamId>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
-       super.override(id: id);
+       super(id: id);
 
   @override
   void build(LocationBuilder<_ParamId> builder) {
@@ -1060,14 +1061,14 @@ class _DetailLocation extends _ParamPathLocation {
 }
 
 class _MigratingRootLocation
-    extends Location<_MigratingId, _MigratingRootLocation> {
+    extends AbstractLocation<_MigratingId, _MigratingRootLocation> {
   final List<LocationTreeElement<_MigratingId>> _childNodes;
 
   _MigratingRootLocation({
     required _MigratingId id,
     List<LocationTreeElement<_MigratingId>> children = const [],
   }) : _childNodes = children,
-       super.override(id: id);
+       super(id: id);
 
   @override
   void build(LocationBuilder<_MigratingId> builder) {
@@ -1076,10 +1077,10 @@ class _MigratingRootLocation
 }
 
 class _SelfBuiltAccountLocation
-    extends Location<_MigratingId, _SelfBuiltAccountLocation> {
+    extends AbstractLocation<_MigratingId, _SelfBuiltAccountLocation> {
   _SelfBuiltAccountLocation({
     required _MigratingId id,
-  }) : super.override(id: id);
+  }) : super(id: id);
 
   @override
   void build(LocationBuilder<_MigratingId> builder) {

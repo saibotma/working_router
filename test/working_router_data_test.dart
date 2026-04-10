@@ -116,12 +116,12 @@ void main() {
   });
 }
 
-class _TestLocation extends Location<String, _TestLocation> {
+class _TestLocation extends AbstractLocation<String, _TestLocation> {
   final List<PathSegment> _segments;
 
   _TestLocation({required String id, required String path})
     : _segments = _pathSegments(path),
-      super.override(id: id);
+      super(id: id);
 
   @override
   void build(LocationBuilder<String> builder) {
@@ -131,11 +131,12 @@ class _TestLocation extends Location<String, _TestLocation> {
   }
 }
 
-class _ParamOnlyLocation extends Location<String, _ParamOnlyLocation> {
+class _ParamOnlyLocation
+    extends AbstractLocation<String, _ParamOnlyLocation> {
   final PathParam<String> parameter;
 
   _ParamOnlyLocation({required String id, required this.parameter})
-    : super.override(id: id);
+    : super(id: id);
 
   @override
   void build(LocationBuilder<String> builder) {
@@ -143,11 +144,11 @@ class _ParamOnlyLocation extends Location<String, _ParamOnlyLocation> {
   }
 }
 
-class _QueryLocation extends Location<String, _QueryLocation> {
+class _QueryLocation extends AbstractLocation<String, _QueryLocation> {
   final QueryParam<String> parameter;
 
   _QueryLocation({required String id, required this.parameter})
-    : super.override(id: id);
+    : super(id: id);
 
   @override
   List<QueryParam<dynamic>> get queryParameters => [parameter];
@@ -156,12 +157,12 @@ class _QueryLocation extends Location<String, _QueryLocation> {
   void build(LocationBuilder<String> builder) {}
 }
 
-class _NoIdSegmentLocation extends Location<String, _NoIdSegmentLocation> {
+class _NoIdSegmentLocation
+    extends AbstractLocation<String, _NoIdSegmentLocation> {
   final List<PathSegment> _segments;
 
   _NoIdSegmentLocation({required String path})
-    : _segments = _pathSegments(path),
-      super.override();
+    : _segments = _pathSegments(path);
 
   @override
   void build(LocationBuilder<String> builder) {

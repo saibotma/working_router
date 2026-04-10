@@ -94,17 +94,17 @@ class BuiltLocationDefinition<ID> {
 
 /// Erased router-facing base type for all locations.
 ///
-/// [`Location`] uses a self type so a forwarded `build:` callback can receive
-/// the concrete subclass instance:
+/// [`Location`] is the callback-based convenience type, while
+/// [`AbstractLocation`] is the override-based base for custom subclasses:
 ///
 /// ```dart
-/// class ALocation extends Location<RouteId, ALocation> { ... }
+/// class ALocation extends AbstractLocation<RouteId, ALocation> { ... }
 /// ```
 ///
 /// Router internals, matched location lists, and generic predicates still need
 /// a single common type that means "any location in the tree" without exposing
 /// that self-type parameter everywhere. This base provides that erased view,
-/// while [`Location`] remains the authoring API that route subclasses extend.
+/// while the public location types remain the authoring APIs.
 abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
   final ID? id;
   final ISet<LocationTag> tags;
@@ -177,11 +177,30 @@ abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
   int get hashCode => Object.hash(runtimeType, id);
 }
 
-abstract class Location<ID, Self extends AnyLocation<ID>>
+abstract class AbstractLocation<ID, Self extends AnyLocation<ID>>
     extends AnyLocation<ID>
     implements BuildsWithLocationBuilder<ID> {
-  final BuildLocation<ID, Self>? _build;
+  /// Override-based base class for reusable location subclasses.
+  ///
+  /// Use this when a location is implemented by subclassing and overriding
+  /// [build] directly.
+  AbstractLocation({
+    super.id,
+    super.parentRouterKey,
+    super.tags,
+  });
 
+  @override
+  LocationBuilder<ID> createBuilder() => LocationBuilder<ID>();
+}
+
+class Location<ID, Self extends AnyLocation<ID>>
+    extends AbstractLocation<ID, Self> {
+  final BuildLocation<ID, Self> _build;
+
+  /// Callback-based convenience location.
+  ///
+  /// Use this when the location is defined inline with a `build:` callback.
   Location({
     super.id,
     super.parentRouterKey,
@@ -189,25 +208,8 @@ abstract class Location<ID, Self extends AnyLocation<ID>>
     required BuildLocation<ID, Self> build,
   }) : _build = build;
 
-  @protected
-  Location.override({
-    super.id,
-    super.parentRouterKey,
-    super.tags,
-  }) : _build = null;
-
-  @override
-  LocationBuilder<ID> createBuilder() => LocationBuilder<ID>();
-
   @override
   void build(LocationBuilder<ID> builder) {
-    final callback = _build;
-    if (callback == null) {
-      throw StateError(
-        'Location $runtimeType must either override build(...) or provide '
-        'a build callback.',
-      );
-    }
-    callback(builder, this as Self);
+    _build(builder, this as Self);
   }
 }

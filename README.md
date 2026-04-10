@@ -80,8 +80,9 @@ Important details:
   `enumPathParam(MyEnum.values)`, and
   `enumQueryParam('filter', MyEnum.values, defaultValue: Default(MyEnum.all))`.
 - Child routes are assigned with `builder.children = [...]`.
-- Named `Location` subclasses are the route-authoring model.
-- `Shell(...)` stays directly constructible and is not meant to be subclassed.
+- Use `Location(...)`, `Group(...)`, and `Shell(...)` for callback-based route
+  definitions, or subclass `AbstractLocation`, `AbstractGroup`, and
+  `AbstractShell` to override `build(...)` directly.
 - Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
 - `builder.widget(...)` is the shortcut for constant widgets.
@@ -93,6 +94,79 @@ Important details:
 See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
 - [`example/lib/locations.dart`](example/lib/locations.dart)
+
+## Group Vs Shell
+
+Use a `Group` when you want a shared route scope without rendering anything.
+A group:
+- can define shared path and query parameters
+- can hold child locations
+- does not build a page
+- does not create a nested navigator
+
+Typical use case:
+- multiple legal pages share the same `languageCode` query parameter
+- a subtree shares a path prefix but has no shared UI wrapper
+
+Use a `Shell` when the subtree needs its own visible wrapper and nested
+navigator boundary. A shell:
+- can define shared path and query parameters
+- can hold child locations
+- does build a wrapper widget/page
+- does create a nested navigator for its child subtree
+
+Typical use case:
+- a sidebar or tab layout that stays visible while child routes change
+- an account area like `/accounts/:id/...` where children render inside a
+  common scaffold
+
+## Callback Vs Abstract Types
+
+Use the callback-based types when defining a tree inline:
+
+```dart
+Group(
+  build: (builder, group) {
+    builder.children = [
+      PrivacyLocation(id: RouteId.privacy, build: ...),
+    ];
+  },
+);
+
+Shell(
+  build: (builder, shell, routerKey) {
+    builder.widgetBuilder((context, data, child) => Scaffold(body: child));
+    builder.children = [
+      DashboardLocation(id: RouteId.dashboard, build: ...),
+    ];
+  },
+);
+```
+
+Use the abstract base classes when you want a reusable named subtree by
+overriding `build(...)`:
+
+```dart
+class LegalGroup extends AbstractGroup<RouteId> {
+  @override
+  void build(GroupBuilder<RouteId> builder) {
+    builder.children = [
+      PrivacyLocation(id: RouteId.privacy, build: ...),
+      TermsLocation(id: RouteId.terms, build: ...),
+    ];
+  }
+}
+
+class AccountShell extends AbstractShell<RouteId> {
+  @override
+  void build(ShellBuilder<RouteId> builder) {
+    builder.widgetBuilder((context, data, child) => Scaffold(body: child));
+    builder.children = [
+      DashboardLocation(id: RouteId.dashboard, build: ...),
+    ];
+  }
+}
+```
 
 ## Page Keys
 
@@ -237,8 +311,9 @@ The package example demonstrates:
 - the splash -> a -> ab/abc and ad/adc flow
 - a responsive route tree where small screens stack on top of `/a` while
   medium/large screens keep the alphabet sidebar visible in a shell
-- lightweight `Location` subclasses with forwarded `build:` callbacks
-- direct `Shell(...)` usage
+- lightweight callback-based `Location` wrappers plus an override-based
+  `AbstractLocation` example
+- direct `Shell(...)` usage with optional `AbstractShell` subclassing support
 - typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes

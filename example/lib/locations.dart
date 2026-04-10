@@ -68,7 +68,7 @@ class ADELocation extends Location<LocationId, ADELocation> {
   });
 }
 
-class ALocation extends Location<LocationId, ALocation> {
+class ALocation extends AbstractLocation<LocationId, ALocation> {
   final bool rendersStandaloneSidebar;
   final WorkingRouterKey rootRouterKey;
   final WorkingRouterKey? outerShellRouterKey;
@@ -79,9 +79,9 @@ class ALocation extends Location<LocationId, ALocation> {
     required this.rendersStandaloneSidebar,
     required this.rootRouterKey,
     this.outerShellRouterKey,
-  }) : super.override(
-          tags: [PopUntilTarget()],
-        );
+  }) : super(
+         tags: [PopUntilTarget()],
+       );
 
   @override
   void build(LocationBuilder<LocationId> builder) {

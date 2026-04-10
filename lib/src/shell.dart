@@ -88,30 +88,28 @@ class BuiltShellDefinition<ID> {
   });
 }
 
-class Shell<ID> extends PathLocationTreeElement<ID>
+/// A rendering route scope that owns a nested navigator boundary.
+///
+/// A shell can share path and query definitions with its children, but unlike a
+/// [Group], it also renders a wrapper widget/page and hosts a nested navigator
+/// for its matched child subtree.
+///
+/// Use a shell when a part of the route tree should stay visible while child
+/// locations change inside it, such as a sidebar layout, tab scaffold, or
+/// nested flow container.
+abstract class AbstractShell<ID> extends PathLocationTreeElement<ID>
     implements BuildsWithShellBuilder<ID> {
   final WorkingRouterKey routerKey;
-  final BuildShell<ID>? _build;
 
-  Shell({
+  /// Override-based base class for reusable shell subclasses.
+  ///
+  /// Use this when a shell is implemented by subclassing and overriding
+  /// [build], for example to package a shared navigator boundary into a named
+  /// type.
+  AbstractShell({
     WorkingRouterKey? routerKey,
-    BuildShell<ID>? build,
     super.parentRouterKey,
-  }) : routerKey = routerKey ?? WorkingRouterKey(),
-       _build = build;
-
-  @protected
-  @override
-  void build(ShellBuilder<ID> builder) {
-    final callback = _build;
-    if (callback == null) {
-      throw StateError(
-        'Shell $runtimeType must either override build(...) or provide '
-        'a build callback.',
-      );
-    }
-    callback(builder, this, routerKey);
-  }
+  }) : routerKey = routerKey ?? WorkingRouterKey();
 
   @override
   ShellBuilder<ID> createBuilder() => ShellBuilder<ID>();
@@ -160,5 +158,23 @@ class Shell<ID> extends PathLocationTreeElement<ID>
   Page<dynamic> buildPage(LocalKey? key, Widget child) {
     return _definition.render.buildPage?.call(key, child) ??
         MaterialPage<dynamic>(key: key, child: child);
+  }
+}
+
+/// Callback-based convenience shell.
+///
+/// Use this when the shell is defined inline with a `build:` callback.
+class Shell<ID> extends AbstractShell<ID> {
+  final BuildShell<ID> _build;
+
+  Shell({
+    super.routerKey,
+    required BuildShell<ID> build,
+    super.parentRouterKey,
+  }) : _build = build;
+
+  @override
+  void build(ShellBuilder<ID> builder) {
+    _build(builder, this, routerKey);
   }
 }
