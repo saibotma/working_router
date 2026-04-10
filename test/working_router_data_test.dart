@@ -57,6 +57,30 @@ void main() {
       expect(data.queryParam(tab), 'all');
       expect(data.queryParamOrNull(tab), isNull);
     });
+
+    test(
+      'queryParam supports Default(null) with a non-null codec for query params',
+      () {
+        const endDateTime = QueryParam<DateTime?>(
+          'endDateTime',
+          DateTimeIsoRouteParamCodec(),
+          defaultValue: Default<DateTime?>(null),
+        );
+        final location = _NullableQueryLocation(
+          id: 'query-nullable',
+          parameter: endDateTime,
+        );
+        final data = WorkingRouterData<String>(
+          uri: Uri(path: '/query'),
+          elements: [location].toIList(),
+          pathParameters: IMap(),
+          queryParameters: IMap(),
+        );
+
+        expect(data.queryParam(endDateTime), isNull);
+        expect(data.queryParamOrNull(endDateTime), isNull);
+      },
+    );
   });
 
   group('WorkingRouterData.isChildOf', () {
@@ -148,6 +172,20 @@ class _QueryLocation extends AbstractLocation<String, _QueryLocation> {
   final QueryParam<String> parameter;
 
   _QueryLocation({required String id, required this.parameter})
+    : super(id: id);
+
+  @override
+  List<QueryParam<dynamic>> get queryParameters => [parameter];
+
+  @override
+  void build(LocationBuilder<String> builder) {}
+}
+
+class _NullableQueryLocation
+    extends AbstractLocation<String, _NullableQueryLocation> {
+  final QueryParam<DateTime?> parameter;
+
+  _NullableQueryLocation({required String id, required this.parameter})
     : super(id: id);
 
   @override

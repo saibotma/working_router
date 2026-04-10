@@ -49,7 +49,7 @@ class WorkingRouterData<ID> {
 
   AnyLocation<ID>? get activeLocation => locations.lastOrNull;
 
-  T pathParam<T>(PathParam<T> parameter) {
+  T pathParam<T extends Object>(PathParam<T> parameter) {
     final value = pathParamOrNull(parameter);
     if (value != null) {
       return value;
@@ -59,7 +59,7 @@ class WorkingRouterData<ID> {
     );
   }
 
-  T? pathParamOrNull<T>(PathParam<T> parameter) {
+  T? pathParamOrNull<T extends Object>(PathParam<T> parameter) {
     final rawValue = pathParameters[parameter];
     if (rawValue == null) {
       return null;
@@ -93,10 +93,7 @@ class WorkingRouterData<ID> {
     }
 
     final rawValue = queryParameters[parameter.name];
-    if (rawValue == null) {
-      return null;
-    }
-    return parameter.codec.decode(rawValue);
+    return parameter.decodeValueOrNull(rawValue);
   }
 
   bool _hasDeclaredQueryParam<T>(QueryParam<T> parameter) {

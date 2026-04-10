@@ -609,7 +609,7 @@ class WorkingRouter<ID> extends ChangeNotifier
     for (final location in locations) {
       writePathParameters(
         location,
-        <T>(PathParam<T> parameter, T value) {
+        <T extends Object>(PathParam<T> parameter, T value) {
           final isDeclared = location.path.any(
             (segment) => identical(segment, parameter),
           );

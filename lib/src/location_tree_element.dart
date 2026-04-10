@@ -13,7 +13,7 @@ sealed class PathSegment {
 typedef WritePathParameters<ID> =
     void Function(
       PathLocationTreeElement<ID> location,
-      void Function<T>(PathParam<T> parameter, T value) path,
+      void Function<T extends Object>(PathParam<T> parameter, T value) path,
     );
 
 class LiteralPathSegment extends PathSegment {
@@ -22,7 +22,12 @@ class LiteralPathSegment extends PathSegment {
   const LiteralPathSegment(this.value);
 }
 
-class PathParam<T> extends PathSegment {
+/// A non-nullable path parameter segment.
+///
+/// Path parameters are always matched from an existing URI segment, so this
+/// package intentionally models them as non-nullable values. If a segment is
+/// missing, the route does not match instead of producing `null`.
+class PathParam<T extends Object> extends PathSegment {
   final RouteParamCodec<T> codec;
 
   const PathParam(this.codec);
@@ -40,9 +45,18 @@ class QueryParam<T> {
   final Default<T>? defaultValue;
 
   const QueryParam(this.name, this.codec, {this.defaultValue});
+
+  String? encodeValueOrNull(T value) {
+    return encodeQueryParamValueOrNull(codec, value);
+  }
+
+  T? decodeValueOrNull(String? value) {
+    return decodeQueryParamValueOrNull(codec, value);
+  }
 }
 
-typedef CustomPageKeyBuilder<ID> = LocalKey Function(WorkingRouterData<ID> data);
+typedef CustomPageKeyBuilder<ID> =
+    LocalKey Function(WorkingRouterData<ID> data);
 
 /// Describes how a [LocationTreeElement] builds its [Page] key.
 ///
@@ -199,7 +213,8 @@ RouteMatch<ID> _matchNode<ID>(
   }
 
   final matches = <LocationTreeElement<ID>>[];
-  final pathParameters = <PathParam<dynamic>, String>{};
+  final Map<PathParam<dynamic>, String> pathParameters =
+      <PathParam<dynamic>, String>{};
 
   final thisPathParameters = startsWith(uriPathSegments, node.path);
   if (thisPathParameters == null) {
@@ -207,7 +222,7 @@ RouteMatch<ID> _matchNode<ID>(
   }
 
   matches.add(node);
-  pathParameters.addAll(thisPathParameters);
+  _mergePathParameters(pathParameters, thisPathParameters);
 
   final nextPathSegments = node.path.isEmpty
       ? uriPathSegments
@@ -216,7 +231,7 @@ RouteMatch<ID> _matchNode<ID>(
     final childMatch = _matchNode(child, nextPathSegments);
     if (!childMatch.isEmpty) {
       matches.addAll(childMatch.elements);
-      pathParameters.addAll(childMatch.pathParameters.unlock);
+      _mergePathParameters(pathParameters, childMatch.pathParameters.unlock);
       break;
     }
   }
@@ -276,6 +291,19 @@ IList<LocationTreeElement<ID>> matchRelativeNode<ID>(
   return emptyNodeMatch();
 }
 
+void _mergePathParameters(
+  Map<PathParam<dynamic>, String> target,
+  Map<PathParam<dynamic>, String> source,
+) {
+  // PathParam is generic and non-nullable (`T extends Object`), so runtime map
+  // key types can become `PathParam<String>`, `PathParam<Object>`, and so on.
+  // `Map.addAll` checks the whole source map type at runtime and can throw
+  // even though each entry is individually valid here.
+  for (final entry in source.entries) {
+    target[entry.key] = entry.value;
+  }
+}
+
 Map<PathParam<dynamic>, String>? startsWith(
   IList<String> uriPathSegments,
   List<PathSegment> startsWithSegments,
@@ -284,7 +312,8 @@ Map<PathParam<dynamic>, String>? startsWith(
     return null;
   }
 
-  final pathParameters = <PathParam<dynamic>, String>{};
+  final Map<PathParam<dynamic>, String> pathParameters =
+      <PathParam<dynamic>, String>{};
 
   for (var i = 0; i < startsWithSegments.length; i++) {
     final uriSegment = uriPathSegments[i];

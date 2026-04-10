@@ -4009,9 +4009,10 @@ class _GeneratedRouteMethod {
         final generatedParameter = parameter.value;
         if (generatedParameter.optional) {
           buffer.writeln(
-            "            if (${generatedParameter.parameterName} != null) "
-            "'${parameter.key}': ${generatedParameter.codecExpressionSource}"
-            '.encode(${generatedParameter.parameterName}),',
+            "            if (encodeQueryParamValueOrNull("
+            "${generatedParameter.codecExpressionSource}, "
+            "${generatedParameter.parameterName}) case final encoded?) "
+            "'${parameter.key}': encoded,",
           );
         } else {
           buffer.writeln(
@@ -4155,9 +4156,10 @@ class _GeneratedLocationChildTargetMethod {
         final generatedParameter = parameter.value;
         if (generatedParameter.optional) {
           buffer.writeln(
-            "        if (${generatedParameter.parameterName} != null) "
-            "'${parameter.key}': ${generatedParameter.codecExpressionSource}"
-            '.encode(${generatedParameter.parameterName}),',
+            "        if (encodeQueryParamValueOrNull("
+            "${generatedParameter.codecExpressionSource}, "
+            "${generatedParameter.parameterName}) case final encoded?) "
+            "'${parameter.key}': encoded,",
           );
         } else {
           buffer.writeln(

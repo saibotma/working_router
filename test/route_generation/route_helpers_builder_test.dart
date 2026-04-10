@@ -566,7 +566,9 @@ final LocationTreeElement<TypedRouteId> appLocationTree =
                       "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
                     ),
                     contains(
-                      "if (page != null) 'page': IntRouteParamCodec().encode(page),",
+                      "if (encodeQueryParamValueOrNull(IntRouteParamCodec(), page)\n"
+                      "              case final encoded?)\n"
+                      "            'page': encoded,",
                     ),
                   ),
                 ),
@@ -705,7 +707,9 @@ List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
                 "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
               ),
               contains(
-                "if (from != null) 'from': const UriRouteParamCodec().encode(from),",
+                "if (encodeQueryParamValueOrNull(const UriRouteParamCodec(), from)\n"
+                "              case final encoded?)\n"
+                "            'from': encoded,",
               ),
               contains(
                 'path(location.pathParameters[0] as PathParam<Uri>, itemUri);',
@@ -739,26 +743,6 @@ part 'nullable_query_param_routes.g.dart';
 
 enum NullableQueryRouteId { item }
 
-class NullableStringRouteParamCodec extends RouteParamCodec<String?> {
-  const NullableStringRouteParamCodec();
-
-  @override
-  String encode(String? value) => value ?? '';
-
-  @override
-  String? decode(String value) => value.isEmpty ? null : value;
-}
-
-class NullableUriRouteParamCodec extends RouteParamCodec<Uri?> {
-  const NullableUriRouteParamCodec();
-
-  @override
-  String encode(Uri? value) => value?.toString() ?? '';
-
-  @override
-  Uri? decode(String value) => value.isEmpty ? null : Uri.parse(value);
-}
-
 class ItemLocation extends Location<NullableQueryRouteId, ItemLocation> {
   ItemLocation({
     required super.id,
@@ -772,14 +756,14 @@ List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
     id: NullableQueryRouteId.item,
     build: (builder, location) {
       builder.pathLiteral('items');
-      final filter = builder.queryParam(
+      final filter = builder.queryParam<String?>(
         'filter',
-        const NullableStringRouteParamCodec(),
+        const StringRouteParamCodec(),
         defaultValue: Default<String?>(null),
       );
-      final from = builder.queryParam(
+      final from = builder.queryParam<Uri?>(
         'from',
-        const NullableUriRouteParamCodec(),
+        const UriRouteParamCodec(),
         defaultValue: Default<Uri?>(null),
       );
 
@@ -795,6 +779,16 @@ List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
                 allOf(
                   contains('ItemRouteTarget({String? filter, Uri? from})'),
                   contains('void routeToItem({String? filter, Uri? from})'),
+                  contains(
+                    "if (encodeQueryParamValueOrNull(const StringRouteParamCodec(), filter)\n"
+                    "              case final encoded?)\n"
+                    "            'filter': encoded,",
+                  ),
+                  contains(
+                    "if (encodeQueryParamValueOrNull(const UriRouteParamCodec(), from)\n"
+                    "              case final encoded?)\n"
+                    "            'from': encoded,",
+                  ),
                   isNot(contains('String??')),
                   isNot(contains('Uri??')),
                 ),
@@ -862,7 +856,12 @@ List<LocationTreeElement<GroupQueryRouteId>> buildLocations() => [
                 allOf(
                   contains('void routeToPrivacy({String? languageCode})'),
                   contains(
-                    "'languageCode': const StringRouteParamCodec().encode(languageCode),",
+                    "if (encodeQueryParamValueOrNull(\n"
+                    "                const StringRouteParamCodec(),\n"
+                    "                languageCode,\n"
+                    "              )\n"
+                    "              case final encoded?)\n"
+                    "            'languageCode': encoded,",
                   ),
                 ),
               ),

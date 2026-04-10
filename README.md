@@ -79,6 +79,9 @@ Important details:
   `uriPathParam()`, `uriQueryParam('next')`,
   `enumPathParam(MyEnum.values)`, and
   `enumQueryParam('filter', MyEnum.values, defaultValue: Default(MyEnum.all))`.
+- Path parameters are intentionally non-nullable. They represent matched URI
+  segments, so a missing value means the route does not match rather than
+  producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
 - Use `Location(...)`, `Group(...)`, and `Shell(...)` for callback-based route
   definitions, or subclass `AbstractLocation`, `AbstractGroup`, and
