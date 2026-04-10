@@ -112,7 +112,7 @@ class WorkingRouterData<ID> {
   }
 
   String pathUpToLocation(AnyLocation<ID> location) {
-    final locationIndex = elements.indexOf(location);
+    final locationIndex = _indexOfIdenticalNode(location);
     if (locationIndex == -1) {
       return uri.path;
     }
@@ -123,7 +123,7 @@ class WorkingRouterData<ID> {
   }
 
   String pathUpToNode(LocationTreeElement<ID> node) {
-    final nodeIndex = elements.indexOf(node);
+    final nodeIndex = _indexOfIdenticalNode(node);
     if (nodeIndex == -1) {
       return uri.path;
     }
@@ -133,13 +133,22 @@ class WorkingRouterData<ID> {
   }
 
   String pathTemplateUpToNode(LocationTreeElement<ID> node) {
-    final nodeIndex = elements.indexOf(node);
+    final nodeIndex = _indexOfIdenticalNode(node);
     if (nodeIndex == -1) {
       return uri.path;
     }
 
     final pathElementsUpToNode = elements.take(nodeIndex + 1).pathElements;
     return pathElementsUpToNode.buildPathTemplate();
+  }
+
+  int _indexOfIdenticalNode(LocationTreeElement<ID> node) {
+    for (var i = 0; i < elements.length; i++) {
+      if (identical(elements[i], node)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   bool isChildOf(

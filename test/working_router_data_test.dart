@@ -18,6 +18,25 @@ void main() {
       expect(data.pathUpToNode(detail), '/items/123');
       expect(data.pathTemplateUpToNode(detail), '/items/*');
     });
+
+    test('path helpers use node identity for repeated no-id locations', () {
+      final parent = _NoIdSegmentLocation(path: '/parent');
+      final first = _NoIdSegmentLocation(path: '/first');
+      final second = _NoIdSegmentLocation(path: '/second');
+      final data = WorkingRouterData<String>(
+        uri: Uri(path: '/parent/first/second'),
+        elements: [parent, first, second].toIList(),
+        pathParameters: IMap(),
+        queryParameters: IMap(),
+      );
+
+      expect(data.pathUpToLocation(first), '/parent/first');
+      expect(data.pathUpToNode(first), '/parent/first');
+      expect(data.pathTemplateUpToNode(first), '/parent/first');
+      expect(data.pathUpToLocation(second), '/parent/first/second');
+      expect(data.pathUpToNode(second), '/parent/first/second');
+      expect(data.pathTemplateUpToNode(second), '/parent/first/second');
+    });
   });
 
   group('WorkingRouterData query param helpers', () {
@@ -135,6 +154,21 @@ class _QueryLocation extends Location<String, _QueryLocation> {
 
   @override
   void build(LocationBuilder<String> builder) {}
+}
+
+class _NoIdSegmentLocation extends Location<String, _NoIdSegmentLocation> {
+  final List<PathSegment> _segments;
+
+  _NoIdSegmentLocation({required String path})
+    : _segments = _pathSegments(path),
+      super.override();
+
+  @override
+  void build(LocationBuilder<String> builder) {
+    for (final segment in _segments) {
+      builder.pathSegment(segment);
+    }
+  }
 }
 
 List<PathSegment> _pathSegments(String path) {
