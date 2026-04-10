@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- Update assists for the new `Group` and `Shell` builder callback signatures.
+- Keep generated wrap snippets aligned with the current page-key and builder
+  APIs.
+
 ## 0.1.2
 
 - Add `Remove element` assist for location tree entries.
