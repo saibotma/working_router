@@ -449,12 +449,12 @@ void main() {
                   id: _Id.a,
                   build: (builder, location) {
                     builder.pathLiteral('a');
-                    builder.pageKey(PageKey.custom((data) {
+                    builder.pageKey = PageKey.custom((data) {
                       sawExpectedData =
                           data.uri.path == '/a' &&
                           data.activeLocation?.id == _Id.a;
                       return ValueKey('dsl:${data.uri.path}');
-                    }));
+                    });
                     builder.widget(const Text('a'));
                     builder.page((key, child) {
                       pageKey = key;

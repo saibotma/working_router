@@ -184,8 +184,7 @@ abstract class PathLocationTreeElementBuilder<ID> {
     _childrenAssigned = true;
   }
 
-  // ignore: use_setters_to_change_properties
-  void pageKey(PageKey<ID> pageKey) {
+  set pageKey(PageKey<ID> pageKey) {
     _pageKey = pageKey;
   }
 }

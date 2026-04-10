@@ -82,7 +82,7 @@ Important details:
 - Child routes are assigned with `builder.children = [...]`.
 - Named `Location` subclasses are the route-authoring model.
 - `Shell(...)` stays directly constructible and is not meant to be subclassed.
-- Page keys can be configured with `builder.pageKey(...)`, using
+- Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
 - `builder.widget(...)` is the shortcut for constant widgets.
 - `builder.widgetBuilder(...)` is the data-aware variant.
@@ -99,7 +99,7 @@ See:
 By default, pages use `PageKey.templatePath()`.
 
 ```dart
-builder.pageKey(const PageKey.templatePath());
+builder.pageKey = const PageKey.templatePath();
 ```
 
 This keys a page by its route template, not by hydrated path values. That
@@ -119,7 +119,7 @@ If the hydrated path value should produce a different page identity, use
 `PageKey.path()` instead:
 
 ```dart
-builder.pageKey(const PageKey.path());
+builder.pageKey = const PageKey.path();
 ```
 
 This keys by the matched path, so `/lesson/1` and `/lesson/2` become different
@@ -141,7 +141,7 @@ LessonLocation(
     builder.widgetBuilder((context, data) {
       return LessonScreen(lessonId: data.pathParam(lessonId));
     });
-    builder.pageKey(const PageKey.templatePath());
+    builder.pageKey = const PageKey.templatePath();
   },
 );
 ```
