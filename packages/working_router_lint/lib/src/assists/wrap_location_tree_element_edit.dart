@@ -30,6 +30,7 @@ final class WrapLocationTreeElementEdit {
     required WrapTemplate template,
   }) {
     final selectedElement = _LocationTreeListEntryFinder(
+      source: source,
       selectionOffset: selectionOffset,
       selectionLength: selectionLength,
     ).find(unit);
@@ -107,12 +108,14 @@ final class WrapLocationTreeElementEdit {
 }
 
 final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
+  final String source;
   final int selectionOffset;
   final int selectionLength;
 
   CollectionElement? _bestMatch;
 
   _LocationTreeListEntryFinder({
+    required this.source,
     required this.selectionOffset,
     required this.selectionLength,
   });
@@ -126,7 +129,7 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
   void visitListLiteral(ListLiteral node) {
     if (_isTreeElementList(node)) {
       for (final element in node.elements) {
-        if (_intersectsSelection(element)) {
+        if (_intersectsSelection(element) && _isSelectionOnEntryHeader(element)) {
           if (_bestMatch == null ||
               element.length < (_bestMatch!.end - _bestMatch!.offset)) {
             _bestMatch = element;
@@ -143,6 +146,21 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
       return selectionOffset >= element.offset && selectionOffset <= element.end;
     }
     return selectionOffset < element.end && selectionEnd > element.offset;
+  }
+
+  bool _isSelectionOnEntryHeader(CollectionElement element) {
+    final headerEnd = _headerEndOffset(element);
+    final selectionEnd = selectionOffset + selectionLength;
+    if (selectionLength == 0) {
+      return selectionOffset >= element.offset && selectionOffset <= headerEnd;
+    }
+    return selectionOffset < headerEnd && selectionEnd > element.offset;
+  }
+
+  int _headerEndOffset(CollectionElement element) {
+    final rawEnd = source.indexOf('\n', element.offset);
+    final lineEnd = rawEnd == -1 ? source.length : rawEnd;
+    return lineEnd < element.end ? lineEnd : element.end;
   }
 
   bool _isTreeElementList(ListLiteral node) {

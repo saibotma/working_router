@@ -116,6 +116,34 @@ void build(builder) {
 '''),
     );
   });
+
+  test('does not wrap when cursor is inside a shell widget builder body', () {
+    const source = '''
+List<Object> buildLocations() {
+  return [
+    Shell(
+      build: (builder, routerKey) {
+        builder.widgetBuilder((context, data, child) => child);
+        builder.children = [
+          PrivacyLocation(
+            build: (builder, location) {
+              builder.widget('privacy');
+            },
+          ),
+        ];
+      },
+    ),
+  ];
+}
+''';
+    final edit = _createEdit(
+      source: source,
+      snippet: 'child) => child',
+      template: WrapWithGroup.templateForTest,
+    );
+
+    expect(edit, isNull);
+  });
 }
 
 WrapLocationTreeElementEdit? _createEdit({
