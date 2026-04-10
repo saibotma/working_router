@@ -1,16 +1,38 @@
 # working_router_lint
 
-Analysis server plugin for `working_router` location trees.
+`working_router_lint` is an analyzer plugin for
+[`working_router`](https://github.com/saibotma/working_router) location trees.
+
+It currently provides IDE assists for restructuring location trees without
+manually rewriting `builder.children = [...]` lists.
 
 Current assists:
 - Wrap a `builder.children = [...]` entry with `Group`
 - Wrap a `builder.children = [...]` entry with `Shell`
 
-To use it in an app:
-- enable it in `analysis_options.yaml` with:
+## Requirements
+
+- Dart 3.10 or newer
+- Flutter 3.38 or newer
+
+## Setup
+
+Enable the plugin in your app's `analysis_options.yaml`.
+
+### Published package
+
+```yaml
+plugins:
+  working_router_lint: ^0.1.0
+```
+
+### Local checkout
 
 ```yaml
 plugins:
   working_router_lint:
-    path: ../packages/working_router_lint
+    path: ../working_router/packages/working_router_lint
 ```
+
+After changing the `plugins:` section, restart the Dart analysis server in your
+IDE once.

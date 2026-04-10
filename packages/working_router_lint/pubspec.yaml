@@ -1,14 +1,16 @@
 name: working_router_lint
-description: Analysis server plugin for working_router location trees.
+description: Analyzer plugin with assists for working_router location trees.
 version: 0.1.0
-publish_to: none
+homepage: https://github.com/saibotma/working_router/tree/main/packages/working_router_lint
+repository: https://github.com/saibotma/working_router
+issue_tracker: https://github.com/saibotma/working_router/issues
 
 environment:
   sdk: ^3.10.0
 
 dependencies:
   analysis_server_plugin: ^0.3.9
-  analyzer: 10.1.0
+  analyzer: ^10.1.0
   analyzer_plugin: ^0.14.3
 
 dev_dependencies:
