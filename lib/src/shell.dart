@@ -14,7 +14,7 @@ typedef ShellPageBuilder = Page<dynamic> Function(LocalKey? key, Widget child);
 typedef BuildShell<ID> =
     void Function(ShellBuilder<ID> builder, WorkingRouterKey routerKey);
 
-final class ShellBuildResult<ID> {
+final class ShellBuildResult<ID> extends PathLocationTreeElementRenderResult<ID> {
   final ShellWidgetBuilder<ID> buildWidget;
   final ShellPageBuilder? buildPage;
 
@@ -24,31 +24,11 @@ final class ShellBuildResult<ID> {
   });
 }
 
-class ShellBuilder<ID> {
-  List<LocationTreeElement<ID>> _children = const [];
-  bool _childrenAssigned = false;
-  LocationTreeElementPageKeyBuilder<ID>? buildPageKey;
+class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
   ShellWidgetBuilder<ID>? _buildWidget;
   ShellPageBuilder? _buildPage;
 
-  List<LocationTreeElement<ID>> get children => _children;
-
   ShellBuilder();
-
-  set children(List<LocationTreeElement<ID>> children) {
-    if (_childrenAssigned) {
-      throw StateError(
-        'ShellBuilder children were already configured. '
-        'children may only be assigned once.',
-      );
-    }
-    _children = List.unmodifiable(children);
-    _childrenAssigned = true;
-  }
-
-  set pageKey(LocationTreeElementPageKeyBuilder<ID> buildPageKey) {
-    this.buildPageKey = buildPageKey;
-  }
 
   void widgetBuilder(ShellWidgetBuilder<ID> widget) {
     if (_buildWidget != null) {
@@ -87,18 +67,25 @@ class ShellBuilder<ID> {
 }
 
 class BuiltShellDefinition<ID> {
+  final List<PathSegment> path;
+  final List<PathParam<dynamic>> pathParameters;
+  final List<QueryParam<dynamic>> queryParameters;
   final List<LocationTreeElement<ID>> children;
   final LocationTreeElementPageKeyBuilder<ID>? buildPageKey;
   final ShellBuildResult<ID> render;
 
   const BuiltShellDefinition({
+    required this.path,
+    required this.pathParameters,
+    required this.queryParameters,
     required this.children,
     required this.buildPageKey,
     required this.render,
   });
 }
 
-class Shell<ID> extends LocationTreeElement<ID> {
+class Shell<ID> extends PathLocationTreeElement<ID>
+    implements BuildsWithShellBuilder<ID> {
   final WorkingRouterKey routerKey;
   final BuildShell<ID>? _build;
 
@@ -110,6 +97,7 @@ class Shell<ID> extends LocationTreeElement<ID> {
        _build = build;
 
   @protected
+  @override
   void build(ShellBuilder<ID> builder) {
     final callback = _build;
     if (callback == null) {
@@ -121,6 +109,9 @@ class Shell<ID> extends LocationTreeElement<ID> {
     callback(builder, routerKey);
   }
 
+  @override
+  ShellBuilder<ID> createBuilder() => ShellBuilder<ID>();
+
   late final BuiltShellDefinition<ID> _definition = _buildDefinition();
 
   BuiltShellDefinition<ID> _buildDefinition() {
@@ -128,11 +119,23 @@ class Shell<ID> extends LocationTreeElement<ID> {
     build(builder);
     final render = builder.resolveRender();
     return BuiltShellDefinition(
+      path: List.unmodifiable(builder.path),
+      pathParameters: List.unmodifiable(builder.pathParameters),
+      queryParameters: List.unmodifiable(builder.queryParameters),
       children: List.unmodifiable(builder.children),
       buildPageKey: builder.buildPageKey,
       render: render,
     );
   }
+
+  @override
+  List<PathSegment> get path => _definition.path;
+
+  @override
+  List<PathParam<dynamic>> get pathParameters => _definition.pathParameters;
+
+  @override
+  List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   @override
   List<LocationTreeElement<ID>> get children => _definition.children;

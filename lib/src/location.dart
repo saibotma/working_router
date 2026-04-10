@@ -12,7 +12,8 @@ typedef LocationWidgetBuilder<ID> =
 typedef SelfBuiltLocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
 
-sealed class LocationBuildResult<ID> {
+sealed class LocationBuildResult<ID>
+    extends PathLocationTreeElementRenderResult<ID> {
   const LocationBuildResult();
 }
 
@@ -79,7 +80,7 @@ class BuiltLocationDefinition<ID> {
   final List<QueryParam<dynamic>> queryParameters;
   final List<LocationTreeElement<ID>> children;
   final LocationTreeElementPageKeyBuilder<ID>? buildPageKey;
-  final LocationBuildResult<ID>? render;
+  final PathLocationTreeElementRenderResult<ID>? render;
 
   const BuiltLocationDefinition({
     required this.path,

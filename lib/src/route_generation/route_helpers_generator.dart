@@ -749,6 +749,8 @@ class _StaticRouteTreeExtractor {
     }
 
     final isLocation = _isLocationLikeClass(classElement);
+    final supportsPathAndQuery =
+        isLocation || classElement.displayName == 'Shell';
     final isDirectBaseNode =
         classElement.displayName == 'Location' ||
         classElement.displayName == 'Group' ||
@@ -767,15 +769,16 @@ class _StaticRouteTreeExtractor {
       creation: expression,
       evaluationContext: context ?? _NoopExpressionContext(),
       isLocation: isLocation,
+      supportsPathAndQuery: supportsPathAndQuery,
     );
     final pathSegments =
         dslDefinition?.pathSegments ??
-        (isLocation
+        (supportsPathAndQuery
             ? await _resolvePathSegments(instanceContext!)
             : const <_PathSegmentMetadata>[]);
     final queryParameters =
         dslDefinition?.queryParameters ??
-        (isLocation
+        (supportsPathAndQuery
             ? await _resolveQueryParameters(
                 classElement,
                 evaluationContext: context,
@@ -817,6 +820,7 @@ class _StaticRouteTreeExtractor {
     required InstanceCreationExpression creation,
     required _ExpressionContext evaluationContext,
     required bool isLocation,
+    required bool supportsPathAndQuery,
   }) async {
     final directBuildExpression = _namedArgumentExpression(
       creation.argumentList.arguments,
@@ -827,6 +831,7 @@ class _StaticRouteTreeExtractor {
         directBuildExpression,
         evaluationContext: evaluationContext,
         isLocation: isLocation,
+        supportsPathAndQuery: supportsPathAndQuery,
       );
     }
 
@@ -875,6 +880,7 @@ class _StaticRouteTreeExtractor {
       evaluationContext: evaluationContext,
       elementForErrors: buildMethod,
       isLocation: isLocation,
+      supportsPathAndQuery: supportsPathAndQuery,
     );
   }
 
@@ -882,6 +888,7 @@ class _StaticRouteTreeExtractor {
     Expression expression, {
     required _ExpressionContext evaluationContext,
     required bool isLocation,
+    required bool supportsPathAndQuery,
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is FunctionExpression) {
@@ -901,6 +908,7 @@ class _StaticRouteTreeExtractor {
         evaluationContext: evaluationContext,
         elementForErrors: rootElement,
         isLocation: isLocation,
+        supportsPathAndQuery: supportsPathAndQuery,
       );
     }
 
@@ -927,6 +935,7 @@ class _StaticRouteTreeExtractor {
           evaluationContext: evaluationContext,
           elementForErrors: referencedElement,
           isLocation: isLocation,
+          supportsPathAndQuery: supportsPathAndQuery,
         );
       }
     }
@@ -943,6 +952,7 @@ class _StaticRouteTreeExtractor {
     required _ExpressionContext evaluationContext,
     required Element elementForErrors,
     required bool isLocation,
+    required bool supportsPathAndQuery,
   }) async {
     final context = _DslStatementContext(parent: evaluationContext);
     final result = _ResolvedDslDefinition.empty();
@@ -971,6 +981,7 @@ class _StaticRouteTreeExtractor {
         result: result,
         elementForErrors: elementForErrors,
         isLocation: isLocation,
+        supportsPathAndQuery: supportsPathAndQuery,
       );
     }
 
@@ -984,6 +995,7 @@ class _StaticRouteTreeExtractor {
     required _ResolvedDslDefinition result,
     required Element elementForErrors,
     required bool isLocation,
+    required bool supportsPathAndQuery,
   }) async {
     switch (statement) {
       case ExpressionStatement():
@@ -1004,6 +1016,7 @@ class _StaticRouteTreeExtractor {
           result: result,
           elementForErrors: elementForErrors,
           isLocation: isLocation,
+          supportsPathAndQuery: supportsPathAndQuery,
         );
       case VariableDeclarationStatement():
         for (final variable in statement.variables.variables) {
@@ -1020,6 +1033,7 @@ class _StaticRouteTreeExtractor {
             result: result,
             elementForErrors: elementForErrors,
             isLocation: isLocation,
+            supportsPathAndQuery: supportsPathAndQuery,
           );
         }
       case Block():
@@ -1032,6 +1046,7 @@ class _StaticRouteTreeExtractor {
             result: result,
             elementForErrors: elementForErrors,
             isLocation: isLocation,
+            supportsPathAndQuery: supportsPathAndQuery,
           );
         }
       case IfStatement():
@@ -1043,6 +1058,7 @@ class _StaticRouteTreeExtractor {
           result: thenResult,
           elementForErrors: elementForErrors,
           isLocation: isLocation,
+          supportsPathAndQuery: supportsPathAndQuery,
         );
         result.merge(thenResult);
         final elseStatement = statement.elseStatement;
@@ -1055,6 +1071,7 @@ class _StaticRouteTreeExtractor {
             result: elseResult,
             elementForErrors: elementForErrors,
             isLocation: isLocation,
+            supportsPathAndQuery: supportsPathAndQuery,
           );
           result.merge(elseResult);
         }
@@ -1118,6 +1135,7 @@ class _StaticRouteTreeExtractor {
     required _ResolvedDslDefinition result,
     required Element elementForErrors,
     required bool isLocation,
+    required bool supportsPathAndQuery,
   }) async {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is! MethodInvocation ||
@@ -1127,7 +1145,7 @@ class _StaticRouteTreeExtractor {
 
     switch (normalizedExpression.methodName.name) {
       case 'pathSegment':
-        if (!isLocation) {
+        if (!supportsPathAndQuery) {
           return;
         }
         final segmentExpression = normalizedExpression.argumentList.arguments
@@ -1161,7 +1179,7 @@ class _StaticRouteTreeExtractor {
           result.pathParameterCount += 1;
         }
       case 'query':
-        if (!isLocation) {
+        if (!supportsPathAndQuery) {
           return;
         }
         final queryExpression = normalizedExpression.argumentList.arguments
@@ -1183,7 +1201,7 @@ class _StaticRouteTreeExtractor {
           element: elementForErrors,
         );
       case 'pathLiteral':
-        if (!isLocation) {
+        if (!supportsPathAndQuery) {
           return;
         }
         final valueExpression = normalizedExpression.argumentList.arguments
@@ -1208,7 +1226,7 @@ class _StaticRouteTreeExtractor {
       case 'dateTimePathParam':
       case 'uriPathParam':
       case 'enumPathParam':
-        if (!isLocation) {
+        if (!supportsPathAndQuery) {
           return;
         }
         final codecMetadata = _dslPathParamCodecMetadata(
@@ -1246,7 +1264,7 @@ class _StaticRouteTreeExtractor {
       case 'dateTimeQueryParam':
       case 'uriQueryParam':
       case 'enumQueryParam':
-        if (!isLocation) {
+        if (!supportsPathAndQuery) {
           return;
         }
         final queryParameterMetadata = _dslQueryParamMetadata(
@@ -1310,6 +1328,7 @@ class _StaticRouteTreeExtractor {
             normalizedExpression,
             evaluationContext: context,
             isLocation: true,
+            supportsPathAndQuery: true,
             elementForErrors: elementForErrors,
           ),
         );
@@ -1319,6 +1338,7 @@ class _StaticRouteTreeExtractor {
             normalizedExpression,
             evaluationContext: context,
             isLocation: false,
+            supportsPathAndQuery: true,
             elementForErrors: elementForErrors,
           ),
         );
@@ -1331,6 +1351,7 @@ class _StaticRouteTreeExtractor {
     MethodInvocation invocation, {
     required _ExpressionContext evaluationContext,
     required bool isLocation,
+    required bool supportsPathAndQuery,
     required Element elementForErrors,
   }) async {
     final arguments = invocation.argumentList.arguments;
@@ -1348,6 +1369,7 @@ class _StaticRouteTreeExtractor {
       buildExpression,
       evaluationContext: evaluationContext,
       isLocation: isLocation,
+      supportsPathAndQuery: supportsPathAndQuery,
     );
 
     return _RouteNode(
@@ -1360,10 +1382,10 @@ class _StaticRouteTreeExtractor {
           : null,
       isLocation: isLocation,
       locationTypeSource: isLocation ? 'Location' : 'Shell',
-      pathSegments: isLocation
+      pathSegments: supportsPathAndQuery
           ? dslDefinition.pathSegments
           : const <_PathSegmentMetadata>[],
-      queryParameters: isLocation
+      queryParameters: supportsPathAndQuery
           ? dslDefinition.queryParameters
           : const <String, _RouteQueryParameterMetadata>{},
       children: dslDefinition.children,

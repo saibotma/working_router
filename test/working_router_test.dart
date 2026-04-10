@@ -680,6 +680,144 @@ void main() {
         expect(find.text('en'), findsOneWidget);
       },
     );
+
+    testWidgets('shells share path and query params with children', (
+      tester,
+    ) async {
+      final router = WorkingRouter<_Id>(
+        buildLocations: (_) => [
+          _BuilderLocation<_Id>(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                Shell(
+                  build: (builder, routerKey) {
+                    builder.pathLiteral('accounts');
+                    final accountId = builder.stringPathParam();
+                    final tab = builder.stringQueryParam(
+                      'tab',
+                      defaultValue: const Default('overview'),
+                    );
+                    builder.widgetBuilder((context, data, child) => child);
+                    builder.children = [
+                      _BuilderLocation<_Id>(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('dashboard');
+                          builder.widgetBuilder((context, data) {
+                            return Text(
+                              '${data.pathParam(accountId)}:${data.queryParam(tab)}',
+                            );
+                          });
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(
+        Uri(path: '/accounts/42/dashboard', queryParameters: {'tab': 'billing'}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('42:billing'), findsOneWidget);
+      expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
+    });
+
+    testWidgets('shell without matching child is treated as unresolved', (
+      tester,
+    ) async {
+      final router = WorkingRouter<_Id>(
+        buildLocations: (_) => [
+          _BuilderLocation<_Id>(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                Shell(
+                  build: (builder, routerKey) {
+                    builder.pathLiteral('accounts');
+                    builder.stringPathParam();
+                    builder.widgetBuilder((context, data, child) => child);
+                    builder.children = [
+                      _BuilderLocation<_Id>(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('dashboard');
+                          builder.widget(const Text('dashboard'));
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const Text('no-content'),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(Uri(path: '/accounts/42'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('no-content'), findsOneWidget);
+      expect(router.nullableData!.locations, isEmpty);
+      expect(router.nullableData!.uri.path, '/accounts/42');
+    });
+
+    testWidgets('routeToId can write shell path parameters', (tester) async {
+      final router = WorkingRouter<_Id>(
+        buildLocations: (_) => [
+          _BuilderLocation<_Id>(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                Shell(
+                  build: (builder, routerKey) {
+                    builder.pathLiteral('accounts');
+                    final accountId = builder.stringPathParam();
+                    builder.widgetBuilder((context, data, child) => child);
+                    builder.children = [
+                      _BuilderLocation<_Id>(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('dashboard');
+                          builder.widgetBuilder((context, data) {
+                            return Text(data.pathParam(accountId));
+                          });
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToId(
+        _Id.b,
+        writePathParameters: (location, path) {
+          if (location is Shell<_Id>) {
+            path(location.pathParameters.single as PathParam<String>, '42');
+          }
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
+      expect(find.text('42'), findsOneWidget);
+    });
   });
 }
 

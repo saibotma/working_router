@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/route_param_codec.dart';
-import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
@@ -119,19 +118,6 @@ RouteMatch<ID> _matchNode<ID>(
   LocationTreeElement<ID> node,
   IList<String> uriPathSegments,
 ) {
-  if (node is Shell<ID>) {
-    for (final child in node.children) {
-      final childMatch = _matchNode(child, uriPathSegments);
-      if (!childMatch.isEmpty) {
-        return (
-          elements: [node, ...childMatch.elements].toIList(),
-          pathParameters: childMatch.pathParameters,
-        );
-      }
-    }
-    return emptyRouteMatch();
-  }
-
   if (node is! PathLocationTreeElement<ID>) {
     return emptyRouteMatch();
   }
@@ -159,7 +145,8 @@ RouteMatch<ID> _matchNode<ID>(
     }
   }
 
-  if (matches.length == 1 && nextPathSegments.isNotEmpty) {
+  if (matches.length == 1 &&
+      (nextPathSegments.isNotEmpty || node is! AnyLocation<ID>)) {
     return emptyRouteMatch();
   }
 
@@ -173,16 +160,6 @@ IList<LocationTreeElement<ID>> _matchNodeById<ID>(
   LocationTreeElement<ID> node,
   ID id,
 ) {
-  if (node is Shell<ID>) {
-    for (final child in node.children) {
-      final childMatch = _matchNodeById(child, id);
-      if (childMatch.isNotEmpty) {
-        return [node, ...childMatch].toIList();
-      }
-    }
-    return emptyNodeMatch();
-  }
-
   if (node is! PathLocationTreeElement<ID>) {
     return emptyNodeMatch();
   }
@@ -205,16 +182,6 @@ IList<LocationTreeElement<ID>> matchRelativeNode<ID>(
   LocationTreeElement<ID> node,
   bool Function(AnyLocation<ID> location) predicate,
 ) {
-  if (node is Shell<ID>) {
-    for (final child in node.children) {
-      final childMatch = matchRelativeNode(child, predicate);
-      if (childMatch.isNotEmpty) {
-        return [node, ...childMatch].toIList();
-      }
-    }
-    return emptyNodeMatch();
-  }
-
   if (node is! PathLocationTreeElement<ID>) {
     return emptyNodeMatch();
   }

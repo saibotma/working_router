@@ -1462,4 +1462,74 @@ class ChildChildLocation extends Location<ShellRootRouteId, ChildChildLocation> 
       readerWriter: readerWriter,
     );
   });
+
+  test('includes shell path and query params in generated helpers', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions.empty,
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/shell_params_routes.dart': '''
+library shell_params_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'shell_params_routes.g.dart';
+
+enum ShellParamsRouteId { dashboard }
+
+class DashboardLocation
+    extends Location<ShellParamsRouteId, DashboardLocation> {
+  DashboardLocation({super.id, required super.build});
+}
+
+@Locations()
+LocationTreeElement<ShellParamsRouteId> get appLocationTree => Shell(
+  build: (builder, routerKey) {
+    builder.pathLiteral('accounts');
+    final accountId = builder.stringPathParam();
+    final tab = builder.stringQueryParam('tab');
+    builder.widgetBuilder((context, data, child) => child);
+    builder.children = [
+      DashboardLocation(
+        id: ShellParamsRouteId.dashboard,
+        build: (builder, location) {
+          builder.pathLiteral('dashboard');
+        },
+      ),
+    ];
+  },
+);
+''',
+      },
+      outputs: {
+        'working_router|lib/shell_params_routes.working_router.g.part':
+            decodedMatches(
+          allOf(
+            contains(
+              'void routeToDashboard({required String accountId, required String tab}) {',
+            ),
+            contains(
+              'DashboardRouteTarget({required String accountId, required String tab})',
+            ),
+            contains(
+              'location.pathParameters[0] as PathParam<String>,',
+            ),
+            contains(
+              'accountId,',
+            ),
+            contains(
+              "queryParameters: {'tab': const StringRouteParamCodec().encode(tab)}",
+            ),
+          ),
+        ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
 }

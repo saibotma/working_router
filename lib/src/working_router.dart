@@ -280,16 +280,15 @@ class WorkingRouter<ID> extends ChangeNotifier
     // Keep everything up to and including the matched location
     final newLocations = locations.sublist(0, matchIndex + 1);
     final newNodes = _trimNodesToLastMatchingLocation(data, newLocations.last);
-    final newPathParameters = data.pathParameters.keepKeys(
-      {
-        for (final location in newLocations)
-          ...location.path.whereType<PathParam<dynamic>>(),
-      },
-    );
+    final newPathElements = newNodes.pathElements;
+    final newPathParameters = data.pathParameters.keepKeys({
+      for (final element in newPathElements)
+        ...element.path.whereType<PathParam<dynamic>>(),
+    });
 
     final newQueryParameters = data.queryParameters.keepKeys(
-      newLocations
-          .expand((location) => location.queryParameters.map((it) => it.name))
+      newPathElements
+          .expand((element) => element.queryParameters.map((it) => it.name))
           .toSet(),
     );
 
@@ -472,20 +471,20 @@ class WorkingRouter<ID> extends ChangeNotifier
         :final writePathParameters,
       ):
         final matchedNodes = _routeNodeTree.matchId(id);
-        final matchedLocations = matchedNodes.locations;
+        final matchedPathElements = matchedNodes.pathElements;
         final keptQueryParameterKeys =
             !retainSharedQueryParameters || currentData == null
             ? <String>{}
-            : currentData.locations
+            : currentData.pathElements
                   .expand(
-                    (location) => location.queryParameters.map((it) => it.name),
+                    (element) => element.queryParameters.map((it) => it.name),
                   )
                   .toSet()
                   .intersection(
-                    matchedLocations
+                    matchedPathElements
                         .expand(
-                          (location) =>
-                              location.queryParameters.map((it) => it.name),
+                          (element) =>
+                              element.queryParameters.map((it) => it.name),
                         )
                         .toSet(),
                   );
@@ -494,7 +493,7 @@ class WorkingRouter<ID> extends ChangeNotifier
           elements: matchedNodes,
           fallback: null,
           pathParameters: _resolvePathParameterWrites(
-            matchedLocations,
+            matchedPathElements,
             writePathParameters,
           ).toIMap(),
           queryParameters:
@@ -521,14 +520,14 @@ class WorkingRouter<ID> extends ChangeNotifier
         if (matchedNodes.isEmpty) {
           return data;
         }
-        final matchedLocations = matchedNodes.locations;
+        final matchedPathElements = matchedNodes.pathElements;
 
         return _buildData(
           elements: data.elements.addAll(matchedNodes),
           fallback: null,
           pathParameters: data.pathParameters.addAll(
             _resolvePathParameterWrites(
-              data.locations.addAll(matchedLocations),
+              data.pathElements.addAll(matchedPathElements),
               writePathParameters,
             ).toIMap(),
           ),
