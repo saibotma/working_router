@@ -800,6 +800,80 @@ List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
   );
 
   test(
+    'supports nullable query shortcut methods in the DSL',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/nullable_query_shortcuts_routes.dart': '''
+library nullable_query_shortcuts_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'nullable_query_shortcuts_routes.g.dart';
+
+enum NullableShortcutRouteId { item }
+
+class ItemLocation extends Location<NullableShortcutRouteId, ItemLocation> {
+  ItemLocation({
+    required super.id,
+    required super.build,
+  });
+}
+
+@Locations()
+List<LocationTreeElement<NullableShortcutRouteId>> buildLocations() => [
+  ItemLocation(
+    id: NullableShortcutRouteId.item,
+    build: (builder, location) {
+      builder.pathLiteral('items');
+      final enabled = builder.nullableBoolQueryParam('enabled');
+      final endDateTime = builder.nullableDateTimeQueryParam('endDateTime');
+
+      builder.widget(const SizedBox.shrink());
+    },
+  ),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/nullable_query_shortcuts_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'ItemRouteTarget({bool? enabled, DateTime? endDateTime})',
+                  ),
+                  contains(
+                    'void routeToItem({bool? enabled, DateTime? endDateTime})',
+                  ),
+                  contains(
+                    "if (encodeQueryParamValueOrNull(const BoolRouteParamCodec(), enabled)\n"
+                    "              case final encoded?)\n"
+                    "            'enabled': encoded,",
+                  ),
+                  contains(
+                    "if (encodeQueryParamValueOrNull(\n"
+                    "                const DateTimeIsoRouteParamCodec(),\n"
+                    "                endDateTime,\n"
+                    "              )\n"
+                    "              case final encoded?)\n"
+                    "            'endDateTime': encoded,",
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'inherits query parameters from groups into child route helpers',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

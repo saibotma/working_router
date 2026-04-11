@@ -1269,12 +1269,19 @@ class _StaticRouteTreeExtractor {
         result.pathParameterCount += 1;
       case 'queryParam':
       case 'stringQueryParam':
+      case 'nullableStringQueryParam':
       case 'intQueryParam':
+      case 'nullableIntQueryParam':
       case 'doubleQueryParam':
+      case 'nullableDoubleQueryParam':
       case 'boolQueryParam':
+      case 'nullableBoolQueryParam':
       case 'dateTimeQueryParam':
+      case 'nullableDateTimeQueryParam':
       case 'uriQueryParam':
+      case 'nullableUriQueryParam':
       case 'enumQueryParam':
+      case 'nullableEnumQueryParam':
         if (!supportsPathAndQuery) {
           return;
         }
@@ -1507,12 +1514,19 @@ class _StaticRouteTreeExtractor {
           optional: namedArguments.containsKey('defaultValue'),
         );
       case 'stringQueryParam':
+      case 'nullableStringQueryParam':
       case 'intQueryParam':
+      case 'nullableIntQueryParam':
       case 'doubleQueryParam':
+      case 'nullableDoubleQueryParam':
       case 'boolQueryParam':
+      case 'nullableBoolQueryParam':
       case 'dateTimeQueryParam':
+      case 'nullableDateTimeQueryParam':
       case 'uriQueryParam':
+      case 'nullableUriQueryParam':
       case 'enumQueryParam':
+      case 'nullableEnumQueryParam':
         final nameExpression = arguments.firstOrNull;
         if (nameExpression == null) {
           return null;
@@ -1522,24 +1536,48 @@ class _StaticRouteTreeExtractor {
             dartTypeSource: 'String',
             codecExpressionSource: 'const StringRouteParamCodec()',
           ),
+          'nullableStringQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'String?',
+            codecExpressionSource: 'const StringRouteParamCodec()',
+          ),
           'intQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'int',
+            codecExpressionSource: 'const IntRouteParamCodec()',
+          ),
+          'nullableIntQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'int?',
             codecExpressionSource: 'const IntRouteParamCodec()',
           ),
           'doubleQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'double',
             codecExpressionSource: 'const DoubleRouteParamCodec()',
           ),
+          'nullableDoubleQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'double?',
+            codecExpressionSource: 'const DoubleRouteParamCodec()',
+          ),
           'boolQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'bool',
+            codecExpressionSource: 'const BoolRouteParamCodec()',
+          ),
+          'nullableBoolQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'bool?',
             codecExpressionSource: 'const BoolRouteParamCodec()',
           ),
           'dateTimeQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'DateTime',
             codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
           ),
+          'nullableDateTimeQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'DateTime?',
+            codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
+          ),
           'uriQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'Uri',
+            codecExpressionSource: 'const UriRouteParamCodec()',
+          ),
+          'nullableUriQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'Uri?',
             codecExpressionSource: 'const UriRouteParamCodec()',
           ),
           'enumQueryParam' => (() {
@@ -1558,6 +1596,20 @@ class _StaticRouteTreeExtractor {
                   'EnumRouteParamCodec(${_expressionSource(valuesExpression)})',
             );
           })(),
+          'nullableEnumQueryParam' => (() {
+            final valuesExpression = arguments.length >= 2
+                ? arguments[1]
+                : null;
+            if (valuesExpression == null) {
+              return null;
+            }
+            return _DslCodecMetadata(
+              dartTypeSource:
+                  '${_enumValuesTypeSourceForExpression(valuesExpression, elementForErrors)}?',
+              codecExpressionSource:
+                  'EnumRouteParamCodec(${_expressionSource(valuesExpression)})',
+            );
+          })(),
           _ => null,
         };
         if (codecMetadata == null) {
@@ -1567,7 +1619,9 @@ class _StaticRouteTreeExtractor {
           key: _stringLiteral(nameExpression, elementForErrors),
           dartTypeSource: codecMetadata.dartTypeSource,
           codecExpressionSource: codecMetadata.codecExpressionSource,
-          optional: namedArguments.containsKey('defaultValue'),
+          optional:
+              namedArguments.containsKey('defaultValue') ||
+              methodName.startsWith('nullable'),
         );
       default:
         return null;

@@ -110,6 +110,14 @@ abstract class PathLocationTreeElementBuilder<ID> {
     );
   }
 
+  QueryParam<String?> nullableStringQueryParam(String name) {
+    return queryParam<String?>(
+      name,
+      const StringRouteParamCodec(),
+      defaultValue: const Default<String?>(null),
+    );
+  }
+
   QueryParam<int> intQueryParam(
     String name, {
     Default<int>? defaultValue,
@@ -118,6 +126,14 @@ abstract class PathLocationTreeElementBuilder<ID> {
       name,
       const IntRouteParamCodec(),
       defaultValue: defaultValue,
+    );
+  }
+
+  QueryParam<int?> nullableIntQueryParam(String name) {
+    return queryParam<int?>(
+      name,
+      const IntRouteParamCodec(),
+      defaultValue: const Default<int?>(null),
     );
   }
 
@@ -132,6 +148,14 @@ abstract class PathLocationTreeElementBuilder<ID> {
     );
   }
 
+  QueryParam<double?> nullableDoubleQueryParam(String name) {
+    return queryParam<double?>(
+      name,
+      const DoubleRouteParamCodec(),
+      defaultValue: const Default<double?>(null),
+    );
+  }
+
   QueryParam<bool> boolQueryParam(
     String name, {
     Default<bool>? defaultValue,
@@ -140,6 +164,14 @@ abstract class PathLocationTreeElementBuilder<ID> {
       name,
       const BoolRouteParamCodec(),
       defaultValue: defaultValue,
+    );
+  }
+
+  QueryParam<bool?> nullableBoolQueryParam(String name) {
+    return queryParam<bool?>(
+      name,
+      const BoolRouteParamCodec(),
+      defaultValue: const Default<bool?>(null),
     );
   }
 
@@ -154,6 +186,14 @@ abstract class PathLocationTreeElementBuilder<ID> {
     );
   }
 
+  QueryParam<DateTime?> nullableDateTimeQueryParam(String name) {
+    return queryParam<DateTime?>(
+      name,
+      const DateTimeIsoRouteParamCodec(),
+      defaultValue: const Default<DateTime?>(null),
+    );
+  }
+
   QueryParam<Uri> uriQueryParam(
     String name, {
     Default<Uri>? defaultValue,
@@ -162,6 +202,14 @@ abstract class PathLocationTreeElementBuilder<ID> {
       name,
       const UriRouteParamCodec(),
       defaultValue: defaultValue,
+    );
+  }
+
+  QueryParam<Uri?> nullableUriQueryParam(String name) {
+    return queryParam<Uri?>(
+      name,
+      const UriRouteParamCodec(),
+      defaultValue: const Default<Uri?>(null),
     );
   }
 
@@ -174,6 +222,17 @@ abstract class PathLocationTreeElementBuilder<ID> {
       name,
       EnumRouteParamCodec(values),
       defaultValue: defaultValue,
+    );
+  }
+
+  QueryParam<T?> nullableEnumQueryParam<T extends Enum>(
+    String name,
+    List<T> values,
+  ) {
+    return queryParam<T?>(
+      name,
+      EnumRouteParamCodec(values),
+      defaultValue: Default<T?>(null),
     );
   }
 

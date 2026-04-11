@@ -79,6 +79,12 @@ Important details:
   `uriPathParam()`, `uriQueryParam('next')`,
   `enumPathParam(MyEnum.values)`, and
   `enumQueryParam('filter', MyEnum.values, defaultValue: Default(MyEnum.all))`.
+- For nullable query params with a default `null`, use the nullable shortcuts
+  like `nullableStringQueryParam('filter')`,
+  `nullableBoolQueryParam('enabled')`, or
+  `nullableDateTimeQueryParam('endDateTime')`.
+  Those nullable shortcuts always default to `null` and do not accept a custom
+  default value.
 - Path parameters are intentionally non-nullable. They represent matched URI
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
