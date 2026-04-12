@@ -80,6 +80,39 @@ List<Object> buildLocations() {
     expect(changedSource, contains('SplashLocation('));
   });
 
+  test('wrap with group wraps an entry inside an if spread branch', () {
+    const source = '''
+List<Object> buildLocations(bool enabled) {
+  return [
+    if (enabled) ...[
+      Shell(
+        build: (builder, shell, routerKey) {
+          builder.children = [
+            PrivacyLocation(
+              build: (builder, location) {
+                builder.widget('privacy');
+              },
+            ),
+          ];
+        },
+      ),
+    ],
+  ];
+}
+''';
+    final edit = _createEdit(
+      source: source,
+      snippet: 'Shell(',
+      template: WrapWithGroup.templateForTest,
+    );
+
+    expect(edit, isNotNull);
+    final changedSource = _applyEdit(source, edit!);
+    expect(changedSource, contains('if (enabled) ...['));
+    expect(changedSource, contains('Group('));
+    expect(changedSource, contains('Shell('));
+  });
+
   test('wrap with shell formats nested children indentation correctly', () {
     const source = '''
 void build(builder) {

@@ -49,12 +49,14 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
   @override
   void visitListLiteral(ListLiteral node) {
     final isChildrenAssignmentList = _isChildrenAssignmentList(node);
-    if (isChildrenAssignmentList || _isReturnedTreeElementList(node)) {
+    if (_isRouteTreeList(node)) {
       for (var i = 0; i < node.elements.length; i++) {
         final element = node.elements[i];
-        if (_intersectsSelection(element) && _isSelectionOnEntryHeader(element)) {
+        if (_intersectsSelection(element) &&
+            _isSelectionOnEntryHeader(element)) {
           if (_bestMatch == null ||
-              element.length < (_bestMatch!.element.end - _bestMatch!.element.offset)) {
+              element.length <
+                  (_bestMatch!.element.end - _bestMatch!.element.offset)) {
             _bestMatch = LocationTreeEntrySelection(
               list: node,
               element: element,
@@ -66,6 +68,18 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
       }
     }
     super.visitListLiteral(node);
+  }
+
+  bool _isRouteTreeList(ListLiteral node) {
+    if (_isChildrenAssignmentList(node) || _isReturnedTreeElementList(node)) {
+      return true;
+    }
+
+    final parent = node.parent;
+    return switch (parent) {
+      SpreadElement() => _isRouteTreeCollectionElement(parent),
+      _ => false,
+    };
   }
 
   bool _intersectsSelection(CollectionElement element) {
@@ -95,6 +109,15 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
     final parent = node.parent;
     return parent is ReturnStatement && parent.expression == node ||
         parent is ExpressionFunctionBody && parent.expression == node;
+  }
+
+  bool _isRouteTreeCollectionElement(CollectionElement element) {
+    final parent = element.parent;
+    return switch (parent) {
+      ListLiteral() => _isRouteTreeList(parent),
+      IfElement() => _isRouteTreeCollectionElement(parent),
+      _ => false,
+    };
   }
 
   bool _isChildrenAssignmentList(ListLiteral node) {
