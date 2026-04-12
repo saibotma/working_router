@@ -693,7 +693,7 @@ void main() {
     );
 
     testWidgets(
-      'groups share query params with children without building pages',
+      'scopes share query params with children without building pages',
       (tester) async {
         final router = WorkingRouter<_Id>(
           buildLocations: (_) => [
@@ -701,8 +701,8 @@ void main() {
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  Group<_Id>(
-                    build: (builder, group) {
+                  Scope<_Id>(
+                    build: (builder, scope) {
                       final languageCode = builder.stringQueryParam(
                         'languageCode',
                         defaultValue: const Default('en'),
@@ -933,7 +933,7 @@ void main() {
       expect(find.text('42'), findsOneWidget);
     });
 
-    testWidgets('shell acts like group when children are routed to root', (
+    testWidgets('shell acts like scope when children are routed to root', (
       tester,
     ) async {
       final router = WorkingRouter<_Id>(

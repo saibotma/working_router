@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:working_router/src/group.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/route_param_codec.dart';
+import 'package:working_router/src/scope.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/shell_location.dart';
 import 'package:working_router/src/working_router_data.dart';
@@ -11,8 +11,8 @@ abstract interface class BuildsWithLocationBuilder<ID> {
   void build(LocationBuilder<ID> builder);
 }
 
-abstract interface class BuildsWithGroupBuilder<ID> {
-  void build(GroupBuilder<ID> builder);
+abstract interface class BuildsWithScopeBuilder<ID> {
+  void build(ScopeBuilder<ID> builder);
 }
 
 abstract interface class BuildsWithShellBuilder<ID> {
@@ -282,11 +282,11 @@ abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
           return locationBuilder.resolveRender();
         }(),
       (
-        final BuildsWithGroupBuilder<ID> element,
-        final GroupBuilder<ID> groupBuilder,
+        final BuildsWithScopeBuilder<ID> element,
+        final ScopeBuilder<ID> scopeBuilder,
       ) =>
         () {
-          element.build(groupBuilder);
+          element.build(scopeBuilder);
           return null;
         }(),
       (

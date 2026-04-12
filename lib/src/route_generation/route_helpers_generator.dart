@@ -184,7 +184,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
           if (!owner.isLocation ||
               owner.locationTypeSource == 'Location' ||
               owner.locationTypeSource == 'ShellLocation' ||
-              owner.locationTypeSource == 'Group') {
+              owner.locationTypeSource == 'Scope') {
             continue;
           }
 
@@ -762,8 +762,8 @@ class _StaticRouteTreeExtractor {
         classElement.displayName == 'AbstractLocation' ||
         classElement.displayName == 'ShellLocation' ||
         classElement.displayName == 'AbstractShellLocation' ||
-        classElement.displayName == 'Group' ||
-        classElement.displayName == 'AbstractGroup' ||
+        classElement.displayName == 'Scope' ||
+        classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
         classElement.displayName == 'AbstractShell';
     final context = isDirectBaseNode
@@ -809,7 +809,7 @@ class _StaticRouteTreeExtractor {
         })();
 
     return _RouteNode(
-      idExpression: isLocation && classElement.displayName != 'Group'
+      idExpression: isLocation && classElement.displayName != 'Scope'
           ? await _resolveIdExpression(
               _namedArgumentExpression(
                 expression.argumentList.arguments,
@@ -850,8 +850,8 @@ class _StaticRouteTreeExtractor {
         classElement.displayName == 'AbstractLocation' ||
         classElement.displayName == 'ShellLocation' ||
         classElement.displayName == 'AbstractShellLocation' ||
-        classElement.displayName == 'Group' ||
-        classElement.displayName == 'AbstractGroup' ||
+        classElement.displayName == 'Scope' ||
+        classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
         classElement.displayName == 'AbstractShell') {
       return null;
@@ -866,8 +866,8 @@ class _StaticRouteTreeExtractor {
         buildMethod.enclosingElement?.displayName == 'AbstractLocation' ||
         buildMethod.enclosingElement?.displayName == 'ShellLocation' ||
         buildMethod.enclosingElement?.displayName == 'AbstractShellLocation' ||
-        buildMethod.enclosingElement?.displayName == 'Group' ||
-        buildMethod.enclosingElement?.displayName == 'AbstractGroup' ||
+        buildMethod.enclosingElement?.displayName == 'Scope' ||
+        buildMethod.enclosingElement?.displayName == 'AbstractScope' ||
         buildMethod.enclosingElement?.displayName == 'Shell' ||
         buildMethod.enclosingElement?.displayName == 'AbstractShell') {
       return null;
@@ -890,7 +890,7 @@ class _StaticRouteTreeExtractor {
     if (builderParameterName == null) {
       throw InvalidGenerationSourceError(
         'build(...) on `${classElement.name}` must take the builder as its '
-        'first parameter, optionally followed by location/group/shell '
+        'first parameter, optionally followed by location/scope/shell '
         'context parameters.',
         element: buildMethod,
       );
@@ -920,7 +920,7 @@ class _StaticRouteTreeExtractor {
       if (builderParameterName == null) {
         throw InvalidGenerationSourceError(
           'Route build callbacks must take the builder as their first '
-          'parameter, optionally followed by location/group/shell context '
+          'parameter, optionally followed by location/scope/shell context '
           'parameters.',
           element: rootElement,
         );
@@ -948,7 +948,7 @@ class _StaticRouteTreeExtractor {
         if (builderParameterName == null) {
           throw InvalidGenerationSourceError(
             'Route build helpers must take the builder as their first '
-            'parameter, optionally followed by location/group/shell context '
+            'parameter, optionally followed by location/scope/shell context '
             'parameters.',
             element: referencedElement,
           );
@@ -2683,8 +2683,8 @@ class _StaticRouteTreeExtractor {
           current.element.name == 'AbstractLocation' ||
           current.element.name == 'ShellLocation' ||
           current.element.name == 'AbstractShellLocation' ||
-          current.element.name == 'AbstractGroup' ||
-          current.element.name == 'Group') {
+          current.element.name == 'AbstractScope' ||
+          current.element.name == 'Scope') {
         return true;
       }
       current = current.element.supertype;
@@ -2713,9 +2713,9 @@ bool _isFrameworkRouteMemberOwner(Element? element) {
       ownerName == 'AnyLocation' ||
       ownerName == 'AbstractLocation' ||
       ownerName == 'AbstractShellLocation' ||
-      ownerName == 'AbstractGroup' ||
+      ownerName == 'AbstractScope' ||
       ownerName == 'AbstractShell' ||
-      ownerName == 'Group' ||
+      ownerName == 'Scope' ||
       ownerName == 'Location' ||
       ownerName == 'ShellLocation' ||
       ownerName == 'Shell';

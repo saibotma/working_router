@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+- Rename `Group` assists and examples to `Scope` to match the router API.
+- Update plugin tests and package docs to the new `Scope` and
+  `builder.content = ...` APIs.
+
 ## 0.1.5
 
 - Update plugin tests and package docs to the new `builder.content = ...`

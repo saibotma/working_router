@@ -254,7 +254,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     // build at least one page from later matched descendants. If no matched
     // descendant is assigned to that navigator, the shell stays in the matched
     // element chain for shared path/query semantics but renders no page,
-    // effectively behaving like a Group.
+    // effectively behaving like a Scope.
     for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
       if (!identical(entry.effectiveParentRouterKey, navigatorRouterKey)) {
         continue;

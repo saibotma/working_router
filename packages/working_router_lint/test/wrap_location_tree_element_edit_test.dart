@@ -2,11 +2,11 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:test/test.dart';
 import 'package:working_router_lint/src/assists/remove_location_tree_element_edit.dart';
 import 'package:working_router_lint/src/assists/wrap_location_tree_element_edit.dart';
-import 'package:working_router_lint/src/assists/wrap_with_group.dart';
+import 'package:working_router_lint/src/assists/wrap_with_scope.dart';
 import 'package:working_router_lint/src/assists/wrap_with_shell.dart';
 
 void main() {
-  test('wrap with group wraps a builder.children entry', () {
+  test('wrap with scope wraps a builder.children entry', () {
     const source = '''
 void build(builder) {
   builder.children = [
@@ -21,12 +21,12 @@ void build(builder) {
     final edit = _createEdit(
       source: source,
       snippet: 'PrivacyLocation(',
-      template: WrapWithGroup.templateForTest,
+      template: WrapWithScope.templateForTest,
     );
 
     expect(edit, isNotNull);
     final changedSource = _applyEdit(source, edit!);
-    expect(changedSource, contains('Group('));
+    expect(changedSource, contains('Scope('));
     expect(changedSource, contains('builder.children = ['));
     expect(changedSource, contains('PrivacyLocation('));
   });
@@ -80,7 +80,7 @@ List<Object> buildLocations() {
     expect(changedSource, contains('SplashLocation('));
   });
 
-  test('wrap with group wraps an entry inside an if spread branch', () {
+  test('wrap with scope wraps an entry inside an if spread branch', () {
     const source = '''
 List<Object> buildLocations(bool enabled) {
   return [
@@ -103,17 +103,17 @@ List<Object> buildLocations(bool enabled) {
     final edit = _createEdit(
       source: source,
       snippet: 'Shell(',
-      template: WrapWithGroup.templateForTest,
+      template: WrapWithScope.templateForTest,
     );
 
     expect(edit, isNotNull);
     final changedSource = _applyEdit(source, edit!);
     expect(changedSource, contains('if (enabled) ...['));
-    expect(changedSource, contains('Group('));
+    expect(changedSource, contains('Scope('));
     expect(changedSource, contains('Shell('));
   });
 
-  test('wrap with group wraps a shell inside a builder.children if spread branch', () {
+  test('wrap with scope wraps a shell inside a builder.children if spread branch', () {
     const source = '''
 void build(builder, permissions) {
   builder.children = [
@@ -136,18 +136,18 @@ void build(builder, permissions) {
     final edit = _createEdit(
       source: source,
       snippet: 'Shell(',
-      template: WrapWithGroup.templateForTest,
+      template: WrapWithScope.templateForTest,
     );
 
     expect(edit, isNotNull);
     final changedSource = _applyEdit(source, edit!);
     expect(changedSource, contains('if (permissions.maySeeAttendances) ...['));
-    expect(changedSource, contains('Group('));
+    expect(changedSource, contains('Scope('));
     expect(changedSource, contains('Shell('));
   });
 
   test(
-    'wrap with group finds a shell inside a builder.children if spread branch from line indentation',
+    'wrap with scope finds a shell inside a builder.children if spread branch from line indentation',
     () {
       const source = '''
 void build(builder, permissions) {
@@ -171,13 +171,13 @@ void build(builder, permissions) {
       final edit = _createCollapsedEditAtLineIndent(
         source: source,
         lineSnippet: '      Shell(',
-        template: WrapWithGroup.templateForTest,
+        template: WrapWithScope.templateForTest,
       );
 
       expect(edit, isNotNull);
       final changedSource = _applyEdit(source, edit!);
       expect(changedSource, contains('if (permissions.maySeeAttendances) ...['));
-      expect(changedSource, contains('Group('));
+      expect(changedSource, contains('Scope('));
       expect(changedSource, contains('Shell('));
     },
   );
@@ -236,7 +236,7 @@ List<Object> buildLocations() {
     final edit = _createEdit(
       source: source,
       snippet: "builder.content = Content.widget('privacy')",
-      template: WrapWithGroup.templateForTest,
+      template: WrapWithScope.templateForTest,
     );
 
     expect(edit, isNull);
@@ -247,8 +247,8 @@ List<Object> buildLocations() {
 void build(builder) {
   builder.children = [
     ALocation(),
-    Group(
-      build: (builder, group) {
+    Scope(
+      build: (builder, scope) {
         builder.children = [
           BLocation(),
           CLocation(),
@@ -259,11 +259,11 @@ void build(builder) {
   ];
 }
 ''';
-    final edit = _createRemoveEdit(source: source, snippet: 'Group(');
+    final edit = _createRemoveEdit(source: source, snippet: 'Scope(');
 
     expect(edit, isNotNull);
     final changedSource = _applyRemoveEdit(source, edit!);
-    expect(changedSource, isNot(contains('Group(')));
+    expect(changedSource, isNot(contains('Scope(')));
     expect(
       changedSource,
       contains('''
@@ -282,8 +282,8 @@ void build(builder) {
 void build(builder) {
   builder.children = [
     ALocation(),
-    Group(
-      build: (builder, group) {
+    Scope(
+      build: (builder, scope) {
         builder.children = [
           BLocation(),
           CLocation(),
@@ -293,11 +293,11 @@ void build(builder) {
   ];
 }
 ''';
-    final edit = _createRemoveEdit(source: source, snippet: 'Group(');
+    final edit = _createRemoveEdit(source: source, snippet: 'Scope(');
 
     expect(edit, isNotNull);
     final changedSource = _applyRemoveEdit(source, edit!);
-    expect(changedSource, isNot(contains('Group(')));
+    expect(changedSource, isNot(contains('Scope(')));
     expect(
       changedSource,
       contains('''

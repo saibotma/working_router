@@ -3,14 +3,14 @@ import 'wrap_location_tree_element_edit.dart';
 
 import 'package:analyzer_plugin/utilities/assist/assist.dart';
 
-class WrapWithGroup extends WrapLocationTreeEntryProducer {
+class WrapWithScope extends WrapLocationTreeEntryProducer {
   static const _kind = AssistKind(
-    'working_router.assist.wrapWithGroup',
+    'working_router.assist.wrapWithScope',
     100,
-    'Wrap with Group',
+    'Wrap with Scope',
   );
 
-  WrapWithGroup({required super.context});
+  WrapWithScope({required super.context});
 
   static WrapTemplate get templateForTest => _template;
 
@@ -30,8 +30,8 @@ class WrapWithGroup extends WrapLocationTreeEntryProducer {
         required String eol,
       }) {
         return [
-          'Group(',
-          '${builderIndent}build: (builder, group) {',
+          'Scope(',
+          '${builderIndent}build: (builder, scope) {',
           '${bodyIndent}builder.children = [',
           '$selectedSource,',
           '$bodyIndent];',

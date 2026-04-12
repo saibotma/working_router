@@ -89,9 +89,9 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
-- Use `Location(...)`, `Group(...)`, `Shell(...)`, and `ShellLocation(...)`
+- Use `Location(...)`, `Scope(...)`, `Shell(...)`, and `ShellLocation(...)`
   for callback-based route definitions, or subclass `AbstractLocation`,
-  `AbstractGroup`, `AbstractShell`, and `AbstractShellLocation` to override
+  `AbstractScope`, `AbstractShell`, and `AbstractShellLocation` to override
   `build(...)` directly.
 - Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
@@ -108,10 +108,10 @@ See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
 - [`example/lib/locations.dart`](example/lib/locations.dart)
 
-## Group Vs Shell Vs ShellLocation
+## Scope Vs Shell Vs ShellLocation
 
-Use a `Group` when you want a shared route scope without rendering anything.
-A group:
+Use a `Scope` when you want a shared route scope without rendering anything.
+A scope:
 - can define shared path and query parameters
 - can hold child locations
 - does not build a page
@@ -130,7 +130,7 @@ navigator boundary. A shell:
 
 If no later matched descendant is actually assigned to the shell's
 `routerKey`, the shell does not contribute a page for that match and behaves
-like a `Group` instead. This lets you keep a shell in the tree for shared
+like a `Scope` instead. This lets you keep a shell in the tree for shared
 path/query scope while routing descendants to an ancestor navigator on smaller
 layouts.
 
@@ -166,8 +166,8 @@ Typical use case:
 Use the callback-based types when defining a tree inline:
 
 ```dart
-Group(
-  build: (builder, group) {
+Scope(
+  build: (builder, scope) {
     builder.children = [
       PrivacyLocation(id: RouteId.privacy, build: ...),
     ];
@@ -200,9 +200,9 @@ Use the abstract base classes when you want a reusable named subtree by
 overriding `build(...)`:
 
 ```dart
-class LegalGroup extends AbstractGroup<RouteId> {
+class LegalScope extends AbstractScope<RouteId> {
   @override
-  void build(GroupBuilder<RouteId> builder) {
+  void build(ScopeBuilder<RouteId> builder) {
     builder.children = [
       PrivacyLocation(id: RouteId.privacy, build: ...),
       TermsLocation(id: RouteId.terms, build: ...),

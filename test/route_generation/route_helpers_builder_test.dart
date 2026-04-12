@@ -904,8 +904,8 @@ class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
 
 @Locations()
 List<LocationTreeElement<GroupQueryRouteId>> buildLocations() => [
-  Group(
-    build: (builder, group) {
+  Scope(
+    build: (builder, scope) {
       final languageCode = builder.stringQueryParam(
         'languageCode',
         defaultValue: Default('en'),

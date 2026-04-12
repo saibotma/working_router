@@ -84,17 +84,17 @@ class BuiltShellDefinition<ID> {
 /// A rendering route scope that owns a nested navigator boundary.
 ///
 /// A shell can share path and query definitions with its children, but unlike a
-/// [Group], it also renders a wrapper widget/page and hosts a nested navigator
+/// [Scope], it also renders a wrapper widget/page and hosts a nested navigator
 /// for its matched child subtree.
 ///
 /// If no later matched descendant is actually assigned to the shell's
 /// [routerKey], the shell does not contribute a page and instead behaves like
-/// a [Group] for that match. This makes it possible to keep a shell in the
+/// a [Scope] for that match. This makes it possible to keep a shell in the
 /// route tree for shared path/query scope while routing descendants to an
 /// ancestor navigator on smaller layouts.
 ///
 /// Setting [navigatorEnabled] to false disables the nested navigator
-/// completely. The shell then always behaves like a [Group] for rendering,
+/// completely. The shell then always behaves like a [Scope] for rendering,
 /// and descendants that would normally inherit or explicitly target this
 /// shell's [routerKey] are routed to the shell's parent navigator instead.
 ///

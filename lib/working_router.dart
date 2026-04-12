@@ -3,7 +3,6 @@
 /// More dartdocs go here.
 library;
 
-export 'src/group.dart';
 export 'src/location.dart';
 export 'src/location_page.dart';
 export 'src/location_page_skeleton.dart';
@@ -14,6 +13,7 @@ export 'src/path_location_tree_element.dart';
 export 'src/route_generation/locations.dart';
 export 'src/route_param_codec.dart';
 export 'src/route_target.dart';
+export 'src/scope.dart';
 export 'src/shared/keep_keys.dart';
 export 'src/shell.dart';
 export 'src/shell_location.dart';

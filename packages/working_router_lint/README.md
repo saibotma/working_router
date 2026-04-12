@@ -7,7 +7,7 @@ It currently provides IDE assists for restructuring location trees without
 manually rewriting `builder.children = [...]` lists.
 
 Current assists:
-- Wrap a `builder.children = [...]` entry with `Group`
+- Wrap a `builder.children = [...]` entry with `Scope`
 - Wrap a `builder.children = [...]` entry with `Shell`
 - Remove an element while keeping its children when the structure is
   unambiguous
@@ -25,7 +25,7 @@ Enable the plugin in your app's `analysis_options.yaml`.
 
 ```yaml
 plugins:
-  working_router_lint: ^0.1.4
+  working_router_lint: ^0.1.6
 ```
 
 ### Local checkout
