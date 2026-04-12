@@ -17,7 +17,7 @@ List<LocationTreeElement<LocationId>> buildLocations({
     SplashLocation(
       id: LocationId.splash,
       build: (builder, location) {
-        builder.widget(const SplashScreen());
+        builder.content = Content.widget(const SplashScreen());
         builder.children = [
           Shell(
             navigatorEnabled: screenSize != ScreenSize.small,

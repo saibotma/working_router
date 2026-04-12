@@ -12,6 +12,33 @@ typedef LocationWidgetBuilder<ID> =
 typedef SelfBuiltLocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
 
+sealed class Content<ID> {
+  const Content();
+
+  factory Content.widget(Widget widget) = _StaticContent<ID>;
+
+  factory Content.builder(LocationWidgetBuilder<ID> builder) =
+      _BuilderContent<ID>;
+
+  const factory Content.none() = _NoContent<ID>;
+}
+
+final class _StaticContent<ID> extends Content<ID> {
+  final Widget widget;
+
+  const _StaticContent(this.widget);
+}
+
+final class _BuilderContent<ID> extends Content<ID> {
+  final LocationWidgetBuilder<ID> builder;
+
+  const _BuilderContent(this.builder);
+}
+
+final class _NoContent<ID> extends Content<ID> {
+  const _NoContent();
+}
+
 sealed class LocationBuildResult<ID>
     extends PathLocationTreeElementRenderResult<ID> {
   const LocationBuildResult();
@@ -27,50 +54,66 @@ class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
   });
 }
 
+final class NonRenderingLocationBuildResult<ID> extends LocationBuildResult<ID> {
+  const NonRenderingLocationBuildResult();
+}
+
 class LocationBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
-  LocationWidgetBuilder<ID>? _buildWidget;
+  Content<ID>? _content;
   SelfBuiltLocationPageBuilder? _buildPage;
 
   LocationBuilder();
 
-  void widget(Widget widget) {
-    widgetBuilder((context, data) => widget);
-  }
-
-  void widgetBuilder(LocationWidgetBuilder<ID> widget) {
-    if (_buildWidget != null) {
+  set content(Content<ID> content) {
+    if (_content != null) {
       throw StateError(
-        'LocationBuilder widget was already configured. '
-        'widget(...) or widgetBuilder(...) may only be called once.',
+        'LocationBuilder content was already configured. '
+        'content may only be configured once.',
       );
     }
-    _buildWidget = widget;
+    _content = content;
   }
 
-  void page(SelfBuiltLocationPageBuilder page) {
+  set page(SelfBuiltLocationPageBuilder page) {
     if (_buildPage != null) {
       throw StateError(
         'LocationBuilder page was already configured. '
-        'page(...) may only be called once.',
+        'page may only be configured once.',
       );
     }
     _buildPage = page;
   }
 
   LocationBuildResult<ID>? resolveRender() {
-    if (_buildWidget == null) {
+    if (_content == null) {
       if (_buildPage != null) {
         throw StateError(
-          'LocationBuilder page was configured without widget(...) '
-          'or widgetBuilder(...). Call one of them before page(...).',
+          'LocationBuilder page was configured without content. '
+          'Configure content before setting page.',
         );
       }
       return null;
     }
-    return SelfBuiltLocationBuildResult(
-      buildWidget: _buildWidget!,
-      buildPage: _buildPage,
-    );
+
+    return switch (_content!) {
+      final _StaticContent<ID> staticContent => SelfBuiltLocationBuildResult(
+        buildWidget: (_, _) => staticContent.widget,
+        buildPage: _buildPage,
+      ),
+      final _BuilderContent<ID> builderContent => SelfBuiltLocationBuildResult(
+        buildWidget: builderContent.builder,
+        buildPage: _buildPage,
+      ),
+      _NoContent<ID>() => () {
+        if (_buildPage != null) {
+          throw StateError(
+            'LocationBuilder page was configured for Content.none(). '
+            'Non-rendering locations may not configure page.',
+          );
+        }
+        return NonRenderingLocationBuildResult<ID>();
+      }(),
+    };
   }
 }
 
@@ -115,7 +158,8 @@ abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
     Iterable<LocationTag> tags = const [],
   }) : tags = tags.toISet();
 
-  bool get contributesPage => true;
+  bool get contributesPage =>
+      definition.render is! NonRenderingLocationBuildResult<ID>;
 
   bool get buildsOwnPage =>
       definition.render is SelfBuiltLocationBuildResult<ID>;

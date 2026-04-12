@@ -45,11 +45,11 @@ class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
     _buildWidget = widget;
   }
 
-  void page(ShellPageBuilder page) {
+  set page(ShellPageBuilder page) {
     if (_buildPage != null) {
       throw StateError(
         'ShellBuilder page was already configured. '
-        'page(...) may only be called once.',
+        'page may only be configured once.',
       );
     }
     _buildPage = page;

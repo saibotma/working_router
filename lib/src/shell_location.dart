@@ -41,11 +41,11 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
     _buildShellWidget = widget;
   }
 
-  void shellPage(ShellPageBuilder page) {
+  set shellPage(ShellPageBuilder page) {
     if (_buildShellPage != null) {
       throw StateError(
         'ShellLocationBuilder shellPage was already configured. '
-        'shellPage(...) may only be called once.',
+        'shellPage may only be configured once.',
       );
     }
     _buildShellPage = page;
@@ -54,18 +54,17 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
   @override
   LocationBuildResult<ID>? resolveRender() {
     final locationRender = super.resolveRender();
-    if (locationRender == null) {
+    if (locationRender is! SelfBuiltLocationBuildResult<ID>) {
       throw StateError(
-        'ShellLocationBuilder requires widget(...) or widgetBuilder(...). '
+        'ShellLocationBuilder requires rendering content. '
         'A shell location always defines both an outer shell page and an '
-        'inner location page.',
+        'inner location page, so Content.none() and the legacy buildPages '
+        'fallback are not supported here.',
       );
     }
-
-    final selfBuiltRender = locationRender as SelfBuiltLocationBuildResult<ID>;
     return ShellLocationBuildResult(
-      buildWidget: selfBuiltRender.buildWidget,
-      buildPage: selfBuiltRender.buildPage,
+      buildWidget: locationRender.buildWidget,
+      buildPage: locationRender.buildPage,
       buildShellWidget: _buildShellWidget ?? (_, _, child) => child,
       buildShellPage: _buildShellPage,
     );
@@ -82,10 +81,9 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
 /// - an outer [Shell]
 /// - with exactly one implicit inner [Location] child
 ///
-/// The location's `widget(...)`, `widgetBuilder(...)`, and `page(...)` define
-/// that implicit inner location page rendered inside the nested navigator.
-/// `shellWidgetBuilder(...)` and `shellPage(...)` define the outer shell page
-/// rendered on the parent navigator.
+/// The location's `content` and `page` define that implicit inner location
+/// page rendered inside the nested navigator. `shellWidgetBuilder(...)` and
+/// `shellPage` define the outer shell page rendered on the parent navigator.
 ///
 /// Setting [navigatorEnabled] to false disables the nested navigator. The
 /// shell location then behaves like a normal [Location] for rendering, while
@@ -100,7 +98,7 @@ abstract class AbstractShellLocation<ID, Self extends AnyLocation<ID>>
   /// Override-based base class for reusable shell location subclasses.
   ///
   /// Use this when a shell location is implemented by subclassing and
-  /// overriding [buildShellLocation] directly.
+  /// overriding [build] directly.
   AbstractShellLocation({
     super.id,
     super.parentRouterKey,

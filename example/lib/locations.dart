@@ -86,7 +86,7 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
   @override
   void build(LocationBuilder<LocationId> builder) {
     builder.pathLiteral('a');
-    builder.widget(
+    builder.content = Content.widget(
       rendersStandaloneSidebar
           ? const AlphabetSidebarScreen()
           : const EmptyAlphabetScreen(),
@@ -97,7 +97,7 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
         id: LocationId.ab,
         build: (builder, location) {
           builder.pathLiteral('b');
-          builder.widget(const FilledAlphabetScreen());
+          builder.content = Content.widget(const FilledAlphabetScreen());
 
           builder.children = [
             ABCLocation(
@@ -109,16 +109,16 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
                 final bParam = builder.stringQueryParam('b');
                 final cParam = builder.stringQueryParam('c');
 
-                builder.widgetBuilder((context, data) {
+                builder.content = Content.builder((context, data) {
                   return ABCScreen(
                     id: data.param(id),
                     b: data.param(bParam),
                     c: data.param(cParam),
                   );
                 });
-                builder.page((key, child) {
+                builder.page = (key, child) {
                   return PlatformModalPage<dynamic>(key: key, child: child);
-                });
+                };
               },
             ),
           ];
@@ -128,7 +128,7 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
         id: LocationId.ad,
         build: (builder, location) {
           builder.pathLiteral('d');
-          builder.widget(const FilledAlphabetScreen());
+          builder.content = Content.widget(const FilledAlphabetScreen());
 
           builder.children = [
             ADCLocation(
@@ -136,10 +136,10 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
               parentRouterKey: rootRouterKey,
               build: (builder, location) {
                 builder.pathLiteral('c');
-                builder.widget(const ADCScreen());
-                builder.page((key, child) {
+                builder.content = Content.widget(const ADCScreen());
+                builder.page = (key, child) {
                   return PlatformModalPage<dynamic>(key: key, child: child);
-                });
+                };
               },
             ),
             if (outerShellRouterKey != null)
@@ -149,7 +149,9 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
                   builder.shellWidgetBuilder(
                     (context, data, child) => InnerShellScreen(child: child),
                   );
-                  builder.widget(const InnerShellRootScreen());
+                  builder.content = Content.widget(
+                    const InnerShellRootScreen(),
+                  );
 
                   builder.children = [
                     ADELocation(
@@ -157,7 +159,9 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
                       parentRouterKey: outerShellRouterKey ?? routerKey,
                       build: (builder, location) {
                         builder.pathLiteral('e');
-                        builder.widget(const ShellBypassScreen());
+                        builder.content = Content.widget(
+                          const ShellBypassScreen(),
+                        );
                       },
                     ),
                   ];

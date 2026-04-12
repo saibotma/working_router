@@ -318,6 +318,50 @@ void main() {
     });
 
     testWidgets(
+      'non-rendering location leaves its parent page visible while staying active',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.content = Content.widget(const Text('root'));
+                builder.children = [
+                  _BuilderLocation<_Id>(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('settings');
+                      builder.content = Content.widget(const Text('settings'));
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          build: (builder, location) {
+                            builder.pathLiteral('edit');
+                            builder.content = const Content.none();
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/settings/edit'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('settings'), findsOneWidget);
+        expect(find.text('root'), findsNothing);
+        expect(router.nullableData!.uri.path, '/settings/edit');
+        expect(router.nullableData!.activeLocation?.id, _Id.b);
+      },
+    );
+
+    testWidgets(
       'routeToId keeps query parameters shared by current and target chains',
       (tester) async {
         final router = _buildParamRouter();
@@ -463,7 +507,7 @@ void main() {
           _BuilderLocation<_Id>(
             id: _Id.root,
             build: (builder, location) {
-              builder.widget(const Text('root'));
+              builder.content = Content.widget(const Text('root'));
               builder.children = [
                 _BuilderLocation<_Id>(
                   id: _Id.a,
@@ -475,11 +519,11 @@ void main() {
                           data.activeLocation?.id == _Id.a;
                       return ValueKey('dsl:${data.uri.path}');
                     });
-                    builder.widget(const Text('a'));
-                    builder.page((key, child) {
+                    builder.content = Content.widget(const Text('a'));
+                    builder.page = (key, child) {
                       pageKey = key;
                       return MaterialPage<dynamic>(key: key, child: child);
-                    });
+                    };
                   },
                 ),
               ];
@@ -665,15 +709,15 @@ void main() {
                       );
                       builder.children = [
                         _BuilderLocation<_Id>(
-                          id: _Id.a,
-                          build: (builder, location) {
-                            builder.pathLiteral('privacy');
-                            builder.widgetBuilder((context, data) {
-                              return Text(data.param(languageCode));
-                            });
-                          },
-                        ),
-                      ];
+                        id: _Id.a,
+                        build: (builder, location) {
+                          builder.pathLiteral('privacy');
+                          builder.content = Content.builder((context, data) {
+                            return Text(data.param(languageCode));
+                          });
+                        },
+                      ),
+                    ];
                     },
                   ),
                 ];
@@ -723,7 +767,7 @@ void main() {
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
-                          builder.widgetBuilder((context, data) {
+                          builder.content = Content.builder((context, data) {
                             return Text(
                               '${data.param(accountId)}:${data.param(tab)}',
                             );
@@ -776,7 +820,7 @@ void main() {
                           ],
                         );
                       });
-                      builder.widgetBuilder((context, data) {
+                      builder.content = Content.builder((context, data) {
                         return Text('settings:${data.param(accountId)}');
                       });
                     },
@@ -819,7 +863,9 @@ void main() {
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
-                          builder.widget(const Text('dashboard'));
+                          builder.content = Content.widget(
+                            const Text('dashboard'),
+                          );
                         },
                       ),
                     ];
@@ -857,7 +903,7 @@ void main() {
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
-                          builder.widgetBuilder((context, data) {
+                          builder.content = Content.builder((context, data) {
                             return Text(data.param(accountId));
                           });
                         },
@@ -906,7 +952,7 @@ void main() {
                         parentRouterKey: rootRouterKey,
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
-                          builder.widgetBuilder((context, data) {
+                          builder.content = Content.builder((context, data) {
                             return Text(data.param(accountId));
                           });
                         },
@@ -952,7 +998,7 @@ void main() {
                           id: _Id.b,
                           build: (builder, location) {
                             builder.pathLiteral('dashboard');
-                            builder.widgetBuilder((context, data) {
+                            builder.content = Content.builder((context, data) {
                               return Text(
                                 'dashboard:${data.param(accountId)}',
                               );
@@ -964,7 +1010,7 @@ void main() {
                           parentRouterKey: routerKey,
                           build: (builder, location) {
                             builder.pathLiteral('details');
-                            builder.widgetBuilder((context, data) {
+                            builder.content = Content.builder((context, data) {
                               return Text(
                                 'details:${data.param(accountId)}',
                               );
@@ -1008,7 +1054,7 @@ void main() {
                     build: (builder, location, routerKey) {
                       builder.pathLiteral('accounts');
                       final accountId = builder.stringPathParam();
-                      builder.widgetBuilder((context, data) {
+                      builder.content = Content.builder((context, data) {
                         return Text('settings:${data.param(accountId)}');
                       });
                       builder.children = [
@@ -1017,7 +1063,7 @@ void main() {
                           parentRouterKey: routerKey,
                           build: (builder, location) {
                             builder.pathLiteral('details');
-                            builder.widgetBuilder((context, data) {
+                            builder.content = Content.builder((context, data) {
                               return Text(
                                 'details:${data.param(accountId)}',
                               );
@@ -1323,7 +1369,7 @@ class _SelfBuiltAccountLocation
     builder.pathLiteral('accounts');
     final accountId = builder.stringPathParam();
     final tab = builder.stringQueryParam('tab');
-    builder.widgetBuilder((context, data) {
+    builder.content = Content.builder((context, data) {
       return Text(
         '${data.param(accountId)}:${data.param(tab)}',
       );

@@ -13,7 +13,7 @@ definition API.
   - `queryParam(...)`
 - The same `build(...)` method also decides whether the location is:
   - legacy when no render is configured, so `buildRootPages` handles it
-  - self-built via `builder.widget(...)` or `builder.widgetBuilder(...)`, with an optional page override from `builder.page(...)`
+  - self-built via `builder.content = ...`, with an optional page override from `builder.page = ...`
   - and returns the child `LocationTreeElement`s as a list
 - `@Locations()` generates typed `routeToX(...)` helpers and `XRouteTarget`
   classes from one canonical route-tree file.
@@ -57,7 +57,7 @@ final example = ExampleLocation(
       defaultValue: Default('all'),
     );
 
-    builder.widgetBuilder((context, data) {
+    builder.content = Content.builder((context, data) {
       return Text(
         '${data.param(itemId)}:${data.param(filter)}',
       );
@@ -95,11 +95,14 @@ Important details:
   `build(...)` directly.
 - Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
-- `builder.widget(...)` is the shortcut for constant widgets.
-- `builder.widgetBuilder(...)` is the data-aware variant.
-- `builder.page(...)` only overrides the default page wrapper around that widget.
-- If neither is called, the location is treated as legacy and resolved through
-  `buildRootPages`.
+- `builder.content = Content.widget(...)` is the constant-widget variant.
+- `builder.content = Content.builder(...)` is the data-aware variant.
+- `builder.content = const Content.none()` creates a semantic non-rendering
+  location that can still be terminal.
+- `builder.page = ...` only overrides the default page wrapper around rendered
+  content.
+- If `content` is left entirely unset, the location is treated as legacy and
+  resolved through `buildRootPages`.
 
 See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
@@ -183,8 +186,9 @@ Shell(
 ShellLocation<RouteId, SettingsLocation>(
   id: RouteId.settings,
   build: (builder, location, routerKey) {
-    builder.shellPage((key, child) => MaterialPage(key: key, child: child));
-    builder.widget(const SettingsScreen());
+    builder.shellPage = (key, child) =>
+        MaterialPage(key: key, child: child);
+    builder.content = Content.widget(const SettingsScreen());
     builder.children = [
       ThemeModeLocation(id: RouteId.themeMode, build: ...),
     ];
@@ -222,7 +226,7 @@ class SettingsShellLocation
 
   @override
   void build(ShellLocationBuilder<RouteId> builder) {
-    builder.widget(const SettingsScreen());
+    builder.content = Content.widget(const SettingsScreen());
     builder.children = [
       ThemeModeLocation(id: RouteId.themeMode, build: ...),
     ];
@@ -274,7 +278,7 @@ LessonLocation(
   id: RouteId.lesson,
   build: (builder, location) {
     final lessonId = builder.stringPathParam();
-    builder.widgetBuilder((context, data) {
+    builder.content = Content.builder((context, data) {
       return LessonScreen(lessonId: data.param(lessonId));
     });
     builder.pageKey = const PageKey.templatePath();
@@ -335,10 +339,10 @@ ShellLocation<RouteId, SettingsLocation>(
       return Dialog(child: child);
     });
 
-    builder.widget(const SettingsScreen());
-    builder.page((key, child) {
+    builder.content = Content.widget(const SettingsScreen());
+    builder.page = (key, child) {
       return MaterialPage(key: key, child: child);
-    });
+    };
 
     builder.children = [
       ThemeModeLocation(id: RouteId.themeMode, build: ...),
@@ -348,9 +352,9 @@ ShellLocation<RouteId, SettingsLocation>(
 ```
 
 Use:
-- `widget(...)`, `widgetBuilder(...)`, and `page(...)` for the inner location
-  page rendered inside the nested navigator
-- `shellWidgetBuilder(...)` and `shellPage(...)` for the outer shell wrapper
+- `content = ...` and `page = ...` for the inner location page rendered inside
+  the nested navigator
+- `shellWidgetBuilder(...)` and `shellPage = ...` for the outer shell wrapper
   rendered on the parent navigator
 - `navigatorEnabled: false` when the shell location should collapse down to a
   normal location on smaller layouts while keeping the same tree shape
@@ -384,9 +388,8 @@ return RedirectTransition(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'));
 
 The old `buildRootPages` / skeleton flow still exists for migration.
 
-For that case, a location simply does not call `builder.widget(...)` or
-`builder.widgetBuilder(...)`. The route stays in the tree while page
-construction still happens in `buildRootPages`.
+For that case, a location simply leaves `builder.content` unset. The route
+stays in the tree while page construction still happens in `buildRootPages`.
 
 ## Running The Generator
 
@@ -418,6 +421,6 @@ The package example demonstrates:
 - typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes
-- a custom modal page from `builder.page(...)`
+- a custom modal page from `builder.page = ...`
 
 Run it from [`example`](example).

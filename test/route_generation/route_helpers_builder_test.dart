@@ -690,7 +690,7 @@ List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
         defaultValue: Default(Uri.parse('/home')),
       );
 
-      builder.widget(const SizedBox.shrink());
+      builder.content = Content.widget(const SizedBox.shrink());
     },
   ),
 ];
@@ -767,7 +767,7 @@ List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
         defaultValue: Default<Uri?>(null),
       );
 
-      builder.widget(const SizedBox.shrink());
+      builder.content = Content.widget(const SizedBox.shrink());
     },
   ),
 ];
@@ -836,7 +836,7 @@ List<LocationTreeElement<NullableShortcutRouteId>> buildLocations() => [
       final enabled = builder.nullableBoolQueryParam('enabled');
       final endDateTime = builder.nullableDateTimeQueryParam('endDateTime');
 
-      builder.widget(const SizedBox.shrink());
+      builder.content = Content.widget(const SizedBox.shrink());
     },
   ),
 ];
@@ -915,7 +915,7 @@ List<LocationTreeElement<GroupQueryRouteId>> buildLocations() => [
           id: GroupQueryRouteId.privacy,
           build: (builder, location) {
             builder.pathLiteral('privacy');
-            builder.widget(const SizedBox.shrink());
+            builder.content = Content.widget(const SizedBox.shrink());
           },
         ),
       ];
@@ -1640,7 +1640,7 @@ LocationTreeElement<ShellLocationRouteId> get appLocationTree =>
         builder.pathLiteral('accounts');
         final accountId = builder.stringPathParam();
         final tab = builder.stringQueryParam('tab');
-        builder.widget(const SizedBox.shrink());
+        builder.content = Content.widget(const SizedBox.shrink());
         builder.children = [
           ThemeLocation(
             id: ShellLocationRouteId.theme,
