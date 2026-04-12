@@ -297,6 +297,26 @@ void main() {
       expect(router.nullableData!.queryParameters.isEmpty, true);
     });
 
+    testWidgets('routeBackFrom ignores deeper active descendants', (tester) async {
+      final router = _buildRouter();
+
+      router.routeToUri(Uri.parse('/a/b'));
+      await tester.pump();
+
+      final ancestorLocation = router.nullableData!.locations
+          .whereType<_PathLocation>()
+          .singleWhere((location) => location.id == _Id.a);
+
+      router.routeBackFrom(ancestorLocation);
+      await tester.pump();
+
+      expect(router.nullableData!.uri.path, '/');
+      expect(
+        router.nullableData!.locations.map((location) => location.id).toList(),
+        [_Id.root],
+      );
+    });
+
     testWidgets(
       'routeToId keeps query parameters shared by current and target chains',
       (tester) async {

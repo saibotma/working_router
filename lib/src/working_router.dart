@@ -251,11 +251,22 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   @override
+  void routeBackFrom(AnyLocation<ID> fromLocation) {
+    _routeBackUntil(
+      (it) => !it.shouldBeSkippedOnRouteBack,
+      fromLocation: fromLocation,
+    );
+  }
+
+  @override
   void routeBackUntil(bool Function(AnyLocation<ID> location) match) {
     _routeBackUntil(match);
   }
 
-  void _routeBackUntil(bool Function(AnyLocation<ID> location) match) {
+  void _routeBackUntil(
+    bool Function(AnyLocation<ID> location) match, {
+    AnyLocation<ID>? fromLocation,
+  }) {
     final data = nullableData!;
     final locations = data.locations;
     if (locations.length <= 1) {
@@ -263,9 +274,21 @@ class WorkingRouter<ID> extends ChangeNotifier
       return;
     }
 
-    // Start from the *previous* location (skip the current/last one).
+    final startIndex = switch (fromLocation) {
+      null => locations.length - 2,
+      _ => _routeBackStartIndex(
+        locations: locations,
+        fromLocation: fromLocation,
+      ),
+    };
+    if (startIndex < 0) {
+      // No ancestor remains to route back to from the requested location.
+      return;
+    }
+
+    // Start from the previous location relative to the requested back source.
     int matchIndex = -1;
-    for (var i = locations.length - 2; i >= 0; i--) {
+    for (var i = startIndex; i >= 0; i--) {
       if (match(locations[i])) {
         matchIndex = i;
         break;
@@ -301,6 +324,18 @@ class WorkingRouter<ID> extends ChangeNotifier
       ),
       reason: RouteTransitionReason.programmatic,
     );
+  }
+
+  int _routeBackStartIndex({
+    required IList<AnyLocation<ID>> locations,
+    required AnyLocation<ID> fromLocation,
+  }) {
+    for (var i = locations.length - 1; i >= 0; i--) {
+      if (identical(locations[i], fromLocation)) {
+        return i - 1;
+      }
+    }
+    return -1;
   }
 
   void _routeTo({

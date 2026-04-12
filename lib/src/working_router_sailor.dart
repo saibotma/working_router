@@ -37,6 +37,15 @@ abstract class WorkingRouterSailor<ID> {
   // Routes back one to the previous location.
   void routeBack();
 
+  /// Routes back as if [fromLocation] were the current active location.
+  ///
+  /// This is useful when a deeper nested location is active, but the intended
+  /// back action should start from an ancestor location instead, such as
+  /// dismissing a modal location that hosts its own nested navigator.
+  ///
+  /// Pass the matched ancestor location from the current router data.
+  void routeBackFrom(AnyLocation<ID> fromLocation);
+
   /// Routes back until [match] returns true.
   /// Retains path parameters required by the remaining route chain and
   /// query parameters declared by the remaining locations.
