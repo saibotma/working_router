@@ -1579,8 +1579,7 @@ LocationTreeElement<ShellParamsRouteId> get appLocationTree => Shell(
 ''',
       },
       outputs: {
-        'working_router|lib/shell_params_routes.working_router.g.part':
-            decodedMatches(
+        'working_router|lib/shell_params_routes.working_router.g.part': decodedMatches(
           allOf(
             contains(
               'void routeToDashboard({required String accountId, required String tab}) {',
@@ -1596,6 +1595,78 @@ LocationTreeElement<ShellParamsRouteId> get appLocationTree => Shell(
             ),
             contains(
               "queryParameters: {'tab': const StringRouteParamCodec().encode(tab)}",
+            ),
+          ),
+        ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
+
+  test('includes shell location params in generated helpers', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions.empty,
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/shell_location_routes.dart': '''
+library shell_location_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'shell_location_routes.g.dart';
+
+enum ShellLocationRouteId { settings, theme }
+
+class SettingsLocation
+    extends ShellLocation<ShellLocationRouteId, SettingsLocation> {
+  SettingsLocation({required super.id, required super.build});
+}
+
+class ThemeLocation extends Location<ShellLocationRouteId, ThemeLocation> {
+  ThemeLocation({required super.id, required super.build});
+}
+
+@Locations()
+LocationTreeElement<ShellLocationRouteId> get appLocationTree =>
+    SettingsLocation(
+      id: ShellLocationRouteId.settings,
+      build: (builder, location, routerKey) {
+        builder.pathLiteral('accounts');
+        final accountId = builder.stringPathParam();
+        final tab = builder.stringQueryParam('tab');
+        builder.widget(const SizedBox.shrink());
+        builder.children = [
+          ThemeLocation(
+            id: ShellLocationRouteId.theme,
+            build: (builder, location) {
+              builder.pathLiteral('theme');
+            },
+          ),
+        ];
+      },
+    );
+''',
+      },
+      outputs: {
+        'working_router|lib/shell_location_routes.working_router.g.part': decodedMatches(
+          allOf(
+            contains(
+              'void routeToSettings({required String accountId, required String tab}) {',
+            ),
+            contains(
+              'void routeToTheme({required String accountId, required String tab}) {',
+            ),
+            contains(
+              'extension SettingsLocationGeneratedChildTargets on SettingsLocation {',
+            ),
+            contains(
+              'ChildRouteTarget<ShellLocationRouteId> childThemeTarget()',
             ),
           ),
         ),

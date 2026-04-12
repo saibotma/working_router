@@ -17,7 +17,7 @@ sealed class LocationBuildResult<ID>
   const LocationBuildResult();
 }
 
-final class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
+class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
   final LocationWidgetBuilder<ID> buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
 

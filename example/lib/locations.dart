@@ -44,7 +44,7 @@ class ADLocation extends Location<LocationId, ADLocation> {
   });
 }
 
-class ADShellLocation extends Location<LocationId, ADShellLocation> {
+class ADShellLocation extends ShellLocation<LocationId, ADShellLocation> {
   ADShellLocation({
     super.id,
     super.parentRouterKey,
@@ -80,8 +80,8 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
     required this.rootRouterKey,
     this.outerShellRouterKey,
   }) : super(
-         tags: [PopUntilTarget()],
-       );
+          tags: [PopUntilTarget()],
+        );
 
   @override
   void build(LocationBuilder<LocationId> builder) {
@@ -143,28 +143,21 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
               },
             ),
             if (outerShellRouterKey != null)
-              Shell(
-                build: (builder, shell, routerKey) {
-                  builder.widgetBuilder(
+              ADShellLocation(
+                id: LocationId.adShell,
+                build: (builder, location, routerKey) {
+                  builder.shellWidgetBuilder(
                     (context, data, child) => InnerShellScreen(child: child),
                   );
+                  builder.widget(const InnerShellRootScreen());
 
                   builder.children = [
-                    ADShellLocation(
-                      id: LocationId.adShell,
+                    ADELocation(
+                      id: LocationId.ade,
+                      parentRouterKey: outerShellRouterKey ?? routerKey,
                       build: (builder, location) {
-                        builder.widget(const InnerShellRootScreen());
-
-                        builder.children = [
-                          ADELocation(
-                            id: LocationId.ade,
-                            parentRouterKey: outerShellRouterKey ?? routerKey,
-                            build: (builder, location) {
-                              builder.pathLiteral('e');
-                              builder.widget(const ShellBypassScreen());
-                            },
-                          ),
-                        ];
+                        builder.pathLiteral('e');
+                        builder.widget(const ShellBypassScreen());
                       },
                     ),
                   ];

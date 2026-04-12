@@ -16,6 +16,7 @@ export 'src/route_param_codec.dart';
 export 'src/route_target.dart';
 export 'src/shared/keep_keys.dart';
 export 'src/shell.dart';
+export 'src/shell_location.dart';
 export 'src/transition_decision.dart';
 export 'src/widgets/location_observer.dart';
 export 'src/widgets/nearest_location.dart';

@@ -33,7 +33,9 @@
 ///
 /// Supported composition includes:
 /// - named `Location<ID, Self>` subclasses
+/// - named `ShellLocation<ID, Self>` subclasses
 /// - direct `Shell(...)` nodes
+/// - direct `ShellLocation(...)` nodes
 /// - top-level or static helper fields and getters
 /// - top-level, static, or local helper functions
 /// - helper function arguments when the tree-relevant expressions remain

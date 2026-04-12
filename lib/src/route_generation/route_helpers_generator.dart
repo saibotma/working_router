@@ -183,6 +183,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
           final owner = chain[i];
           if (!owner.isLocation ||
               owner.locationTypeSource == 'Location' ||
+              owner.locationTypeSource == 'ShellLocation' ||
               owner.locationTypeSource == 'Group') {
             continue;
           }
@@ -467,21 +468,27 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
   }
 
   String _routeNodeMatchDiscriminator(_RouteNode node) {
-    if (node.locationTypeSource == 'Location' && node.idExpression != null) {
+    if ((node.locationTypeSource == 'Location' ||
+            node.locationTypeSource == 'ShellLocation') &&
+        node.idExpression != null) {
       return node.idExpression!;
     }
     return node.locationTypeSource;
   }
 
   String _routeNodeMatchSource(_RouteNode node) {
-    if (node.locationTypeSource == 'Location' && node.idExpression != null) {
+    if ((node.locationTypeSource == 'Location' ||
+            node.locationTypeSource == 'ShellLocation') &&
+        node.idExpression != null) {
       return 'location.id == ${node.idExpression}';
     }
     return 'location is ${node.locationTypeSource}';
   }
 
   String _childMethodBaseNameForNode(_RouteNode node) {
-    if (node.locationTypeSource == 'Location' && node.idExpression != null) {
+    if ((node.locationTypeSource == 'Location' ||
+            node.locationTypeSource == 'ShellLocation') &&
+        node.idExpression != null) {
       return node.idExpression!.split('.').last;
     }
     return _childMethodBaseName(node.locationTypeSource);
@@ -753,6 +760,8 @@ class _StaticRouteTreeExtractor {
     final isDirectBaseNode =
         classElement.displayName == 'Location' ||
         classElement.displayName == 'AbstractLocation' ||
+        classElement.displayName == 'ShellLocation' ||
+        classElement.displayName == 'AbstractShellLocation' ||
         classElement.displayName == 'Group' ||
         classElement.displayName == 'AbstractGroup' ||
         classElement.displayName == 'Shell' ||
@@ -839,6 +848,8 @@ class _StaticRouteTreeExtractor {
 
     if (classElement.displayName == 'Location' ||
         classElement.displayName == 'AbstractLocation' ||
+        classElement.displayName == 'ShellLocation' ||
+        classElement.displayName == 'AbstractShellLocation' ||
         classElement.displayName == 'Group' ||
         classElement.displayName == 'AbstractGroup' ||
         classElement.displayName == 'Shell' ||
@@ -853,6 +864,8 @@ class _StaticRouteTreeExtractor {
     if (buildMethod == null ||
         buildMethod.enclosingElement?.displayName == 'Location' ||
         buildMethod.enclosingElement?.displayName == 'AbstractLocation' ||
+        buildMethod.enclosingElement?.displayName == 'ShellLocation' ||
+        buildMethod.enclosingElement?.displayName == 'AbstractShellLocation' ||
         buildMethod.enclosingElement?.displayName == 'Group' ||
         buildMethod.enclosingElement?.displayName == 'AbstractGroup' ||
         buildMethod.enclosingElement?.displayName == 'Shell' ||
@@ -2668,6 +2681,8 @@ class _StaticRouteTreeExtractor {
     while (current != null) {
       if (current.element.name == 'Location' ||
           current.element.name == 'AbstractLocation' ||
+          current.element.name == 'ShellLocation' ||
+          current.element.name == 'AbstractShellLocation' ||
           current.element.name == 'AbstractGroup' ||
           current.element.name == 'Group') {
         return true;
@@ -2681,6 +2696,7 @@ class _StaticRouteTreeExtractor {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
       if (current.element.name == 'Shell' ||
+          current.element.name == 'ShellLocation' ||
           current.element.name == 'AbstractShell') {
         return true;
       }
@@ -2696,10 +2712,12 @@ bool _isFrameworkRouteMemberOwner(Element? element) {
       ownerName == 'PathLocationTreeElement' ||
       ownerName == 'AnyLocation' ||
       ownerName == 'AbstractLocation' ||
+      ownerName == 'AbstractShellLocation' ||
       ownerName == 'AbstractGroup' ||
       ownerName == 'AbstractShell' ||
       ownerName == 'Group' ||
       ownerName == 'Location' ||
+      ownerName == 'ShellLocation' ||
       ownerName == 'Shell';
 }
 
