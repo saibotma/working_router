@@ -1503,7 +1503,6 @@ class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
 @Locations()
 LocationTreeElement<ShellRootRouteId> get appLocationTree => Shell(
   build: (builder, shell, routerKey) {
-    builder.widgetBuilder((context, data, child) => child);
     builder.children = [
       ChildChildLocation(
         id: ShellRootRouteId.child,
@@ -1567,7 +1566,6 @@ LocationTreeElement<ShellParamsRouteId> get appLocationTree => Shell(
     builder.pathLiteral('accounts');
     final accountId = builder.stringPathParam();
     final tab = builder.stringQueryParam('tab');
-    builder.widgetBuilder((context, data, child) => child);
     builder.children = [
       DashboardLocation(
         id: ShellParamsRouteId.dashboard,

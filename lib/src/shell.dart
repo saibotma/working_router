@@ -55,18 +55,10 @@ class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
   }
 
   ShellBuildResult<ID> resolveRender() {
-    if (_buildWidget == null) {
-      if (_buildPage != null) {
-        throw StateError(
-          'ShellBuilder page was configured without widgetBuilder(...). '
-          'Call widgetBuilder(...) before page(...).',
-        );
-      }
-      throw StateError(
-        'ShellBuilder must configure its render with widgetBuilder(...).',
-      );
-    }
-    return ShellBuildResult(buildWidget: _buildWidget!, buildPage: _buildPage);
+    return ShellBuildResult(
+      buildWidget: _buildWidget ?? (_, _, child) => child,
+      buildPage: _buildPage,
+    );
   }
 }
 

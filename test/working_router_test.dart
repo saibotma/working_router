@@ -698,7 +698,6 @@ void main() {
                       'tab',
                       defaultValue: const Default('overview'),
                     );
-                    builder.widgetBuilder((context, data, child) => child);
                     builder.children = [
                       _BuilderLocation<_Id>(
                         id: _Id.b,
@@ -744,7 +743,6 @@ void main() {
                   build: (builder, shell, routerKey) {
                     builder.pathLiteral('accounts');
                     builder.stringPathParam();
-                    builder.widgetBuilder((context, data, child) => child);
                     builder.children = [
                       _BuilderLocation<_Id>(
                         id: _Id.b,
@@ -783,7 +781,6 @@ void main() {
                   build: (builder, shell, routerKey) {
                     builder.pathLiteral('accounts');
                     final accountId = builder.stringPathParam();
-                    builder.widgetBuilder((context, data, child) => child);
                     builder.children = [
                       _BuilderLocation<_Id>(
                         id: _Id.b,

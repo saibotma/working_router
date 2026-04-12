@@ -52,10 +52,6 @@ void build(builder) {
     expect(edit, isNotNull);
     final changedSource = _applyEdit(source, edit!);
     expect(changedSource, contains('Shell('));
-    expect(
-      changedSource,
-      contains('builder.widgetBuilder((context, data, child) => child);'),
-    );
     expect(changedSource, contains('PrivacyLocation('));
   });
 
@@ -111,7 +107,6 @@ void build(builder) {
   builder.children = [
     Shell(
       build: (builder, shell, routerKey) {
-        builder.widgetBuilder((context, data, child) => child);
         builder.children = [
           ALocation(
 '''),
@@ -124,7 +119,6 @@ List<Object> buildLocations() {
   return [
     Shell(
       build: (builder, shell, routerKey) {
-        builder.widgetBuilder((context, data, child) => child);
         builder.children = [
           PrivacyLocation(
             build: (builder, location) {
@@ -139,7 +133,7 @@ List<Object> buildLocations() {
 ''';
     final edit = _createEdit(
       source: source,
-      snippet: 'child) => child',
+      snippet: "builder.widget('privacy')",
       template: WrapWithGroup.templateForTest,
     );
 
