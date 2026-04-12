@@ -12,7 +12,7 @@ void build(builder) {
   builder.children = [
     PrivacyLocation(
       build: (builder, location) {
-        builder.widget('privacy');
+        builder.content = Content.widget('privacy');
       },
     ),
   ];
@@ -37,7 +37,7 @@ void build(builder) {
   builder.children = [
     PrivacyLocation(
       build: (builder, location) {
-        builder.widget('privacy');
+        builder.content = Content.widget('privacy');
       },
     ),
   ];
@@ -61,7 +61,7 @@ List<Object> buildLocations() {
   return [
     SplashLocation(
       build: (builder, location) {
-        builder.widget('splash');
+        builder.content = Content.widget('splash');
       },
     ),
   ];
@@ -90,7 +90,7 @@ List<Object> buildLocations(bool enabled) {
           builder.children = [
             PrivacyLocation(
               build: (builder, location) {
-                builder.widget('privacy');
+                builder.content = Content.widget('privacy');
               },
             ),
           ];
@@ -123,7 +123,7 @@ void build(builder, permissions) {
           builder.children = [
             PrivacyLocation(
               build: (builder, location) {
-                builder.widget('privacy');
+                builder.content = Content.widget('privacy');
               },
             ),
           ];
@@ -158,7 +158,7 @@ void build(builder, permissions) {
           builder.children = [
             PrivacyLocation(
               build: (builder, location) {
-                builder.widget('privacy');
+                builder.content = Content.widget('privacy');
               },
             ),
           ];
@@ -189,7 +189,7 @@ void build(builder) {
     ALocation(
       id: LocationId.a,
       build: (builder, location) {
-        builder.widget('a');
+        builder.content = Content.widget('a');
       },
     ),
   ];
@@ -224,7 +224,7 @@ List<Object> buildLocations() {
         builder.children = [
           PrivacyLocation(
             build: (builder, location) {
-              builder.widget('privacy');
+              builder.content = Content.widget('privacy');
             },
           ),
         ];
@@ -235,7 +235,7 @@ List<Object> buildLocations() {
 ''';
     final edit = _createEdit(
       source: source,
-      snippet: "builder.widget('privacy')",
+      snippet: "builder.content = Content.widget('privacy')",
       template: WrapWithGroup.templateForTest,
     );
 
@@ -333,7 +333,7 @@ List<Object> buildLocations() {
   return [
     SplashLocation(
       build: (builder, location) {
-        builder.widget('splash');
+        builder.content = Content.widget('splash');
         builder.children = [
           ALocation(),
         ];
@@ -363,7 +363,7 @@ List<Object> buildLocations(bool showA) {
   return [
     SplashLocation(
       build: (builder, location) {
-        builder.widget('splash');
+        builder.content = Content.widget('splash');
         if (showA) {
           builder.children = [
             ALocation(),

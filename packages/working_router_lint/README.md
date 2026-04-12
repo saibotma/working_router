@@ -25,7 +25,7 @@ Enable the plugin in your app's `analysis_options.yaml`.
 
 ```yaml
 plugins:
-  working_router_lint: ^0.1.2
+  working_router_lint: ^0.1.4
 ```
 
 ### Local checkout

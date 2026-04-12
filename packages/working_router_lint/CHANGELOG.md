@@ -1,12 +1,17 @@
 # Changelog
 
+## 0.1.5
+
+- Update plugin tests and package docs to the new `builder.content = ...`
+  location rendering API.
+
 ## 0.1.4
 
 - Support wrap assists inside route-tree `if (...) ...[ ... ]` branches.
 - Make wrap assist selection more reliable when the cursor is on the
   indentation before an entry such as `Shell(`.
 - Update generated `Wrap with Shell` snippets to match shells that now default
-  to rendering their child without an explicit `widgetBuilder(...)`.
+  to rendering their child without an explicit shell widget builder.
 
 ## 0.1.3
 
