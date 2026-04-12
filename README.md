@@ -221,7 +221,7 @@ class SettingsShellLocation
   SettingsShellLocation({required super.id});
 
   @override
-  void buildShellLocation(ShellLocationBuilder<RouteId> builder) {
+  void build(ShellLocationBuilder<RouteId> builder) {
     builder.widget(const SettingsScreen());
     builder.children = [
       ThemeModeLocation(id: RouteId.themeMode, build: ...),

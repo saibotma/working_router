@@ -4,6 +4,7 @@ import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/shell.dart';
+import 'package:working_router/src/shell_location.dart';
 import 'package:working_router/src/working_router_data.dart';
 
 abstract interface class BuildsWithLocationBuilder<ID> {
@@ -16,6 +17,10 @@ abstract interface class BuildsWithGroupBuilder<ID> {
 
 abstract interface class BuildsWithShellBuilder<ID> {
   void build(ShellBuilder<ID> builder);
+}
+
+abstract interface class BuildsWithShellLocationBuilder<ID> {
+  void build(ShellLocationBuilder<ID> builder);
 }
 
 abstract class PathLocationTreeElementRenderResult<ID> {
@@ -291,6 +296,14 @@ abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
         () {
           element.build(shellBuilder);
           return shellBuilder.resolveRender();
+        }(),
+      (
+        final BuildsWithShellLocationBuilder<ID> element,
+        final ShellLocationBuilder<ID> shellLocationBuilder,
+      ) =>
+        () {
+          element.build(shellLocationBuilder);
+          return shellLocationBuilder.resolveRender();
         }(),
       _ => throw StateError(
         'Unsupported PathLocationTreeElement/Builder combination: '

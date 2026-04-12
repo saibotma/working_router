@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
+import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
@@ -91,7 +92,8 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
 /// descendants that would normally inherit or explicitly target this shell
 /// location's [routerKey] are routed to its parent navigator instead.
 abstract class AbstractShellLocation<ID, Self extends AnyLocation<ID>>
-    extends AbstractLocation<ID, Self> {
+    extends AnyLocation<ID>
+    implements BuildsWithShellLocationBuilder<ID> {
   final WorkingRouterKey routerKey;
   final bool navigatorEnabled;
 
@@ -109,14 +111,6 @@ abstract class AbstractShellLocation<ID, Self extends AnyLocation<ID>>
 
   @override
   ShellLocationBuilder<ID> createBuilder() => ShellLocationBuilder<ID>();
-
-  @protected
-  void buildShellLocation(ShellLocationBuilder<ID> builder);
-
-  @override
-  void build(LocationBuilder<ID> builder) {
-    buildShellLocation(builder as ShellLocationBuilder<ID>);
-  }
 
   ShellLocationBuildResult<ID> get _shellLocationRender {
     final render = definition.render;
@@ -160,7 +154,7 @@ class ShellLocation<ID, Self extends AnyLocation<ID>>
   }) : _build = build;
 
   @override
-  void buildShellLocation(ShellLocationBuilder<ID> builder) {
+  void build(ShellLocationBuilder<ID> builder) {
     _build(builder, this as Self, routerKey);
   }
 }
