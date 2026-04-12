@@ -89,9 +89,10 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
-- Use `Location(...)`, `Group(...)`, and `Shell(...)` for callback-based route
-  definitions, or subclass `AbstractLocation`, `AbstractGroup`, and
-  `AbstractShell` to override `build(...)` directly.
+- Use `Location(...)`, `Group(...)`, `Shell(...)`, and `ShellLocation(...)`
+  for callback-based route definitions, or subclass `AbstractLocation`,
+  `AbstractGroup`, `AbstractShell`, and `AbstractShellLocation` to override
+  `build(...)` directly.
 - Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
 - `builder.widget(...)` is the shortcut for constant widgets.
@@ -104,7 +105,7 @@ See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
 - [`example/lib/locations.dart`](example/lib/locations.dart)
 
-## Group Vs Shell
+## Group Vs Shell Vs ShellLocation
 
 Use a `Group` when you want a shared route scope without rendering anything.
 A group:
@@ -130,10 +131,32 @@ like a `Group` instead. This lets you keep a shell in the tree for shared
 path/query scope while routing descendants to an ancestor navigator on smaller
 layouts.
 
+You can also disable the shell navigator explicitly with
+`navigatorEnabled: false`. In that mode the shell stays in the tree for
+path/query structure, but descendants inherit the shell parent navigator
+automatically. Explicit `parentRouterKey: routerKey` references are also
+aliased back to that parent navigator, so responsive shells do not require
+rewriting every child.
+
 Typical use case:
 - a sidebar or tab layout that stays visible while child routes change
 - an account area like `/accounts/:id/...` where children render inside a
   common scaffold
+
+Use a `ShellLocation` when that nested navigator boundary belongs to exactly
+one semantic location instead of a shell plus one child location. A shell
+location:
+- has an `id` like a normal location
+- defines its own path, query params, widget, and page
+- also defines an outer shell wrapper/page on the parent navigator
+- creates a nested navigator for its child subtree
+- can disable that nested navigator with `navigatorEnabled: false`
+
+Typical use case:
+- a `/settings` route that opens in a modal shell and then renders nested
+  `/settings/theme-mode` pages inside that modal
+- a flow root that needs both a semantic location id and an outer container
+  page without introducing an extra `Shell -> Location` nesting level
 
 ## Callback Vs Abstract Types
 
@@ -153,6 +176,17 @@ Shell(
     builder.widgetBuilder((context, data, child) => Scaffold(body: child));
     builder.children = [
       DashboardLocation(id: RouteId.dashboard, build: ...),
+    ];
+  },
+);
+
+ShellLocation<RouteId, SettingsLocation>(
+  id: RouteId.settings,
+  build: (builder, location, routerKey) {
+    builder.shellPage((key, child) => MaterialPage(key: key, child: child));
+    builder.widget(const SettingsScreen());
+    builder.children = [
+      ThemeModeLocation(id: RouteId.themeMode, build: ...),
     ];
   },
 );
@@ -178,6 +212,19 @@ class AccountShell extends AbstractShell<RouteId> {
     builder.widgetBuilder((context, data, child) => Scaffold(body: child));
     builder.children = [
       DashboardLocation(id: RouteId.dashboard, build: ...),
+    ];
+  }
+}
+
+class SettingsShellLocation
+    extends AbstractShellLocation<RouteId, SettingsShellLocation> {
+  SettingsShellLocation({required super.id});
+
+  @override
+  void buildShellLocation(ShellLocationBuilder<RouteId> builder) {
+    builder.widget(const SettingsScreen());
+    builder.children = [
+      ThemeModeLocation(id: RouteId.themeMode, build: ...),
     ];
   }
 }
@@ -246,22 +293,22 @@ For everything else, use `PageKey.custom(...)`.
 
 ```dart
 Shell(
+  navigatorEnabled: screenSize != ScreenSize.small,
   build: (builder, shell, routerKey) {
     builder.widgetBuilder((context, data, child) {
       return Scaffold(body: child);
     });
 
-    builder.children = [
-      SomeLocation(id: MyRouteId.some),
-    ];
+    builder.children = [SomeLocation(id: MyRouteId.some)];
   },
 )
 ```
 
-Shells create their own nested navigator keys internally. If a child should be
-rendered on the root navigator instead, thread the `rootRouterKey` from the
-top-level `buildLocations(...)` entrypoint into the location that needs it and
-pass that value as `parentRouterKey:`.
+Shells create their own nested navigator keys internally. When
+`navigatorEnabled` is false, the builder still receives that stable shell key,
+but routing ownership aliases it back to the shell parent navigator. That
+means children can either inherit implicitly or keep using
+`parentRouterKey: routerKey` without forcing a second responsive tree.
 
 Nested shell routing is hosted by a stateful `NestedRouting` widget, so the
 nested delegate keeps its own navigator key and stack across
@@ -271,6 +318,42 @@ state can survive tree changes that still keep the same shell alive.
 
 This is shown in the package example in
 [`example/lib/app_routes.dart`](example/lib/app_routes.dart).
+
+## Defining Shell Locations
+
+`ShellLocation` is the shorthand for the common `Shell + one child Location`
+shape:
+
+```dart
+ShellLocation<RouteId, SettingsLocation>(
+  id: RouteId.settings,
+  navigatorEnabled: screenSize != ScreenSize.small,
+  build: (builder, location, routerKey) {
+    builder.pathLiteral('settings');
+
+    builder.shellWidgetBuilder((context, data, child) {
+      return Dialog(child: child);
+    });
+
+    builder.widget(const SettingsScreen());
+    builder.page((key, child) {
+      return MaterialPage(key: key, child: child);
+    });
+
+    builder.children = [
+      ThemeModeLocation(id: RouteId.themeMode, build: ...),
+    ];
+  },
+)
+```
+
+Use:
+- `widget(...)`, `widgetBuilder(...)`, and `page(...)` for the inner location
+  page rendered inside the nested navigator
+- `shellWidgetBuilder(...)` and `shellPage(...)` for the outer shell wrapper
+  rendered on the parent navigator
+- `navigatorEnabled: false` when the shell location should collapse down to a
+  normal location on smaller layouts while keeping the same tree shape
 
 ## Generated API
 
@@ -326,9 +409,12 @@ The package example demonstrates:
 - the splash -> a -> ab/abc and ad/adc flow
 - a responsive route tree where small screens stack on top of `/a` while
   medium/large screens keep the alphabet sidebar visible in a shell
+- a `ShellLocation` that removes one nesting level from a `Shell + Location`
+  pattern
 - lightweight callback-based `Location` wrappers plus an override-based
   `AbstractLocation` example
-- direct `Shell(...)` usage with optional `AbstractShell` subclassing support
+- direct `Shell(...)` and `ShellLocation(...)` usage with optional
+  `AbstractShell` / `AbstractShellLocation` subclassing support
 - typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes

@@ -11,6 +11,7 @@ import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/nested_location_page_skeleton.dart';
 import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/shell.dart';
+import 'package:working_router/src/shell_location.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
@@ -21,6 +22,14 @@ typedef BuildPages<ID> =
       AnyLocation<ID> location,
       WorkingRouterData<ID> data,
     );
+
+enum _MatchedNodeRenderKind { node, shell, shellLocationShell }
+
+typedef _MatchedNodeEntry<ID> = ({
+  LocationTreeElement<ID> node,
+  WorkingRouterKey effectiveParentRouterKey,
+  _MatchedNodeRenderKind renderKind,
+});
 
 class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin {
@@ -136,12 +145,14 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   void refresh() {
     if (_data != null) {
       _pages = _matchedNodesForNavigator(_data!)
-          .map((node) {
-            return _buildPagesForNode(node, _data!).map((pageSkeleton) {
+          .map((entry) {
+            return _buildPagesForMatchedEntry(entry, _data!).map((
+              pageSkeleton,
+            ) {
               return pageSkeleton.inflate(
                 data: _data!,
                 router: router,
-                node: node,
+                node: entry.node,
               );
             });
           })
@@ -162,33 +173,74 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   /// a node back to a different ancestor navigator. This method resolves that
   /// ownership and yields only the nodes assigned to the current delegate's
   /// navigator.
-  Iterable<LocationTreeElement<ID>> _matchedNodesForNavigator(
+  Iterable<_MatchedNodeEntry<ID>> _matchedNodesForNavigator(
     WorkingRouterData<ID> data,
   ) sync* {
     for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
       if (identical(entry.effectiveParentRouterKey, routerKey)) {
-        yield entry.node;
+        yield entry;
       }
     }
   }
 
-  Iterable<
-    ({LocationTreeElement<ID> node, WorkingRouterKey effectiveParentRouterKey})
-  >
-  _matchedNodesWithEffectiveParentRouterKeys(WorkingRouterData<ID> data) sync* {
+  Iterable<_MatchedNodeEntry<ID>> _matchedNodesWithEffectiveParentRouterKeys(
+    WorkingRouterData<ID> data,
+  ) sync* {
     WorkingRouterKey childRouterKey = router.rootRouterKey;
+    // Disabled shells still have a stable routerKey in the build callback, but
+    // for routing ownership that key aliases back to the shell's parent
+    // navigator. This keeps explicit `parentRouterKey: routerKey` usages
+    // working without forcing responsive tree rewrites.
+    final aliasedRouterKeys = <WorkingRouterKey, WorkingRouterKey>{};
 
     for (final node in data.elements) {
-      final effectiveParentRouterKey = node.parentRouterKey ?? childRouterKey;
-      yield (
-        node: node,
-        effectiveParentRouterKey: effectiveParentRouterKey,
-      );
-
+      final inheritedParentRouterKey =
+          aliasedRouterKeys[node.parentRouterKey] ??
+          node.parentRouterKey ??
+          childRouterKey;
+      final effectiveParentRouterKey = inheritedParentRouterKey;
       switch (node) {
-        case Shell<ID>():
-          childRouterKey = node.routerKey;
+        case final AbstractShellLocation<ID, dynamic> shellLocation:
+          // A shell location contributes two render phases from one matched
+          // semantic node: its outer shell page on the parent navigator and
+          // its inner location page on its own nested navigator.
+          if (shellLocation.navigatorEnabled) {
+            yield (
+              node: node,
+              effectiveParentRouterKey: effectiveParentRouterKey,
+              renderKind: _MatchedNodeRenderKind.shellLocationShell,
+            );
+          }
+          final effectiveShellChildRouterKey = shellLocation.navigatorEnabled
+              ? shellLocation.routerKey
+              : effectiveParentRouterKey;
+          yield (
+            node: node,
+            effectiveParentRouterKey: effectiveShellChildRouterKey,
+            renderKind: _MatchedNodeRenderKind.node,
+          );
+          aliasedRouterKeys[shellLocation.routerKey] =
+              effectiveShellChildRouterKey;
+          childRouterKey = effectiveShellChildRouterKey;
+        case final AbstractShell<ID> shell:
+          if (shell.navigatorEnabled) {
+            yield (
+              node: node,
+              effectiveParentRouterKey: effectiveParentRouterKey,
+              renderKind: _MatchedNodeRenderKind.shell,
+            );
+          }
+          final effectiveShellChildRouterKey = shell.navigatorEnabled
+              ? shell.routerKey
+              : effectiveParentRouterKey;
+          aliasedRouterKeys[shell.routerKey] = effectiveShellChildRouterKey;
+          childRouterKey = effectiveShellChildRouterKey;
         case PathLocationTreeElement<ID>():
+          yield (
+            node: node,
+            effectiveParentRouterKey: effectiveParentRouterKey,
+            renderKind: _MatchedNodeRenderKind.node,
+          );
           childRouterKey = effectiveParentRouterKey;
       }
     }
@@ -208,55 +260,81 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         continue;
       }
 
-      final node = entry.node;
-      if (node case final Shell<ID> shell) {
-        if (_navigatorWouldBuildPages(shell.routerKey, data)) {
-          return true;
-        }
-        continue;
-      }
-
-      if (node case final AnyLocation<ID> location) {
-        if (_buildPagesForLocation(location, data).isNotEmpty) {
-          return true;
-        }
+      switch ((entry.renderKind, entry.node)) {
+        case (_MatchedNodeRenderKind.shell, final AbstractShell<ID> shell):
+          if (_navigatorWouldBuildPages(shell.routerKey, data)) {
+            return true;
+          }
+        case (
+          _MatchedNodeRenderKind.shellLocationShell,
+          final AbstractShellLocation<ID, dynamic> shellLocation,
+        ):
+          if (_navigatorWouldBuildPages(shellLocation.routerKey, data)) {
+            return true;
+          }
+        case (_, final AnyLocation<ID> location):
+          if (_buildPagesForLocation(location, data).isNotEmpty) {
+            return true;
+          }
       }
     }
 
     return false;
   }
 
-  List<LocationPageSkeleton<ID>> _buildPagesForNode(
-    LocationTreeElement<ID> node,
+  List<LocationPageSkeleton<ID>> _buildPagesForMatchedEntry(
+    _MatchedNodeEntry<ID> entry,
     WorkingRouterData<ID> data,
   ) {
-    if (node case final Shell<ID> shell) {
-      // Keep shells structural unless their navigator would host a matched
-      // descendant page. This allows a shell to stay in the route tree for
-      // shared path/query params while descendants are routed to an ancestor
-      // navigator, such as root-stacked pages on small screens.
-      if (!_navigatorWouldBuildPages(shell.routerKey, data)) {
-        return const [];
-      }
-      return [
-        NestedLocationPageSkeleton(
-          router: router,
-          buildPages: (_, location, data) => _buildPagesForLocation(
-            location,
-            data,
+    switch ((entry.renderKind, entry.node)) {
+      case (_MatchedNodeRenderKind.shell, final AbstractShell<ID> shell):
+        // Keep shells structural unless their navigator would host a matched
+        // descendant page. This allows a shell to stay in the route tree for
+        // shared path/query params while descendants are routed to an ancestor
+        // navigator, such as root-stacked pages on small screens.
+        if (!shell.navigatorEnabled ||
+            !_navigatorWouldBuildPages(shell.routerKey, data)) {
+          return const [];
+        }
+        return [
+          NestedLocationPageSkeleton(
+            router: router,
+            buildPages: (_, location, data) => _buildPagesForLocation(
+              location,
+              data,
+            ),
+            routerKey: shell.routerKey,
+            buildChild: (context, nestedData, child) {
+              return shell.buildWidget(context, nestedData, child);
+            },
+            buildPage: shell.buildPage,
+            debugLabel: '$shell',
           ),
-          routerKey: shell.routerKey,
-          buildChild: (context, nestedData, child) {
-            return shell.buildWidget(context, nestedData, child);
-          },
-          buildPage: shell.buildPage,
-          debugLabel: '$shell',
-        ),
-      ];
-    }
-
-    if (node case final AnyLocation<ID> location) {
-      return _buildPagesForLocation(location, data);
+        ];
+      case (
+        _MatchedNodeRenderKind.shellLocationShell,
+        final AbstractShellLocation<ID, dynamic> shellLocation,
+      ):
+        if (!shellLocation.navigatorEnabled) {
+          return const [];
+        }
+        return [
+          NestedLocationPageSkeleton(
+            router: router,
+            buildPages: (_, location, data) => _buildPagesForLocation(
+              location,
+              data,
+            ),
+            routerKey: shellLocation.routerKey,
+            buildChild: (context, nestedData, child) {
+              return shellLocation.buildShellWidget(context, nestedData, child);
+            },
+            buildPage: shellLocation.buildShellPage,
+            debugLabel: '$shellLocation',
+          ),
+        ];
+      case (_, final AnyLocation<ID> location):
+        return _buildPagesForLocation(location, data);
     }
 
     return const [];

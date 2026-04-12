@@ -722,13 +722,64 @@ void main() {
 
       await _pumpRouterApp(tester, router);
       router.routeToUri(
-        Uri(path: '/accounts/42/dashboard', queryParameters: {'tab': 'billing'}),
+        Uri(
+          path: '/accounts/42/dashboard',
+          queryParameters: {'tab': 'billing'},
+        ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('42:billing'), findsOneWidget);
       expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
     });
+
+    testWidgets(
+      'shell locations render an outer shell page and an inner location page',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderShellLocation<_Id>(
+                    id: _Id.b,
+                    build: (builder, location, routerKey) {
+                      builder.pathLiteral('accounts');
+                      final accountId = builder.stringPathParam();
+                      builder.shellWidgetBuilder((context, data, child) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('shell'),
+                            SizedBox(height: 80, child: child),
+                          ],
+                        );
+                      });
+                      builder.widgetBuilder((context, data) {
+                        return Text('settings:${data.pathParam(accountId)}');
+                      });
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/accounts/42'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('shell'), findsOneWidget);
+        expect(find.text('settings:42'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(2),
+        );
+      },
+    );
 
     testWidgets('shell without matching child is treated as unresolved', (
       tester,
@@ -855,9 +906,134 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('42'), findsOneWidget);
-      expect(tester.widgetList<Navigator>(find.byType(Navigator)), hasLength(1));
+      expect(
+        tester.widgetList<Navigator>(find.byType(Navigator)),
+        hasLength(1),
+      );
       expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
     });
+
+    testWidgets(
+      'disabled shell routes implicit and explicit shell children to parent navigator',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  Shell(
+                    navigatorEnabled: false,
+                    build: (builder, shell, routerKey) {
+                      builder.pathLiteral('accounts');
+                      final accountId = builder.stringPathParam();
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          build: (builder, location) {
+                            builder.pathLiteral('dashboard');
+                            builder.widgetBuilder((context, data) {
+                              return Text(
+                                'dashboard:${data.pathParam(accountId)}',
+                              );
+                            });
+                          },
+                        ),
+                        _BuilderLocation<_Id>(
+                          id: _Id.c,
+                          parentRouterKey: routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('details');
+                            builder.widgetBuilder((context, data) {
+                              return Text(
+                                'details:${data.pathParam(accountId)}',
+                              );
+                            });
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/accounts/42/details'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('details:42'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(1),
+        );
+      },
+    );
+
+    testWidgets(
+      'disabled shell location renders on parent navigator and aliases its router key',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderShellLocation<_Id>(
+                    id: _Id.b,
+                    navigatorEnabled: false,
+                    build: (builder, location, routerKey) {
+                      builder.pathLiteral('accounts');
+                      final accountId = builder.stringPathParam();
+                      builder.widgetBuilder((context, data) {
+                        return Text('settings:${data.pathParam(accountId)}');
+                      });
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.c,
+                          parentRouterKey: routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('details');
+                            builder.widgetBuilder((context, data) {
+                              return Text(
+                                'details:${data.pathParam(accountId)}',
+                              );
+                            });
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/accounts/42'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('settings:42'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(1),
+        );
+
+        router.routeToUri(Uri(path: '/accounts/42/details'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('details:42'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(1),
+        );
+      },
+    );
   });
 }
 
@@ -1139,6 +1315,16 @@ class _BuilderLocation<ID> extends Location<ID, _BuilderLocation<ID>> {
   _BuilderLocation({
     required super.id,
     super.parentRouterKey,
+    required super.build,
+  });
+}
+
+class _BuilderShellLocation<ID>
+    extends ShellLocation<ID, _BuilderShellLocation<ID>> {
+  _BuilderShellLocation({
+    required super.id,
+    super.parentRouterKey,
+    super.navigatorEnabled,
     required super.build,
   });
 }

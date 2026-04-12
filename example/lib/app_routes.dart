@@ -18,20 +18,9 @@ List<LocationTreeElement<LocationId>> buildLocations({
       id: LocationId.splash,
       build: (builder, location) {
         builder.widget(const SplashScreen());
-
-        if (screenSize == ScreenSize.small) {
-          builder.children = [
-            ALocation(
-              id: LocationId.a,
-              rendersStandaloneSidebar: true,
-              rootRouterKey: rootRouterKey,
-            ),
-          ];
-          return;
-        }
-
         builder.children = [
           Shell(
+            navigatorEnabled: screenSize != ScreenSize.small,
             build: (builder, shell, routerKey) {
               builder.widgetBuilder(
                 (context, data, child) => NestedScreen(child: child),
@@ -40,7 +29,7 @@ List<LocationTreeElement<LocationId>> buildLocations({
               builder.children = [
                 ALocation(
                   id: LocationId.a,
-                  rendersStandaloneSidebar: false,
+                  rendersStandaloneSidebar: screenSize == ScreenSize.small,
                   rootRouterKey: rootRouterKey,
                   outerShellRouterKey: routerKey,
                 ),

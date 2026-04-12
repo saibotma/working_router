@@ -18,7 +18,8 @@ typedef BuildShell<ID> =
       WorkingRouterKey routerKey,
     );
 
-final class ShellBuildResult<ID> extends PathLocationTreeElementRenderResult<ID> {
+final class ShellBuildResult<ID>
+    extends PathLocationTreeElementRenderResult<ID> {
   final ShellWidgetBuilder<ID> buildWidget;
   final ShellPageBuilder? buildPage;
 
@@ -92,12 +93,18 @@ class BuiltShellDefinition<ID> {
 /// route tree for shared path/query scope while routing descendants to an
 /// ancestor navigator on smaller layouts.
 ///
+/// Setting [navigatorEnabled] to false disables the nested navigator
+/// completely. The shell then always behaves like a [Group] for rendering,
+/// and descendants that would normally inherit or explicitly target this
+/// shell's [routerKey] are routed to the shell's parent navigator instead.
+///
 /// Use a shell when a part of the route tree should stay visible while child
 /// locations change inside it, such as a sidebar layout, tab scaffold, or
 /// nested flow container.
 abstract class AbstractShell<ID> extends PathLocationTreeElement<ID>
     implements BuildsWithShellBuilder<ID> {
   final WorkingRouterKey routerKey;
+  final bool navigatorEnabled;
 
   /// Override-based base class for reusable shell subclasses.
   ///
@@ -106,6 +113,7 @@ abstract class AbstractShell<ID> extends PathLocationTreeElement<ID>
   /// type.
   AbstractShell({
     WorkingRouterKey? routerKey,
+    this.navigatorEnabled = true,
     super.parentRouterKey,
   }) : routerKey = routerKey ?? WorkingRouterKey();
 
@@ -167,6 +175,7 @@ class Shell<ID> extends AbstractShell<ID> {
 
   Shell({
     super.routerKey,
+    super.navigatorEnabled,
     required BuildShell<ID> build,
     super.parentRouterKey,
   }) : _build = build;
