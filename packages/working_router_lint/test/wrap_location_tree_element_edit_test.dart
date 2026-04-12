@@ -146,6 +146,42 @@ void build(builder, permissions) {
     expect(changedSource, contains('Shell('));
   });
 
+  test(
+    'wrap with group finds a shell inside a builder.children if spread branch from line indentation',
+    () {
+      const source = '''
+void build(builder, permissions) {
+  builder.children = [
+    if (permissions.maySeeAttendances) ...[
+      Shell(
+        build: (builder, shell, routerKey) {
+          builder.children = [
+            PrivacyLocation(
+              build: (builder, location) {
+                builder.widget('privacy');
+              },
+            ),
+          ];
+        },
+      ),
+    ],
+  ];
+}
+''';
+      final edit = _createCollapsedEditAtLineIndent(
+        source: source,
+        lineSnippet: '      Shell(',
+        template: WrapWithGroup.templateForTest,
+      );
+
+      expect(edit, isNotNull);
+      final changedSource = _applyEdit(source, edit!);
+      expect(changedSource, contains('if (permissions.maySeeAttendances) ...['));
+      expect(changedSource, contains('Group('));
+      expect(changedSource, contains('Shell('));
+    },
+  );
+
   test('wrap with shell formats nested children indentation correctly', () {
     const source = '''
 void build(builder) {
@@ -364,6 +400,27 @@ WrapLocationTreeElementEdit? _createEdit({
     source: source,
     selectionOffset: offset,
     selectionLength: snippet.length,
+    eol: '\n',
+    template: template,
+  );
+}
+
+WrapLocationTreeElementEdit? _createCollapsedEditAtLineIndent({
+  required String source,
+  required String lineSnippet,
+  required WrapTemplate template,
+}) {
+  final parsed = parseString(content: source);
+  final offset = source.indexOf(lineSnippet);
+  if (offset == -1) {
+    throw StateError('Snippet `$lineSnippet` not found in test source.');
+  }
+
+  return WrapLocationTreeElementEdit.create(
+    unit: parsed.unit,
+    source: source,
+    selectionOffset: offset,
+    selectionLength: 0,
     eol: '\n',
     template: template,
   );

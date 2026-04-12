@@ -42,9 +42,17 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
   });
 
   LocationTreeEntrySelection? find(CompilationUnit unit) {
+    if (selectionLength == 0) {
+      _normalizedSelectionOffset = _normalizeCollapsedSelectionOffset(
+        source: source,
+        selectionOffset: selectionOffset,
+      );
+    }
     unit.accept(this);
     return _bestMatch;
   }
+
+  late int _normalizedSelectionOffset = selectionOffset;
 
   @override
   void visitListLiteral(ListLiteral node) {
@@ -85,7 +93,8 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
   bool _intersectsSelection(CollectionElement element) {
     final selectionEnd = selectionOffset + selectionLength;
     if (selectionLength == 0) {
-      return selectionOffset >= element.offset && selectionOffset <= element.end;
+      return _normalizedSelectionOffset >= element.offset &&
+          _normalizedSelectionOffset <= element.end;
     }
     return selectionOffset < element.end && selectionEnd > element.offset;
   }
@@ -94,7 +103,8 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
     final headerEnd = _headerEndOffset(element);
     final selectionEnd = selectionOffset + selectionLength;
     if (selectionLength == 0) {
-      return selectionOffset >= element.offset && selectionOffset <= headerEnd;
+      return _normalizedSelectionOffset >= element.offset &&
+          _normalizedSelectionOffset <= headerEnd;
     }
     return selectionOffset < headerEnd && selectionEnd > element.offset;
   }
@@ -136,5 +146,32 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
         true,
       _ => false,
     };
+  }
+
+  static int _normalizeCollapsedSelectionOffset({
+    required String source,
+    required int selectionOffset,
+  }) {
+    if (selectionOffset < 0 || selectionOffset >= source.length) {
+      return selectionOffset;
+    }
+
+    final character = source.codeUnitAt(selectionOffset);
+    if (character != 0x20 && character != 0x09) {
+      return selectionOffset;
+    }
+
+    final rawLineEnd = source.indexOf('\n', selectionOffset);
+    final lineEnd = rawLineEnd == -1 ? source.length : rawLineEnd;
+    var offset = selectionOffset;
+    while (offset < lineEnd) {
+      final lineCharacter = source.codeUnitAt(offset);
+      if (lineCharacter != 0x20 && lineCharacter != 0x09) {
+        return offset;
+      }
+      offset++;
+    }
+
+    return selectionOffset;
   }
 }
