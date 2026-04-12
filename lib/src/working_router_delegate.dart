@@ -305,7 +305,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             ),
             routerKey: shell.routerKey,
             buildChild: (context, nestedData, child) {
-              return shell.buildWidget(context, nestedData, child);
+              return shell.buildContent(context, nestedData, child);
             },
             buildPage: shell.buildPage,
             debugLabel: '$shell',
@@ -327,7 +327,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             ),
             routerKey: shellLocation.routerKey,
             buildChild: (context, nestedData, child) {
-              return shellLocation.buildShellWidget(context, nestedData, child);
+              return shellLocation.buildShellContent(
+                context,
+                nestedData,
+                child,
+              );
             },
             buildPage: shellLocation.buildShellPage,
             debugLabel: '$shellLocation',

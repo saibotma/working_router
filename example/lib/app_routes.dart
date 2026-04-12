@@ -22,7 +22,7 @@ List<LocationTreeElement<LocationId>> buildLocations({
           Shell(
             navigatorEnabled: screenSize != ScreenSize.small,
             build: (builder, shell, routerKey) {
-              builder.widgetBuilder(
+              builder.content = ShellContent.builder(
                 (context, data, child) => NestedScreen(child: child),
               );
 

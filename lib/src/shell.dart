@@ -4,7 +4,7 @@ import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef ShellWidgetBuilder<ID> =
+typedef ShellContentBuilder<ID> =
     Widget Function(
       BuildContext context,
       WorkingRouterData<ID> data,
@@ -18,31 +18,57 @@ typedef BuildShell<ID> =
       WorkingRouterKey routerKey,
     );
 
+sealed class ShellContent<ID> {
+  const ShellContent();
+
+  factory ShellContent.builder(ShellContentBuilder<ID> builder) =
+      _BuilderShellContent<ID>;
+
+  const factory ShellContent.child() = _ChildShellContent<ID>;
+
+  ShellContentBuilder<ID> resolveBuilder() {
+    return switch (this) {
+      final _BuilderShellContent<ID> builderContent => builderContent.builder,
+      _ => (_, _, child) => child,
+    };
+  }
+}
+
+final class _BuilderShellContent<ID> extends ShellContent<ID> {
+  final ShellContentBuilder<ID> builder;
+
+  const _BuilderShellContent(this.builder);
+}
+
+final class _ChildShellContent<ID> extends ShellContent<ID> {
+  const _ChildShellContent();
+}
+
 final class ShellBuildResult<ID>
     extends PathLocationTreeElementRenderResult<ID> {
-  final ShellWidgetBuilder<ID> buildWidget;
+  final ShellContentBuilder<ID> buildContent;
   final ShellPageBuilder? buildPage;
 
   const ShellBuildResult({
-    required this.buildWidget,
+    required this.buildContent,
     this.buildPage,
   });
 }
 
 class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
-  ShellWidgetBuilder<ID>? _buildWidget;
+  ShellContent<ID>? _content;
   ShellPageBuilder? _buildPage;
 
   ShellBuilder();
 
-  void widgetBuilder(ShellWidgetBuilder<ID> widget) {
-    if (_buildWidget != null) {
+  set content(ShellContent<ID> content) {
+    if (_content != null) {
       throw StateError(
-        'ShellBuilder widget was already configured. '
-        'widgetBuilder(...) may only be called once.',
+        'ShellBuilder content was already configured. '
+        'content may only be configured once.',
       );
     }
-    _buildWidget = widget;
+    _content = content;
   }
 
   set page(ShellPageBuilder page) {
@@ -57,7 +83,7 @@ class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
 
   ShellBuildResult<ID> resolveRender() {
     return ShellBuildResult(
-      buildWidget: _buildWidget ?? (_, _, child) => child,
+      buildContent: (_content ?? ShellContent<ID>.child()).resolveBuilder(),
       buildPage: _buildPage,
     );
   }
@@ -153,12 +179,12 @@ abstract class AbstractShell<ID> extends PathLocationTreeElement<ID>
     return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
   }
 
-  Widget buildWidget(
+  Widget buildContent(
     BuildContext context,
     WorkingRouterData<ID> data,
     Widget child,
   ) {
-    return _definition.render.buildWidget(context, data, child);
+    return _definition.render.buildContent(context, data, child);
   }
 
   Page<dynamic> buildPage(LocalKey? key, Widget child) {

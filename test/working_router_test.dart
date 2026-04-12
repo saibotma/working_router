@@ -811,7 +811,11 @@ void main() {
                     build: (builder, location, routerKey) {
                       builder.pathLiteral('accounts');
                       final accountId = builder.stringPathParam();
-                      builder.shellWidgetBuilder((context, data, child) {
+                      builder.shellContent = ShellContent.builder((
+                        context,
+                        data,
+                        child,
+                      ) {
                         return Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [

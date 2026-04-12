@@ -14,31 +14,31 @@ typedef BuildShellLocation<ID, Self extends AnyLocation<ID>> =
 
 final class ShellLocationBuildResult<ID>
     extends SelfBuiltLocationBuildResult<ID> {
-  final ShellWidgetBuilder<ID> buildShellWidget;
+  final ShellContentBuilder<ID> buildShellContent;
   final ShellPageBuilder? buildShellPage;
 
   const ShellLocationBuildResult({
     required super.buildWidget,
     super.buildPage,
-    required this.buildShellWidget,
+    required this.buildShellContent,
     this.buildShellPage,
   });
 }
 
 class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
-  ShellWidgetBuilder<ID>? _buildShellWidget;
+  ShellContent<ID>? _shellContent;
   ShellPageBuilder? _buildShellPage;
 
   ShellLocationBuilder();
 
-  void shellWidgetBuilder(ShellWidgetBuilder<ID> widget) {
-    if (_buildShellWidget != null) {
+  set shellContent(ShellContent<ID> shellContent) {
+    if (_shellContent != null) {
       throw StateError(
-        'ShellLocationBuilder shellWidgetBuilder was already configured. '
-        'shellWidgetBuilder(...) may only be called once.',
+        'ShellLocationBuilder shellContent was already configured. '
+        'shellContent may only be configured once.',
       );
     }
-    _buildShellWidget = widget;
+    _shellContent = shellContent;
   }
 
   set shellPage(ShellPageBuilder page) {
@@ -65,7 +65,8 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
     return ShellLocationBuildResult(
       buildWidget: locationRender.buildWidget,
       buildPage: locationRender.buildPage,
-      buildShellWidget: _buildShellWidget ?? (_, _, child) => child,
+      buildShellContent:
+          (_shellContent ?? ShellContent<ID>.child()).resolveBuilder(),
       buildShellPage: _buildShellPage,
     );
   }
@@ -82,8 +83,8 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
 /// - with exactly one implicit inner [Location] child
 ///
 /// The location's `content` and `page` define that implicit inner location
-/// page rendered inside the nested navigator. `shellWidgetBuilder(...)` and
-/// `shellPage` define the outer shell page rendered on the parent navigator.
+/// page rendered inside the nested navigator. `shellContent` and `shellPage`
+/// define the outer shell page rendered on the parent navigator.
 ///
 /// Setting [navigatorEnabled] to false disables the nested navigator. The
 /// shell location then behaves like a normal [Location] for rendering, while
@@ -121,12 +122,12 @@ abstract class AbstractShellLocation<ID, Self extends AnyLocation<ID>>
     return render;
   }
 
-  Widget buildShellWidget(
+  Widget buildShellContent(
     BuildContext context,
     WorkingRouterData<ID> data,
     Widget child,
   ) {
-    return _shellLocationRender.buildShellWidget(context, data, child);
+    return _shellLocationRender.buildShellContent(context, data, child);
   }
 
   Page<dynamic> buildShellPage(LocalKey? key, Widget child) {

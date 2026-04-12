@@ -146,7 +146,7 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
               ADShellLocation(
                 id: LocationId.adShell,
                 build: (builder, location, routerKey) {
-                  builder.shellWidgetBuilder(
+                  builder.shellContent = ShellContent.builder(
                     (context, data, child) => InnerShellScreen(child: child),
                   );
                   builder.content = Content.widget(

@@ -176,7 +176,9 @@ Scope(
 
 Shell(
   build: (builder, shell, routerKey) {
-    builder.widgetBuilder((context, data, child) => Scaffold(body: child));
+    builder.content = ShellContent.builder(
+      (context, data, child) => Scaffold(body: child),
+    );
     builder.children = [
       DashboardLocation(id: RouteId.dashboard, build: ...),
     ];
@@ -213,7 +215,9 @@ class LegalScope extends AbstractScope<RouteId> {
 class AccountShell extends AbstractShell<RouteId> {
   @override
   void build(ShellBuilder<RouteId> builder) {
-    builder.widgetBuilder((context, data, child) => Scaffold(body: child));
+    builder.content = ShellContent.builder(
+      (context, data, child) => Scaffold(body: child),
+    );
     builder.children = [
       DashboardLocation(id: RouteId.dashboard, build: ...),
     ];
@@ -299,7 +303,7 @@ For everything else, use `PageKey.custom(...)`.
 Shell(
   navigatorEnabled: screenSize != ScreenSize.small,
   build: (builder, shell, routerKey) {
-    builder.widgetBuilder((context, data, child) {
+    builder.content = ShellContent.builder((context, data, child) {
       return Scaffold(body: child);
     });
 
@@ -335,7 +339,7 @@ ShellLocation<RouteId, SettingsLocation>(
   build: (builder, location, routerKey) {
     builder.pathLiteral('settings');
 
-    builder.shellWidgetBuilder((context, data, child) {
+    builder.shellContent = ShellContent.builder((context, data, child) {
       return Dialog(child: child);
     });
 
@@ -354,7 +358,7 @@ ShellLocation<RouteId, SettingsLocation>(
 Use:
 - `content = ...` and `page = ...` for the inner location page rendered inside
   the nested navigator
-- `shellWidgetBuilder(...)` and `shellPage = ...` for the outer shell wrapper
+- `shellContent = ...` and `shellPage = ...` for the outer shell wrapper
   rendered on the parent navigator
 - `navigatorEnabled: false` when the shell location should collapse down to a
   normal location on smaller layouts while keeping the same tree shape
