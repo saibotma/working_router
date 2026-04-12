@@ -124,6 +124,12 @@ navigator boundary. A shell:
 - does build a wrapper widget/page
 - does create a nested navigator for its child subtree
 
+If no later matched descendant is actually assigned to the shell's
+`routerKey`, the shell does not contribute a page for that match and behaves
+like a `Group` instead. This lets you keep a shell in the tree for shared
+path/query scope while routing descendants to an ancestor navigator on smaller
+layouts.
+
 Typical use case:
 - a sidebar or tab layout that stays visible while child routes change
 - an account area like `/accounts/:id/...` where children render inside a

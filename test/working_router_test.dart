@@ -815,6 +815,49 @@ void main() {
       expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
       expect(find.text('42'), findsOneWidget);
     });
+
+    testWidgets('shell acts like group when children are routed to root', (
+      tester,
+    ) async {
+      final router = WorkingRouter<_Id>(
+        buildLocations: (rootRouterKey) => [
+          _BuilderLocation<_Id>(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                Shell(
+                  build: (builder, shell, routerKey) {
+                    builder.pathLiteral('accounts');
+                    final accountId = builder.stringPathParam();
+                    builder.children = [
+                      _BuilderLocation<_Id>(
+                        id: _Id.b,
+                        parentRouterKey: rootRouterKey,
+                        build: (builder, location) {
+                          builder.pathLiteral('dashboard');
+                          builder.widgetBuilder((context, data) {
+                            return Text(data.pathParam(accountId));
+                          });
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(Uri(path: '/accounts/42/dashboard'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('42'), findsOneWidget);
+      expect(tester.widgetList<Navigator>(find.byType(Navigator)), hasLength(1));
+      expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
+    });
   });
 }
 

@@ -86,6 +86,12 @@ class BuiltShellDefinition<ID> {
 /// [Group], it also renders a wrapper widget/page and hosts a nested navigator
 /// for its matched child subtree.
 ///
+/// If no later matched descendant is actually assigned to the shell's
+/// [routerKey], the shell does not contribute a page and instead behaves like
+/// a [Group] for that match. This makes it possible to keep a shell in the
+/// route tree for shared path/query scope while routing descendants to an
+/// ancestor navigator on smaller layouts.
+///
 /// Use a shell when a part of the route tree should stay visible while child
 /// locations change inside it, such as a sidebar layout, tab scaffold, or
 /// nested flow container.

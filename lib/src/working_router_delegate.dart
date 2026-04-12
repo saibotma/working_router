@@ -165,14 +165,25 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   Iterable<LocationTreeElement<ID>> _matchedNodesForNavigator(
     WorkingRouterData<ID> data,
   ) sync* {
+    for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
+      if (identical(entry.effectiveParentRouterKey, routerKey)) {
+        yield entry.node;
+      }
+    }
+  }
+
+  Iterable<
+    ({LocationTreeElement<ID> node, WorkingRouterKey effectiveParentRouterKey})
+  >
+  _matchedNodesWithEffectiveParentRouterKeys(WorkingRouterData<ID> data) sync* {
     WorkingRouterKey childRouterKey = router.rootRouterKey;
 
     for (final node in data.elements) {
       final effectiveParentRouterKey = node.parentRouterKey ?? childRouterKey;
-
-      if (identical(effectiveParentRouterKey, routerKey)) {
-        yield node;
-      }
+      yield (
+        node: node,
+        effectiveParentRouterKey: effectiveParentRouterKey,
+      );
 
       switch (node) {
         case Shell<ID>():
@@ -183,11 +194,50 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     }
   }
 
+  bool _navigatorWouldBuildPages(
+    WorkingRouterKey navigatorRouterKey,
+    WorkingRouterData<ID> data,
+  ) {
+    // A shell only contributes a page when its own navigator would actually
+    // build at least one page from later matched descendants. If no matched
+    // descendant is assigned to that navigator, the shell stays in the matched
+    // element chain for shared path/query semantics but renders no page,
+    // effectively behaving like a Group.
+    for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
+      if (!identical(entry.effectiveParentRouterKey, navigatorRouterKey)) {
+        continue;
+      }
+
+      final node = entry.node;
+      if (node case final Shell<ID> shell) {
+        if (_navigatorWouldBuildPages(shell.routerKey, data)) {
+          return true;
+        }
+        continue;
+      }
+
+      if (node case final AnyLocation<ID> location) {
+        if (_buildPagesForLocation(location, data).isNotEmpty) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   List<LocationPageSkeleton<ID>> _buildPagesForNode(
     LocationTreeElement<ID> node,
     WorkingRouterData<ID> data,
   ) {
     if (node case final Shell<ID> shell) {
+      // Keep shells structural unless their navigator would host a matched
+      // descendant page. This allows a shell to stay in the route tree for
+      // shared path/query params while descendants are routed to an ancestor
+      // navigator, such as root-stacked pages on small screens.
+      if (!_navigatorWouldBuildPages(shell.routerKey, data)) {
+        return const [];
+      }
       return [
         NestedLocationPageSkeleton(
           router: router,
