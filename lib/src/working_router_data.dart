@@ -10,7 +10,7 @@ class WorkingRouterData<ID> {
   // Keep matched path params in their encoded URI form even though they are
   // keyed by PathParam objects. The router core is still URI-first, so URI
   // rebuilding, retention, and forwarding should work on raw URI values while
-  // decoding stays at typed access boundaries like pathParam(...).
+  // decoding stays at typed access boundaries like param(...).
   final IMap<PathParam<dynamic>, String> pathParameters;
 
   // Keep query params encoded and string-keyed for the same reason: the URI is
@@ -49,51 +49,44 @@ class WorkingRouterData<ID> {
 
   AnyLocation<ID>? get activeLocation => locations.lastOrNull;
 
-  T pathParam<T>(PathParam<T> parameter) {
-    final value = pathParamOrNull(parameter);
-    if (value != null) {
-      return value;
-    }
-    throw StateError(
-      'The requested PathParam is not part of the current matched route chain.',
-    );
+  T param<T>(Param<T> parameter) {
+    return switch (parameter) {
+      final PathParam<T> pathParam => _pathParam(pathParam),
+      final QueryParam<T> queryParam => _queryParam(queryParam),
+    };
   }
 
-  T? pathParamOrNull<T>(PathParam<T> parameter) {
+  T _pathParam<T>(PathParam<T> parameter) {
     final rawValue = pathParameters[parameter];
     if (rawValue == null) {
-      return null;
+      throw StateError(
+        'The requested PathParam is not part of the current matched route chain.',
+      );
     }
     return parameter.codec.decode(rawValue);
   }
 
-  T queryParam<T>(QueryParam<T> parameter) {
+  T _queryParam<T>(QueryParam<T> parameter) {
     if (!_hasDeclaredQueryParam(parameter)) {
       throw StateError(
         'The requested QueryParam is not part of the current matched route chain.',
       );
     }
 
-    final value = queryParamOrNull(parameter);
+    final rawValue = queryParameters[parameter.name];
+    final value = parameter.decodeValueOrNull(rawValue);
     if (value != null) {
       return value;
     }
+
     final defaultValue = parameter.defaultValue;
     if (defaultValue != null) {
       return defaultValue.value;
     }
+
     throw StateError(
       'The requested QueryParam is not present in the current router data.',
     );
-  }
-
-  T? queryParamOrNull<T>(QueryParam<T> parameter) {
-    if (!_hasDeclaredQueryParam(parameter)) {
-      return null;
-    }
-
-    final rawValue = queryParameters[parameter.name];
-    return parameter.decodeValueOrNull(rawValue);
   }
 
   bool _hasDeclaredQueryParam<T>(QueryParam<T> parameter) {

@@ -649,7 +649,7 @@ void main() {
                           build: (builder, location) {
                             builder.pathLiteral('privacy');
                             builder.widgetBuilder((context, data) {
-                              return Text(data.queryParam(languageCode));
+                              return Text(data.param(languageCode));
                             });
                           },
                         ),
@@ -705,7 +705,7 @@ void main() {
                           builder.pathLiteral('dashboard');
                           builder.widgetBuilder((context, data) {
                             return Text(
-                              '${data.pathParam(accountId)}:${data.queryParam(tab)}',
+                              '${data.param(accountId)}:${data.param(tab)}',
                             );
                           });
                         },
@@ -757,7 +757,7 @@ void main() {
                         );
                       });
                       builder.widgetBuilder((context, data) {
-                        return Text('settings:${data.pathParam(accountId)}');
+                        return Text('settings:${data.param(accountId)}');
                       });
                     },
                   ),
@@ -838,7 +838,7 @@ void main() {
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
                           builder.widgetBuilder((context, data) {
-                            return Text(data.pathParam(accountId));
+                            return Text(data.param(accountId));
                           });
                         },
                       ),
@@ -887,7 +887,7 @@ void main() {
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
                           builder.widgetBuilder((context, data) {
-                            return Text(data.pathParam(accountId));
+                            return Text(data.param(accountId));
                           });
                         },
                       ),
@@ -934,7 +934,7 @@ void main() {
                             builder.pathLiteral('dashboard');
                             builder.widgetBuilder((context, data) {
                               return Text(
-                                'dashboard:${data.pathParam(accountId)}',
+                                'dashboard:${data.param(accountId)}',
                               );
                             });
                           },
@@ -946,7 +946,7 @@ void main() {
                             builder.pathLiteral('details');
                             builder.widgetBuilder((context, data) {
                               return Text(
-                                'details:${data.pathParam(accountId)}',
+                                'details:${data.param(accountId)}',
                               );
                             });
                           },
@@ -989,7 +989,7 @@ void main() {
                       builder.pathLiteral('accounts');
                       final accountId = builder.stringPathParam();
                       builder.widgetBuilder((context, data) {
-                        return Text('settings:${data.pathParam(accountId)}');
+                        return Text('settings:${data.param(accountId)}');
                       });
                       builder.children = [
                         _BuilderLocation<_Id>(
@@ -999,7 +999,7 @@ void main() {
                             builder.pathLiteral('details');
                             builder.widgetBuilder((context, data) {
                               return Text(
-                                'details:${data.pathParam(accountId)}',
+                                'details:${data.param(accountId)}',
                               );
                             });
                           },
@@ -1305,7 +1305,7 @@ class _SelfBuiltAccountLocation
     final tab = builder.stringQueryParam('tab');
     builder.widgetBuilder((context, data) {
       return Text(
-        '${data.pathParam(accountId)}:${data.queryParam(tab)}',
+        '${data.param(accountId)}:${data.param(tab)}',
       );
     });
   }

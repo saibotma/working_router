@@ -59,7 +59,7 @@ final example = ExampleLocation(
 
     builder.widgetBuilder((context, data) {
       return Text(
-        '${data.pathParam(itemId)}:${data.queryParam(filter)}',
+        '${data.param(itemId)}:${data.param(filter)}',
       );
     });
 
@@ -275,7 +275,7 @@ LessonLocation(
   build: (builder, location) {
     final lessonId = builder.stringPathParam();
     builder.widgetBuilder((context, data) {
-      return LessonScreen(lessonId: data.pathParam(lessonId));
+      return LessonScreen(lessonId: data.param(lessonId));
     });
     builder.pageKey = const PageKey.templatePath();
   },

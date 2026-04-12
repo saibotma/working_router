@@ -22,12 +22,19 @@ class LiteralPathSegment extends PathSegment {
   const LiteralPathSegment(this.value);
 }
 
+sealed class Param<T> {
+  const Param();
+
+  RouteParamCodec<T> get codec;
+}
+
 /// A non-nullable path parameter segment.
 ///
 /// Path parameters are always matched from an existing URI segment, so this
 /// package intentionally models them as non-nullable values. If a segment is
 /// missing, the route does not match instead of producing `null`.
-class PathParam<T> extends PathSegment {
+class PathParam<T> extends PathSegment implements Param<T> {
+  @override
   final RouteParamCodec<T> codec;
 
   const PathParam(this.codec);
@@ -39,8 +46,9 @@ class Default<T> {
   const Default(this.value);
 }
 
-class QueryParam<T> {
+class QueryParam<T> implements Param<T> {
   final String name;
+  @override
   final RouteParamCodec<T> codec;
   final Default<T>? defaultValue;
 

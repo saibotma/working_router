@@ -111,9 +111,9 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
 
                 builder.widgetBuilder((context, data) {
                   return ABCScreen(
-                    id: data.pathParam(id),
-                    b: data.queryParam(bParam),
-                    c: data.queryParam(cParam),
+                    id: data.param(id),
+                    b: data.param(bParam),
+                    c: data.param(cParam),
                   );
                 });
                 builder.page((key, child) {

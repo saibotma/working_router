@@ -54,8 +54,7 @@ void main() {
         queryParameters: IMap(),
       );
 
-      expect(data.queryParam(tab), 'all');
-      expect(data.queryParamOrNull(tab), isNull);
+      expect(data.param(tab), 'all');
     });
 
     test(
@@ -77,8 +76,7 @@ void main() {
           queryParameters: IMap(),
         );
 
-        expect(data.queryParam(endDateTime), isNull);
-        expect(data.queryParamOrNull(endDateTime), isNull);
+        expect(data.param(endDateTime), isNull);
       },
     );
   });
