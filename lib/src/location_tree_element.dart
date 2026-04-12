@@ -13,7 +13,7 @@ sealed class PathSegment {
 typedef WritePathParameters<ID> =
     void Function(
       PathLocationTreeElement<ID> location,
-      void Function<T extends Object>(PathParam<T> parameter, T value) path,
+      void Function<T>(PathParam<T> parameter, T value) path,
     );
 
 class LiteralPathSegment extends PathSegment {
@@ -27,7 +27,7 @@ class LiteralPathSegment extends PathSegment {
 /// Path parameters are always matched from an existing URI segment, so this
 /// package intentionally models them as non-nullable values. If a segment is
 /// missing, the route does not match instead of producing `null`.
-class PathParam<T extends Object> extends PathSegment {
+class PathParam<T> extends PathSegment {
   final RouteParamCodec<T> codec;
 
   const PathParam(this.codec);
@@ -295,8 +295,8 @@ void _mergePathParameters(
   Map<PathParam<dynamic>, String> target,
   Map<PathParam<dynamic>, String> source,
 ) {
-  // PathParam is generic and non-nullable (`T extends Object`), so runtime map
-  // key types can become `PathParam<String>`, `PathParam<Object>`, and so on.
+  // PathParam is generic, so runtime map key types can become
+  // `PathParam<String>`, `PathParam<MyExtensionType>`, and so on.
   // `Map.addAll` checks the whole source map type at runtime and can throw
   // even though each entry is individually valid here.
   for (final entry in source.entries) {

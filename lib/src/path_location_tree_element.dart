@@ -54,7 +54,7 @@ abstract class PathLocationTreeElementBuilder<ID> {
   ///
   /// Path parameters represent concrete matched URI segments, so they cannot
   /// be nullable. Use query parameters for optional `null`-producing values.
-  PathParam<T> pathParam<T extends Object>(RouteParamCodec<T> codec) {
+  PathParam<T> pathParam<T>(RouteParamCodec<T> codec) {
     return pathSegment(PathParam<T>(codec));
   }
 

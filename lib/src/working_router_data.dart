@@ -49,7 +49,7 @@ class WorkingRouterData<ID> {
 
   AnyLocation<ID>? get activeLocation => locations.lastOrNull;
 
-  T pathParam<T extends Object>(PathParam<T> parameter) {
+  T pathParam<T>(PathParam<T> parameter) {
     final value = pathParamOrNull(parameter);
     if (value != null) {
       return value;
@@ -59,7 +59,7 @@ class WorkingRouterData<ID> {
     );
   }
 
-  T? pathParamOrNull<T extends Object>(PathParam<T> parameter) {
+  T? pathParamOrNull<T>(PathParam<T> parameter) {
     final rawValue = pathParameters[parameter];
     if (rawValue == null) {
       return null;
