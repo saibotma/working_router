@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7
+
+- Add `Wrap with Location` assist.
+- Add `Wrap with MultiShell` assist.
+
 ## 0.1.6
 
 - Rename `Group` assists and examples to `Scope` to match the router API.

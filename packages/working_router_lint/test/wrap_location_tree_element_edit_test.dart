@@ -2,6 +2,8 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:test/test.dart';
 import 'package:working_router_lint/src/assists/remove_location_tree_element_edit.dart';
 import 'package:working_router_lint/src/assists/wrap_location_tree_element_edit.dart';
+import 'package:working_router_lint/src/assists/wrap_with_location.dart';
+import 'package:working_router_lint/src/assists/wrap_with_multi_shell.dart';
 import 'package:working_router_lint/src/assists/wrap_with_scope.dart';
 import 'package:working_router_lint/src/assists/wrap_with_shell.dart';
 
@@ -55,6 +57,59 @@ void build(builder) {
     expect(changedSource, contains('PrivacyLocation('));
   });
 
+  test('wrap with location wraps a builder.children entry', () {
+    const source = '''
+void build(builder) {
+  builder.children = [
+    PrivacyLocation(
+      build: (builder, location) {
+        builder.content = Content.widget('privacy');
+      },
+    ),
+  ];
+}
+''';
+    final edit = _createEdit(
+      source: source,
+      snippet: 'PrivacyLocation(',
+      template: WrapWithLocation.templateForTest,
+    );
+
+    expect(edit, isNotNull);
+    final changedSource = _applyEdit(source, edit!);
+    expect(changedSource, contains('Location('));
+    expect(changedSource, contains('builder.content = const Content.none();'));
+    expect(changedSource, contains('PrivacyLocation('));
+  });
+
+  test('wrap with multi shell wraps a builder.children entry', () {
+    const source = '''
+void build(builder) {
+  builder.children = [
+    PrivacyLocation(
+      build: (builder, location) {
+        builder.content = Content.widget('privacy');
+      },
+    ),
+  ];
+}
+''';
+    final edit = _createEdit(
+      source: source,
+      snippet: 'PrivacyLocation(',
+      template: WrapWithMultiShell.templateForTest,
+    );
+
+    expect(edit, isNotNull);
+    final changedSource = _applyEdit(source, edit!);
+    expect(changedSource, contains('MultiShell('));
+    expect(changedSource, contains('final slot = builder.slot();'));
+    expect(changedSource, contains('return slots.child(slot);'));
+    expect(changedSource, contains('Scope('));
+    expect(changedSource, contains('parentRouterKey: slot.routerKey,'));
+    expect(changedSource, contains('PrivacyLocation('));
+  });
+
   test('wrap with shell wraps an entry in a returned tree list', () {
     const source = '''
 List<Object> buildLocations() {
@@ -77,6 +132,32 @@ List<Object> buildLocations() {
     final changedSource = _applyEdit(source, edit!);
     expect(changedSource, contains('return ['));
     expect(changedSource, contains('Shell('));
+    expect(changedSource, contains('SplashLocation('));
+  });
+
+  test('wrap with location wraps an entry in a returned tree list', () {
+    const source = '''
+List<Object> buildLocations() {
+  return [
+    SplashLocation(
+      build: (builder, location) {
+        builder.content = Content.widget('splash');
+      },
+    ),
+  ];
+}
+''';
+    final edit = _createEdit(
+      source: source,
+      snippet: 'SplashLocation(',
+      template: WrapWithLocation.templateForTest,
+    );
+
+    expect(edit, isNotNull);
+    final changedSource = _applyEdit(source, edit!);
+    expect(changedSource, contains('return ['));
+    expect(changedSource, contains('Location('));
+    expect(changedSource, contains('builder.content = const Content.none();'));
     expect(changedSource, contains('SplashLocation('));
   });
 
