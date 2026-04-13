@@ -762,6 +762,10 @@ class _StaticRouteTreeExtractor {
         classElement.displayName == 'AbstractLocation' ||
         classElement.displayName == 'ShellLocation' ||
         classElement.displayName == 'AbstractShellLocation' ||
+        classElement.displayName == 'MultiShellLocation' ||
+        classElement.displayName == 'AbstractMultiShellLocation' ||
+        classElement.displayName == 'MultiShell' ||
+        classElement.displayName == 'AbstractMultiShell' ||
         classElement.displayName == 'Scope' ||
         classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
@@ -850,6 +854,10 @@ class _StaticRouteTreeExtractor {
         classElement.displayName == 'AbstractLocation' ||
         classElement.displayName == 'ShellLocation' ||
         classElement.displayName == 'AbstractShellLocation' ||
+        classElement.displayName == 'MultiShellLocation' ||
+        classElement.displayName == 'AbstractMultiShellLocation' ||
+        classElement.displayName == 'MultiShell' ||
+        classElement.displayName == 'AbstractMultiShell' ||
         classElement.displayName == 'Scope' ||
         classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
@@ -866,6 +874,11 @@ class _StaticRouteTreeExtractor {
         buildMethod.enclosingElement?.displayName == 'AbstractLocation' ||
         buildMethod.enclosingElement?.displayName == 'ShellLocation' ||
         buildMethod.enclosingElement?.displayName == 'AbstractShellLocation' ||
+        buildMethod.enclosingElement?.displayName == 'MultiShellLocation' ||
+        buildMethod.enclosingElement?.displayName ==
+            'AbstractMultiShellLocation' ||
+        buildMethod.enclosingElement?.displayName == 'MultiShell' ||
+        buildMethod.enclosingElement?.displayName == 'AbstractMultiShell' ||
         buildMethod.enclosingElement?.displayName == 'Scope' ||
         buildMethod.enclosingElement?.displayName == 'AbstractScope' ||
         buildMethod.enclosingElement?.displayName == 'Shell' ||
@@ -2683,6 +2696,8 @@ class _StaticRouteTreeExtractor {
           current.element.name == 'AbstractLocation' ||
           current.element.name == 'ShellLocation' ||
           current.element.name == 'AbstractShellLocation' ||
+          current.element.name == 'MultiShellLocation' ||
+          current.element.name == 'AbstractMultiShellLocation' ||
           current.element.name == 'AbstractScope' ||
           current.element.name == 'Scope') {
         return true;
@@ -2697,6 +2712,10 @@ class _StaticRouteTreeExtractor {
     while (current != null) {
       if (current.element.name == 'Shell' ||
           current.element.name == 'ShellLocation' ||
+          current.element.name == 'MultiShellLocation' ||
+          current.element.name == 'AbstractMultiShellLocation' ||
+          current.element.name == 'MultiShell' ||
+          current.element.name == 'AbstractMultiShell' ||
           current.element.name == 'AbstractShell') {
         return true;
       }
@@ -2713,11 +2732,15 @@ bool _isFrameworkRouteMemberOwner(Element? element) {
       ownerName == 'AnyLocation' ||
       ownerName == 'AbstractLocation' ||
       ownerName == 'AbstractShellLocation' ||
+      ownerName == 'AbstractMultiShellLocation' ||
+      ownerName == 'AbstractMultiShell' ||
       ownerName == 'AbstractScope' ||
       ownerName == 'AbstractShell' ||
       ownerName == 'Scope' ||
       ownerName == 'Location' ||
       ownerName == 'ShellLocation' ||
+      ownerName == 'MultiShellLocation' ||
+      ownerName == 'MultiShell' ||
       ownerName == 'Shell';
 }
 

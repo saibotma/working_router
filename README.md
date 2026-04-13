@@ -7,6 +7,7 @@ definition API.
 
 - `Location<ID, Self>` is a semantic route node.
 - `Shell<ID>` is a directly constructible structural route node that inserts a nested navigator.
+- `MultiShell<ID>` is the parallel-shell variant for layouts with multiple sibling nested navigators.
 - Routes are defined in `build(...)` with ordered builder calls:
   - `pathLiteral(...)`
   - `pathParam(...)`
@@ -89,10 +90,11 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
-- Use `Location(...)`, `Scope(...)`, `Shell(...)`, and `ShellLocation(...)`
-  for callback-based route definitions, or subclass `AbstractLocation`,
-  `AbstractScope`, `AbstractShell`, and `AbstractShellLocation` to override
-  `build(...)` directly.
+- Use `Location(...)`, `Scope(...)`, `Shell(...)`, `ShellLocation(...)`,
+  `MultiShell(...)`, and `MultiShellLocation(...)` for callback-based route
+  definitions, or subclass `AbstractLocation`, `AbstractScope`,
+  `AbstractShell`, `AbstractShellLocation`, `AbstractMultiShell`, and
+  `AbstractMultiShellLocation` to override `build(...)` directly.
 - Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
 - `builder.content = Content.widget(...)` is the constant-widget variant.
@@ -161,6 +163,11 @@ Typical use case:
 - a flow root that needs both a semantic location id and an outer container
   page without introducing an extra `Shell -> Location` nesting level
 
+Use a `MultiShell` when one wrapper needs multiple sibling nested navigators,
+such as a split view with independent left and right stacks. Use a
+`MultiShellLocation` when that split shell is also a semantic location with an
+`id` and an inner location page.
+
 ## Callback Vs Abstract Types
 
 Use the callback-based types when defining a tree inline:
@@ -181,6 +188,29 @@ Shell(
     );
     builder.children = [
       DashboardLocation(id: RouteId.dashboard, build: ...),
+    ];
+  },
+);
+
+MultiShell(
+  build: (builder, shell) {
+    final listSlot = builder.slot(debugLabel: 'list');
+    final detailSlot = builder.slot(debugLabel: 'detail');
+    builder.content = MultiShellContent.builder(
+      (context, data, slots) => Row(
+        children: [
+          Expanded(child: slots.child(listSlot)),
+          Expanded(child: slots.child(detailSlot)),
+        ],
+      ),
+    );
+    builder.children = [
+      SearchLocation(parentRouterKey: listSlot.routerKey, build: ...),
+      DetailLocation(
+        id: RouteId.detail,
+        parentRouterKey: detailSlot.routerKey,
+        build: ...,
+      ),
     ];
   },
 );
@@ -220,6 +250,30 @@ class AccountShell extends AbstractShell<RouteId> {
     );
     builder.children = [
       DashboardLocation(id: RouteId.dashboard, build: ...),
+    ];
+  }
+}
+
+class ChatSplitShell extends AbstractMultiShell<RouteId> {
+  @override
+  void build(MultiShellBuilder<RouteId> builder) {
+    final listSlot = builder.slot(debugLabel: 'list');
+    final detailSlot = builder.slot(debugLabel: 'detail');
+    builder.content = MultiShellContent.builder(
+      (context, data, slots) => Row(
+        children: [
+          Expanded(child: slots.child(listSlot)),
+          Expanded(child: slots.child(detailSlot)),
+        ],
+      ),
+    );
+    builder.children = [
+      SearchLocation(parentRouterKey: listSlot.routerKey, build: ...),
+      DetailLocation(
+        id: RouteId.detail,
+        parentRouterKey: detailSlot.routerKey,
+        build: ...,
+      ),
     ];
   }
 }
@@ -362,6 +416,58 @@ Use:
   rendered on the parent navigator
 - `navigatorEnabled: false` when the shell location should collapse down to a
   normal location on smaller layouts while keeping the same tree shape
+
+## Defining Multi Shell Locations
+
+`MultiShellLocation` is the parallel-shell variant for layouts with multiple
+sibling slot navigators plus one built-in `contentSlot` for the location's own
+page, such as a desktop split view with independent left and right stacks.
+
+```dart
+MultiShellLocation<RouteId, ChatLocation>(
+  id: RouteId.chat,
+  navigatorEnabled: screenSize != ScreenSize.small,
+  build: (builder, location, contentSlot) {
+    builder.pathLiteral('chat');
+
+    final listSlot = builder.slot(debugLabel: 'list');
+
+    builder.shellContent = MultiShellContent.builder((
+      context,
+      data,
+      slots,
+    ) {
+      return ChatScreen(
+        leftChild: slots.child(listSlot),
+        child: slots.child(contentSlot),
+      );
+    });
+
+    builder.content = Content.widget(const EmptyDetailPlaceholder());
+
+    builder.children = [
+      ChannelListLocation(
+        id: RouteId.channelList,
+        parentRouterKey: listSlot.routerKey,
+        build: ...,
+      ),
+      ChannelDetailLocation(
+        id: RouteId.channelDetail,
+        parentRouterKey: contentSlot.routerKey,
+        build: ...,
+      ),
+    ];
+  },
+)
+```
+
+Use:
+- the `contentSlot` build parameter for the location's own page navigator
+- `builder.slot()` for extra sibling navigators
+- `slot.routerKey` to target any slot from child locations via `parentRouterKey`
+- `slots.child(slot)` inside `shellContent` to place each active slot navigator
+- `navigatorEnabled: false` to collapse the whole multi-shell back onto the
+  parent navigator on smaller layouts while keeping the same route tree
 
 ## Generated API
 

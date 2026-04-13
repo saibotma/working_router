@@ -8,6 +8,8 @@ import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_page_skeleton.dart';
 import 'package:working_router/src/location_tree_element.dart';
+import 'package:working_router/src/multi_shell_location.dart';
+import 'package:working_router/src/multi_shell_location_page_skeleton.dart';
 import 'package:working_router/src/nested_location_page_skeleton.dart';
 import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/shell.dart';
@@ -23,7 +25,13 @@ typedef BuildPages<ID> =
       WorkingRouterData<ID> data,
     );
 
-enum _MatchedNodeRenderKind { node, shell, shellLocationShell }
+enum _MatchedNodeRenderKind {
+  node,
+  shell,
+  multiShell,
+  shellLocationShell,
+  multiShellLocationShell,
+}
 
 typedef _MatchedNodeEntry<ID> = ({
   LocationTreeElement<ID> node,
@@ -187,9 +195,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     WorkingRouterData<ID> data,
   ) sync* {
     WorkingRouterKey childRouterKey = router.rootRouterKey;
-    // Disabled shells still have a stable routerKey in the build callback, but
-    // for routing ownership that key aliases back to the shell's parent
-    // navigator. This keeps explicit `parentRouterKey: routerKey` usages
+    // Disabled shells and multi shell content slots still have stable router
+    // keys in build callbacks, but for routing ownership those keys alias back
+    // to the parent navigator. This keeps explicit parentRouterKey references
     // working without forcing responsive tree rewrites.
     final aliasedRouterKeys = <WorkingRouterKey, WorkingRouterKey>{};
 
@@ -200,6 +208,46 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           childRouterKey;
       final effectiveParentRouterKey = inheritedParentRouterKey;
       switch (node) {
+        case final AbstractMultiShell<ID> multiShell:
+          if (multiShell.navigatorEnabled) {
+            yield (
+              node: node,
+              effectiveParentRouterKey: effectiveParentRouterKey,
+              renderKind: _MatchedNodeRenderKind.multiShell,
+            );
+          }
+          for (final slot in multiShell.slots) {
+            aliasedRouterKeys[slot.routerKey] = multiShell.navigatorEnabled
+                ? slot.routerKey
+                : effectiveParentRouterKey;
+          }
+          childRouterKey = effectiveParentRouterKey;
+        case final AbstractMultiShellLocation<ID, dynamic> multiShellLocation:
+          if (multiShellLocation.navigatorEnabled) {
+            yield (
+              node: node,
+              effectiveParentRouterKey: effectiveParentRouterKey,
+              renderKind: _MatchedNodeRenderKind.multiShellLocationShell,
+            );
+          }
+          final effectiveContentChildRouterKey = multiShellLocation
+                  .navigatorEnabled
+              ? multiShellLocation.contentRouterKey
+              : effectiveParentRouterKey;
+          yield (
+            node: node,
+            effectiveParentRouterKey: effectiveContentChildRouterKey,
+            renderKind: _MatchedNodeRenderKind.node,
+          );
+          aliasedRouterKeys[multiShellLocation.contentRouterKey] =
+              effectiveContentChildRouterKey;
+          for (final slot in multiShellLocation.slots) {
+            aliasedRouterKeys[slot.routerKey] = multiShellLocation
+                    .navigatorEnabled
+                ? slot.routerKey
+                : effectiveParentRouterKey;
+          }
+          childRouterKey = effectiveContentChildRouterKey;
         case final AbstractShellLocation<ID, dynamic> shellLocation:
           // A shell location contributes two render phases from one matched
           // semantic node: its outer shell page on the parent navigator and
@@ -265,11 +313,30 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           if (_navigatorWouldBuildPages(shell.routerKey, data)) {
             return true;
           }
+        case (_MatchedNodeRenderKind.multiShell, final AbstractMultiShell<ID> multiShell):
+          if (multiShell.slots.any(
+            (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
+          )) {
+            return true;
+          }
         case (
           _MatchedNodeRenderKind.shellLocationShell,
           final AbstractShellLocation<ID, dynamic> shellLocation,
         ):
           if (_navigatorWouldBuildPages(shellLocation.routerKey, data)) {
+            return true;
+          }
+        case (
+          _MatchedNodeRenderKind.multiShellLocationShell,
+          final AbstractMultiShellLocation<ID, dynamic> multiShellLocation,
+        ):
+          if (_navigatorWouldBuildPages(
+                multiShellLocation.contentRouterKey,
+                data,
+              ) ||
+              multiShellLocation.slots.any(
+                (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
+              )) {
             return true;
           }
         case (_, final AnyLocation<ID> location):
@@ -311,6 +378,35 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             debugLabel: '$shell',
           ),
         ];
+      case (_MatchedNodeRenderKind.multiShell, final AbstractMultiShell<ID> multiShell):
+        if (!multiShell.navigatorEnabled ||
+            !multiShell.slots.any(
+              (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
+            )) {
+          return const [];
+        }
+        return [
+          MultiShellLocationPageSkeleton(
+            router: router,
+            buildPages: (
+              WorkingRouter<ID> _,
+              AnyLocation<ID> location,
+              WorkingRouterData<ID> data,
+            ) => _buildPagesForLocation(location, data),
+            activeSlots: multiShell.slots.where(
+              (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
+            ),
+            buildChild: (context, nestedData, slots) {
+              return multiShell.buildContent(
+                context,
+                nestedData,
+                slots,
+              );
+            },
+            buildPage: multiShell.buildPage,
+            debugLabel: '$multiShell',
+          ),
+        ];
       case (
         _MatchedNodeRenderKind.shellLocationShell,
         final AbstractShellLocation<ID, dynamic> shellLocation,
@@ -335,6 +431,42 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             },
             buildPage: shellLocation.buildShellPage,
             debugLabel: '$shellLocation',
+          ),
+        ];
+      case (
+        _MatchedNodeRenderKind.multiShellLocationShell,
+        final AbstractMultiShellLocation<ID, dynamic> multiShellLocation,
+      ):
+        if (!multiShellLocation.navigatorEnabled) {
+          return const [];
+        }
+        final contentNavigatorActive = _navigatorWouldBuildPages(
+          multiShellLocation.contentRouterKey,
+          data,
+        );
+        return [
+          MultiShellLocationPageSkeleton(
+            router: router,
+            buildPages: (
+              WorkingRouter<ID> _,
+              AnyLocation<ID> location,
+              WorkingRouterData<ID> data,
+            ) => _buildPagesForLocation(location, data),
+            activeSlots: multiShellLocation.allSlots.where(
+              (slot) =>
+                  identical(slot.routerKey, multiShellLocation.contentRouterKey)
+                  ? contentNavigatorActive
+                  : _navigatorWouldBuildPages(slot.routerKey, data),
+            ),
+            buildChild: (context, nestedData, slots) {
+              return multiShellLocation.buildShellContent(
+                context,
+                nestedData,
+                slots,
+              );
+            },
+            buildPage: multiShellLocation.buildShellPage,
+            debugLabel: '$multiShellLocation',
           ),
         ];
       case (_, final AnyLocation<ID> location):

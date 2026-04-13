@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_tree_element.dart';
+import 'package:working_router/src/multi_shell_location.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/scope.dart';
 import 'package:working_router/src/shell.dart';
@@ -21,6 +22,14 @@ abstract interface class BuildsWithShellBuilder<ID> {
 
 abstract interface class BuildsWithShellLocationBuilder<ID> {
   void build(ShellLocationBuilder<ID> builder);
+}
+
+abstract interface class BuildsWithMultiShellBuilder<ID> {
+  void build(MultiShellBuilder<ID> builder);
+}
+
+abstract interface class BuildsWithMultiShellLocationBuilder<ID> {
+  void build(MultiShellLocationBuilder<ID> builder);
 }
 
 abstract class PathLocationTreeElementRenderResult<ID> {
@@ -304,6 +313,22 @@ abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
         () {
           element.build(shellLocationBuilder);
           return shellLocationBuilder.resolveRender();
+        }(),
+      (
+        final BuildsWithMultiShellBuilder<ID> element,
+        final MultiShellBuilder<ID> multiShellBuilder,
+      ) =>
+        () {
+          element.build(multiShellBuilder);
+          return multiShellBuilder.resolveRender();
+        }(),
+      (
+        final BuildsWithMultiShellLocationBuilder<ID> element,
+        final MultiShellLocationBuilder<ID> multiShellLocationBuilder,
+      ) =>
+        () {
+          element.build(multiShellLocationBuilder);
+          return multiShellLocationBuilder.resolveRender();
         }(),
       _ => throw StateError(
         'Unsupported PathLocationTreeElement/Builder combination: '

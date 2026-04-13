@@ -808,7 +808,7 @@ void main() {
                 builder.children = [
                   _BuilderShellLocation<_Id>(
                     id: _Id.b,
-                    build: (builder, location, routerKey) {
+                    build: (builder, location, _) {
                       builder.pathLiteral('accounts');
                       final accountId = builder.stringPathParam();
                       builder.shellContent = ShellContent.builder((
@@ -1104,6 +1104,310 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'multi shell location renders sibling slot and content navigators',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation<_Id>(
+                    id: _Id.a,
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(debugLabel: 'left');
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(leftSlot),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(contentSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.content = Content.widget(const Text('empty'));
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: leftSlot.routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('search');
+                            builder.content = Content.widget(
+                              const Text('search'),
+                            );
+                            builder.children = [
+                              _BuilderLocation<_Id>(
+                                id: _Id.c,
+                                parentRouterKey: contentSlot.routerKey,
+                                build: (builder, location) {
+                                  builder.pathLiteral('detail');
+                                  builder.content = Content.widget(
+                                    const Text('detail'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat/search/detail'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('search'), findsOneWidget);
+        expect(find.text('detail'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(3),
+        );
+      },
+    );
+
+    testWidgets(
+      'multi shell renders sibling slots',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShell<_Id>(
+                    build: (builder, shell) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(debugLabel: 'left');
+                      final detailSlot = builder.slot(debugLabel: 'detail');
+                      builder.content = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(leftSlot),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(detailSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: leftSlot.routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('search');
+                            builder.content = Content.widget(
+                              const Text('search'),
+                            );
+                            builder.children = [
+                              _BuilderLocation<_Id>(
+                                id: _Id.c,
+                                parentRouterKey: detailSlot.routerKey,
+                                build: (builder, location) {
+                                  builder.pathLiteral('detail');
+                                  builder.content = Content.widget(
+                                    const Text('detail'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat/search/detail'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('search'), findsOneWidget);
+        expect(find.text('detail'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(3),
+        );
+      },
+    );
+
+    testWidgets(
+      'disabled multi shell location aliases content and slot navigators to the parent navigator',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation<_Id>(
+                    id: _Id.a,
+                    navigatorEnabled: false,
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(debugLabel: 'left');
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Row(
+                          children: [
+                            Expanded(child: slots.child(leftSlot)),
+                            Expanded(child: slots.child(contentSlot)),
+                          ],
+                        );
+                      });
+                      builder.content = Content.widget(const Text('empty'));
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: leftSlot.routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('search');
+                            builder.content = Content.widget(
+                              const Text('search'),
+                            );
+                            builder.children = [
+                              _BuilderLocation<_Id>(
+                                id: _Id.c,
+                                parentRouterKey: contentSlot.routerKey,
+                                build: (builder, location) {
+                                  builder.pathLiteral('detail');
+                                  builder.content = Content.widget(
+                                    const Text('detail'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat/search/detail'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('detail'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(1),
+        );
+      },
+    );
+
+    testWidgets(
+      'disabled multi shell aliases slot navigators to the parent navigator',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShell<_Id>(
+                    navigatorEnabled: false,
+                    build: (builder, shell) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(debugLabel: 'left');
+                      final detailSlot = builder.slot(debugLabel: 'detail');
+                      builder.content = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Row(
+                          children: [
+                            Expanded(child: slots.child(leftSlot)),
+                            Expanded(child: slots.child(detailSlot)),
+                          ],
+                        );
+                      });
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: leftSlot.routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('search');
+                            builder.content = Content.widget(
+                              const Text('search'),
+                            );
+                            builder.children = [
+                              _BuilderLocation<_Id>(
+                                id: _Id.c,
+                                parentRouterKey: detailSlot.routerKey,
+                                build: (builder, location) {
+                                  builder.pathLiteral('detail');
+                                  builder.content = Content.widget(
+                                    const Text('detail'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat/search/detail'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('detail'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(1),
+        );
+      },
+    );
   });
 }
 
@@ -1393,6 +1697,24 @@ class _BuilderShellLocation<ID>
     extends ShellLocation<ID, _BuilderShellLocation<ID>> {
   _BuilderShellLocation({
     required super.id,
+    super.parentRouterKey,
+    super.navigatorEnabled,
+    required super.build,
+  });
+}
+
+class _BuilderMultiShellLocation<ID>
+    extends MultiShellLocation<ID, _BuilderMultiShellLocation<ID>> {
+  _BuilderMultiShellLocation({
+    required super.id,
+    super.parentRouterKey,
+    super.navigatorEnabled,
+    required super.build,
+  });
+}
+
+class _BuilderMultiShell<ID> extends MultiShell<ID> {
+  _BuilderMultiShell({
     super.parentRouterKey,
     super.navigatorEnabled,
     required super.build,
