@@ -156,8 +156,6 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
 
   MultiShellLocationBuilder();
 
-  MultiShellSlot get contentSlot => _contentSlot;
-
   MultiShellSlot slot({String? debugLabel}) {
     final slot = MultiShellSlot._(debugLabel: debugLabel);
     _slots.add(slot);
