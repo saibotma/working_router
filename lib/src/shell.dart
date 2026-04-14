@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/working_router_data.dart';
@@ -48,16 +49,22 @@ final class ShellBuildResult<ID>
     extends PathLocationTreeElementRenderResult<ID> {
   final ShellContentBuilder<ID> buildContent;
   final ShellPageBuilder? buildPage;
+  final LocationWidgetBuilder<ID>? buildDefaultWidget;
+  final SelfBuiltLocationPageBuilder? buildDefaultPage;
 
   const ShellBuildResult({
     required this.buildContent,
     this.buildPage,
+    required this.buildDefaultWidget,
+    required this.buildDefaultPage,
   });
 }
 
 class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
   ShellContent<ID>? _content;
   ShellPageBuilder? _buildPage;
+  DefaultContent<ID>? _defaultContent;
+  SelfBuiltLocationPageBuilder? _buildDefaultPage;
 
   ShellBuilder();
 
@@ -81,10 +88,40 @@ class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
     _buildPage = page;
   }
 
+  /// Configures the root page of the shell's implicit nested slot.
+  ///
+  /// The default page is built inside the shell navigator and stays beneath
+  /// deeper routed shell pages. It does not make the shell terminal by itself;
+  /// some descendant route still has to match for the shell to render.
+  set defaultContent(DefaultContent<ID> content) {
+    if (_defaultContent != null) {
+      throw StateError(
+        'ShellBuilder defaultContent was already configured. '
+        'defaultContent may only be configured once.',
+      );
+    }
+    _defaultContent = content;
+  }
+
+  set defaultPage(SelfBuiltLocationPageBuilder page) {
+    if (_buildDefaultPage != null) {
+      throw StateError(
+        'ShellBuilder defaultPage was already configured. '
+        'defaultPage may only be configured once.',
+      );
+    }
+    _buildDefaultPage = page;
+  }
+
   ShellBuildResult<ID> resolveRender() {
     return ShellBuildResult(
       buildContent: (_content ?? ShellContent<ID>.child()).resolveBuilder(),
       buildPage: _buildPage,
+      buildDefaultWidget: _resolveDefaultWidgetBuilder(_defaultContent),
+      buildDefaultPage: _resolveDefaultPageBuilder(
+        defaultContent: _defaultContent,
+        defaultPage: _buildDefaultPage,
+      ),
     );
   }
 }
@@ -117,7 +154,9 @@ class BuiltShellDefinition<ID> {
 /// [routerKey], the shell does not contribute a page and instead behaves like
 /// a [Scope] for that match. This makes it possible to keep a shell in the
 /// route tree for shared path/query scope while routing descendants to an
-/// ancestor navigator on smaller layouts.
+/// ancestor navigator on smaller layouts. When [ShellBuilder.defaultContent]
+/// is configured, that implicit nested-slot default page keeps the shell
+/// renderable even if the matched descendants are all routed elsewhere.
 ///
 /// Setting [navigatorEnabled] to false disables the nested navigator
 /// completely. The shell then always behaves like a [Scope] for rendering,
@@ -191,6 +230,17 @@ abstract class AbstractShell<ID> extends PathLocationTreeElement<ID>
     return _definition.render.buildPage?.call(key, child) ??
         MaterialPage<dynamic>(key: key, child: child);
   }
+
+  bool get hasDefaultPage => _definition.render.buildDefaultWidget != null;
+
+  List<Page<dynamic>> buildDefaultPages(WorkingRouterData<ID> data) {
+    return buildDefaultPagesForSlot(
+      data: data,
+      routerKey: routerKey,
+      buildDefaultWidget: _definition.render.buildDefaultWidget,
+      buildDefaultPage: _definition.render.buildDefaultPage,
+    );
+  }
 }
 
 /// Callback-based convenience shell.
@@ -210,4 +260,22 @@ class Shell<ID> extends AbstractShell<ID> {
   void build(ShellBuilder<ID> builder) {
     _build(builder, this, routerKey);
   }
+}
+
+LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
+  DefaultContent<ID>? defaultContent,
+) {
+  return defaultContent?.resolveWidgetBuilder();
+}
+
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
+  required DefaultContent<ID>? defaultContent,
+  required SelfBuiltLocationPageBuilder? defaultPage,
+}) {
+  if (defaultPage != null && defaultContent == null) {
+    throw StateError(
+      'Shell defaultPage was configured without defaultContent.',
+    );
+  }
+  return defaultPage;
 }

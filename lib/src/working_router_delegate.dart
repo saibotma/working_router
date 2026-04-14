@@ -376,13 +376,17 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         );
         if (!navigatorWouldBuildPages) {
           if (_hasMatchedDescendantAfter(entry.node, data)) {
-            throw StateError(
-              'Enabled shell ${shell.runtimeType} has matched descendants, '
-              'but none are assigned to its routerKey. Disable '
-              'navigatorEnabled or route a child to this shell navigator.',
-            );
+            if (!shell.hasDefaultPage) {
+              throw StateError(
+                'Enabled shell ${shell.runtimeType} has matched descendants, '
+                'but none are assigned to its routerKey. Disable '
+                'navigatorEnabled, configure defaultContent/defaultPage, '
+                'or route a child to this shell navigator.',
+              );
+            }
+          } else {
+            return const [];
           }
-          return const [];
         }
         return [
           NestedLocationPageSkeleton(
@@ -391,6 +395,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               location,
               data,
             ),
+            buildDefaultPages: shell.hasDefaultPage
+                ? (data) => shell.buildDefaultPages(data)
+                : null,
             routerKey: shell.routerKey,
             buildChild: (context, nestedData, child) {
               return shell.buildContent(context, nestedData, child);
@@ -445,6 +452,9 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               location,
               data,
             ),
+            buildDefaultPages: shellLocation.hasDefaultPage
+                ? (data) => shellLocation.buildDefaultPages(data)
+                : null,
             routerKey: shellLocation.routerKey,
             buildChild: (context, nestedData, child) {
               return shellLocation.buildShellContent(
@@ -483,12 +493,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             ) => _buildPagesForLocation(location, data),
             slots: [
               MultiShellResolvedSlot(
-                definition: MultiShellSlotDefinition(
-                  slot: multiShellLocation.contentSlot,
-                  navigatorEnabled: true,
-                  buildDefaultWidget: null,
-                  buildDefaultPage: null,
-                ),
+                definition: multiShellLocation.contentSlotDefinition,
                 isEnabled: true,
                 hasRoutedContent: contentNavigatorActive,
               ),

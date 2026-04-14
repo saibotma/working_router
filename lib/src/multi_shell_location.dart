@@ -14,20 +14,32 @@ typedef BuildMultiShellLocation<ID, Self extends AnyLocation<ID>> =
     );
 
 final class MultiShellLocationBuildResult<ID>
-    extends SelfBuiltLocationBuildResult<ID> {
+    extends LocationBuildResult<ID> {
+  final LocationWidgetBuilder<ID>? buildWidget;
+  final SelfBuiltLocationPageBuilder? buildPage;
   final MultiShellSlot contentSlot;
+  final LocationWidgetBuilder<ID>? buildContentDefaultWidget;
+  final SelfBuiltLocationPageBuilder? buildContentDefaultPage;
   final List<MultiShellSlotDefinition<ID>> slots;
   final MultiShellContentBuilder<ID> buildShellContent;
   final ShellPageBuilder? buildShellPage;
 
   const MultiShellLocationBuildResult({
-    required super.buildWidget,
-    super.buildPage,
+    required this.buildWidget,
+    required this.buildPage,
     required this.contentSlot,
+    required this.buildContentDefaultWidget,
+    required this.buildContentDefaultPage,
     required this.slots,
     required this.buildShellContent,
     this.buildShellPage,
   });
+
+  @override
+  LocationWidgetBuilder<ID>? get buildWidgetOrNull => buildWidget;
+
+  @override
+  SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
 class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
@@ -37,6 +49,8 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
   final List<MultiShellSlotDefinition<ID>> _slots = [];
   MultiShellContent<ID>? _shellContent;
   ShellPageBuilder? _buildShellPage;
+  DefaultContent<ID>? _defaultContent;
+  SelfBuiltLocationPageBuilder? _buildDefaultPage;
 
   MultiShellLocationBuilder();
 
@@ -50,7 +64,7 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
   MultiShellSlot slot({
     String? debugLabel,
     bool navigatorEnabled = true,
-    Content<ID>? defaultContent,
+    DefaultContent<ID>? defaultContent,
     SelfBuiltLocationPageBuilder? defaultPage,
   }) {
     final slot = MultiShellSlot.internal(debugLabel: debugLabel);
@@ -88,15 +102,39 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
     _buildShellPage = page;
   }
 
+  /// Configures the root page of the implicit `contentSlot`.
+  ///
+  /// This is most useful when `content = const Content.none()` should suppress
+  /// the location-owned page while the content slot still keeps a default page
+  /// beneath deeper routed pages.
+  set defaultContent(DefaultContent<ID> content) {
+    if (_defaultContent != null) {
+      throw StateError(
+        'MultiShellLocationBuilder defaultContent was already configured. '
+        'defaultContent may only be configured once.',
+      );
+    }
+    _defaultContent = content;
+  }
+
+  set defaultPage(SelfBuiltLocationPageBuilder page) {
+    if (_buildDefaultPage != null) {
+      throw StateError(
+        'MultiShellLocationBuilder defaultPage was already configured. '
+        'defaultPage may only be configured once.',
+      );
+    }
+    _buildDefaultPage = page;
+  }
+
   @override
   LocationBuildResult<ID>? resolveRender() {
     final locationRender = super.resolveRender();
-    if (locationRender is! SelfBuiltLocationBuildResult<ID>) {
+    if (locationRender == null) {
       throw StateError(
-        'MultiShellLocationBuilder requires rendering content. '
-        'A multi shell location always defines an outer shell page and an '
-        'inner location page, so Content.none() and the legacy buildPages '
-        'fallback are not supported here.',
+        'MultiShellLocationBuilder requires content. '
+        'A multi shell location does not support the legacy buildPages '
+        'fallback.',
       );
     }
     if (_shellContent == null) {
@@ -106,10 +144,27 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
         'children.',
       );
     }
+    final buildContentDefaultWidget = _resolveDefaultWidgetBuilder(
+      _defaultContent,
+    );
+    final buildContentDefaultPage = _resolveDefaultPageBuilder(
+      defaultContent: _defaultContent,
+      defaultPage: _buildDefaultPage,
+    );
+    if (locationRender.buildWidgetOrNull == null &&
+        buildContentDefaultWidget == null) {
+      throw StateError(
+        'MultiShellLocationBuilder requires rendering content or '
+        'defaultContent. Use content, or configure defaultContent/defaultPage '
+        'for the implicit content slot when content is Content.none().',
+      );
+    }
     return MultiShellLocationBuildResult(
-      buildWidget: locationRender.buildWidget,
-      buildPage: locationRender.buildPage,
+      buildWidget: locationRender.buildWidgetOrNull,
+      buildPage: locationRender.buildPageOrNull,
       contentSlot: _contentSlot,
+      buildContentDefaultWidget: buildContentDefaultWidget,
+      buildContentDefaultPage: buildContentDefaultPage,
       slots: List.unmodifiable(_slots),
       buildShellContent: _shellContent!.resolveBuilder(),
       buildShellPage: _buildShellPage,
@@ -124,10 +179,11 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
 /// - an outer shell wrapper/page rendered on the parent navigator
 /// - extra sibling slot navigators for parallel routed panes
 ///
-/// The location's own page always renders in [contentSlot]. Extra slots must
-/// be created via [MultiShellLocationBuilder.slot] and may define default
-/// content/page. Children without an explicit `parentRouterKey` inherit the
-/// [contentSlot].
+/// The location's own page renders in [contentSlot]. `defaultContent` and
+/// `defaultPage` configure that implicit slot's root page beneath routed child
+/// pages. Extra slots must be created via [MultiShellLocationBuilder.slot] and
+/// may define their own default content/page. Children without an explicit
+/// `parentRouterKey` inherit the [contentSlot].
 abstract class AbstractMultiShellLocation<ID, Self extends AnyLocation<ID>>
     extends AnyLocation<ID>
     implements BuildsWithMultiShellLocationBuilder<ID> {
@@ -169,6 +225,14 @@ abstract class AbstractMultiShellLocation<ID, Self extends AnyLocation<ID>>
   List<MultiShellSlotDefinition<ID>> get slotDefinitions =>
       _multiShellRender.slots;
 
+  MultiShellSlotDefinition<ID> get contentSlotDefinition =>
+      MultiShellSlotDefinition(
+        slot: contentSlot,
+        navigatorEnabled: true,
+        buildDefaultWidget: _multiShellRender.buildContentDefaultWidget,
+        buildDefaultPage: _multiShellRender.buildContentDefaultPage,
+      );
+
   Widget buildShellContent(
     BuildContext context,
     WorkingRouterData<ID> data,
@@ -208,19 +272,13 @@ class MultiShellLocation<ID, Self extends AnyLocation<ID>>
 }
 
 LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
-  Content<ID>? defaultContent,
+  DefaultContent<ID>? defaultContent,
 ) {
-  final builder = defaultContent?.resolveWidgetBuilderOrNull();
-  if (defaultContent != null && builder == null) {
-    throw StateError(
-      'MultiShell slot defaultContent may not be Content.none().',
-    );
-  }
-  return builder;
+  return defaultContent?.resolveWidgetBuilder();
 }
 
 SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
-  required Content<ID>? defaultContent,
+  required DefaultContent<ID>? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {
   if (defaultPage != null && defaultContent == null) {

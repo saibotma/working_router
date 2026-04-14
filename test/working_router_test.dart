@@ -891,6 +891,63 @@ void main() {
       expect(router.nullableData!.uri.path, '/accounts/42');
     });
 
+    testWidgets(
+      'shell renders default content when matched descendants use the parent navigator',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (rootRouterKey) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  Shell(
+                    build: (builder, shell, routerKey) {
+                      builder.pathLiteral('accounts');
+                      final accountId = builder.stringPathParam();
+                      builder.defaultContent = DefaultContent.builder((
+                        context,
+                        data,
+                      ) {
+                        return Text('default:${data.param(accountId)}');
+                      });
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: rootRouterKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('dashboard');
+                            builder.content = Content.builder((context, data) {
+                              return Text(
+                                'dashboard:${data.param(accountId)}',
+                              );
+                            });
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/accounts/42/dashboard'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('default:42', skipOffstage: false), findsOneWidget);
+        expect(find.text('dashboard:42'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(
+            find.byType(Navigator, skipOffstage: false),
+          ),
+          hasLength(2),
+        );
+      },
+    );
+
     testWidgets('routeToId can write shell path parameters', (tester) async {
       final router = WorkingRouter<_Id>(
         buildLocations: (_) => [
@@ -1105,6 +1162,76 @@ void main() {
         expect(
           tester.widgetList<Navigator>(find.byType(Navigator)),
           hasLength(1),
+        );
+      },
+    );
+
+    testWidgets(
+      'shell location supports Content.none when default content is configured',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderShellLocation<_Id>(
+                    id: _Id.b,
+                    build: (builder, location, routerKey) {
+                      builder.pathLiteral('accounts');
+                      final accountId = builder.stringPathParam();
+                      builder.shellContent = ShellContent.builder((
+                        context,
+                        data,
+                        child,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('shell'),
+                            SizedBox(height: 80, child: child),
+                          ],
+                        );
+                      });
+                      builder.defaultContent = DefaultContent.builder((
+                        context,
+                        data,
+                      ) {
+                        return Text('placeholder:${data.param(accountId)}');
+                      });
+                      builder.content = const Content.none();
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.c,
+                          parentRouterKey: routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('details');
+                            builder.content = Content.builder((context, data) {
+                              return Text(
+                                'details:${data.param(accountId)}',
+                              );
+                            });
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/accounts/42'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('shell'), findsOneWidget);
+        expect(find.text('placeholder:42'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(2),
         );
       },
     );
@@ -1427,7 +1554,7 @@ void main() {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
                         debugLabel: 'left',
-                        defaultContent: Content.widget(
+                        defaultContent: DefaultContent.widget(
                           const Text('default-list'),
                         ),
                       );
@@ -1500,7 +1627,7 @@ void main() {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
                         debugLabel: 'left',
-                        defaultContent: Content.widget(
+                        defaultContent: DefaultContent.widget(
                           const Text('default-list'),
                         ),
                       );
@@ -1547,6 +1674,70 @@ void main() {
     );
 
     testWidgets(
+      'multi shell location supports Content.none with default content for the content slot',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation<_Id>(
+                    id: _Id.a,
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(
+                        debugLabel: 'left',
+                        defaultContent: DefaultContent.widget(
+                          const Text('default-list'),
+                        ),
+                      );
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(leftSlot),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(contentSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.defaultContent = DefaultContent.widget(
+                        const Text('placeholder'),
+                      );
+                      builder.content = const Content.none();
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('default-list'), findsOneWidget);
+        expect(find.text('placeholder'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(3),
+        );
+      },
+    );
+
+    testWidgets(
       'multi shell slot keeps the same navigator between default and routed pages',
       (tester) async {
         final router = WorkingRouter<_Id>(
@@ -1561,7 +1752,7 @@ void main() {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
                         debugLabel: 'left',
-                        defaultContent: Content.widget(
+                        defaultContent: DefaultContent.widget(
                           const Text('default-list'),
                         ),
                       );

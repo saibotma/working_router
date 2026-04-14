@@ -1,9 +1,11 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location_tag.dart';
 import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/working_router_data.dart';
+import 'package:working_router/src/working_router_key.dart';
 
 typedef BuildLocation<ID, Self extends AnyLocation<ID>> =
     void Function(LocationBuilder<ID> builder, Self location);
@@ -31,6 +33,24 @@ sealed class Content<ID> {
   }
 }
 
+sealed class DefaultContent<ID> {
+  const DefaultContent();
+
+  factory DefaultContent.widget(Widget widget) = _StaticDefaultContent<ID>;
+
+  factory DefaultContent.builder(LocationWidgetBuilder<ID> builder) =
+      _BuilderDefaultContent<ID>;
+
+  LocationWidgetBuilder<ID> resolveWidgetBuilder() {
+    return switch (this) {
+      final _StaticDefaultContent<ID> staticContent =>
+        (_, _) => staticContent.widget,
+      final _BuilderDefaultContent<ID> builderContent =>
+        builderContent.builder,
+    };
+  }
+}
+
 final class _StaticContent<ID> extends Content<ID> {
   final Widget widget;
 
@@ -47,12 +67,28 @@ final class _NoContent<ID> extends Content<ID> {
   const _NoContent();
 }
 
-sealed class LocationBuildResult<ID>
-    extends PathLocationTreeElementRenderResult<ID> {
-  const LocationBuildResult();
+final class _StaticDefaultContent<ID> extends DefaultContent<ID> {
+  final Widget widget;
+
+  const _StaticDefaultContent(this.widget);
 }
 
-class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
+final class _BuilderDefaultContent<ID> extends DefaultContent<ID> {
+  final LocationWidgetBuilder<ID> builder;
+
+  const _BuilderDefaultContent(this.builder);
+}
+
+abstract class LocationBuildResult<ID>
+    extends PathLocationTreeElementRenderResult<ID> {
+  const LocationBuildResult();
+
+  LocationWidgetBuilder<ID>? get buildWidgetOrNull;
+
+  SelfBuiltLocationPageBuilder? get buildPageOrNull;
+}
+
+final class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
   final LocationWidgetBuilder<ID> buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
 
@@ -60,10 +96,22 @@ class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
     required this.buildWidget,
     this.buildPage,
   });
+
+  @override
+  LocationWidgetBuilder<ID>? get buildWidgetOrNull => buildWidget;
+
+  @override
+  SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
 final class NonRenderingLocationBuildResult<ID> extends LocationBuildResult<ID> {
   const NonRenderingLocationBuildResult();
+
+  @override
+  LocationWidgetBuilder<ID>? get buildWidgetOrNull => null;
+
+  @override
+  SelfBuiltLocationPageBuilder? get buildPageOrNull => null;
 }
 
 class LocationBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
@@ -167,26 +215,42 @@ abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
   }) : tags = tags.toISet();
 
   bool get contributesPage =>
-      definition.render is! NonRenderingLocationBuildResult<ID>;
+      switch (definition.render) {
+        final LocationBuildResult<ID> render => render.buildWidgetOrNull != null,
+        null => true,
+        _ => false,
+      };
 
   bool get buildsOwnPage =>
-      definition.render is SelfBuiltLocationBuildResult<ID>;
+      switch (definition.render) {
+        final LocationBuildResult<ID> render => render.buildWidgetOrNull != null,
+        _ => false,
+      };
 
   Widget? buildWidget(BuildContext context, WorkingRouterData<ID> data) {
     final render = definition.render;
-    if (render is! SelfBuiltLocationBuildResult<ID>) {
+    final buildWidget = switch (render) {
+      final LocationBuildResult<ID> locationRender =>
+        locationRender.buildWidgetOrNull,
+      _ => null,
+    };
+    if (buildWidget == null) {
       return null;
     }
-    return render.buildWidget(context, data);
+    return buildWidget(context, data);
   }
 
   Page<dynamic> buildPage(LocalKey? key, Widget child) {
     final render = definition.render;
-    if (render is! SelfBuiltLocationBuildResult<ID>) {
+    final buildPage = switch (render) {
+      final LocationBuildResult<ID> locationRender =>
+        locationRender.buildPageOrNull,
+      _ => null,
+    };
+    if (buildPage == null) {
       return MaterialPage<dynamic>(key: key, child: child);
     }
-    return render.buildPage?.call(key, child) ??
-        MaterialPage<dynamic>(key: key, child: child);
+    return buildPage(key, child);
   }
 
   bool get shouldBeSkippedOnRouteBack => false;
@@ -264,4 +328,29 @@ class Location<ID, Self extends AnyLocation<ID>>
   void build(LocationBuilder<ID> builder) {
     _build(builder, this as Self);
   }
+}
+
+List<Page<dynamic>> buildDefaultPagesForSlot<ID>({
+  required WorkingRouterData<ID> data,
+  required WorkingRouterKey routerKey,
+  required LocationWidgetBuilder<ID>? buildDefaultWidget,
+  required SelfBuiltLocationPageBuilder? buildDefaultPage,
+}) {
+  if (buildDefaultWidget == null) {
+    return const [];
+  }
+
+  final defaultChild = InheritedWorkingRouterData(
+    data: data,
+    child: Builder(
+      builder: (context) {
+        return buildDefaultWidget(context, data);
+      },
+    ),
+  );
+  final key = ValueKey((routerKey, 'default'));
+  return [
+    buildDefaultPage?.call(key, defaultChild) ??
+        MaterialPage<dynamic>(key: key, child: defaultChild),
+  ];
 }

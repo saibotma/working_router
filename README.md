@@ -129,12 +129,15 @@ navigator boundary. A shell:
 - can hold child locations
 - does build a wrapper widget/page
 - does create a nested navigator for its child subtree
+- may define `defaultContent` / `defaultPage` for that implicit nested slot
 
 If no later matched descendant is actually assigned to the shell's
 `routerKey`, the shell does not contribute a page for that match and behaves
 like a `Scope` instead. This lets you keep a shell in the tree for shared
 path/query scope while routing descendants to an ancestor navigator on smaller
-layouts.
+layouts. When `defaultContent` is configured, that default page becomes the
+root page of the shell navigator and keeps the shell renderable even if the
+matched descendants are all routed elsewhere.
 
 You can also disable the shell navigator explicitly with
 `navigatorEnabled: false`. In that mode the shell stays in the tree for
@@ -155,6 +158,7 @@ location:
 - defines its own path, query params, widget, and page
 - also defines an outer shell wrapper/page on the parent navigator
 - creates a nested navigator for its child subtree
+- may define `defaultContent` / `defaultPage` for that implicit nested slot
 - can disable that nested navigator with `navigatorEnabled: false`
 
 Typical use case:
@@ -190,6 +194,7 @@ Shell(
     builder.content = ShellContent.builder(
       (context, data, child) => Scaffold(body: child),
     );
+    builder.defaultContent = DefaultContent.widget(const Placeholder());
     builder.children = [
       DashboardLocation(id: RouteId.dashboard, build: ...),
     ];
@@ -199,10 +204,9 @@ Shell(
 MultiShell(
   build: (builder, shell) {
     final listSlot = builder.slot(
-      debugLabel: 'list',
-      defaultContent: Content.widget(const ChannelListScreen()),
+      defaultContent: DefaultContent.widget(const ChannelListScreen()),
     );
-    final detailSlot = builder.slot(debugLabel: 'detail');
+    final detailSlot = builder.slot();
     builder.content = MultiShellContent.builder(
       (context, data, slots) => Row(
         children: [
@@ -264,8 +268,8 @@ class AccountShell extends AbstractShell<RouteId> {
 class ChatSplitShell extends AbstractMultiShell<RouteId> {
   @override
   void build(MultiShellBuilder<RouteId> builder) {
-    final listSlot = builder.slot(debugLabel: 'list');
-    final detailSlot = builder.slot(debugLabel: 'detail');
+    final listSlot = builder.slot();
+    final detailSlot = builder.slot();
     builder.content = MultiShellContent.builder(
       (context, data, slots) => Row(
         children: [
@@ -404,6 +408,7 @@ ShellLocation<RouteId, SettingsLocation>(
       return Dialog(child: child);
     });
 
+    builder.defaultContent = DefaultContent.widget(const Placeholder());
     builder.content = Content.widget(const SettingsScreen());
     builder.page = (key, child) {
       return MaterialPage(key: key, child: child);
@@ -419,6 +424,8 @@ ShellLocation<RouteId, SettingsLocation>(
 Use:
 - `content = ...` and `page = ...` for the inner location page rendered inside
   the nested navigator
+- `defaultContent = ...` and `defaultPage = ...` for the implicit nested slot
+  root page, especially when `content = const Content.none()`
 - `shellContent = ...` and `shellPage = ...` for the outer shell wrapper
   rendered on the parent navigator
 - `navigatorEnabled: false` when the shell location should collapse down to a
@@ -438,8 +445,7 @@ MultiShellLocation<RouteId, ChatLocation>(
     builder.pathLiteral('chat');
 
     final listSlot = builder.slot(
-      debugLabel: 'list',
-      defaultContent: Content.widget(const ChannelListScreen()),
+      defaultContent: DefaultContent.widget(const ChannelListScreen()),
     );
 
     builder.shellContent = MultiShellContent.builder((
@@ -453,7 +459,10 @@ MultiShellLocation<RouteId, ChatLocation>(
       );
     });
 
-    builder.content = Content.widget(const EmptyDetailPlaceholder());
+    builder.defaultContent = DefaultContent.widget(
+      const EmptyDetailPlaceholder(),
+    );
+    builder.content = const Content.none();
 
     builder.children = [
       ChannelListLocation(
@@ -473,13 +482,13 @@ MultiShellLocation<RouteId, ChatLocation>(
 
 Use:
 - the `contentSlot` build parameter for the location's own page navigator
+- `defaultContent = ...` and `defaultPage = ...` for the implicit `contentSlot`
+  root page
 - `builder.slot()` for extra sibling navigators
 - `slot.routerKey` to target any slot from child locations via `parentRouterKey`
 - `slots.child(slot)` inside `shellContent` to place each active slot navigator
 - `slots.childOrNull(slot)` when a disabled slot should simply be omitted from
   the layout
-- `defaultContent` and `defaultPage` only on extra slots created by
-  `builder.slot()`, never on the built-in `contentSlot`
 - `navigatorEnabled: false` to collapse the whole multi-shell back onto the
   parent navigator on smaller layouts while keeping the same route tree
 

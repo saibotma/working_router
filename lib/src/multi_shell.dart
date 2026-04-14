@@ -187,7 +187,7 @@ class MultiShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
   MultiShellSlot slot({
     String? debugLabel,
     bool navigatorEnabled = true,
-    Content<ID>? defaultContent,
+    DefaultContent<ID>? defaultContent,
     SelfBuiltLocationPageBuilder? defaultPage,
   }) {
     final slot = MultiShellSlot.internal(debugLabel: debugLabel);
@@ -348,19 +348,13 @@ class MultiShell<ID> extends AbstractMultiShell<ID> {
 }
 
 LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
-  Content<ID>? defaultContent,
+  DefaultContent<ID>? defaultContent,
 ) {
-  final builder = defaultContent?.resolveWidgetBuilderOrNull();
-  if (defaultContent != null && builder == null) {
-    throw StateError(
-      'MultiShell slot defaultContent may not be Content.none().',
-    );
-  }
-  return builder;
+  return defaultContent?.resolveWidgetBuilder();
 }
 
 SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
-  required Content<ID>? defaultContent,
+  required DefaultContent<ID>? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {
   if (defaultPage != null && defaultContent == null) {

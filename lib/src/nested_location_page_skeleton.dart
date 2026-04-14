@@ -5,6 +5,7 @@ class NestedLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
   NestedLocationPageSkeleton({
     required WorkingRouter<ID> router,
     required BuildPages<ID> buildPages,
+    List<Page<dynamic>> Function(WorkingRouterData<ID> data)? buildDefaultPages,
     required WorkingRouterKey routerKey,
     Widget Function(
       BuildContext context,
@@ -20,6 +21,7 @@ class NestedLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
            final nested = NestedRouting(
              router: router,
              buildPages: buildPages,
+             buildDefaultPages: buildDefaultPages,
              routerKey: routerKey,
              debugLabel: debugLabel,
            );
