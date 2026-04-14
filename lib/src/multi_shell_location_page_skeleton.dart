@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_page_skeleton.dart';
 import 'package:working_router/src/multi_shell.dart';
@@ -62,44 +63,52 @@ class MultiShellLocationPageSkeleton<ID>
         child: null,
       );
     }
-
-    if (resolvedSlot.hasRoutedContent) {
-      return MultiShellResolvedSlotChild(
+    final buildDefaultWidget = resolvedSlot.definition.buildDefaultWidget;
+    if (!resolvedSlot.hasRoutedContent && buildDefaultWidget == null) {
+      return const MultiShellResolvedSlotChild(
         isEnabled: true,
-        child: NestedRouting<ID>(
-          router: router,
-          buildPages: buildPages,
-          routerKey: resolvedSlot.slot.routerKey,
-          debugLabel: resolvedSlot.slot.debugLabel ?? '$debugLabel/${resolvedSlot.slot}',
-        ),
+        child: null,
       );
     }
-
-    final buildFallbackWidget = resolvedSlot.definition.buildFallbackWidget;
-    if (buildFallbackWidget == null) {
-      throw StateError(
-        'Enabled slot ${resolvedSlot.slot} has neither routed content nor fallback content.',
-      );
-    }
-
-    final fallbackChild = buildFallbackWidget(context, data);
-    final fallbackPage =
-        resolvedSlot.definition.buildFallbackPage?.call(
-          ValueKey((resolvedSlot.slot.routerKey, 'fallback')),
-          fallbackChild,
-        ) ??
-        MaterialPage<dynamic>(
-          key: ValueKey((resolvedSlot.slot.routerKey, 'fallback')),
-          child: fallbackChild,
-        );
 
     return MultiShellResolvedSlotChild(
       isEnabled: true,
-      child: Navigator(
-        key: ValueKey(('multi-shell-fallback', resolvedSlot.slot.routerKey)),
-        pages: [fallbackPage],
-        onDidRemovePage: (page) {},
+      child: NestedRouting<ID>(
+        router: router,
+        buildPages: buildPages,
+        buildDefaultPages: buildDefaultWidget == null
+            ? null
+            : (data) => [
+                _buildDefaultPage(
+                  data: data,
+                  resolvedSlot: resolvedSlot,
+                ),
+              ],
+        routerKey: resolvedSlot.slot.routerKey,
+        debugLabel:
+            resolvedSlot.slot.debugLabel ?? '$debugLabel/${resolvedSlot.slot}',
       ),
     );
+  }
+
+  static Page<dynamic> _buildDefaultPage<ID>({
+    required WorkingRouterData<ID> data,
+    required MultiShellResolvedSlot<ID> resolvedSlot,
+  }) {
+    final buildDefaultWidget = resolvedSlot.definition.buildDefaultWidget!;
+    final defaultChild = InheritedWorkingRouterData(
+      data: data,
+      child: Builder(
+        builder: (context) {
+          return buildDefaultWidget(context, data);
+        },
+      ),
+    );
+    final key = ValueKey((resolvedSlot.slot.routerKey, 'default'));
+    return resolvedSlot.definition.buildDefaultPage?.call(
+          key,
+          defaultChild,
+        ) ??
+        MaterialPage<dynamic>(key: key, child: defaultChild);
   }
 }

@@ -45,23 +45,23 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
   /// The location's own page always renders in the implicit `contentSlot`;
   /// extra slots created here are for additional panes. Enabled slots must
   /// either receive routed content from child locations or define
-  /// [fallbackContent]. When [navigatorEnabled] is `false`, routes targeted at
+  /// [defaultContent]. When [navigatorEnabled] is `false`, routes targeted at
   /// this slot alias back to the parent navigator.
   MultiShellSlot slot({
     String? debugLabel,
     bool navigatorEnabled = true,
-    Content<ID>? fallbackContent,
-    SelfBuiltLocationPageBuilder? fallbackPage,
+    Content<ID>? defaultContent,
+    SelfBuiltLocationPageBuilder? defaultPage,
   }) {
     final slot = MultiShellSlot.internal(debugLabel: debugLabel);
     _slots.add(
       MultiShellSlotDefinition(
         slot: slot,
         navigatorEnabled: navigatorEnabled,
-        buildFallbackWidget: _resolveFallbackWidgetBuilder(fallbackContent),
-        buildFallbackPage: _resolveFallbackPageBuilder(
-          fallbackContent: fallbackContent,
-          fallbackPage: fallbackPage,
+        buildDefaultWidget: _resolveDefaultWidgetBuilder(defaultContent),
+        buildDefaultPage: _resolveDefaultPageBuilder(
+          defaultContent: defaultContent,
+          defaultPage: defaultPage,
         ),
       ),
     );
@@ -125,7 +125,7 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
 /// - extra sibling slot navigators for parallel routed panes
 ///
 /// The location's own page always renders in [contentSlot]. Extra slots must
-/// be created via [MultiShellLocationBuilder.slot] and may define fallback
+/// be created via [MultiShellLocationBuilder.slot] and may define default
 /// content/page. Children without an explicit `parentRouterKey` inherit the
 /// [contentSlot].
 abstract class AbstractMultiShellLocation<ID, Self extends AnyLocation<ID>>
@@ -207,26 +207,26 @@ class MultiShellLocation<ID, Self extends AnyLocation<ID>>
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveFallbackWidgetBuilder<ID>(
-  Content<ID>? fallbackContent,
+LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
+  Content<ID>? defaultContent,
 ) {
-  final builder = fallbackContent?.resolveWidgetBuilderOrNull();
-  if (fallbackContent != null && builder == null) {
+  final builder = defaultContent?.resolveWidgetBuilderOrNull();
+  if (defaultContent != null && builder == null) {
     throw StateError(
-      'MultiShell slot fallbackContent may not be Content.none().',
+      'MultiShell slot defaultContent may not be Content.none().',
     );
   }
   return builder;
 }
 
-SelfBuiltLocationPageBuilder? _resolveFallbackPageBuilder<ID>({
-  required Content<ID>? fallbackContent,
-  required SelfBuiltLocationPageBuilder? fallbackPage,
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
+  required Content<ID>? defaultContent,
+  required SelfBuiltLocationPageBuilder? defaultPage,
 }) {
-  if (fallbackPage != null && fallbackContent == null) {
+  if (defaultPage != null && defaultContent == null) {
     throw StateError(
-      'MultiShell slot fallbackPage was configured without fallbackContent.',
+      'MultiShell slot defaultPage was configured without defaultContent.',
     );
   }
-  return fallbackPage;
+  return defaultPage;
 }

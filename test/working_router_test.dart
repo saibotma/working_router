@@ -1414,7 +1414,7 @@ void main() {
     );
 
     testWidgets(
-      'multi shell renders fallback content for enabled slot without routed content',
+      'multi shell renders default content for enabled slot without routed content',
       (tester) async {
         final router = WorkingRouter<_Id>(
           buildLocations: (_) => [
@@ -1427,8 +1427,8 @@ void main() {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
                         debugLabel: 'left',
-                        fallbackContent: Content.widget(
-                          const Text('fallback-list'),
+                        defaultContent: Content.widget(
+                          const Text('default-list'),
                         ),
                       );
                       final detailSlot = builder.slot(debugLabel: 'detail');
@@ -1476,7 +1476,7 @@ void main() {
         router.routeToUri(Uri(path: '/chat/detail'));
         await tester.pumpAndSettle();
 
-        expect(find.text('fallback-list'), findsOneWidget);
+        expect(find.text('default-list'), findsOneWidget);
         expect(find.text('detail'), findsOneWidget);
         expect(
           tester.widgetList<Navigator>(find.byType(Navigator)),
@@ -1486,7 +1486,7 @@ void main() {
     );
 
     testWidgets(
-      'multi shell location renders fallback content for enabled extra slot without routed content',
+      'multi shell location renders default content for enabled extra slot without routed content',
       (tester) async {
         final router = WorkingRouter<_Id>(
           buildLocations: (_) => [
@@ -1500,8 +1500,8 @@ void main() {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
                         debugLabel: 'left',
-                        fallbackContent: Content.widget(
-                          const Text('fallback-list'),
+                        defaultContent: Content.widget(
+                          const Text('default-list'),
                         ),
                       );
                       builder.shellContent = MultiShellContent.builder((
@@ -1537,7 +1537,7 @@ void main() {
         router.routeToUri(Uri(path: '/chat'));
         await tester.pumpAndSettle();
 
-        expect(find.text('fallback-list'), findsOneWidget);
+        expect(find.text('default-list'), findsOneWidget);
         expect(find.text('detail'), findsOneWidget);
         expect(
           tester.widgetList<Navigator>(find.byType(Navigator)),
@@ -1547,7 +1547,87 @@ void main() {
     );
 
     testWidgets(
-      'multi shell throws when enabled slot has neither routed content nor fallback',
+      'multi shell slot keeps the same navigator between default and routed pages',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation<_Id>(
+                    id: _Id.a,
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(
+                        debugLabel: 'left',
+                        defaultContent: Content.widget(
+                          const Text('default-list'),
+                        ),
+                      );
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Row(
+                          children: [
+                            Expanded(child: slots.child(leftSlot)),
+                            Expanded(child: slots.child(contentSlot)),
+                          ],
+                        );
+                      });
+                      builder.content = Content.widget(const Text('detail-root'));
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: leftSlot.routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('search');
+                            builder.content = Content.widget(
+                              const Text('search'),
+                            );
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat'));
+        await tester.pumpAndSettle();
+
+        final defaultNavigatorFinder = find.ancestor(
+          of: find.text('default-list'),
+          matching: find.byType(Navigator),
+        );
+        final defaultNavigatorState = tester.state<NavigatorState>(
+          defaultNavigatorFinder.first,
+        );
+
+        router.routeToUri(Uri(path: '/chat/search'));
+        await tester.pumpAndSettle();
+
+        final searchNavigatorFinder = find.ancestor(
+          of: find.text('search'),
+          matching: find.byType(Navigator),
+        );
+        final searchNavigatorState = tester.state<NavigatorState>(
+          searchNavigatorFinder.first,
+        );
+
+        expect(identical(searchNavigatorState, defaultNavigatorState), isTrue);
+      },
+    );
+
+    testWidgets(
+      'multi shell throws when enabled slot has neither routed content nor default',
       (tester) async {
         final router = WorkingRouter<_Id>(
           buildLocations: (_) => [
@@ -1610,7 +1690,7 @@ void main() {
             (it) => it.message,
             'message',
             contains(
-              'Enabled slot MultiShellSlot(left) has neither routed content nor fallback content.',
+              'Enabled slot MultiShellSlot(left) has neither routed content nor default content.',
             ),
           ),
         );

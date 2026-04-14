@@ -49,6 +49,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   final bool isRootDelegate;
   final WorkingRouter<ID> router;
   final BuildPages<ID>? buildPages;
+  final List<Page<dynamic>> Function(WorkingRouterData<ID> data)?
+  buildDefaultPages;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
@@ -65,6 +67,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     required this.routerKey,
     required this.router,
     required this.buildPages,
+    this.buildDefaultPages,
     this.noContentWidget,
     this.navigatorInitializingWidget,
     this.wrapNavigator,
@@ -153,7 +156,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
 
   void refresh() {
     if (_data != null) {
-      _pages = _matchedNodesForNavigator(_data!)
+      final routedPages = _matchedNodesForNavigator(_data!)
           .map((entry) {
             return _buildPagesForMatchedEntry(entry, _data!).map((
               pageSkeleton,
@@ -168,6 +171,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           .flattened
           .map((e) => e.page)
           .toList();
+      final defaultPages = buildDefaultPages?.call(_data!) ?? const [];
+      _pages = [...defaultPages, ...routedPages];
       notifyListeners();
     }
   }
@@ -481,8 +486,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
                 definition: MultiShellSlotDefinition(
                   slot: multiShellLocation.contentSlot,
                   navigatorEnabled: true,
-                  buildFallbackWidget: null,
-                  buildFallbackPage: null,
+                  buildDefaultWidget: null,
+                  buildDefaultPage: null,
                 ),
                 isEnabled: true,
                 hasRoutedContent: contentNavigatorActive,

@@ -12,12 +12,15 @@ import 'package:working_router/working_router.dart';
 class NestedRouting<ID> extends StatefulWidget {
   final WorkingRouter<ID> router;
   final BuildPages<ID> buildPages;
+  final List<Page<dynamic>> Function(WorkingRouterData<ID> data)?
+  buildDefaultPages;
   final WorkingRouterKey routerKey;
   final String? debugLabel;
 
   const NestedRouting({
     required this.router,
     required this.buildPages,
+    this.buildDefaultPages,
     required this.routerKey,
     this.debugLabel,
     super.key,
@@ -33,6 +36,7 @@ class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
     routerKey: widget.routerKey,
     router: widget.router,
     buildPages: widget.buildPages,
+    buildDefaultPages: widget.buildDefaultPages,
     debugLabel: widget.debugLabel,
   );
 

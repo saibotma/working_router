@@ -55,17 +55,17 @@ final class MultiShellSlot {
 final class MultiShellSlotDefinition<ID> {
   final MultiShellSlot slot;
   final bool navigatorEnabled;
-  final LocationWidgetBuilder<ID>? buildFallbackWidget;
-  final SelfBuiltLocationPageBuilder? buildFallbackPage;
+  final LocationWidgetBuilder<ID>? buildDefaultWidget;
+  final SelfBuiltLocationPageBuilder? buildDefaultPage;
 
   const MultiShellSlotDefinition({
     required this.slot,
     required this.navigatorEnabled,
-    required this.buildFallbackWidget,
-    required this.buildFallbackPage,
+    required this.buildDefaultWidget,
+    required this.buildDefaultPage,
   });
 
-  bool get hasFallback => buildFallbackWidget != null;
+  bool get hasDefault => buildDefaultWidget != null;
 }
 
 final class MultiShellResolvedSlot<ID> {
@@ -111,7 +111,7 @@ final class MultiShellSlotChildren<ID> {
   /// Returns the widget for an enabled slot.
   ///
   /// Throws when the slot is disabled or when an enabled slot has neither
-  /// routed content nor fallback content.
+  /// routed content nor default content.
   Widget child(MultiShellSlot slot) {
     final slotChild = _children[slot];
     if (slotChild == null) {
@@ -124,7 +124,7 @@ final class MultiShellSlotChildren<ID> {
     }
     if (slotChild.child == null) {
       throw StateError(
-        'Enabled slot $slot has neither routed content nor fallback content.',
+        'Enabled slot $slot has neither routed content nor default content.',
       );
     }
     return slotChild.child!;
@@ -133,7 +133,7 @@ final class MultiShellSlotChildren<ID> {
   /// Returns `null` only for disabled slots.
   ///
   /// Enabled slots remain strict: they must resolve to routed content or a
-  /// configured fallback, otherwise this throws.
+  /// configured default page, otherwise this throws.
   Widget? childOrNull(MultiShellSlot slot) {
     final slotChild = _children[slot];
     if (slotChild == null) {
@@ -144,7 +144,7 @@ final class MultiShellSlotChildren<ID> {
     }
     if (slotChild.child == null) {
       throw StateError(
-        'Enabled slot $slot has neither routed content nor fallback content.',
+        'Enabled slot $slot has neither routed content nor default content.',
       );
     }
     return slotChild.child;
@@ -182,23 +182,23 @@ class MultiShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
   /// Creates an extra sibling slot navigator owned by this multi-shell.
   ///
   /// Enabled slots must either receive routed content from child locations or
-  /// define [fallbackContent]. When [navigatorEnabled] is `false`, routes
+  /// define [defaultContent]. When [navigatorEnabled] is `false`, routes
   /// targeted at this slot alias back to the parent navigator.
   MultiShellSlot slot({
     String? debugLabel,
     bool navigatorEnabled = true,
-    Content<ID>? fallbackContent,
-    SelfBuiltLocationPageBuilder? fallbackPage,
+    Content<ID>? defaultContent,
+    SelfBuiltLocationPageBuilder? defaultPage,
   }) {
     final slot = MultiShellSlot.internal(debugLabel: debugLabel);
     _slots.add(
       MultiShellSlotDefinition(
         slot: slot,
         navigatorEnabled: navigatorEnabled,
-        buildFallbackWidget: _resolveFallbackWidgetBuilder(fallbackContent),
-        buildFallbackPage: _resolveFallbackPageBuilder(
-          fallbackContent: fallbackContent,
-          fallbackPage: fallbackPage,
+        buildDefaultWidget: _resolveDefaultWidgetBuilder(defaultContent),
+        buildDefaultPage: _resolveDefaultPageBuilder(
+          defaultContent: defaultContent,
+          defaultPage: defaultPage,
         ),
       ),
     );
@@ -250,7 +250,7 @@ class MultiShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
 /// - every rendered nested navigator comes from an explicit slot created via
 ///   [MultiShellBuilder.slot]
 ///
-/// Each enabled slot must resolve to routed content or define fallback content.
+/// Each enabled slot must resolve to routed content or define default content.
 /// Disabled slots alias targeted child routes back to the parent navigator.
 abstract class AbstractMultiShell<ID> extends PathLocationTreeElement<ID>
     implements BuildsWithMultiShellBuilder<ID> {
@@ -347,26 +347,26 @@ class MultiShell<ID> extends AbstractMultiShell<ID> {
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveFallbackWidgetBuilder<ID>(
-  Content<ID>? fallbackContent,
+LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
+  Content<ID>? defaultContent,
 ) {
-  final builder = fallbackContent?.resolveWidgetBuilderOrNull();
-  if (fallbackContent != null && builder == null) {
+  final builder = defaultContent?.resolveWidgetBuilderOrNull();
+  if (defaultContent != null && builder == null) {
     throw StateError(
-      'MultiShell slot fallbackContent may not be Content.none().',
+      'MultiShell slot defaultContent may not be Content.none().',
     );
   }
   return builder;
 }
 
-SelfBuiltLocationPageBuilder? _resolveFallbackPageBuilder<ID>({
-  required Content<ID>? fallbackContent,
-  required SelfBuiltLocationPageBuilder? fallbackPage,
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
+  required Content<ID>? defaultContent,
+  required SelfBuiltLocationPageBuilder? defaultPage,
 }) {
-  if (fallbackPage != null && fallbackContent == null) {
+  if (defaultPage != null && defaultContent == null) {
     throw StateError(
-      'MultiShell slot fallbackPage was configured without fallbackContent.',
+      'MultiShell slot defaultPage was configured without defaultContent.',
     );
   }
-  return fallbackPage;
+  return defaultPage;
 }
