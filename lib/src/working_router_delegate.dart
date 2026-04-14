@@ -8,6 +8,7 @@ import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_page_skeleton.dart';
 import 'package:working_router/src/location_tree_element.dart';
+import 'package:working_router/src/multi_shell.dart';
 import 'package:working_router/src/multi_shell_location.dart';
 import 'package:working_router/src/multi_shell_location_page_skeleton.dart';
 import 'package:working_router/src/nested_location_page_skeleton.dart';
@@ -216,9 +217,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               renderKind: _MatchedNodeRenderKind.multiShell,
             );
           }
-          for (final slot in multiShell.slots) {
-            aliasedRouterKeys[slot.routerKey] = multiShell.navigatorEnabled
-                ? slot.routerKey
+          for (final slotDefinition in multiShell.slotDefinitions) {
+            aliasedRouterKeys[slotDefinition.slot.routerKey] =
+                multiShell.navigatorEnabled && slotDefinition.navigatorEnabled
+                ? slotDefinition.slot.routerKey
                 : effectiveParentRouterKey;
           }
           childRouterKey = effectiveParentRouterKey;
@@ -241,10 +243,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           );
           aliasedRouterKeys[multiShellLocation.contentRouterKey] =
               effectiveContentChildRouterKey;
-          for (final slot in multiShellLocation.slots) {
-            aliasedRouterKeys[slot.routerKey] = multiShellLocation
-                    .navigatorEnabled
-                ? slot.routerKey
+          for (final slotDefinition in multiShellLocation.slotDefinitions) {
+            aliasedRouterKeys[slotDefinition.slot.routerKey] =
+                multiShellLocation.navigatorEnabled &&
+                    slotDefinition.navigatorEnabled
+                ? slotDefinition.slot.routerKey
                 : effectiveParentRouterKey;
           }
           childRouterKey = effectiveContentChildRouterKey;
@@ -314,9 +317,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             return true;
           }
         case (_MatchedNodeRenderKind.multiShell, final AbstractMultiShell<ID> multiShell):
-          if (multiShell.slots.any(
-            (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
-          )) {
+          if (_resolveMultiShellSlots(
+            multiShell.slotDefinitions,
+            data,
+            containerNavigatorEnabled: multiShell.navigatorEnabled,
+          ).isNotEmpty) {
             return true;
           }
         case (
@@ -334,9 +339,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
                 multiShellLocation.contentRouterKey,
                 data,
               ) ||
-              multiShellLocation.slots.any(
-                (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
-              )) {
+              _resolveMultiShellSlots(
+                multiShellLocation.slotDefinitions,
+                data,
+                containerNavigatorEnabled: multiShellLocation.navigatorEnabled,
+              ).isNotEmpty) {
             return true;
           }
         case (_, final AnyLocation<ID> location):
@@ -379,10 +386,15 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           ),
         ];
       case (_MatchedNodeRenderKind.multiShell, final AbstractMultiShell<ID> multiShell):
-        if (!multiShell.navigatorEnabled ||
-            !multiShell.slots.any(
-              (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
-            )) {
+        if (!multiShell.navigatorEnabled) {
+          return const [];
+        }
+        final resolvedSlots = _resolveMultiShellSlots(
+          multiShell.slotDefinitions,
+          data,
+          containerNavigatorEnabled: true,
+        );
+        if (resolvedSlots.isEmpty) {
           return const [];
         }
         return [
@@ -393,9 +405,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               AnyLocation<ID> location,
               WorkingRouterData<ID> data,
             ) => _buildPagesForLocation(location, data),
-            activeSlots: multiShell.slots.where(
-              (slot) => _navigatorWouldBuildPages(slot.routerKey, data),
-            ),
+            slots: resolvedSlots,
             buildChild: (context, nestedData, slots) {
               return multiShell.buildContent(
                 context,
@@ -440,6 +450,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         if (!multiShellLocation.navigatorEnabled) {
           return const [];
         }
+        final resolvedExtraSlots = _resolveMultiShellSlots(
+          multiShellLocation.slotDefinitions,
+          data,
+          containerNavigatorEnabled: true,
+        );
         final contentNavigatorActive = _navigatorWouldBuildPages(
           multiShellLocation.contentRouterKey,
           data,
@@ -452,12 +467,19 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               AnyLocation<ID> location,
               WorkingRouterData<ID> data,
             ) => _buildPagesForLocation(location, data),
-            activeSlots: multiShellLocation.allSlots.where(
-              (slot) =>
-                  identical(slot.routerKey, multiShellLocation.contentRouterKey)
-                  ? contentNavigatorActive
-                  : _navigatorWouldBuildPages(slot.routerKey, data),
-            ),
+            slots: [
+              MultiShellResolvedSlot(
+                definition: MultiShellSlotDefinition(
+                  slot: multiShellLocation.contentSlot,
+                  navigatorEnabled: true,
+                  buildFallbackWidget: null,
+                  buildFallbackPage: null,
+                ),
+                isEnabled: true,
+                hasRoutedContent: contentNavigatorActive,
+              ),
+              ...resolvedExtraSlots,
+            ],
             buildChild: (context, nestedData, slots) {
               return multiShellLocation.buildShellContent(
                 context,
@@ -492,6 +514,24 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
       return fallback(router, location, data);
     }
     return const [];
+  }
+
+  List<MultiShellResolvedSlot<ID>> _resolveMultiShellSlots(
+    List<MultiShellSlotDefinition<ID>> slotDefinitions,
+    WorkingRouterData<ID> data, {
+    required bool containerNavigatorEnabled,
+  }) {
+    return [
+      for (final slotDefinition in slotDefinitions)
+        MultiShellResolvedSlot(
+          definition: slotDefinition,
+          isEnabled: containerNavigatorEnabled && slotDefinition.navigatorEnabled,
+          hasRoutedContent:
+              containerNavigatorEnabled &&
+              slotDefinition.navigatorEnabled &&
+              _navigatorWouldBuildPages(slotDefinition.slot.routerKey, data),
+        ),
+    ];
   }
 
   /// Adapts the new location-owned `buildWidget` / `buildPage` API to the

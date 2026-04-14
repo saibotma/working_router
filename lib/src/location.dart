@@ -21,6 +21,14 @@ sealed class Content<ID> {
       _BuilderContent<ID>;
 
   const factory Content.none() = _NoContent<ID>;
+
+  LocationWidgetBuilder<ID>? resolveWidgetBuilderOrNull() {
+    return switch (this) {
+      final _StaticContent<ID> staticContent => (_, _) => staticContent.widget,
+      final _BuilderContent<ID> builderContent => builderContent.builder,
+      _NoContent<ID>() => null,
+    };
+  }
 }
 
 final class _StaticContent<ID> extends Content<ID> {

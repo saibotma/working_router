@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_tree_element.dart';
+import 'package:working_router/src/multi_shell.dart';
 import 'package:working_router/src/multi_shell_location.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/scope.dart';

@@ -1408,6 +1408,259 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'multi shell renders fallback content for enabled slot without routed content',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShell<_Id>(
+                    build: (builder, shell) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(
+                        debugLabel: 'left',
+                        fallbackContent: Content.widget(
+                          const Text('fallback-list'),
+                        ),
+                      );
+                      final detailSlot = builder.slot(debugLabel: 'detail');
+                      builder.content = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(leftSlot),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(detailSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: detailSlot.routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('detail');
+                            builder.content = Content.widget(
+                              const Text('detail'),
+                            );
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat/detail'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('fallback-list'), findsOneWidget);
+        expect(find.text('detail'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(3),
+        );
+      },
+    );
+
+    testWidgets(
+      'multi shell location renders fallback content for enabled extra slot without routed content',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation<_Id>(
+                    id: _Id.a,
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(
+                        debugLabel: 'left',
+                        fallbackContent: Content.widget(
+                          const Text('fallback-list'),
+                        ),
+                      );
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(leftSlot),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(contentSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.content = Content.widget(const Text('detail'));
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('fallback-list'), findsOneWidget);
+        expect(find.text('detail'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(3),
+        );
+      },
+    );
+
+    testWidgets(
+      'multi shell throws when enabled slot has neither routed content nor fallback',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShell<_Id>(
+                    build: (builder, shell) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(debugLabel: 'left');
+                      final detailSlot = builder.slot(debugLabel: 'detail');
+                      builder.content = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(leftSlot),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(detailSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          parentRouterKey: detailSlot.routerKey,
+                          build: (builder, location) {
+                            builder.pathLiteral('detail');
+                            builder.content = Content.widget(
+                              const Text('detail'),
+                            );
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat/detail'));
+        await tester.pump();
+
+        expect(
+          tester.takeException(),
+          isA<StateError>().having(
+            (it) => it.message,
+            'message',
+            contains(
+              'Enabled slot MultiShellSlot(left) has neither routed content nor fallback content.',
+            ),
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'childOrNull returns null for disabled slot',
+      (tester) async {
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation<_Id>(
+                    id: _Id.a,
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(
+                        debugLabel: 'left',
+                        navigatorEnabled: false,
+                      );
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        final leftChild = slots.childOrNull(leftSlot);
+                        return Row(
+                          children: [
+                            if (leftChild != null) Expanded(child: leftChild),
+                            Expanded(child: slots.child(contentSlot)),
+                          ],
+                        );
+                      });
+                      builder.content = Content.widget(const Text('detail'));
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('detail'), findsOneWidget);
+        expect(find.byType(Expanded), findsOneWidget);
+      },
+    );
   });
 }
 

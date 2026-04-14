@@ -166,7 +166,10 @@ Typical use case:
 Use a `MultiShell` when one wrapper needs multiple sibling nested navigators,
 such as a split view with independent left and right stacks. Use a
 `MultiShellLocation` when that split shell is also a semantic location with an
-`id` and an inner location page.
+`id` and an inner location page. Extra multi-shell slots may define fallback
+content and page wrappers. If an enabled slot has neither routed content nor
+fallback content, the router throws instead of silently leaving that pane
+empty.
 
 ## Callback Vs Abstract Types
 
@@ -194,7 +197,10 @@ Shell(
 
 MultiShell(
   build: (builder, shell) {
-    final listSlot = builder.slot(debugLabel: 'list');
+    final listSlot = builder.slot(
+      debugLabel: 'list',
+      fallbackContent: Content.widget(const ChannelListScreen()),
+    );
     final detailSlot = builder.slot(debugLabel: 'detail');
     builder.content = MultiShellContent.builder(
       (context, data, slots) => Row(
@@ -430,7 +436,10 @@ MultiShellLocation<RouteId, ChatLocation>(
   build: (builder, location, contentSlot) {
     builder.pathLiteral('chat');
 
-    final listSlot = builder.slot(debugLabel: 'list');
+    final listSlot = builder.slot(
+      debugLabel: 'list',
+      fallbackContent: Content.widget(const ChannelListScreen()),
+    );
 
     builder.shellContent = MultiShellContent.builder((
       context,
@@ -466,6 +475,10 @@ Use:
 - `builder.slot()` for extra sibling navigators
 - `slot.routerKey` to target any slot from child locations via `parentRouterKey`
 - `slots.child(slot)` inside `shellContent` to place each active slot navigator
+- `slots.childOrNull(slot)` when a disabled slot should simply be omitted from
+  the layout
+- `fallbackContent` and `fallbackPage` only on extra slots created by
+  `builder.slot()`, never on the built-in `contentSlot`
 - `navigatorEnabled: false` to collapse the whole multi-shell back onto the
   parent navigator on smaller layouts while keeping the same route tree
 

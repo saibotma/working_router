@@ -8,6 +8,7 @@ export 'src/location_page.dart';
 export 'src/location_page_skeleton.dart';
 export 'src/location_tag.dart';
 export 'src/location_tree_element.dart';
+export 'src/multi_shell.dart';
 export 'src/multi_shell_location.dart';
 export 'src/multi_shell_location_page_skeleton.dart';
 export 'src/nested_location_page_skeleton.dart';
