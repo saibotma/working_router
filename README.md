@@ -103,6 +103,8 @@ Important details:
   location that can still be terminal.
 - `builder.page = ...` only overrides the default page wrapper around rendered
   content.
+- `content` and `defaultContent` may depend on `context` and `data`, but they
+  should not switch semantic page role based on other external mutable state.
 - If `content` is left entirely unset, the location is treated as legacy and
   resolved through `buildRootPages`.
 
