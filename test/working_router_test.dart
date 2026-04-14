@@ -937,7 +937,7 @@ void main() {
       expect(find.text('42'), findsOneWidget);
     });
 
-    testWidgets('shell acts like scope when children are routed to root', (
+    testWidgets('enabled shell throws when matched children are routed to root', (
       tester,
     ) async {
       final router = WorkingRouter<_Id>(
@@ -973,14 +973,18 @@ void main() {
 
       await _pumpRouterApp(tester, router);
       router.routeToUri(Uri(path: '/accounts/42/dashboard'));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      expect(find.text('42'), findsOneWidget);
       expect(
-        tester.widgetList<Navigator>(find.byType(Navigator)),
-        hasLength(1),
+        tester.takeException(),
+        isA<StateError>().having(
+          (it) => it.message,
+          'message',
+          contains(
+            'Enabled shell Shell<_Id> has matched descendants, but none are assigned to its routerKey.',
+          ),
+        ),
       );
-      expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
     });
 
     testWidgets(

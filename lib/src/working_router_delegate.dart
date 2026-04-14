@@ -362,12 +362,21 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   ) {
     switch ((entry.renderKind, entry.node)) {
       case (_MatchedNodeRenderKind.shell, final AbstractShell<ID> shell):
-        // Keep shells structural unless their navigator would host a matched
-        // descendant page. This allows a shell to stay in the route tree for
-        // shared path/query params while descendants are routed to an ancestor
-        // navigator, such as root-stacked pages on small screens.
-        if (!shell.navigatorEnabled ||
-            !_navigatorWouldBuildPages(shell.routerKey, data)) {
+        if (!shell.navigatorEnabled) {
+          return const [];
+        }
+        final navigatorWouldBuildPages = _navigatorWouldBuildPages(
+          shell.routerKey,
+          data,
+        );
+        if (!navigatorWouldBuildPages) {
+          if (_hasMatchedDescendantAfter(entry.node, data)) {
+            throw StateError(
+              'Enabled shell ${shell.runtimeType} has matched descendants, '
+              'but none are assigned to its routerKey. Disable '
+              'navigatorEnabled or route a child to this shell navigator.',
+            );
+          }
           return const [];
         }
         return [
@@ -514,6 +523,22 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
       return fallback(router, location, data);
     }
     return const [];
+  }
+
+  bool _hasMatchedDescendantAfter(
+    LocationTreeElement<ID> node,
+    WorkingRouterData<ID> data,
+  ) {
+    var foundNode = false;
+    for (final current in data.elements) {
+      if (foundNode) {
+        return true;
+      }
+      if (identical(current, node)) {
+        foundNode = true;
+      }
+    }
+    return false;
   }
 
   List<MultiShellResolvedSlot<ID>> _resolveMultiShellSlots(
