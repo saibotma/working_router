@@ -276,24 +276,18 @@ void main() {
           .whereType<_ItemLocation>()
           .last;
       expect(router.nullableData!.uri.path, '/item/42/details');
-      expect(
-        router.nullableData!.pathParameters[itemLocation.idParameter],
-        '42',
-      );
+      expect(router.nullableData!.paramOrNull(itemLocation.idParameter), '42');
 
       router.routeBack();
       await tester.pump();
       expect(router.nullableData!.uri.path, '/item/42');
-      expect(
-        router.nullableData!.pathParameters[itemLocation.idParameter],
-        '42',
-      );
+      expect(router.nullableData!.paramOrNull(itemLocation.idParameter), '42');
       expect(router.nullableData!.queryParameters.unlock, {'keep': '1'});
 
       router.routeBack();
       await tester.pump();
       expect(router.nullableData!.uri.path, '/');
-      expect(router.nullableData!.pathParameters.isEmpty, true);
+      expect(router.nullableData!.paramOrNull(itemLocation.idParameter), isNull);
       expect(router.nullableData!.queryParameters.isEmpty, true);
     });
 
@@ -373,7 +367,7 @@ void main() {
           _ParamId.item,
           writePathParameters: (location, path) {
             if (location is _ItemLocation) {
-              path(location.idParameter, '42');
+              path(location.boundIdParameter, '42');
             }
           },
         );
@@ -993,6 +987,51 @@ void main() {
       expect(router.nullableData!.uri.path, '/accounts/42/dashboard');
       expect(find.text('42'), findsOneWidget);
     });
+
+    testWidgets(
+      'bindParam supports reusable unbound params with nullable outer access',
+      (tester) async {
+        const accountId = UnboundPathParam<String>(StringRouteParamCodec());
+        final router = WorkingRouter<_Id>(
+          buildLocations: (_) => [
+            _BuilderLocation<_Id>(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderLocation<_Id>(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('accounts');
+                      final boundAccountId = builder.bindParam(accountId);
+                      builder.children = [
+                        _BuilderLocation<_Id>(
+                          id: _Id.b,
+                          build: (builder, location) {
+                            builder.pathLiteral('dashboard');
+                            builder.content = Content.builder((context, data) {
+                              return Text(
+                                '${data.param(boundAccountId)}:${data.paramOrNull(accountId)}',
+                              );
+                            });
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri.parse('/accounts/42/dashboard'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('42:42'), findsOneWidget);
+      },
+    );
 
     testWidgets('enabled shell throws when matched children are routed to root', (
       tester,
@@ -2143,8 +2182,12 @@ class _ParamRootLocation extends _ParamPathLocation {
 }
 
 class _ItemLocation extends _ParamPathLocation {
-  final idParameter = const PathParam(StringRouteParamCodec());
-  final keep = const QueryParam('keep', StringRouteParamCodec());
+  final idParameter = const UnboundPathParam(StringRouteParamCodec());
+  final keep = const UnboundQueryParam('keep', StringRouteParamCodec());
+  late final PathParam<String> boundIdParameter =
+      definition.pathParameters.single as PathParam<String>;
+  late final QueryParam<String> boundKeep =
+      definition.queryParameters.single as QueryParam<String>;
 
   _ItemLocation({
     required super.id,
@@ -2156,8 +2199,8 @@ class _ItemLocation extends _ParamPathLocation {
     LocationBuilder<_ParamId> builder,
   ) {
     final children = super.register(builder);
-    builder.pathSegment(idParameter);
-    builder.query(keep);
+    builder.bindParam(idParameter);
+    builder.bindParam(keep);
     return children;
   }
 }
@@ -2173,7 +2216,7 @@ class _DetailLocation extends _ParamPathLocation {
     LocationBuilder<_ParamId> builder,
   ) {
     final children = super.register(builder);
-    builder.query(const QueryParam('detail', StringRouteParamCodec()));
+    builder.stringQueryParam('detail');
     return children;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/path_location_tree_element.dart';
 import 'package:working_router/src/route_param_codec.dart';
@@ -28,16 +29,35 @@ sealed class Param<T> {
   RouteParamCodec<T> get codec;
 }
 
+/// Reusable parameter definition that is not yet declared on a route node.
+///
+/// Bind an unbound parameter with `builder.bindParam(...)` before using the
+/// resulting [Param] with `data.param(...)`.
+sealed class UnboundParam<T> {
+  const UnboundParam();
+
+  RouteParamCodec<T> get codec;
+}
+
+final class UnboundPathParam<T> extends UnboundParam<T> {
+  @override
+  final RouteParamCodec<T> codec;
+
+  const UnboundPathParam(this.codec);
+}
+
 /// A non-nullable path parameter segment.
 ///
 /// Path parameters are always matched from an existing URI segment, so this
 /// package intentionally models them as non-nullable values. If a segment is
 /// missing, the route does not match instead of producing `null`.
 class PathParam<T> extends PathSegment implements Param<T> {
+  final UnboundPathParam<T> unboundParam;
   @override
-  final RouteParamCodec<T> codec;
+  RouteParamCodec<T> get codec => unboundParam.codec;
 
-  const PathParam(this.codec);
+  @internal
+  PathParam(this.unboundParam);
 }
 
 class Default<T> {
@@ -46,21 +66,24 @@ class Default<T> {
   const Default(this.value);
 }
 
-class QueryParam<T> implements Param<T> {
+final class UnboundQueryParam<T> extends UnboundParam<T> {
   final String name;
   @override
   final RouteParamCodec<T> codec;
   final Default<T>? defaultValue;
 
-  const QueryParam(this.name, this.codec, {this.defaultValue});
+  const UnboundQueryParam(this.name, this.codec, {this.defaultValue});
+}
 
-  String? encodeValueOrNull(T value) {
-    return encodeQueryParamValueOrNull(codec, value);
-  }
+class QueryParam<T> implements Param<T> {
+  final UnboundQueryParam<T> unboundParam;
+  @override
+  RouteParamCodec<T> get codec => unboundParam.codec;
+  String get name => unboundParam.name;
+  Default<T>? get defaultValue => unboundParam.defaultValue;
 
-  T? decodeValueOrNull(String? value) {
-    return decodeQueryParamValueOrNull(codec, value);
-  }
+  @internal
+  QueryParam(this.unboundParam);
 }
 
 typedef CustomPageKeyBuilder<ID> =
@@ -170,7 +193,7 @@ abstract class LocationTreeElement<ID> {
 
 typedef RouteMatch<ID> = ({
   IList<LocationTreeElement<ID>> elements,
-  IMap<PathParam<dynamic>, String> pathParameters,
+  IMap<UnboundPathParam<dynamic>, String> pathParameters,
 });
 
 RouteMatch<ID> emptyRouteMatch<ID>() => (
@@ -221,8 +244,8 @@ RouteMatch<ID> _matchNode<ID>(
   }
 
   final matches = <LocationTreeElement<ID>>[];
-  final Map<PathParam<dynamic>, String> pathParameters =
-      <PathParam<dynamic>, String>{};
+  final Map<UnboundPathParam<dynamic>, String> pathParameters =
+      <UnboundPathParam<dynamic>, String>{};
 
   final thisPathParameters = startsWith(uriPathSegments, node.path);
   if (thisPathParameters == null) {
@@ -300,19 +323,25 @@ IList<LocationTreeElement<ID>> matchRelativeNode<ID>(
 }
 
 void _mergePathParameters(
-  Map<PathParam<dynamic>, String> target,
-  Map<PathParam<dynamic>, String> source,
+  Map<UnboundPathParam<dynamic>, String> target,
+  Map<UnboundPathParam<dynamic>, String> source,
 ) {
-  // PathParam is generic, so runtime map key types can become
-  // `PathParam<String>`, `PathParam<MyExtensionType>`, and so on.
+  // UnboundPathParam is generic, so runtime map key types can become
+  // `UnboundPathParam<String>`, `UnboundPathParam<MyExtensionType>`, and so on.
   // `Map.addAll` checks the whole source map type at runtime and can throw
   // even though each entry is individually valid here.
   for (final entry in source.entries) {
+    if (target.containsKey(entry.key)) {
+      throw StateError(
+        'Path parameter definition `${entry.key.runtimeType}` was bound more '
+        'than once in the same matched route branch.',
+      );
+    }
     target[entry.key] = entry.value;
   }
 }
 
-Map<PathParam<dynamic>, String>? startsWith(
+Map<UnboundPathParam<dynamic>, String>? startsWith(
   IList<String> uriPathSegments,
   List<PathSegment> startsWithSegments,
 ) {
@@ -320,8 +349,8 @@ Map<PathParam<dynamic>, String>? startsWith(
     return null;
   }
 
-  final Map<PathParam<dynamic>, String> pathParameters =
-      <PathParam<dynamic>, String>{};
+  final Map<UnboundPathParam<dynamic>, String> pathParameters =
+      <UnboundPathParam<dynamic>, String>{};
 
   for (var i = 0; i < startsWithSegments.length; i++) {
     final uriSegment = uriPathSegments[i];
@@ -333,7 +362,14 @@ Map<PathParam<dynamic>, String>? startsWith(
           return null;
         }
       case PathParam():
-        pathParameters[pathSegment] = uriSegment;
+        final unboundParam = pathSegment.unboundParam;
+        if (pathParameters.containsKey(unboundParam)) {
+          throw StateError(
+            'Path parameter definition `${unboundParam.runtimeType}` was bound '
+            'more than once in the same matched route branch.',
+          );
+        }
+        pathParameters[unboundParam] = uriSegment;
     }
   }
 
@@ -341,7 +377,7 @@ Map<PathParam<dynamic>, String>? startsWith(
 }
 
 extension LocationPathBuilder<ID> on Iterable<PathLocationTreeElement<ID>> {
-  String buildPath(IMap<PathParam<dynamic>, String> pathParameters) {
+  String buildPath(IMap<UnboundPathParam<dynamic>, String> pathParameters) {
     final uriPathSegments = <String>[];
     for (final location in this) {
       for (final pathSegment in location.path) {
@@ -349,7 +385,7 @@ extension LocationPathBuilder<ID> on Iterable<PathLocationTreeElement<ID>> {
           case LiteralPathSegment():
             uriPathSegments.add(pathSegment.value);
           case PathParam():
-            final rawValue = pathParameters[pathSegment];
+            final rawValue = pathParameters[pathSegment.unboundParam];
             if (rawValue == null) {
               throw StateError(
                 'Missing value for path parameter `$pathSegment` on '

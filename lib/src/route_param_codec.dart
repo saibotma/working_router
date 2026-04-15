@@ -6,20 +6,6 @@ abstract class RouteParamCodec<T> {
   T decode(String value);
 }
 
-String? encodeQueryParamValueOrNull<T>(RouteParamCodec<T> codec, T value) {
-  if (value == null) {
-    return null;
-  }
-  return (codec as dynamic).encode(value) as String;
-}
-
-T? decodeQueryParamValueOrNull<T>(RouteParamCodec<T> codec, String? value) {
-  if (value == null) {
-    return null;
-  }
-  return codec.decode(value);
-}
-
 class StringRouteParamCodec extends RouteParamCodec<String> {
   const StringRouteParamCodec();
 

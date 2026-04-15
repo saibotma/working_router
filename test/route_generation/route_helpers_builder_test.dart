@@ -27,46 +27,35 @@ class _RootLocation extends Location<AppRouteId, _RootLocation> {
   _RootLocation({required super.id});
 
   @override
-  late final List<LocationTreeElement<AppRouteId>> children = [
-    _ItemLocation(id: AppRouteId.item),
-  ];
-
-  @override
-  List<PathSegment> get path => const [];
+  void build(LocationBuilder<AppRouteId> builder) {
+    builder.children = [
+      _ItemLocation(id: AppRouteId.item),
+    ];
+  }
 }
 
 class _ItemLocation extends Location<AppRouteId, _ItemLocation> {
-  final itemId = PathParam(const StringRouteParamCodec());
-
   _ItemLocation({required super.id});
 
   @override
-  late final List<LocationTreeElement<AppRouteId>> children = [
-    ...buildItemChildren(),
-  ];
-
-  @override
-  List<PathSegment> get path => [
-    LiteralPathSegment('item'),
-    itemId,
-  ];
-
-  @override
-  get queryParameters => const [
-    QueryParam('keep', StringRouteParamCodec()),
-  ];
+  void build(LocationBuilder<AppRouteId> builder) {
+    builder.pathLiteral('item');
+    final itemId = builder.stringPathParam();
+    final keep = builder.stringQueryParam('keep');
+    builder.children = [
+      ...buildItemChildren(),
+    ];
+  }
 }
 
 class _ItemDetailsLocation extends Location<AppRouteId, _ItemDetailsLocation> {
   _ItemDetailsLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [LiteralPathSegment('details')];
-
-  @override
-  get queryParameters => const [
-    QueryParam('detail', StringRouteParamCodec()),
-  ];
+  void build(LocationBuilder<AppRouteId> builder) {
+    builder.pathLiteral('details');
+    final detail = builder.stringQueryParam('detail');
+  }
 }
 
 List<LocationTreeElement<AppRouteId>> buildItemChildren() => [
@@ -111,7 +100,9 @@ LocationTreeElement<AppRouteId> get appLocationTree => _appLocationTree;
                   'routeTo(ChildItemRouteTarget(itemId: itemId, keep: keep));',
                 ),
                 contains('writePathParameters: (() {'),
-                contains('path(location.itemId, itemId);'),
+                contains(
+                  'path(location.pathParameters[0] as PathParam<String>, itemId);',
+                ),
               ),
             ),
             allOf(
@@ -135,9 +126,9 @@ LocationTreeElement<AppRouteId> get appLocationTree => _appLocationTree;
               ),
               allOf(
                 contains('queryParameters: {'),
-                contains("'keep': StringRouteParamCodec().encode(keep),"),
+                contains("'keep': const StringRouteParamCodec().encode(keep),"),
                 contains(
-                  "'detail': StringRouteParamCodec().encode(detail),",
+                  "'detail': const StringRouteParamCodec().encode(detail),",
                 ),
               ),
               allOf(
@@ -182,26 +173,22 @@ class RootLocation extends Location<ParamSuffixRouteId, RootLocation> {
   RootLocation();
 
   @override
-  late final List<LocationTreeElement<ParamSuffixRouteId>> children = [
-    DetailLocation(id: ParamSuffixRouteId.detail),
-  ];
-
-  @override
-  List<PathSegment> get path => const [];
+  void build(LocationBuilder<ParamSuffixRouteId> builder) {
+    builder.children = [
+      DetailLocation(id: ParamSuffixRouteId.detail),
+    ];
+  }
 }
 
 class DetailLocation extends Location<ParamSuffixRouteId, DetailLocation> {
-  final idParam = PathParam(const StringRouteParamCodec());
-  final slugParameter = PathParam(const StringRouteParamCodec());
-
   DetailLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [
-    LiteralPathSegment('detail'),
-    idParam,
-    slugParameter,
-  ];
+  void build(LocationBuilder<ParamSuffixRouteId> builder) {
+    builder.pathLiteral('detail');
+    final idParam = builder.stringPathParam();
+    final slugParameter = builder.stringPathParam();
+  }
 }
 
 @Locations()
@@ -218,8 +205,12 @@ LocationTreeElement<ParamSuffixRouteId> get appLocationTree => RootLocation();
                 contains(
                   'DetailRouteTarget({required String id, required String slug})',
                 ),
-                contains('path(location.idParam, id);'),
-                contains('path(location.slugParameter, slug);'),
+                contains(
+                  'path(location.pathParameters[0] as PathParam<String>, id);',
+                ),
+                contains(
+                  'path(location.pathParameters[1] as PathParam<String>, slug);',
+                ),
               ),
             ),
       },
@@ -385,30 +376,25 @@ class RootLocation extends Location<ConstructorRouteId, RootLocation> {
   RootLocation();
 
   @override
-  late final List<LocationTreeElement<ConstructorRouteId>> children = [
-    LessonLocation(id: ConstructorRouteId.lesson),
-  ];
-
-  @override
-  List<PathSegment> get path => const [];
+  void build(LocationBuilder<ConstructorRouteId> builder) {
+    builder.children = [
+      LessonLocation(id: ConstructorRouteId.lesson),
+    ];
+  }
 }
 
 class LessonLocation extends Location<ConstructorRouteId, LessonLocation> {
   LessonLocation({required super.id});
 
   @override
-  late final List<LocationTreeElement<ConstructorRouteId>> children = [
-    LessonEditLocation(id: ConstructorRouteId.lessonEdit),
-  ];
-
-  @override
-  List<PathSegment> get path => [LiteralPathSegment('lessons')];
-
-  @override
-  get queryParameters => const [
-    QueryParam('coursePeriodId', StringRouteParamCodec()),
-    QueryParam('sourceDateTime', StringRouteParamCodec()),
-  ];
+  void build(LocationBuilder<ConstructorRouteId> builder) {
+    builder.pathLiteral('lessons');
+    final coursePeriodId = builder.stringQueryParam('coursePeriodId');
+    final sourceDateTime = builder.stringQueryParam('sourceDateTime');
+    builder.children = [
+      LessonEditLocation(id: ConstructorRouteId.lessonEdit),
+    ];
+  }
 }
 
 class LessonEditLocation
@@ -416,7 +402,9 @@ class LessonEditLocation
   LessonEditLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [LiteralPathSegment('edit')];
+  void build(LocationBuilder<ConstructorRouteId> builder) {
+    builder.pathLiteral('edit');
+  }
 }
 
 @Locations()
@@ -430,10 +418,10 @@ final LocationTreeElement<ConstructorRouteId> appLocationTree = RootLocation();
                   contains('void routeToLesson({'),
                   contains('queryParameters: {'),
                   contains(
-                    "'coursePeriodId': StringRouteParamCodec().encode(coursePeriodId),",
+                    "'coursePeriodId': const StringRouteParamCodec().encode(coursePeriodId),",
                   ),
                   contains(
-                    "'sourceDateTime': StringRouteParamCodec().encode(sourceDateTime),",
+                    "'sourceDateTime': const StringRouteParamCodec().encode(sourceDateTime),",
                   ),
                   contains('void routeToLessonEdit({'),
                 ),
@@ -470,13 +458,11 @@ class LessonLocation extends Location<ConstQueryRouteId, LessonLocation> {
   LessonLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [LiteralPathSegment('lessons')];
-
-  @override
-  get queryParameters => const [
-    QueryParam(coursePeriodIdKey, StringRouteParamCodec()),
-    QueryParam(sourceDateTimeKey, StringRouteParamCodec()),
-  ];
+  void build(LocationBuilder<ConstQueryRouteId> builder) {
+    builder.pathLiteral('lessons');
+    final coursePeriodId = builder.stringQueryParam(coursePeriodIdKey);
+    final sourceDateTime = builder.stringQueryParam(sourceDateTimeKey);
+  }
 }
 
 @Locations()
@@ -521,24 +507,15 @@ enum TypedRouteId { item }
 enum ItemFilter { all, active }
 
 class ItemLocation extends Location<TypedRouteId, ItemLocation> {
-  final itemId = PathParam(const IntRouteParamCodec());
-
   ItemLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [
-    LiteralPathSegment('items'),
-    itemId,
-  ];
-
-  @override
-  get queryParameters => const [
-    QueryParam(
-      'filter',
-      EnumRouteParamCodec(ItemFilter.values),
-    ),
-    QueryParam('page', IntRouteParamCodec(), defaultValue: Default(1)),
-  ];
+  void build(LocationBuilder<TypedRouteId> builder) {
+    builder.pathLiteral('items');
+    final itemId = builder.intPathParam();
+    final filter = builder.enumQueryParam('filter', ItemFilter.values);
+    final page = builder.intQueryParam('page', defaultValue: Default(1));
+  }
 }
 
 @Locations()
@@ -560,15 +537,16 @@ final LocationTreeElement<TypedRouteId> appLocationTree =
                       'final class ItemRouteTarget extends IdRouteTarget<TypedRouteId> {',
                     ),
                     contains('writePathParameters: (() {'),
-                    contains('path(location.itemId, itemId);'),
+                    contains(
+                      'path(location.pathParameters[0] as PathParam<int>, itemId);',
+                    ),
                     contains('queryParameters: {'),
                     contains(
                       "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
                     ),
                     contains(
-                      "if (encodeQueryParamValueOrNull(IntRouteParamCodec(), page)\n"
-                      "              case final encoded?)\n"
-                      "            'page': encoded,",
+                      "if (page case final value?)\n"
+                      "            'page': const IntRouteParamCodec().encode(value),",
                     ),
                   ),
                 ),
@@ -580,7 +558,7 @@ final LocationTreeElement<TypedRouteId> appLocationTree =
   );
 
   test(
-    'uses explicit query parameter names from QueryParam fields',
+    'uses explicit query parameter names from query declarations',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -603,27 +581,22 @@ enum ItemFilter { all, active }
 
 class ItemLocation
     extends Location<InferredQueryParamRouteId, ItemLocation> {
-  final itemId = PathParam(const IntRouteParamCodec());
-  final filterParam = QueryParam(
-    'filter',
-    EnumRouteParamCodec(ItemFilter.values),
-  );
-  final pageParam = QueryParam(
-    'page',
-    IntRouteParamCodec(),
-    defaultValue: Default(1),
-  );
-
   ItemLocation({required super.id});
 
   @override
-  List<PathSegment> get path => [
-    LiteralPathSegment('items'),
-    itemId,
-  ];
-
-  @override
-  List<QueryParam<dynamic>> get queryParameters => [filterParam, pageParam];
+  void build(LocationBuilder<InferredQueryParamRouteId> builder) {
+    builder.pathLiteral('items');
+    final itemId = builder.intPathParam();
+    final filterParam = builder.queryParam(
+      'filter',
+      EnumRouteParamCodec(ItemFilter.values),
+    );
+    final pageParam = builder.queryParam(
+      'page',
+      IntRouteParamCodec(),
+      defaultValue: Default(1),
+    );
+  }
 }
 
 @Locations()
@@ -707,9 +680,8 @@ List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
                 "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
               ),
               contains(
-                "if (encodeQueryParamValueOrNull(const UriRouteParamCodec(), from)\n"
-                "              case final encoded?)\n"
-                "            'from': encoded,",
+                "if (from case final value?)\n"
+                "            'from': const UriRouteParamCodec().encode(value),",
               ),
               contains(
                 'path(location.pathParameters[0] as PathParam<Uri>, itemUri);',
@@ -780,14 +752,12 @@ List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
                   contains('ItemRouteTarget({String? filter, Uri? from})'),
                   contains('void routeToItem({String? filter, Uri? from})'),
                   contains(
-                    "if (encodeQueryParamValueOrNull(const StringRouteParamCodec(), filter)\n"
-                    "              case final encoded?)\n"
-                    "            'filter': encoded,",
+                    "if (filter case final value?)\n"
+                    "            'filter': const StringRouteParamCodec().encode(value),",
                   ),
                   contains(
-                    "if (encodeQueryParamValueOrNull(const UriRouteParamCodec(), from)\n"
-                    "              case final encoded?)\n"
-                    "            'from': encoded,",
+                    "if (from case final value?)\n"
+                    "            'from': const UriRouteParamCodec().encode(value),",
                   ),
                   isNot(contains('String??')),
                   isNot(contains('Uri??')),
@@ -853,17 +823,12 @@ List<LocationTreeElement<NullableShortcutRouteId>> buildLocations() => [
                     'void routeToItem({bool? enabled, DateTime? endDateTime})',
                   ),
                   contains(
-                    "if (encodeQueryParamValueOrNull(const BoolRouteParamCodec(), enabled)\n"
-                    "              case final encoded?)\n"
-                    "            'enabled': encoded,",
+                    "if (enabled case final value?)\n"
+                    "            'enabled': const BoolRouteParamCodec().encode(value),",
                   ),
                   contains(
-                    "if (encodeQueryParamValueOrNull(\n"
-                    "                const DateTimeIsoRouteParamCodec(),\n"
-                    "                endDateTime,\n"
-                    "              )\n"
-                    "              case final encoded?)\n"
-                    "            'endDateTime': encoded,",
+                    "if (endDateTime case final value?)\n"
+                    "            'endDateTime': const DateTimeIsoRouteParamCodec().encode(value),",
                   ),
                 ),
               ),
@@ -930,12 +895,8 @@ List<LocationTreeElement<GroupQueryRouteId>> buildLocations() => [
                 allOf(
                   contains('void routeToPrivacy({String? languageCode})'),
                   contains(
-                    "if (encodeQueryParamValueOrNull(\n"
-                    "                const StringRouteParamCodec(),\n"
-                    "                languageCode,\n"
-                    "              )\n"
-                    "              case final encoded?)\n"
-                    "            'languageCode': encoded,",
+                    "if (languageCode case final value?)\n"
+                    "            'languageCode': const StringRouteParamCodec().encode(value),",
                   ),
                 ),
               ),
@@ -968,22 +929,18 @@ enum DerivedChildRouteId { chatChannel, chatChannelSend }
 
 class ChatChannelLocation
     extends Location<DerivedChildRouteId, ChatChannelLocation> {
-  final channelId = PathParam(const StringRouteParamCodec());
-
   ChatChannelLocation({super.id});
 
   @override
-  late final List<LocationTreeElement<DerivedChildRouteId>> children = [
-    ChatChannelSendLocation(
-      id: id != null ? DerivedChildRouteId.chatChannelSend : null,
-    ),
-  ];
-
-  @override
-  List<PathSegment> get path => [
-    LiteralPathSegment('channels'),
-    channelId,
-  ];
+  void build(LocationBuilder<DerivedChildRouteId> builder) {
+    builder.pathLiteral('channels');
+    final channelId = builder.stringPathParam();
+    builder.children = [
+      ChatChannelSendLocation(
+        id: id != null ? DerivedChildRouteId.chatChannelSend : null,
+      ),
+    ];
+  }
 }
 
 class ChatChannelSendLocation
@@ -991,7 +948,9 @@ class ChatChannelSendLocation
   ChatChannelSendLocation({super.id});
 
   @override
-  List<PathSegment> get path => [LiteralPathSegment('send')];
+  void build(LocationBuilder<DerivedChildRouteId> builder) {
+    builder.pathLiteral('send');
+  }
 }
 
 @Locations()
@@ -1177,8 +1136,6 @@ class ChatSearchLocation
 
 class ChatChannelLocation
     extends Location<ParameterizedRouteId, ChatChannelLocation> {
-  final channelId = PathParam(const StringRouteParamCodec());
-
   @override
   final List<LocationTreeElement<ParameterizedRouteId>> children;
 
@@ -1188,10 +1145,11 @@ class ChatChannelLocation
   });
 
   @override
-  List<PathSegment> get path => [
-    LiteralPathSegment('channels'),
-    channelId,
-  ];
+  void build(LocationBuilder<ParameterizedRouteId> builder) {
+    builder.pathLiteral('channels');
+    final channelId = builder.stringPathParam();
+    builder.children = children;
+  }
 }
 
 class ChatChannelSendLocation

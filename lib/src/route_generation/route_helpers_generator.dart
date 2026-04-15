@@ -1983,8 +1983,8 @@ class _StaticRouteTreeExtractor {
         normalizedExpression.methodName.name == 'pathParam') {
       throw InvalidGenerationSourceError(
         'Inline builder.pathParam(...) calls in path are not supported. '
-        'Declare a field like `final foo = PathParam(...)` and use that '
-        'field in path.',
+        'Prefer the builder DSL and keep the returned param in a local inside '
+        'build(...), or use a static literal-only path getter.',
         element: element,
       );
     }
@@ -2049,8 +2049,8 @@ class _StaticRouteTreeExtractor {
     if (constructorTypeName == 'PathParam') {
       throw InvalidGenerationSourceError(
         'Inline PathParam(...) constructor calls in path are not supported. '
-        'Declare a field like `final foo = PathParam(...)` and use that field '
-        'in path.',
+        'Prefer the builder DSL and declare the path param through '
+        'builder.pathParam(...).',
         element: element,
       );
     }
@@ -2126,7 +2126,8 @@ class _StaticRouteTreeExtractor {
 
     if (codecExpression == null) {
       throw InvalidGenerationSourceError(
-        'Only PathParam(...) values are supported for generated path params.',
+        'Only builder-declared path params are supported for generated path '
+        'params.',
         element: element,
       );
     }
@@ -4104,10 +4105,9 @@ class _GeneratedRouteMethod {
         final generatedParameter = parameter.value;
         if (generatedParameter.optional) {
           buffer.writeln(
-            "            if (encodeQueryParamValueOrNull("
-            "${generatedParameter.codecExpressionSource}, "
-            "${generatedParameter.parameterName}) case final encoded?) "
-            "'${parameter.key}': encoded,",
+            "            if (${generatedParameter.parameterName} case final value?) "
+            "'${parameter.key}': "
+            "${generatedParameter.codecExpressionSource}.encode(value),",
           );
         } else {
           buffer.writeln(
@@ -4251,10 +4251,9 @@ class _GeneratedLocationChildTargetMethod {
         final generatedParameter = parameter.value;
         if (generatedParameter.optional) {
           buffer.writeln(
-            "        if (encodeQueryParamValueOrNull("
-            "${generatedParameter.codecExpressionSource}, "
-            "${generatedParameter.parameterName}) case final encoded?) "
-            "'${parameter.key}': encoded,",
+            "        if (${generatedParameter.parameterName} case final value?) "
+            "'${parameter.key}': "
+            "${generatedParameter.codecExpressionSource}.encode(value),",
           );
         } else {
           buffer.writeln(

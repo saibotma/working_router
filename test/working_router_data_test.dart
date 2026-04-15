@@ -5,9 +5,10 @@ import 'package:working_router/working_router.dart';
 void main() {
   group('WorkingRouterData path helpers', () {
     test('pathTemplateUpToNode ignores hydrated path parameter values', () {
-      const itemId = PathParam(StringRouteParamCodec());
+      const itemId = UnboundPathParam(StringRouteParamCodec());
       final list = _TestLocation(id: 'list', path: '/items');
       final detail = _ParamOnlyLocation(id: 'detail', parameter: itemId);
+      final boundItemId = detail.boundParameter;
       final data = WorkingRouterData<String>(
         uri: Uri(path: '/items/123'),
         elements: [list, detail].toIList(),
@@ -17,6 +18,7 @@ void main() {
 
       expect(data.pathUpToNode(detail), '/items/123');
       expect(data.pathTemplateUpToNode(detail), '/items/*');
+      expect(data.param(boundItemId), '123');
     });
 
     test('path helpers use node identity for repeated no-id locations', () {
@@ -41,12 +43,13 @@ void main() {
 
   group('WorkingRouterData query param helpers', () {
     test('queryParam returns the configured default for missing values', () {
-      const tab = QueryParam(
+      const tab = UnboundQueryParam(
         'tab',
         StringRouteParamCodec(),
         defaultValue: Default('all'),
       );
       final location = _QueryLocation(id: 'query', parameter: tab);
+      final boundTab = location.boundParameter;
       final data = WorkingRouterData<String>(
         uri: Uri(path: '/query'),
         elements: [location].toIList(),
@@ -54,13 +57,13 @@ void main() {
         queryParameters: IMap(),
       );
 
-      expect(data.param(tab), 'all');
+      expect(data.param(boundTab), 'all');
     });
 
     test(
       'queryParam supports Default(null) with a non-null codec for query params',
       () {
-        const endDateTime = QueryParam<DateTime?>(
+        const endDateTime = UnboundQueryParam<DateTime?>(
           'endDateTime',
           DateTimeIsoRouteParamCodec(),
           defaultValue: Default<DateTime?>(null),
@@ -69,6 +72,7 @@ void main() {
           id: 'query-nullable',
           parameter: endDateTime,
         );
+        final boundEndDateTime = location.boundParameter;
         final data = WorkingRouterData<String>(
           uri: Uri(path: '/query'),
           elements: [location].toIList(),
@@ -76,9 +80,33 @@ void main() {
           queryParameters: IMap(),
         );
 
-        expect(data.param(endDateTime), isNull);
+        expect(data.param(boundEndDateTime), isNull);
       },
     );
+
+    test('paramOrNull returns active values for unbound params only', () {
+      const itemId = UnboundPathParam(StringRouteParamCodec());
+      const tab = UnboundQueryParam(
+        'tab',
+        StringRouteParamCodec(),
+        defaultValue: Default('all'),
+      );
+      final list = _TestLocation(id: 'list', path: '/items');
+      final detail = _BoundParamLocation(
+        id: 'detail',
+        pathParameter: itemId,
+        queryParameter: tab,
+      );
+      final data = WorkingRouterData<String>(
+        uri: Uri(path: '/items/123'),
+        elements: [list, detail].toIList(),
+        pathParameters: {itemId: '123'}.lock,
+        queryParameters: IMap(),
+      );
+
+      expect(data.paramOrNull(itemId), '123');
+      expect(data.paramOrNull(tab), 'all');
+    });
   });
 
   group('WorkingRouterData.isChildOf', () {
@@ -155,42 +183,46 @@ class _TestLocation extends AbstractLocation<String, _TestLocation> {
 
 class _ParamOnlyLocation
     extends AbstractLocation<String, _ParamOnlyLocation> {
-  final PathParam<String> parameter;
+  final UnboundPathParam<String> parameter;
+  late final PathParam<String> boundParameter =
+      definition.pathParameters.single as PathParam<String>;
 
   _ParamOnlyLocation({required String id, required this.parameter})
     : super(id: id);
 
   @override
   void build(LocationBuilder<String> builder) {
-    builder.pathSegment(parameter);
+    builder.bindParam(parameter);
   }
 }
 
 class _QueryLocation extends AbstractLocation<String, _QueryLocation> {
-  final QueryParam<String> parameter;
+  final UnboundQueryParam<String> parameter;
+  late final QueryParam<String> boundParameter =
+      definition.queryParameters.single as QueryParam<String>;
 
   _QueryLocation({required String id, required this.parameter})
     : super(id: id);
 
   @override
-  List<QueryParam<dynamic>> get queryParameters => [parameter];
-
-  @override
-  void build(LocationBuilder<String> builder) {}
+  void build(LocationBuilder<String> builder) {
+    builder.bindParam(parameter);
+  }
 }
 
 class _NullableQueryLocation
     extends AbstractLocation<String, _NullableQueryLocation> {
-  final QueryParam<DateTime?> parameter;
+  final UnboundQueryParam<DateTime?> parameter;
+  late final QueryParam<DateTime?> boundParameter =
+      definition.queryParameters.single as QueryParam<DateTime?>;
 
   _NullableQueryLocation({required String id, required this.parameter})
     : super(id: id);
 
   @override
-  List<QueryParam<dynamic>> get queryParameters => [parameter];
-
-  @override
-  void build(LocationBuilder<String> builder) {}
+  void build(LocationBuilder<String> builder) {
+    builder.bindParam(parameter);
+  }
 }
 
 class _NoIdSegmentLocation
@@ -205,6 +237,24 @@ class _NoIdSegmentLocation
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
+  }
+}
+
+class _BoundParamLocation
+    extends AbstractLocation<String, _BoundParamLocation> {
+  final UnboundPathParam<String> pathParameter;
+  final UnboundQueryParam<String> queryParameter;
+
+  _BoundParamLocation({
+    required String id,
+    required this.pathParameter,
+    required this.queryParameter,
+  }) : super(id: id);
+
+  @override
+  void build(LocationBuilder<String> builder) {
+    builder.bindParam(pathParameter);
+    builder.bindParam(queryParameter);
   }
 }
 

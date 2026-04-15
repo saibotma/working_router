@@ -211,7 +211,7 @@ class WorkingRouter<ID> extends ChangeNotifier
       targetData: _buildData(
         elements: idMatches.addAll(relativeMatchNodes),
         fallback: null,
-        pathParameters: nullableData!.pathParameters,
+        pathParameters: nullableData!.pathParametersForRouter,
         queryParameters: nullableData!.queryParameters,
       ),
       reason: RouteTransitionReason.programmatic,
@@ -304,9 +304,9 @@ class WorkingRouter<ID> extends ChangeNotifier
     final newLocations = locations.sublist(0, matchIndex + 1);
     final newNodes = _trimNodesToLastMatchingLocation(data, newLocations.last);
     final newPathElements = newNodes.pathElements;
-    final newPathParameters = data.pathParameters.keepKeys({
+    final newPathParameters = data.pathParametersForRouter.keepKeys({
       for (final element in newPathElements)
-        ...element.path.whereType<PathParam<dynamic>>(),
+        ...element.path.whereType<PathParam<dynamic>>().map((it) => it.unboundParam),
     });
 
     final newQueryParameters = data.queryParameters.keepKeys(
@@ -560,7 +560,7 @@ class WorkingRouter<ID> extends ChangeNotifier
         return _buildData(
           elements: data.elements.addAll(matchedNodes),
           fallback: null,
-          pathParameters: data.pathParameters.addAll(
+          pathParameters: data.pathParametersForRouter.addAll(
             _resolvePathParameterWrites(
               data.pathElements.addAll(matchedPathElements),
               writePathParameters,
@@ -576,7 +576,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   WorkingRouterData<ID> _buildData({
     required IList<LocationTreeElement<ID>> elements,
     required Uri? fallback,
-    required IMap<PathParam<dynamic>, String> pathParameters,
+    required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
     final pathElements = elements.pathElements;
@@ -613,7 +613,7 @@ class WorkingRouter<ID> extends ChangeNotifier
 
   Uri _uriFromLocations({
     required IList<PathLocationTreeElement<ID>> locations,
-    required IMap<PathParam<dynamic>, String> pathParameters,
+    required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
     return Uri(
@@ -632,7 +632,7 @@ class WorkingRouter<ID> extends ChangeNotifier
     return data.elements.take(lastRemainingNodeIndex + 1).toIList();
   }
 
-  Map<PathParam<dynamic>, String> _resolvePathParameterWrites(
+  Map<UnboundPathParam<dynamic>, String> _resolvePathParameterWrites(
     Iterable<PathLocationTreeElement<ID>> locations,
     WritePathParameters<ID>? writePathParameters,
   ) {
@@ -640,13 +640,18 @@ class WorkingRouter<ID> extends ChangeNotifier
       return const {};
     }
 
-    final resolved = <PathParam<dynamic>, String>{};
+    final resolved = <UnboundPathParam<dynamic>, String>{};
     for (final location in locations) {
       writePathParameters(
         location,
         <T>(PathParam<T> parameter, T value) {
           final isDeclared = location.path.any(
-            (segment) => identical(segment, parameter),
+            (segment) {
+              if (segment is! PathParam<dynamic>) {
+                return false;
+              }
+              return identical(segment.unboundParam, parameter.unboundParam);
+            },
           );
           if (!isDeclared) {
             throw StateError(
@@ -654,7 +659,7 @@ class WorkingRouter<ID> extends ChangeNotifier
               '${location.runtimeType}.',
             );
           }
-          resolved[parameter] = parameter.codec.encode(value);
+          resolved[parameter.unboundParam] = parameter.codec.encode(value);
         },
       );
     }

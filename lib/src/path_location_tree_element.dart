@@ -70,7 +70,21 @@ abstract class PathLocationTreeElementBuilder<ID> {
   /// Path parameters represent concrete matched URI segments, so they cannot
   /// be nullable. Use query parameters for optional `null`-producing values.
   PathParam<T> pathParam<T>(RouteParamCodec<T> codec) {
-    return pathSegment(PathParam<T>(codec));
+    final bound = PathParam<T>(UnboundPathParam<T>(codec));
+    return pathSegment<PathParam<T>>(bound);
+  }
+
+  /// Binds a reusable unbound path or query parameter definition to this node.
+  ///
+  /// This is primarily intended for rare shared/global parameter definitions
+  /// that need nullable lookup from outer code via `data.paramOrNull(...)`.
+  Param<T> bindParam<T>(UnboundParam<T> parameter) {
+    return switch (parameter) {
+      final UnboundPathParam<T> pathParameter =>
+        pathSegment<PathParam<T>>(PathParam<T>(pathParameter)),
+      final UnboundQueryParam<T> queryParameter =>
+        query(QueryParam<T>(queryParameter)),
+    };
   }
 
   PathParam<String> stringPathParam() {
@@ -111,7 +125,11 @@ abstract class PathLocationTreeElementBuilder<ID> {
     RouteParamCodec<T> codec, {
     Default<T>? defaultValue,
   }) {
-    return query(QueryParam<T>(name, codec, defaultValue: defaultValue));
+    return query(
+      QueryParam<T>(
+        UnboundQueryParam<T>(name, codec, defaultValue: defaultValue),
+      ),
+    );
   }
 
   QueryParam<String> stringQueryParam(

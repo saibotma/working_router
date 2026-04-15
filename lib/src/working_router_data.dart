@@ -1,5 +1,6 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/working_router.dart';
 
@@ -7,11 +8,11 @@ class WorkingRouterData<ID> {
   final Uri uri;
   final IList<LocationTreeElement<ID>> elements;
 
-  // Keep matched path params in their encoded URI form even though they are
-  // keyed by PathParam objects. The router core is still URI-first, so URI
+  // Keep matched path params in their encoded URI form keyed by reusable
+  // unbound path definitions. The router core is still URI-first, so URI
   // rebuilding, retention, and forwarding should work on raw URI values while
   // decoding stays at typed access boundaries like param(...).
-  final IMap<PathParam<dynamic>, String> pathParameters;
+  final IMap<UnboundPathParam<dynamic>, String> _pathParameters;
 
   // Keep query params encoded and string-keyed for the same reason: the URI is
   // string-keyed, and rebuilding or forwarding it should not require recovering
@@ -21,9 +22,9 @@ class WorkingRouterData<ID> {
   WorkingRouterData({
     required this.uri,
     required this.elements,
-    required this.pathParameters,
+    required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required this.queryParameters,
-  });
+  }) : _pathParameters = pathParameters;
 
   static WorkingRouterData<ID> of<ID>(BuildContext context) {
     final data = InheritedModel.inheritFrom<InheritedWorkingRouterData<ID>>(
@@ -56,8 +57,26 @@ class WorkingRouterData<ID> {
     };
   }
 
+  /// Returns the value for a reusable unbound parameter when it is active in
+  /// the current matched route chain.
+  ///
+  /// This is intended for outer code that only has access to a global/shared
+  /// parameter definition and needs nullable access, such as wrappers or shell
+  /// widgets above the location that declares the parameter.
+  T? paramOrNull<T>(UnboundParam<T> parameter) {
+    if (parameter is UnboundPathParam<T>) {
+      return _pathParamOrNull(parameter);
+    }
+    if (parameter is UnboundQueryParam<T>) {
+      return _queryParamOrNull(parameter);
+    }
+    throw StateError(
+      'Unsupported unbound parameter type ${parameter.runtimeType}.',
+    );
+  }
+
   T _pathParam<T>(PathParam<T> parameter) {
-    final rawValue = pathParameters[parameter];
+    final rawValue = _pathParameters[parameter.unboundParam];
     if (rawValue == null) {
       throw StateError(
         'The requested PathParam is not part of the current matched route chain.',
@@ -66,15 +85,23 @@ class WorkingRouterData<ID> {
     return parameter.codec.decode(rawValue);
   }
 
+  T? _pathParamOrNull<T>(UnboundPathParam<T> parameter) {
+    final rawValue = _pathParameters[parameter];
+    if (rawValue == null) {
+      return null;
+    }
+    return parameter.codec.decode(rawValue);
+  }
+
   T _queryParam<T>(QueryParam<T> parameter) {
-    if (!_hasDeclaredQueryParam(parameter)) {
+    if (!_hasDeclaredQueryParam(parameter.unboundParam)) {
       throw StateError(
         'The requested QueryParam is not part of the current matched route chain.',
       );
     }
 
     final rawValue = queryParameters[parameter.name];
-    final value = parameter.decodeValueOrNull(rawValue);
+    final value = rawValue == null ? null : parameter.codec.decode(rawValue);
     if (value != null) {
       return value;
     }
@@ -89,10 +116,24 @@ class WorkingRouterData<ID> {
     );
   }
 
-  bool _hasDeclaredQueryParam<T>(QueryParam<T> parameter) {
+  T? _queryParamOrNull<T>(UnboundQueryParam<T> parameter) {
+    if (!_hasDeclaredQueryParam(parameter)) {
+      return null;
+    }
+
+    final rawValue = queryParameters[parameter.name];
+    final value = rawValue == null ? null : parameter.codec.decode(rawValue);
+    if (value != null) {
+      return value;
+    }
+
+    return parameter.defaultValue?.value;
+  }
+
+  bool _hasDeclaredQueryParam<T>(UnboundQueryParam<T> parameter) {
     for (final location in pathElements) {
       for (final declaredParameter in location.queryParameters) {
-        if (!identical(declaredParameter, parameter)) {
+        if (!identical(declaredParameter.unboundParam, parameter)) {
           continue;
         }
         return true;
@@ -109,7 +150,7 @@ class WorkingRouterData<ID> {
     final pathElementsUpToLocation = elements
         .take(locationIndex + 1)
         .pathElements;
-    return pathElementsUpToLocation.buildPath(pathParameters);
+    return pathElementsUpToLocation.buildPath(_pathParameters);
   }
 
   String pathUpToNode(LocationTreeElement<ID> node) {
@@ -119,7 +160,7 @@ class WorkingRouterData<ID> {
     }
 
     final pathElementsUpToNode = elements.take(nodeIndex + 1).pathElements;
-    return pathElementsUpToNode.buildPath(pathParameters);
+    return pathElementsUpToNode.buildPath(_pathParameters);
   }
 
   String pathTemplateUpToNode(LocationTreeElement<ID> node) {
@@ -226,16 +267,20 @@ class WorkingRouterData<ID> {
   WorkingRouterData<ID> copyWith({
     Uri? uri,
     IList<LocationTreeElement<ID>>? elements,
-    IMap<PathParam<dynamic>, String>? pathParameters,
+    IMap<UnboundPathParam<dynamic>, String>? pathParameters,
     IMap<String, String>? queryParameters,
   }) {
     return WorkingRouterData(
       uri: uri ?? this.uri,
       elements: elements ?? this.elements,
-      pathParameters: pathParameters ?? this.pathParameters,
+      pathParameters: pathParameters ?? _pathParameters,
       queryParameters: queryParameters ?? this.queryParameters,
     );
   }
+
+  @internal
+  IMap<UnboundPathParam<dynamic>, String> get pathParametersForRouter =>
+      _pathParameters;
 
   @override
   bool operator ==(Object other) {
@@ -244,7 +289,7 @@ class WorkingRouterData<ID> {
             runtimeType == other.runtimeType &&
             uri == other.uri &&
             elements == other.elements &&
-            pathParameters == other.pathParameters &&
+            _pathParameters == other._pathParameters &&
             queryParameters == other.queryParameters;
   }
 
@@ -252,12 +297,12 @@ class WorkingRouterData<ID> {
   int get hashCode {
     return uri.hashCode ^
         elements.hashCode ^
-        pathParameters.hashCode ^
+        _pathParameters.hashCode ^
         queryParameters.hashCode;
   }
 
   @override
   String toString() {
-    return 'WorkingRouterData{uri: $uri, elements: $elements, locations: $locations, pathParameters: $pathParameters, queryParameters: $queryParameters}';
+    return 'WorkingRouterData{uri: $uri, elements: $elements, locations: $locations, pathParameters: $_pathParameters, queryParameters: $queryParameters}';
   }
 }

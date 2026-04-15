@@ -103,10 +103,40 @@ Important details:
   location that can still be terminal.
 - `builder.page = ...` only overrides the default page wrapper around rendered
   content.
+- For rare cross-cutting cases, define reusable unbound params with
+  `UnboundPathParam` / `UnboundQueryParam`, bind them with
+  `builder.bindParam(...)`, read the bound `Param` with `data.param(...)`, and
+  read the reusable unbound definition with `data.paramOrNull(...)`.
 - `content` and `defaultContent` may depend on `context` and `data`, but they
   should not switch semantic page role based on other external mutable state.
 - If `content` is left entirely unset, the location is treated as legacy and
   resolved through `buildRootPages`.
+
+Reusable unbound params are mainly useful when outer code needs nullable access
+to a route param without owning the location that declares it:
+
+```dart
+final accountId = UnboundPathParam<AccountId>(const AccountIdCodec());
+
+Location<RouteId, AccountsLocation>(
+  build: (builder, location) {
+    builder.pathLiteral('accounts');
+    final boundAccountId = builder.bindParam(accountId);
+    builder.children = [
+      DashboardLocation(
+        build: (builder, location) {
+          builder.content = Content.builder((context, data) {
+            return Text(data.param(boundAccountId).toString());
+          });
+        },
+      ),
+    ];
+  },
+);
+
+// Somewhere outer in the widget tree:
+final activeAccountId = data.paramOrNull(accountId);
+```
 
 See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
