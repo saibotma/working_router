@@ -359,7 +359,7 @@ void main() {
         expect(find.text('settings'), findsOneWidget);
         expect(find.text('root'), findsNothing);
         expect(router.nullableData!.uri.path, '/settings/edit');
-        expect(router.nullableData!.activeLocation?.id, _Id.b);
+        expect(router.nullableData!.leaf?.id, _Id.b);
       },
     );
 
@@ -398,7 +398,7 @@ void main() {
 
       final data = router.nullableData!;
       expect(data.routeNodes, isEmpty);
-      expect(data.activeLocation, isNull);
+      expect(data.leaf, isNull);
       expect(data.uri.path, '/does-not-exist');
       expect(data.uri.queryParameters['q'], '1');
     });
@@ -477,7 +477,7 @@ void main() {
                 if (keyLocation.id == _Id.a) {
                   sawExpectedData =
                       data.uri.path == '/a/b' &&
-                      data.activeLocation?.id == _Id.b &&
+                      data.leaf?.id == _Id.b &&
                       data.routeNodes.contains(keyLocation);
                 }
                 final key = ValueKey('${keyLocation.id}:${data.uri.path}');
@@ -518,7 +518,7 @@ void main() {
                     builder.pageKey = PageKey.custom((data) {
                       sawExpectedData =
                           data.uri.path == '/a' &&
-                          data.activeLocation?.id == _Id.a;
+                          data.leaf?.id == _Id.a;
                       return ValueKey('dsl:${data.uri.path}');
                     });
                     builder.content = Content.widget(const Text('a'));
@@ -577,7 +577,7 @@ void main() {
             sawExpectedData =
                 identical(inheritedData, data) &&
                 data.uri.path == '/a/b' &&
-                data.activeLocation?.id == _Id.b;
+                data.leaf?.id == _Id.b;
           }
           return Column(
             children: [
@@ -647,7 +647,7 @@ void main() {
 
         router.routeToUri(Uri(path: '/a/b'));
         await tester.pump();
-        expect(router.nullableData!.activeLocation?.id, _Id.b);
+        expect(router.nullableData!.leaf?.id, _Id.b);
 
         includeB = false;
         router.refresh();

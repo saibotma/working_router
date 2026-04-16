@@ -198,7 +198,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   void slideIn(ID id) {
     final idMatches = _routeNodeTree.matchId(id);
     final targetLocation = idMatches.locations.lastOrNull;
-    final currentLocation = nullableData?.activeLocation;
+    final currentLocation = nullableData?.leaf;
     if (targetLocation == null || currentLocation == null) {
       return;
     }
@@ -548,7 +548,7 @@ class WorkingRouter<ID> extends ChangeNotifier
         :final writePathParameters,
       ):
         final data = currentData!;
-        final currentLocation = data.activeLocation;
+        final currentLocation = data.leaf;
         if (currentLocation == null) {
           return data;
         }

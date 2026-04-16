@@ -48,7 +48,7 @@ class WorkingRouterData<ID> {
   late final IList<PathRouteNode<ID>> _pathRouteNodes =
       routeNodes.pathRouteNodes;
 
-  AnyLocation<ID>? get activeLocation => _locations.lastOrNull;
+  AnyLocation<ID>? get leaf => _locations.lastOrNull;
 
   T param<T>(Param<T> parameter) {
     return switch (parameter) {
@@ -241,7 +241,7 @@ class WorkingRouterData<ID> {
   /// Returns whether any matched route node of type [T] exists.
   ///
   /// Structural nodes such as scopes and shells participate here as well.
-  /// Use [activeLocation] / [isActive] for leaf-like semantic activity checks.
+  /// Use [leaf] / [isLeaf] for leaf-like semantic activity checks.
   bool isMatched<T extends RouteNode<ID>>([bool Function(T node)? match]) {
     final typedNodes = routeNodes.whereType<T>();
     if (match == null) {
@@ -250,29 +250,29 @@ class WorkingRouterData<ID> {
     return typedNodes.any(match);
   }
 
-  bool isIdActive(ID id) {
-    return isActive((location) => location.id == id);
+  bool isIdLeaf(ID id) {
+    return isLeaf((location) => location.id == id);
   }
 
-  bool isAnyIdActive(Iterable<ID> ids) {
-    return isActive((location) => ids.contains(location.id));
+  bool isAnyIdLeaf(Iterable<ID> ids) {
+    return isLeaf((location) => ids.contains(location.id));
   }
 
-  bool isTypeActive<T>() {
-    return isActive((location) => location is T);
+  bool isTypeLeaf<T>() {
+    return isLeaf((location) => location is T);
   }
 
-  bool isAnyTypeActive2<T1, T2>() {
-    return isActive((location) => location is T1 || location is T2);
+  bool isAnyTypeLeaf2<T1, T2>() {
+    return isLeaf((location) => location is T1 || location is T2);
   }
 
-  bool isAnyTypeActive3<T1, T2, T3>() {
-    return isActive((location) {
+  bool isAnyTypeLeaf3<T1, T2, T3>() {
+    return isLeaf((location) {
       return location is T1 || location is T2 || location is T3;
     });
   }
 
-  bool isActive(bool Function(AnyLocation<ID> location) match) {
+  bool isLeaf(bool Function(AnyLocation<ID> location) match) {
     final last = _locations.lastOrNull;
     if (last == null) {
       return false;

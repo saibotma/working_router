@@ -167,7 +167,7 @@ void main() {
 
   group('WorkingRouterData route node matching', () {
     test(
-      'isMatched includes structural route nodes while activeLocation stays semantic',
+      'isMatched includes structural route nodes while leaf stays semantic',
       () {
         final accountsNode = _AccountsNode();
         final detail = _TestLocation(id: 'detail', path: '/detail');
@@ -184,7 +184,7 @@ void main() {
           data.isMatched<_TestLocation>((location) => location.id == 'detail'),
           isTrue,
         );
-        expect(data.activeLocation, same(detail));
+        expect(data.leaf, same(detail));
       },
     );
   });
