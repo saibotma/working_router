@@ -1,4 +1,4 @@
-/// Marks the canonical working-router location tree used for route helper
+/// Marks the canonical working-router route-node tree used for route helper
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or function
@@ -6,16 +6,16 @@
 ///
 /// Example:
 /// ```dart
-/// part 'app_routes.g.dart';
+/// part 'route_nodes.g.dart';
 ///
-/// @Locations()
-/// List<RouteNode<AppRouteId>> buildLocations({
+/// @RouteNodes()
+/// List<RouteNode<AppRouteId>> buildRouteNodes({
 ///   required WorkingRouterKey rootRouterKey,
 /// }) => [_appRouteTree];
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
-/// `WorkingRouterSailor<ID>` for every location in the tree that has a non-null
+/// `WorkingRouterSailor<ID>` for every location in the route-node tree that has a non-null
 /// `id`.
 ///
 /// The generated helper name is derived from the enum case in the `id`, and
@@ -51,6 +51,6 @@
 /// - loops or other arbitrary collection-building constructs
 ///
 /// The generated extension targets `WorkingRouterSailor<ID>`.
-class Locations {
-  const Locations();
+class RouteNodes {
+  const RouteNodes();
 }

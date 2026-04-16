@@ -6,10 +6,10 @@ import 'nested_screen.dart';
 import 'responsive.dart';
 import 'splash_screen.dart';
 
-part 'app_routes.g.dart';
+part 'route_nodes.g.dart';
 
-@Locations()
-List<RouteNode<LocationId>> buildLocations({
+@RouteNodes()
+List<RouteNode<LocationId>> buildRouteNodes({
   required ScreenSize screenSize,
   required WorkingRouterKey rootRouterKey,
 }) {

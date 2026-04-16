@@ -16,7 +16,7 @@ definition API.
   - legacy when no render is configured, so `buildRootPages` handles it
   - self-built via `builder.content = ...`, with an optional page override from `builder.page = ...`
   - and returns the child `RouteNode`s as a list
-- `@Locations()` generates typed `routeToX(...)` helpers and `XRouteTarget`
+- `@RouteNodes()` generates typed `routeToX(...)` helpers and `XRouteTarget`
   classes from one canonical route-tree file.
 
 ## Recommended Setup
@@ -25,14 +25,21 @@ The generator works best when you keep one canonical route-tree file and let
 everything else import it.
 
 1. Create a dedicated route-tree file such as
-   [`example/lib/app_routes.dart`](example/lib/app_routes.dart).
-2. Put `part 'app_routes.g.dart';` in that file.
-3. Annotate the canonical `buildLocations(...)` entrypoint with `@Locations()`.
+   [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart).
+2. Put `part 'route_nodes.g.dart';` in that file.
+3. Annotate the canonical `buildRouteNodes(...)` entrypoint with `@RouteNodes()`.
 4. Return the root nodes from that function.
-5. Build the router with `buildLocations: (rootRouterKey) => buildLocations(rootRouterKey: rootRouterKey, ...)`.
+5. Build the router with `buildRouteNodes: (rootRouterKey) => buildRouteNodes(rootRouterKey: rootRouterKey, ...)`.
+
+Convention:
+- treat `route_nodes.dart` as the public route-layer barrel for the app
+- keep `buildRouteNodes(...)` and the generated `part` there
+- and `export` the feature files that define route-node subclasses when app code
+  should import those node types or generated child-target extensions through a
+  single route API surface
 
 See:
-- [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
+- [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart)
 - [`example/lib/main.dart`](example/lib/main.dart)
 
 ## Defining Nodes
@@ -142,7 +149,7 @@ final activeAccountId = data.paramOrNull(accountId);
 ```
 
 See:
-- [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
+- [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart)
 - [`example/lib/locations.dart`](example/lib/locations.dart)
 
 ## Scope Vs Shell Vs ShellLocation
@@ -424,7 +431,7 @@ makes dynamic route-tree refreshes practical here, because nested navigator
 state can survive tree changes that still keep the same shell alive.
 
 This is shown in the package example in
-[`example/lib/app_routes.dart`](example/lib/app_routes.dart).
+[`example/lib/route_nodes.dart`](example/lib/route_nodes.dart).
 
 ## Defining Shell Locations
 
@@ -528,7 +535,7 @@ Use:
 
 ## Generated API
 
-From `@Locations()`, the generator emits:
+From `@RouteNodes()`, the generator emits:
 
 - `routeToX(...)` helpers on `WorkingRouterSailor`
 - `XRouteTarget(...)` classes for typed imperative navigation and redirects

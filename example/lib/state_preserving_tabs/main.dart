@@ -15,7 +15,7 @@ void main() {
   runApp(const StatePreservingTabs());
 }
 
-List<RouteNode<String>> buildLocations(WorkingRouterKey _) => [
+List<RouteNode<String>> buildRouteNodes(WorkingRouterKey _) => [
       ScaffoldNode(
         childNodes: [
           Tab1Node(),
@@ -37,7 +37,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
 
   late final WorkingRouter<String> router = WorkingRouter<String>(
     noContentWidget: const Text("No content"),
-    buildLocations: buildLocations,
+    buildRouteNodes: buildRouteNodes,
     buildRootPages: (_, location, data) {
       // Need to have one nested navigator for each tab, because otherwise
       // the same navigator (with the same global navigator key) would be

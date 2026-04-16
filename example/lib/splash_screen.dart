@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-import 'app_routes.dart';
+import 'route_nodes.dart';
 import 'location_id.dart';
 
 class SplashScreen extends StatelessWidget {

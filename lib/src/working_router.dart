@@ -10,7 +10,7 @@ import 'package:working_router/working_router.dart';
 ///
 /// This callback is used at startup and again on [WorkingRouter.refresh] so the
 /// runtime tree can react to changing application state such as permissions.
-typedef BuildLocations<ID> =
+typedef BuildRouteNodes<ID> =
     List<RouteNode<ID>> Function(WorkingRouterKey rootRouterKey);
 
 class WorkingRouter<ID> extends ChangeNotifier
@@ -62,13 +62,13 @@ class WorkingRouter<ID> extends ChangeNotifier
   /// The callback receives the stable root [WorkingRouterKey] so callers can
   /// explicitly thread it into locations that need to target the root router.
   ///
-  /// When using `@Locations`, pass a closure here that builds the same route
+  /// When using `@RouteNodes`, pass a closure here that builds the same route
   /// tree shape as the annotated generator entrypoint.
-  final BuildLocations<ID> buildLocations;
+  final BuildRouteNodes<ID> buildRouteNodes;
   final LocationChildWrapper<ID>? wrapLocationChild;
 
   WorkingRouter({
-    required this.buildLocations,
+    required this.buildRouteNodes,
     BuildPages<ID>? buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
@@ -141,7 +141,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   IList<RouteNode<ID>> _buildRouteNodeTree() {
-    final nodes = buildLocations(_rootRouterKey);
+    final nodes = buildRouteNodes(_rootRouterKey);
     return nodes.toIList();
   }
 

@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'app_routes.dart';
+part of 'route_nodes.dart';
 
 // **************************************************************************
 // RouteHelpersGenerator
@@ -149,7 +149,7 @@ final class ChildAdenodeRouteTarget extends ChildRouteTarget<LocationId> {
         );
 }
 
-extension BuildLocationsGeneratedRoutes on WorkingRouterSailor<LocationId> {
+extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor<LocationId> {
   void routeToSplash() {
     routeTo(SplashRouteTarget());
   }

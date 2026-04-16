@@ -7,9 +7,9 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:collection/collection.dart';
 import 'package:source_gen/source_gen.dart';
-import 'package:working_router/src/route_generation/locations.dart';
+import 'package:working_router/src/route_generation/route_nodes.dart';
 
-class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
+class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   @override
   FutureOr<String> generateForAnnotatedElement(
     Element element,
@@ -101,7 +101,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
 
     if (!isSupported) {
       throw InvalidGenerationSourceError(
-        '@Locations must target a top-level declaration. '
+        '@RouteNodes must target a top-level declaration. '
         'Static helper members inside the route tree are supported, but '
         'the annotated entrypoint itself must be top-level so source_gen '
         'can discover it.',
@@ -611,7 +611,7 @@ class _StaticRouteTreeExtractor {
       final initializer = node.initializer;
       if (initializer == null) {
         throw InvalidGenerationSourceError(
-          'The annotated location tree variable must have an initializer.',
+          'The annotated route-node tree variable must have an initializer.',
           element: declarationElement,
         );
       }
@@ -624,7 +624,7 @@ class _StaticRouteTreeExtractor {
       final initializer = variable?.initializer;
       if (initializer == null) {
         throw InvalidGenerationSourceError(
-          'The annotated location tree variable must have an initializer.',
+          'The annotated route-node tree variable must have an initializer.',
           element: declarationElement,
         );
       }
@@ -637,7 +637,7 @@ class _StaticRouteTreeExtractor {
       final initializer = variable?.initializer;
       if (initializer == null) {
         throw InvalidGenerationSourceError(
-          'The annotated location tree variable must have an initializer.',
+          'The annotated route-node tree variable must have an initializer.',
           element: declarationElement,
         );
       }
@@ -650,7 +650,7 @@ class _StaticRouteTreeExtractor {
       final initializer = variable?.initializer;
       if (initializer == null) {
         throw InvalidGenerationSourceError(
-          'The annotated location tree variable must have an initializer.',
+          'The annotated route-node tree variable must have an initializer.',
           element: declarationElement,
         );
       }
@@ -658,7 +658,7 @@ class _StaticRouteTreeExtractor {
     }
 
     throw InvalidGenerationSourceError(
-      'Unable to read the annotated location tree source.',
+      'Unable to read the annotated route-node tree source.',
       element: declarationElement,
     );
   }

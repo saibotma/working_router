@@ -66,7 +66,7 @@ List<RouteNode<AppRouteId>> buildItemChildren() => [
 
 final _appLocationTree = _RootLocation(id: AppRouteId.root);
 
-@Locations()
+@RouteNodes()
 RouteNode<AppRouteId> get appLocationTree => _appLocationTree;
 ''',
       },
@@ -191,7 +191,7 @@ class DetailLocation extends Location<ParamSuffixRouteId, DetailLocation> {
   }
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<ParamSuffixRouteId> get appLocationTree => RootLocation();
 ''',
       },
@@ -260,7 +260,7 @@ class ItemLocation extends Location<FieldDslRouteId, ItemLocation> {
   ItemLocation({super.id, super.build});
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<FieldDslRouteId> get appLocationTree => RootLocation();
 ''',
       },
@@ -332,7 +332,7 @@ class AppRoutes {
   static RouteNode<StaticRouteId> get tree => _tree;
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<StaticRouteId> get appLocationTree => AppRoutes.tree;
 ''',
       },
@@ -406,7 +406,7 @@ class LessonEditLocation
   }
 }
 
-@Locations()
+@RouteNodes()
 final RouteNode<ConstructorRouteId> appLocationTree = RootLocation();
 ''',
         },
@@ -464,7 +464,7 @@ class LessonLocation extends Location<ConstQueryRouteId, LessonLocation> {
   }
 }
 
-@Locations()
+@RouteNodes()
 final RouteNode<ConstQueryRouteId> appLocationTree =
     LessonLocation(id: ConstQueryRouteId.lesson);
 ''',
@@ -517,7 +517,7 @@ class ItemLocation extends Location<TypedRouteId, ItemLocation> {
   }
 }
 
-@Locations()
+@RouteNodes()
 final RouteNode<TypedRouteId> appLocationTree =
     ItemLocation(id: TypedRouteId.item);
 ''',
@@ -597,7 +597,7 @@ class ItemLocation
   }
 }
 
-@Locations()
+@RouteNodes()
 final RouteNode<InferredQueryParamRouteId> appLocationTree =
     ItemLocation(id: InferredQueryParamRouteId.item);
 ''',
@@ -648,8 +648,8 @@ class ItemLocation extends Location<ShortcutRouteId, ItemLocation> {
   });
 }
 
-@Locations()
-List<RouteNode<ShortcutRouteId>> buildLocations() => [
+@RouteNodes()
+List<RouteNode<ShortcutRouteId>> buildRouteNodes() => [
   ItemLocation(
     id: ShortcutRouteId.item,
     build: (builder, location) {
@@ -720,8 +720,8 @@ class ItemLocation extends Location<NullableQueryRouteId, ItemLocation> {
   });
 }
 
-@Locations()
-List<RouteNode<NullableQueryRouteId>> buildLocations() => [
+@RouteNodes()
+List<RouteNode<NullableQueryRouteId>> buildRouteNodes() => [
   ItemLocation(
     id: NullableQueryRouteId.item,
     build: (builder, location) {
@@ -795,8 +795,8 @@ class ItemLocation extends Location<NullableShortcutRouteId, ItemLocation> {
   });
 }
 
-@Locations()
-List<RouteNode<NullableShortcutRouteId>> buildLocations() => [
+@RouteNodes()
+List<RouteNode<NullableShortcutRouteId>> buildRouteNodes() => [
   ItemLocation(
     id: NullableShortcutRouteId.item,
     build: (builder, location) {
@@ -865,8 +865,8 @@ class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
   });
 }
 
-@Locations()
-List<RouteNode<GroupQueryRouteId>> buildLocations() => [
+@RouteNodes()
+List<RouteNode<GroupQueryRouteId>> buildRouteNodes() => [
   Scope(
     build: (builder, scope) {
       final languageCode = builder.stringQueryParam(
@@ -951,7 +951,7 @@ class ChatChannelSendLocation
   }
 }
 
-@Locations()
+@RouteNodes()
 final RouteNode<DerivedChildRouteId> appLocationTree =
     ChatChannelLocation(id: DerivedChildRouteId.chatChannel);
 ''',
@@ -1044,7 +1044,7 @@ class _ChildLocation extends Location<IfUnionRouteId, _ChildLocation> {
   List<PathSegment> get path => _path;
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<IfUnionRouteId> buildLocationTree() => RootLocation();
 ''',
         },
@@ -1165,7 +1165,7 @@ class ExtraLocation extends Location<ParameterizedRouteId, ExtraLocation> {
   List<PathSegment> get path => [LiteralPathSegment('extra')];
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<ParameterizedRouteId> buildLocationTree({
   required Permissions permissions,
 }) {
@@ -1280,7 +1280,7 @@ class LeafLocation extends Location<AliasedChildrenRouteId, LeafLocation> {
   List<PathSegment> get path => [LiteralPathSegment('leaf')];
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<AliasedChildrenRouteId> buildLocationTree() {
   List<RouteNode<AliasedChildrenRouteId>> buildSearchBranch({
     required List<RouteNode<AliasedChildrenRouteId>> children,
@@ -1397,7 +1397,7 @@ class LeafLocation
   List<PathSegment> get path => [LiteralPathSegment('leaf')];
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<DefaultForwardedChildrenRouteId> buildLocationTree() {
   return RootLocation(
     id: DefaultForwardedChildrenRouteId.root,
@@ -1456,7 +1456,7 @@ class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
   List<PathSegment> get path => [LiteralPathSegment('child')];
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<ShellRootRouteId> get appLocationTree => Shell(
   build: (builder, shell, routerKey) {
     builder.children = [
@@ -1516,7 +1516,7 @@ class DashboardLocation
   DashboardLocation({super.id, required super.build});
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<ShellParamsRouteId> get appLocationTree => Shell(
   build: (builder, shell, routerKey) {
     builder.pathLiteral('accounts');
@@ -1588,7 +1588,7 @@ class ThemeLocation extends Location<ShellLocationRouteId, ThemeLocation> {
   ThemeLocation({required super.id, required super.build});
 }
 
-@Locations()
+@RouteNodes()
 RouteNode<ShellLocationRouteId> get appLocationTree =>
     SettingsLocation(
       id: ShellLocationRouteId.settings,

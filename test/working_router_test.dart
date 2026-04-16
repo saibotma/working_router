@@ -323,7 +323,7 @@ void main() {
       'non-rendering location leaves its parent page visible while staying active',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -455,7 +455,7 @@ void main() {
       final keys = <_Id, LocalKey>{};
 
       final router = WorkingRouter<_Id>(
-        buildLocations: (_) => [
+        buildRouteNodes: (_) => [
           _PathLocation(
             id: _Id.root,
             path: '',
@@ -505,7 +505,7 @@ void main() {
       LocalKey? pageKey;
 
       final router = WorkingRouter<_Id>(
-        buildLocations: (_) => [
+        buildRouteNodes: (_) => [
           _BuilderLocation<_Id>(
             id: _Id.root,
             build: (builder, location) {
@@ -548,7 +548,7 @@ void main() {
       var sawExpectedData = false;
 
       final router = WorkingRouter<_Id>(
-        buildLocations: (_) => [
+        buildRouteNodes: (_) => [
           _PathLocation(
             id: _Id.root,
             path: '',
@@ -618,7 +618,7 @@ void main() {
       ) async {
         var includeB = true;
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _PathLocation(
               id: _Id.root,
               path: '',
@@ -662,7 +662,7 @@ void main() {
       'supports self-built locations alongside legacy buildRootPages',
       (tester) async {
         final router = WorkingRouter<_MigratingId>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _MigratingRootLocation(
               id: _MigratingId.root,
               children: [
@@ -698,7 +698,7 @@ void main() {
       'scopes share query params with children without building pages',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -751,7 +751,7 @@ void main() {
       tester,
     ) async {
       final router = WorkingRouter<_Id>(
-        buildLocations: (_) => [
+        buildRouteNodes: (_) => [
           _BuilderLocation<_Id>(
             id: _Id.root,
             build: (builder, location) {
@@ -803,7 +803,7 @@ void main() {
       'shell locations render an outer shell page and an inner location page',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -855,7 +855,7 @@ void main() {
       tester,
     ) async {
       final router = WorkingRouter<_Id>(
-        buildLocations: (_) => [
+        buildRouteNodes: (_) => [
           _BuilderLocation<_Id>(
             id: _Id.root,
             build: (builder, location) {
@@ -897,7 +897,7 @@ void main() {
       'shell renders default content when matched descendants use the parent navigator',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (rootRouterKey) => [
+          buildRouteNodes: (rootRouterKey) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -952,7 +952,7 @@ void main() {
 
     testWidgets('routeToId can write shell path parameters', (tester) async {
       final router = WorkingRouter<_Id>(
-        buildLocations: (_) => [
+        buildRouteNodes: (_) => [
           _BuilderLocation<_Id>(
             id: _Id.root,
             build: (builder, location) {
@@ -1001,7 +1001,7 @@ void main() {
       (tester) async {
         const accountId = UnboundPathParam<String>(StringRouteParamCodec());
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1045,7 +1045,7 @@ void main() {
       tester,
     ) async {
       final router = WorkingRouter<_Id>(
-        buildLocations: (rootRouterKey) => [
+        buildRouteNodes: (rootRouterKey) => [
           _BuilderLocation<_Id>(
             id: _Id.root,
             build: (builder, location) {
@@ -1095,7 +1095,7 @@ void main() {
       'disabled shell routes implicit and explicit shell children to parent navigator',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1155,7 +1155,7 @@ void main() {
       'disabled shell location renders on parent navigator and aliases its router key',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1217,7 +1217,7 @@ void main() {
       'shell location supports Content.none when default content is configured',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1287,7 +1287,7 @@ void main() {
       'multi shell location renders sibling slot and content navigators',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1367,7 +1367,7 @@ void main() {
       'multi shell renders sibling slots',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1446,7 +1446,7 @@ void main() {
       'disabled multi shell location aliases content and slot navigators to the parent navigator',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1519,7 +1519,7 @@ void main() {
       'disabled multi shell aliases slot navigators to the parent navigator',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1591,7 +1591,7 @@ void main() {
       'multi shell renders default content for enabled slot without routed content',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1663,7 +1663,7 @@ void main() {
       'multi shell location renders default content for enabled extra slot without routed content',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1724,7 +1724,7 @@ void main() {
       'multi shell location supports Content.none with default content for the content slot',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1788,7 +1788,7 @@ void main() {
       'multi shell slot keeps the same navigator between default and routed pages',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1870,7 +1870,7 @@ void main() {
       'multi shell throws when enabled slot has neither routed content nor default',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -1941,7 +1941,7 @@ void main() {
       'childOrNull returns null for disabled slot',
       (tester) async {
         final router = WorkingRouter<_Id>(
-          buildLocations: (_) => [
+          buildRouteNodes: (_) => [
             _BuilderLocation<_Id>(
               id: _Id.root,
               build: (builder, location) {
@@ -2013,7 +2013,7 @@ WorkingRouter<_Id> _buildRouter({
   );
 
   return WorkingRouter<_Id>(
-    buildLocations: (_) => [
+    buildRouteNodes: (_) => [
       _PathLocation(
         id: _Id.root,
         path: '',
@@ -2054,7 +2054,7 @@ WorkingRouter<_Id> _buildOrderRouter({
   Future<bool> Function()? beforeLeaveB,
 }) {
   return WorkingRouter<_Id>(
-    buildLocations: (_) => [
+    buildRouteNodes: (_) => [
       _PathLocation(
         id: _Id.root,
         path: '',
@@ -2104,7 +2104,7 @@ WorkingRouter<_Id> _buildOrderRouter({
 
 WorkingRouter<_ParamId> _buildParamRouter() {
   return WorkingRouter<_ParamId>(
-    buildLocations: (_) => [
+    buildRouteNodes: (_) => [
       _ParamRootLocation(
         id: _ParamId.root,
         children: [
