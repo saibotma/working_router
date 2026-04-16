@@ -20,7 +20,7 @@ abstract interface class LocationPageSkeleton<ID> {
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
-    required LocationTreeElement<ID> node,
+    required RouteNode<ID> node,
   });
 }
 
@@ -46,7 +46,7 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
-    required LocationTreeElement<ID> node,
+    required RouteNode<ID> node,
   }) {
     // Keep the widget subtree keyed by the fully hydrated matched path.
     // This lets inner widget state reset when a path parameter changes, while

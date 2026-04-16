@@ -272,7 +272,7 @@ void main() {
 
       router.routeToUri(Uri.parse('/item/42/details?keep=1&drop=2'));
       await tester.pump();
-      final itemLocation = router.nullableData!.locations
+      final itemLocation = router.nullableData!.routeNodes
           .whereType<_ItemLocation>()
           .last;
       expect(router.nullableData!.uri.path, '/item/42/details');
@@ -287,17 +287,22 @@ void main() {
       router.routeBack();
       await tester.pump();
       expect(router.nullableData!.uri.path, '/');
-      expect(router.nullableData!.paramOrNull(itemLocation.idParameter), isNull);
+      expect(
+        router.nullableData!.paramOrNull(itemLocation.idParameter),
+        isNull,
+      );
       expect(router.nullableData!.queryParameters.isEmpty, true);
     });
 
-    testWidgets('routeBackFrom ignores deeper active descendants', (tester) async {
+    testWidgets('routeBackFrom ignores deeper active descendants', (
+      tester,
+    ) async {
       final router = _buildRouter();
 
       router.routeToUri(Uri.parse('/a/b'));
       await tester.pump();
 
-      final ancestorLocation = router.nullableData!.locations
+      final ancestorLocation = router.nullableData!.routeNodes
           .whereType<_PathLocation>()
           .singleWhere((location) => location.id == _Id.a);
 
@@ -306,7 +311,10 @@ void main() {
 
       expect(router.nullableData!.uri.path, '/');
       expect(
-        router.nullableData!.locations.map((location) => location.id).toList(),
+        router.nullableData!.routeNodes
+            .whereType<AnyLocation<_Id>>()
+            .map((location) => location.id)
+            .toList(),
         [_Id.root],
       );
     });
@@ -389,7 +397,7 @@ void main() {
       await tester.pump();
 
       final data = router.nullableData!;
-      expect(data.locations, isEmpty);
+      expect(data.routeNodes, isEmpty);
       expect(data.activeLocation, isNull);
       expect(data.uri.path, '/does-not-exist');
       expect(data.uri.queryParameters['q'], '1');
@@ -409,7 +417,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(router.nullableData!.locations, isEmpty);
+      expect(router.nullableData!.routeNodes, isEmpty);
       expect(router.nullableData!.uri.path, '/does-not-exist');
     });
 
@@ -422,7 +430,7 @@ void main() {
       expect(() => router.slideIn(_Id.a), returnsNormally);
       await tester.pump();
 
-      expect(router.nullableData!.locations, isEmpty);
+      expect(router.nullableData!.routeNodes, isEmpty);
       expect(router.nullableData!.uri.path, '/does-not-exist');
     });
 
@@ -470,7 +478,7 @@ void main() {
                   sawExpectedData =
                       data.uri.path == '/a/b' &&
                       data.activeLocation?.id == _Id.b &&
-                      data.locations.contains(keyLocation);
+                      data.routeNodes.contains(keyLocation);
                 }
                 final key = ValueKey('${keyLocation.id}:${data.uri.path}');
                 keys[keyLocation.id!] = key;
@@ -645,7 +653,7 @@ void main() {
         router.refresh();
         await tester.pump();
 
-        expect(router.nullableData!.locations, isEmpty);
+        expect(router.nullableData!.routeNodes, isEmpty);
         expect(router.nullableData!.uri.path, '/a/b');
       },
     );
@@ -703,15 +711,15 @@ void main() {
                       );
                       builder.children = [
                         _BuilderLocation<_Id>(
-                        id: _Id.a,
-                        build: (builder, location) {
-                          builder.pathLiteral('privacy');
-                          builder.content = Content.builder((context, data) {
-                            return Text(data.param(languageCode));
-                          });
-                        },
-                      ),
-                    ];
+                          id: _Id.a,
+                          build: (builder, location) {
+                            builder.pathLiteral('privacy');
+                            builder.content = Content.builder((context, data) {
+                              return Text(data.param(languageCode));
+                            });
+                          },
+                        ),
+                      ];
                     },
                   ),
                 ];
@@ -881,7 +889,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('no-content'), findsOneWidget);
-      expect(router.nullableData!.locations, isEmpty);
+      expect(router.nullableData!.routeNodes, isEmpty);
       expect(router.nullableData!.uri.path, '/accounts/42');
     });
 
@@ -1807,7 +1815,9 @@ void main() {
                           ],
                         );
                       });
-                      builder.content = Content.widget(const Text('detail-root'));
+                      builder.content = Content.widget(
+                        const Text('detail-root'),
+                      );
                       builder.children = [
                         _BuilderLocation<_Id>(
                           id: _Id.b,
@@ -2126,12 +2136,12 @@ enum _MigratingId { root, account }
 
 class _PathLocation extends AbstractLocation<_Id, _PathLocation> {
   final List<PathSegment> _segments;
-  final List<LocationTreeElement<_Id>> _childNodes;
+  final List<RouteNode<_Id>> _childNodes;
 
   _PathLocation({
     required _Id id,
     required String path,
-    List<LocationTreeElement<_Id>> children = const [],
+    List<RouteNode<_Id>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
        super(id: id);
@@ -2148,12 +2158,12 @@ class _PathLocation extends AbstractLocation<_Id, _PathLocation> {
 class _ParamPathLocation
     extends AbstractLocation<_ParamId, _ParamPathLocation> {
   final List<PathSegment> _segments;
-  final List<LocationTreeElement<_ParamId>> _childNodes;
+  final List<RouteNode<_ParamId>> _childNodes;
 
   _ParamPathLocation({
     required _ParamId id,
     required String path,
-    List<LocationTreeElement<_ParamId>> children = const [],
+    List<RouteNode<_ParamId>> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
        super(id: id);
@@ -2164,7 +2174,7 @@ class _ParamPathLocation
     builder.children = children;
   }
 
-  List<LocationTreeElement<_ParamId>> register(
+  List<RouteNode<_ParamId>> register(
     LocationBuilder<_ParamId> builder,
   ) {
     for (final segment in _segments) {
@@ -2195,7 +2205,7 @@ class _ItemLocation extends _ParamPathLocation {
   }) : super(path: 'item');
 
   @override
-  List<LocationTreeElement<_ParamId>> register(
+  List<RouteNode<_ParamId>> register(
     LocationBuilder<_ParamId> builder,
   ) {
     final children = super.register(builder);
@@ -2212,7 +2222,7 @@ class _DetailLocation extends _ParamPathLocation {
   });
 
   @override
-  List<LocationTreeElement<_ParamId>> register(
+  List<RouteNode<_ParamId>> register(
     LocationBuilder<_ParamId> builder,
   ) {
     final children = super.register(builder);
@@ -2223,11 +2233,11 @@ class _DetailLocation extends _ParamPathLocation {
 
 class _MigratingRootLocation
     extends AbstractLocation<_MigratingId, _MigratingRootLocation> {
-  final List<LocationTreeElement<_MigratingId>> _childNodes;
+  final List<RouteNode<_MigratingId>> _childNodes;
 
   _MigratingRootLocation({
     required _MigratingId id,
-    List<LocationTreeElement<_MigratingId>> children = const [],
+    List<RouteNode<_MigratingId>> children = const [],
   }) : _childNodes = children,
        super(id: id);
 

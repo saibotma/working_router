@@ -2,8 +2,8 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location_tag.dart';
-import 'package:working_router/src/location_tree_element.dart';
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
+import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
@@ -45,8 +45,7 @@ sealed class DefaultContent<ID> {
     return switch (this) {
       final _StaticDefaultContent<ID> staticContent =>
         (_, _) => staticContent.widget,
-      final _BuilderDefaultContent<ID> builderContent =>
-        builderContent.builder,
+      final _BuilderDefaultContent<ID> builderContent => builderContent.builder,
     };
   }
 }
@@ -79,8 +78,7 @@ final class _BuilderDefaultContent<ID> extends DefaultContent<ID> {
   const _BuilderDefaultContent(this.builder);
 }
 
-abstract class LocationBuildResult<ID>
-    extends PathLocationTreeElementRenderResult<ID> {
+abstract class LocationBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
   const LocationBuildResult();
 
   LocationWidgetBuilder<ID>? get buildWidgetOrNull;
@@ -104,7 +102,8 @@ final class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
   SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
-final class NonRenderingLocationBuildResult<ID> extends LocationBuildResult<ID> {
+final class NonRenderingLocationBuildResult<ID>
+    extends LocationBuildResult<ID> {
   const NonRenderingLocationBuildResult();
 
   @override
@@ -114,7 +113,7 @@ final class NonRenderingLocationBuildResult<ID> extends LocationBuildResult<ID> 
   SelfBuiltLocationPageBuilder? get buildPageOrNull => null;
 }
 
-class LocationBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
+class LocationBuilder<ID> extends PathRouteNodeBuilder<ID> {
   Content<ID>? _content;
   SelfBuiltLocationPageBuilder? _buildPage;
 
@@ -177,9 +176,9 @@ class BuiltLocationDefinition<ID> {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
-  final List<LocationTreeElement<ID>> children;
+  final List<RouteNode<ID>> children;
   final PageKey<ID>? pageKey;
-  final PathLocationTreeElementRenderResult<ID>? render;
+  final PathRouteNodeRenderResult<ID>? render;
 
   const BuiltLocationDefinition({
     required this.path,
@@ -204,7 +203,7 @@ class BuiltLocationDefinition<ID> {
 /// a single common type that means "any location in the tree" without exposing
 /// that self-type parameter everywhere. This base provides that erased view,
 /// while the public location types remain the authoring APIs.
-abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
+abstract class AnyLocation<ID> extends PathRouteNode<ID> {
   final ID? id;
   final ISet<LocationTag> tags;
 
@@ -214,18 +213,16 @@ abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
     Iterable<LocationTag> tags = const [],
   }) : tags = tags.toISet();
 
-  bool get contributesPage =>
-      switch (definition.render) {
-        final LocationBuildResult<ID> render => render.buildWidgetOrNull != null,
-        null => true,
-        _ => false,
-      };
+  bool get contributesPage => switch (definition.render) {
+    final LocationBuildResult<ID> render => render.buildWidgetOrNull != null,
+    null => true,
+    _ => false,
+  };
 
-  bool get buildsOwnPage =>
-      switch (definition.render) {
-        final LocationBuildResult<ID> render => render.buildWidgetOrNull != null,
-        _ => false,
-      };
+  bool get buildsOwnPage => switch (definition.render) {
+    final LocationBuildResult<ID> render => render.buildWidgetOrNull != null,
+    _ => false,
+  };
 
   Widget? buildWidget(BuildContext context, WorkingRouterData<ID> data) {
     final render = definition.render;
@@ -257,7 +254,7 @@ abstract class AnyLocation<ID> extends PathLocationTreeElement<ID> {
 
   bool hasTag(LocationTag tag) => tags.contains(tag);
 
-  IList<LocationTreeElement<ID>> matchRelative(
+  IList<RouteNode<ID>> matchRelative(
     bool Function(AnyLocation<ID> location) predicate,
   ) {
     for (final child in children) {

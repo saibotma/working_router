@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/location_tree_element.dart';
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
+import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
@@ -159,8 +159,7 @@ final class MultiShellSlotChildren<ID> {
   }
 }
 
-final class MultiShellBuildResult<ID>
-    extends PathLocationTreeElementRenderResult<ID> {
+final class MultiShellBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
   final List<MultiShellSlotDefinition<ID>> slots;
   final MultiShellContentBuilder<ID> buildContent;
   final ShellPageBuilder? buildPage;
@@ -172,7 +171,7 @@ final class MultiShellBuildResult<ID>
   });
 }
 
-class MultiShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
+class MultiShellBuilder<ID> extends PathRouteNodeBuilder<ID> {
   final List<MultiShellSlotDefinition<ID>> _slots = [];
   MultiShellContent<ID>? _content;
   ShellPageBuilder? _buildPage;
@@ -252,7 +251,7 @@ class MultiShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
 ///
 /// Each enabled slot must resolve to routed content or define default content.
 /// Disabled slots alias targeted child routes back to the parent navigator.
-abstract class AbstractMultiShell<ID> extends PathLocationTreeElement<ID>
+abstract class AbstractMultiShell<ID> extends PathRouteNode<ID>
     implements BuildsWithMultiShellBuilder<ID> {
   final bool navigatorEnabled;
 
@@ -290,7 +289,7 @@ abstract class AbstractMultiShell<ID> extends PathLocationTreeElement<ID>
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   @override
-  List<LocationTreeElement<ID>> get children => _definition.children;
+  List<RouteNode<ID>> get children => _definition.children;
 
   @override
   LocalKey buildPageKey(WorkingRouterData<ID> data) {

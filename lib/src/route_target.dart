@@ -1,5 +1,5 @@
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/location_tree_element.dart';
+import 'package:working_router/src/route_node.dart';
 
 sealed class RouteTarget<ID> {
   const RouteTarget();

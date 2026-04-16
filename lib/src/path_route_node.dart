@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/multi_shell.dart';
 import 'package:working_router/src/multi_shell_location.dart';
+import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/scope.dart';
 import 'package:working_router/src/shell.dart';
@@ -33,25 +33,25 @@ abstract interface class BuildsWithMultiShellLocationBuilder<ID> {
   void build(MultiShellLocationBuilder<ID> builder);
 }
 
-abstract class PathLocationTreeElementRenderResult<ID> {
-  const PathLocationTreeElementRenderResult();
+abstract class PathRouteNodeRenderResult<ID> {
+  const PathRouteNodeRenderResult();
 }
 
-abstract class PathLocationTreeElementBuilder<ID> {
+abstract class PathRouteNodeBuilder<ID> {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
-  List<LocationTreeElement<ID>> _children = const [];
+  List<RouteNode<ID>> _children = const [];
   bool _childrenAssigned = false;
   PageKey<ID>? _pageKey;
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
-  List<LocationTreeElement<ID>> get children => _children;
+  List<RouteNode<ID>> get children => _children;
   PageKey<ID>? get configuredPageKey => _pageKey;
 
-  PathLocationTreeElementBuilder();
+  PathRouteNodeBuilder();
 
   T pathSegment<T extends PathSegment>(T segment) {
     _path.add(segment);
@@ -80,10 +80,12 @@ abstract class PathLocationTreeElementBuilder<ID> {
   /// that need nullable lookup from outer code via `data.paramOrNull(...)`.
   Param<T> bindParam<T>(UnboundParam<T> parameter) {
     return switch (parameter) {
-      final UnboundPathParam<T> pathParameter =>
-        pathSegment<PathParam<T>>(PathParam<T>(pathParameter)),
-      final UnboundQueryParam<T> queryParameter =>
-        query(QueryParam<T>(queryParameter)),
+      final UnboundPathParam<T> pathParameter => pathSegment<PathParam<T>>(
+        PathParam<T>(pathParameter),
+      ),
+      final UnboundQueryParam<T> queryParameter => query(
+        QueryParam<T>(queryParameter),
+      ),
     };
   }
 
@@ -269,10 +271,10 @@ abstract class PathLocationTreeElementBuilder<ID> {
     );
   }
 
-  set children(List<LocationTreeElement<ID>> children) {
+  set children(List<RouteNode<ID>> children) {
     if (_childrenAssigned) {
       throw StateError(
-        'PathLocationTreeElementBuilder children were already configured. '
+        'PathRouteNodeBuilder children were already configured. '
         'children may only be assigned once.',
       );
     }
@@ -285,13 +287,13 @@ abstract class PathLocationTreeElementBuilder<ID> {
   }
 }
 
-abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
-  PathLocationTreeElement({
+abstract class PathRouteNode<ID> extends RouteNode<ID> {
+  PathRouteNode({
     super.parentRouterKey,
   });
 
   @protected
-  PathLocationTreeElementBuilder<ID> createBuilder();
+  PathRouteNodeBuilder<ID> createBuilder();
 
   late final BuiltLocationDefinition<ID> _definition = _buildDefinition();
 
@@ -350,7 +352,7 @@ abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
           return multiShellLocationBuilder.resolveRender();
         }(),
       _ => throw StateError(
-        'Unsupported PathLocationTreeElement/Builder combination: '
+        'Unsupported PathRouteNode/Builder combination: '
         '$runtimeType/${builder.runtimeType}.',
       ),
     };
@@ -371,7 +373,7 @@ abstract class PathLocationTreeElement<ID> extends LocationTreeElement<ID> {
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   @override
-  List<LocationTreeElement<ID>> get children => _definition.children;
+  List<RouteNode<ID>> get children => _definition.children;
 
   @override
   LocalKey buildPageKey(WorkingRouterData<ID> data) {

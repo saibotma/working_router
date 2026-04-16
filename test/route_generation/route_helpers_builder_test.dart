@@ -58,7 +58,7 @@ class _ItemDetailsLocation extends Location<AppRouteId, _ItemDetailsLocation> {
   }
 }
 
-List<LocationTreeElement<AppRouteId>> buildItemChildren() => [
+List<RouteNode<AppRouteId>> buildItemChildren() => [
   _ItemDetailsLocation(
     id: AppRouteId.itemDetails,
   ),
@@ -67,7 +67,7 @@ List<LocationTreeElement<AppRouteId>> buildItemChildren() => [
 final _appLocationTree = _RootLocation(id: AppRouteId.root);
 
 @Locations()
-LocationTreeElement<AppRouteId> get appLocationTree => _appLocationTree;
+RouteNode<AppRouteId> get appLocationTree => _appLocationTree;
 ''',
       },
       outputs: {
@@ -192,27 +192,26 @@ class DetailLocation extends Location<ParamSuffixRouteId, DetailLocation> {
 }
 
 @Locations()
-LocationTreeElement<ParamSuffixRouteId> get appLocationTree => RootLocation();
+RouteNode<ParamSuffixRouteId> get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
-        'working_router|lib/param_suffix_routes.working_router.g.part':
-            decodedMatches(
-              allOf(
-                contains(
-                  'void routeToDetail({required String id, required String slug}) {',
-                ),
-                contains(
-                  'DetailRouteTarget({required String id, required String slug})',
-                ),
-                contains(
-                  'path(location.pathParameters[0] as PathParam<String>, id);',
-                ),
-                contains(
-                  'path(location.pathParameters[1] as PathParam<String>, slug);',
-                ),
-              ),
+        'working_router|lib/param_suffix_routes.working_router.g.part': decodedMatches(
+          allOf(
+            contains(
+              'void routeToDetail({required String id, required String slug}) {',
             ),
+            contains(
+              'DetailRouteTarget({required String id, required String slug})',
+            ),
+            contains(
+              'path(location.pathParameters[0] as PathParam<String>, id);',
+            ),
+            contains(
+              'path(location.pathParameters[1] as PathParam<String>, slug);',
+            ),
+          ),
+        ),
       },
       readerWriter: readerWriter,
     );
@@ -262,7 +261,7 @@ class ItemLocation extends Location<FieldDslRouteId, ItemLocation> {
 }
 
 @Locations()
-LocationTreeElement<FieldDslRouteId> get appLocationTree => RootLocation();
+RouteNode<FieldDslRouteId> get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
@@ -310,7 +309,7 @@ class _RootLocation extends Location<StaticRouteId, _RootLocation> {
   _RootLocation({required super.id});
 
   @override
-  late final List<LocationTreeElement<StaticRouteId>> children = [
+  late final List<RouteNode<StaticRouteId>> children = [
     _ChildLocation(id: StaticRouteId.child),
   ];
 
@@ -330,11 +329,11 @@ class AppRoutes {
     id: StaticRouteId.root,
   );
 
-  static LocationTreeElement<StaticRouteId> get tree => _tree;
+  static RouteNode<StaticRouteId> get tree => _tree;
 }
 
 @Locations()
-LocationTreeElement<StaticRouteId> get appLocationTree => AppRoutes.tree;
+RouteNode<StaticRouteId> get appLocationTree => AppRoutes.tree;
 ''',
       },
       outputs: {
@@ -408,7 +407,7 @@ class LessonEditLocation
 }
 
 @Locations()
-final LocationTreeElement<ConstructorRouteId> appLocationTree = RootLocation();
+final RouteNode<ConstructorRouteId> appLocationTree = RootLocation();
 ''',
         },
         outputs: {
@@ -466,7 +465,7 @@ class LessonLocation extends Location<ConstQueryRouteId, LessonLocation> {
 }
 
 @Locations()
-final LocationTreeElement<ConstQueryRouteId> appLocationTree =
+final RouteNode<ConstQueryRouteId> appLocationTree =
     LessonLocation(id: ConstQueryRouteId.lesson);
 ''',
       },
@@ -519,38 +518,37 @@ class ItemLocation extends Location<TypedRouteId, ItemLocation> {
 }
 
 @Locations()
-final LocationTreeElement<TypedRouteId> appLocationTree =
+final RouteNode<TypedRouteId> appLocationTree =
     ItemLocation(id: TypedRouteId.item);
 ''',
         },
         outputs: {
-          'working_router|lib/typed_route_params_routes.working_router.g.part':
-              decodedMatches(
-                allOf(
-                  allOf(
-                    contains('required int itemId,'),
-                    contains('required ItemFilter filter,'),
-                    contains('int? page,'),
-                  ),
-                  allOf(
-                    contains(
-                      'final class ItemRouteTarget extends IdRouteTarget<TypedRouteId> {',
-                    ),
-                    contains('writePathParameters: (() {'),
-                    contains(
-                      'path(location.pathParameters[0] as PathParam<int>, itemId);',
-                    ),
-                    contains('queryParameters: {'),
-                    contains(
-                      "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
-                    ),
-                    contains(
-                      "if (page case final value?)\n"
-                      "            'page': const IntRouteParamCodec().encode(value),",
-                    ),
-                  ),
+          'working_router|lib/typed_route_params_routes.working_router.g.part': decodedMatches(
+            allOf(
+              allOf(
+                contains('required int itemId,'),
+                contains('required ItemFilter filter,'),
+                contains('int? page,'),
+              ),
+              allOf(
+                contains(
+                  'final class ItemRouteTarget extends IdRouteTarget<TypedRouteId> {',
+                ),
+                contains('writePathParameters: (() {'),
+                contains(
+                  'path(location.pathParameters[0] as PathParam<int>, itemId);',
+                ),
+                contains('queryParameters: {'),
+                contains(
+                  "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
+                ),
+                contains(
+                  "if (page case final value?)\n"
+                  "            'page': const IntRouteParamCodec().encode(value),",
                 ),
               ),
+            ),
+          ),
         },
         readerWriter: readerWriter,
       );
@@ -600,7 +598,7 @@ class ItemLocation
 }
 
 @Locations()
-final LocationTreeElement<InferredQueryParamRouteId> appLocationTree =
+final RouteNode<InferredQueryParamRouteId> appLocationTree =
     ItemLocation(id: InferredQueryParamRouteId.item);
 ''',
         },
@@ -651,7 +649,7 @@ class ItemLocation extends Location<ShortcutRouteId, ItemLocation> {
 }
 
 @Locations()
-List<LocationTreeElement<ShortcutRouteId>> buildLocations() => [
+List<RouteNode<ShortcutRouteId>> buildLocations() => [
   ItemLocation(
     id: ShortcutRouteId.item,
     build: (builder, location) {
@@ -723,7 +721,7 @@ class ItemLocation extends Location<NullableQueryRouteId, ItemLocation> {
 }
 
 @Locations()
-List<LocationTreeElement<NullableQueryRouteId>> buildLocations() => [
+List<RouteNode<NullableQueryRouteId>> buildLocations() => [
   ItemLocation(
     id: NullableQueryRouteId.item,
     build: (builder, location) {
@@ -798,7 +796,7 @@ class ItemLocation extends Location<NullableShortcutRouteId, ItemLocation> {
 }
 
 @Locations()
-List<LocationTreeElement<NullableShortcutRouteId>> buildLocations() => [
+List<RouteNode<NullableShortcutRouteId>> buildLocations() => [
   ItemLocation(
     id: NullableShortcutRouteId.item,
     build: (builder, location) {
@@ -868,7 +866,7 @@ class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
 }
 
 @Locations()
-List<LocationTreeElement<GroupQueryRouteId>> buildLocations() => [
+List<RouteNode<GroupQueryRouteId>> buildLocations() => [
   Scope(
     build: (builder, scope) {
       final languageCode = builder.stringQueryParam(
@@ -954,7 +952,7 @@ class ChatChannelSendLocation
 }
 
 @Locations()
-final LocationTreeElement<DerivedChildRouteId> appLocationTree =
+final RouteNode<DerivedChildRouteId> appLocationTree =
     ChatChannelLocation(id: DerivedChildRouteId.chatChannel);
 ''',
         },
@@ -1004,7 +1002,7 @@ class RootLocation extends Location<IfUnionRouteId, RootLocation> {
   RootLocation() : super(id: IfUnionRouteId.root);
 
   @override
-  late final List<LocationTreeElement<IfUnionRouteId>> children = [
+  late final List<RouteNode<IfUnionRouteId>> children = [
     _ChildLocation(
       id: IfUnionRouteId.always,
       path: [LiteralPathSegment('always')],
@@ -1047,7 +1045,7 @@ class _ChildLocation extends Location<IfUnionRouteId, _ChildLocation> {
 }
 
 @Locations()
-LocationTreeElement<IfUnionRouteId> buildLocationTree() => RootLocation();
+RouteNode<IfUnionRouteId> buildLocationTree() => RootLocation();
 ''',
         },
         outputs: {
@@ -1096,7 +1094,7 @@ class Permissions {
 
 class RootLocation extends Location<ParameterizedRouteId, RootLocation> {
   @override
-  final List<LocationTreeElement<ParameterizedRouteId>> children;
+  final List<RouteNode<ParameterizedRouteId>> children;
 
   RootLocation({
     required super.id,
@@ -1109,7 +1107,7 @@ class RootLocation extends Location<ParameterizedRouteId, RootLocation> {
 
 class ChatLocation extends Location<ParameterizedRouteId, ChatLocation> {
   @override
-  final List<LocationTreeElement<ParameterizedRouteId>> children;
+  final List<RouteNode<ParameterizedRouteId>> children;
 
   ChatLocation({
     required super.id,
@@ -1123,7 +1121,7 @@ class ChatLocation extends Location<ParameterizedRouteId, ChatLocation> {
 class ChatSearchLocation
     extends Location<ParameterizedRouteId, ChatSearchLocation> {
   @override
-  final List<LocationTreeElement<ParameterizedRouteId>> children;
+  final List<RouteNode<ParameterizedRouteId>> children;
 
   ChatSearchLocation({
     required ParameterizedRouteId id,
@@ -1137,7 +1135,7 @@ class ChatSearchLocation
 class ChatChannelLocation
     extends Location<ParameterizedRouteId, ChatChannelLocation> {
   @override
-  final List<LocationTreeElement<ParameterizedRouteId>> children;
+  final List<RouteNode<ParameterizedRouteId>> children;
 
   ChatChannelLocation({
     super.id,
@@ -1168,10 +1166,10 @@ class ExtraLocation extends Location<ParameterizedRouteId, ExtraLocation> {
 }
 
 @Locations()
-LocationTreeElement<ParameterizedRouteId> buildLocationTree({
+RouteNode<ParameterizedRouteId> buildLocationTree({
   required Permissions permissions,
 }) {
-  List<LocationTreeElement<ParameterizedRouteId>> sharedChatLocations({
+  List<RouteNode<ParameterizedRouteId>> sharedChatLocations({
     required bool shouldSetIds,
   }) {
     return [
@@ -1250,7 +1248,7 @@ enum AliasedChildrenRouteId { root, search, leaf }
 
 class RootLocation extends Location<AliasedChildrenRouteId, RootLocation> {
   @override
-  final List<LocationTreeElement<AliasedChildrenRouteId>> children;
+  final List<RouteNode<AliasedChildrenRouteId>> children;
 
   RootLocation({
     required super.id,
@@ -1264,7 +1262,7 @@ class RootLocation extends Location<AliasedChildrenRouteId, RootLocation> {
 class SearchLocation
     extends Location<AliasedChildrenRouteId, SearchLocation> {
   @override
-  final List<LocationTreeElement<AliasedChildrenRouteId>> children;
+  final List<RouteNode<AliasedChildrenRouteId>> children;
 
   SearchLocation({
     required AliasedChildrenRouteId id,
@@ -1283,9 +1281,9 @@ class LeafLocation extends Location<AliasedChildrenRouteId, LeafLocation> {
 }
 
 @Locations()
-LocationTreeElement<AliasedChildrenRouteId> buildLocationTree() {
-  List<LocationTreeElement<AliasedChildrenRouteId>> buildSearchBranch({
-    required List<LocationTreeElement<AliasedChildrenRouteId>> children,
+RouteNode<AliasedChildrenRouteId> buildLocationTree() {
+  List<RouteNode<AliasedChildrenRouteId>> buildSearchBranch({
+    required List<RouteNode<AliasedChildrenRouteId>> children,
   }) {
     return [
       SearchLocation(
@@ -1347,7 +1345,7 @@ enum DefaultForwardedChildrenRouteId { root, parent, branch, leaf }
 class RootLocation
     extends Location<DefaultForwardedChildrenRouteId, RootLocation> {
   @override
-  final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children;
+  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
 
   RootLocation({
     required super.id,
@@ -1361,7 +1359,7 @@ class RootLocation
 class ParentLocation
     extends Location<DefaultForwardedChildrenRouteId, ParentLocation> {
   @override
-  final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children;
+  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
 
   ParentLocation({
     required super.id,
@@ -1377,7 +1375,7 @@ class BranchLocation
   BranchLocation({required super.id});
 
   @override
-  late final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children = [
+  late final List<RouteNode<DefaultForwardedChildrenRouteId>> children = [
     LeafLocation(id: DefaultForwardedChildrenRouteId.leaf),
   ];
 
@@ -1388,7 +1386,7 @@ class BranchLocation
 class LeafLocation
     extends Location<DefaultForwardedChildrenRouteId, LeafLocation> {
   @override
-  final List<LocationTreeElement<DefaultForwardedChildrenRouteId>> children;
+  final List<RouteNode<DefaultForwardedChildrenRouteId>> children;
 
   LeafLocation({
     required DefaultForwardedChildrenRouteId id,
@@ -1400,7 +1398,7 @@ class LeafLocation
 }
 
 @Locations()
-LocationTreeElement<DefaultForwardedChildrenRouteId> buildLocationTree() {
+RouteNode<DefaultForwardedChildrenRouteId> buildLocationTree() {
   return RootLocation(
     id: DefaultForwardedChildrenRouteId.root,
     children: [
@@ -1459,7 +1457,7 @@ class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
 }
 
 @Locations()
-LocationTreeElement<ShellRootRouteId> get appLocationTree => Shell(
+RouteNode<ShellRootRouteId> get appLocationTree => Shell(
   build: (builder, shell, routerKey) {
     builder.children = [
       ChildChildLocation(
@@ -1519,7 +1517,7 @@ class DashboardLocation
 }
 
 @Locations()
-LocationTreeElement<ShellParamsRouteId> get appLocationTree => Shell(
+RouteNode<ShellParamsRouteId> get appLocationTree => Shell(
   build: (builder, shell, routerKey) {
     builder.pathLiteral('accounts');
     final accountId = builder.stringPathParam();
@@ -1591,7 +1589,7 @@ class ThemeLocation extends Location<ShellLocationRouteId, ThemeLocation> {
 }
 
 @Locations()
-LocationTreeElement<ShellLocationRouteId> get appLocationTree =>
+RouteNode<ShellLocationRouteId> get appLocationTree =>
     SettingsLocation(
       id: ShellLocationRouteId.settings,
       build: (builder, location, routerKey) {

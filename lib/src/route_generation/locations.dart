@@ -2,14 +2,14 @@
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or function
-/// returning an `Iterable<LocationTreeElement<ID>>`.
+/// returning an `Iterable<RouteNode<ID>>`.
 ///
 /// Example:
 /// ```dart
 /// part 'app_routes.g.dart';
 ///
 /// @Locations()
-/// List<LocationTreeElement<AppRouteId>> buildLocations({
+/// List<RouteNode<AppRouteId>> buildLocations({
 ///   required WorkingRouterKey rootRouterKey,
 /// }) => [_appRouteTree];
 /// ```

@@ -2,7 +2,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
@@ -13,7 +13,7 @@ sealed class PathSegment {
 
 typedef WritePathParameters<ID> =
     void Function(
-      PathLocationTreeElement<ID> location,
+      PathRouteNode<ID> location,
       void Function<T>(PathParam<T> parameter, T value) path,
     );
 
@@ -89,7 +89,7 @@ class QueryParam<T> implements Param<T> {
 typedef CustomPageKeyBuilder<ID> =
     LocalKey Function(WorkingRouterData<ID> data);
 
-/// Describes how a [LocationTreeElement] builds its [Page] key.
+/// Describes how a [RouteNode] builds its [Page] key.
 ///
 /// Use [PageKey.templatePath] for the default route-template-based behavior:
 /// `/lesson/1` and `/lesson/2` reuse the same page, while
@@ -126,14 +126,14 @@ sealed class PageKey<ID> {
   const factory PageKey.custom(CustomPageKeyBuilder<ID> build) =
       _CustomPageKey<ID>;
 
-  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data);
+  LocalKey build(RouteNode<ID> node, WorkingRouterData<ID> data);
 }
 
 final class _TemplatePathPageKey<ID> extends PageKey<ID> {
   const _TemplatePathPageKey();
 
   @override
-  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data) {
+  LocalKey build(RouteNode<ID> node, WorkingRouterData<ID> data) {
     return ValueKey((node.runtimeType, data.pathTemplateUpToNode(node)));
   }
 }
@@ -142,7 +142,7 @@ final class _PathPageKey<ID> extends PageKey<ID> {
   const _PathPageKey();
 
   @override
-  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data) {
+  LocalKey build(RouteNode<ID> node, WorkingRouterData<ID> data) {
     return ValueKey((node.runtimeType, data.pathUpToNode(node)));
   }
 }
@@ -153,19 +153,19 @@ final class _CustomPageKey<ID> extends PageKey<ID> {
   const _CustomPageKey(this._build);
 
   @override
-  LocalKey build(LocationTreeElement<ID> node, WorkingRouterData<ID> data) {
+  LocalKey build(RouteNode<ID> node, WorkingRouterData<ID> data) {
     return _build(data);
   }
 }
 
-abstract class LocationTreeElement<ID> {
+abstract class RouteNode<ID> {
   final WorkingRouterKey? parentRouterKey;
 
-  LocationTreeElement({
+  RouteNode({
     this.parentRouterKey,
   });
 
-  List<LocationTreeElement<ID>> get children => const [];
+  List<RouteNode<ID>> get children => const [];
 
   /// Builds the default [Page] key for this node.
   ///
@@ -186,31 +186,31 @@ abstract class LocationTreeElement<ID> {
     return _matchNode(this, uriPathSegments);
   }
 
-  IList<LocationTreeElement<ID>> matchId(ID id) {
+  IList<RouteNode<ID>> matchId(ID id) {
     return _matchNodeById(this, id);
   }
 }
 
 typedef RouteMatch<ID> = ({
-  IList<LocationTreeElement<ID>> elements,
+  IList<RouteNode<ID>> routeNodes,
   IMap<UnboundPathParam<dynamic>, String> pathParameters,
 });
 
 RouteMatch<ID> emptyRouteMatch<ID>() => (
-  elements: const IListConst([]),
+  routeNodes: const IListConst([]),
   pathParameters: const IMapConst({}),
 );
 
 extension RouteMatchX<ID> on RouteMatch<ID> {
-  bool get isEmpty => elements.isEmpty;
+  bool get isEmpty => routeNodes.isEmpty;
 }
 
-extension TreeElementsX<ID> on Iterable<LocationTreeElement<ID>> {
+extension TreeElementsX<ID> on Iterable<RouteNode<ID>> {
   IList<AnyLocation<ID>> get locations =>
       whereType<AnyLocation<ID>>().toIList();
 
-  IList<PathLocationTreeElement<ID>> get pathElements =>
-      whereType<PathLocationTreeElement<ID>>().toIList();
+  IList<PathRouteNode<ID>> get pathRouteNodes =>
+      whereType<PathRouteNode<ID>>().toIList();
 
   RouteMatch<ID> match(IList<String> uriPathSegments) {
     for (final node in this) {
@@ -222,7 +222,7 @@ extension TreeElementsX<ID> on Iterable<LocationTreeElement<ID>> {
     return emptyRouteMatch();
   }
 
-  IList<LocationTreeElement<ID>> matchId(ID id) {
+  IList<RouteNode<ID>> matchId(ID id) {
     for (final node in this) {
       final match = node.matchId(id);
       if (match.isNotEmpty) {
@@ -233,17 +233,17 @@ extension TreeElementsX<ID> on Iterable<LocationTreeElement<ID>> {
   }
 }
 
-IList<LocationTreeElement<ID>> emptyNodeMatch<ID>() => const IListConst([]);
+IList<RouteNode<ID>> emptyNodeMatch<ID>() => const IListConst([]);
 
 RouteMatch<ID> _matchNode<ID>(
-  LocationTreeElement<ID> node,
+  RouteNode<ID> node,
   IList<String> uriPathSegments,
 ) {
-  if (node is! PathLocationTreeElement<ID>) {
+  if (node is! PathRouteNode<ID>) {
     return emptyRouteMatch();
   }
 
-  final matches = <LocationTreeElement<ID>>[];
+  final matches = <RouteNode<ID>>[];
   final Map<UnboundPathParam<dynamic>, String> pathParameters =
       <UnboundPathParam<dynamic>, String>{};
 
@@ -261,7 +261,7 @@ RouteMatch<ID> _matchNode<ID>(
   for (final child in node.children) {
     final childMatch = _matchNode(child, nextPathSegments);
     if (!childMatch.isEmpty) {
-      matches.addAll(childMatch.elements);
+      matches.addAll(childMatch.routeNodes);
       _mergePathParameters(pathParameters, childMatch.pathParameters.unlock);
       break;
     }
@@ -273,16 +273,16 @@ RouteMatch<ID> _matchNode<ID>(
   }
 
   return (
-    elements: matches.toIList(),
+    routeNodes: matches.toIList(),
     pathParameters: pathParameters.toIMap(),
   );
 }
 
-IList<LocationTreeElement<ID>> _matchNodeById<ID>(
-  LocationTreeElement<ID> node,
+IList<RouteNode<ID>> _matchNodeById<ID>(
+  RouteNode<ID> node,
   ID id,
 ) {
-  if (node is! PathLocationTreeElement<ID>) {
+  if (node is! PathRouteNode<ID>) {
     return emptyNodeMatch();
   }
 
@@ -300,11 +300,11 @@ IList<LocationTreeElement<ID>> _matchNodeById<ID>(
   return emptyNodeMatch();
 }
 
-IList<LocationTreeElement<ID>> matchRelativeNode<ID>(
-  LocationTreeElement<ID> node,
+IList<RouteNode<ID>> matchRelativeNode<ID>(
+  RouteNode<ID> node,
   bool Function(AnyLocation<ID> location) predicate,
 ) {
-  if (node is! PathLocationTreeElement<ID>) {
+  if (node is! PathRouteNode<ID>) {
     return emptyNodeMatch();
   }
 
@@ -376,7 +376,7 @@ Map<UnboundPathParam<dynamic>, String>? startsWith(
   return pathParameters;
 }
 
-extension LocationPathBuilder<ID> on Iterable<PathLocationTreeElement<ID>> {
+extension RouteNodePathBuilder<ID> on Iterable<PathRouteNode<ID>> {
   String buildPath(IMap<UnboundPathParam<dynamic>, String> pathParameters) {
     final uriPathSegments = <String>[];
     for (final location in this) {

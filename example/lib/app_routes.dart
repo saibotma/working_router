@@ -9,12 +9,12 @@ import 'splash_screen.dart';
 part 'app_routes.g.dart';
 
 @Locations()
-List<LocationTreeElement<LocationId>> buildLocations({
+List<RouteNode<LocationId>> buildLocations({
   required ScreenSize screenSize,
   required WorkingRouterKey rootRouterKey,
 }) {
   return [
-    SplashLocation(
+    SplashNode(
       id: LocationId.splash,
       build: (builder, location) {
         builder.content = Content.widget(const SplashScreen());
@@ -27,7 +27,7 @@ List<LocationTreeElement<LocationId>> buildLocations({
               );
 
               builder.children = [
-                ALocation(
+                ANode(
                   id: LocationId.a,
                   rendersStandaloneSidebar: screenSize == ScreenSize.small,
                   rootRouterKey: rootRouterKey,

@@ -15,7 +15,7 @@ definition API.
 - The same `build(...)` method also decides whether the location is:
   - legacy when no render is configured, so `buildRootPages` handles it
   - self-built via `builder.content = ...`, with an optional page override from `builder.page = ...`
-  - and returns the child `LocationTreeElement`s as a list
+  - and returns the child `RouteNode`s as a list
 - `@Locations()` generates typed `routeToX(...)` helpers and `XRouteTarget`
   classes from one canonical route-tree file.
 
@@ -35,20 +35,20 @@ See:
 - [`example/lib/app_routes.dart`](example/lib/app_routes.dart)
 - [`example/lib/main.dart`](example/lib/main.dart)
 
-## Defining Locations
+## Defining Nodes
 
-The route API is centered around lightweight location subclasses that forward a
+The route API is centered around lightweight route-node subclasses that forward a
 typed `build:` callback.
 
 ```dart
-class ExampleLocation extends Location<MyRouteId, ExampleLocation> {
-  ExampleLocation({
+class ExampleNode extends Location<MyRouteId, ExampleNode> {
+  ExampleNode({
     super.id,
     super.build,
   });
 }
 
-final example = ExampleLocation(
+final example = ExampleNode(
   id: MyRouteId.example,
   build: (builder, location) {
     builder.pathLiteral('items');
@@ -65,7 +65,7 @@ final example = ExampleLocation(
     });
 
     builder.children = [
-      DetailLocation(id: MyRouteId.detail),
+      DetailNode(id: MyRouteId.detail),
     ];
   },
 );
@@ -107,6 +107,9 @@ Important details:
   `UnboundPathParam` / `UnboundQueryParam`, bind them with
   `builder.bindParam(...)`, read the bound `Param` with `data.param(...)`, and
   read the reusable unbound definition with `data.paramOrNull(...)`.
+- `WorkingRouterData` exposes the full matched chain as `data.routeNodes`.
+  Use `data.activeLocation` when you specifically need the active semantic
+  location.
 - `content` and `defaultContent` may depend on `context` and `data`, but they
   should not switch semantic page role based on other external mutable state.
 - If `content` is left entirely unset, the location is treated as legacy and
@@ -118,12 +121,12 @@ to a route param without owning the location that declares it:
 ```dart
 final accountId = UnboundPathParam<AccountId>(const AccountIdCodec());
 
-Location<RouteId, AccountsLocation>(
+Location<RouteId, AccountsNode>(
   build: (builder, location) {
     builder.pathLiteral('accounts');
     final boundAccountId = builder.bindParam(accountId);
     builder.children = [
-      DashboardLocation(
+      DashboardNode(
         build: (builder, location) {
           builder.content = Content.builder((context, data) {
             return Text(data.param(boundAccountId).toString());
@@ -216,7 +219,7 @@ Use the callback-based types when defining a tree inline:
 Scope(
   build: (builder, scope) {
     builder.children = [
-      PrivacyLocation(id: RouteId.privacy, build: ...),
+      PrivacyNode(id: RouteId.privacy, build: ...),
     ];
   },
 );
@@ -228,7 +231,7 @@ Shell(
     );
     builder.defaultContent = DefaultContent.widget(const Placeholder());
     builder.children = [
-      DashboardLocation(id: RouteId.dashboard, build: ...),
+      DashboardNode(id: RouteId.dashboard, build: ...),
     ];
   },
 );
@@ -248,8 +251,8 @@ MultiShell(
       ),
     );
     builder.children = [
-      SearchLocation(parentRouterKey: listSlot.routerKey, build: ...),
-      DetailLocation(
+      SearchNode(parentRouterKey: listSlot.routerKey, build: ...),
+      DetailNode(
         id: RouteId.detail,
         parentRouterKey: detailSlot.routerKey,
         build: ...,
@@ -258,14 +261,14 @@ MultiShell(
   },
 );
 
-ShellLocation<RouteId, SettingsLocation>(
+ShellLocation<RouteId, SettingsNode>(
   id: RouteId.settings,
   build: (builder, location, routerKey) {
     builder.shellPage = (key, child) =>
         MaterialPage(key: key, child: child);
     builder.content = Content.widget(const SettingsScreen());
     builder.children = [
-      ThemeModeLocation(id: RouteId.themeMode, build: ...),
+      ThemeModeNode(id: RouteId.themeMode, build: ...),
     ];
   },
 );
@@ -275,29 +278,29 @@ Use the abstract base classes when you want a reusable named subtree by
 overriding `build(...)`:
 
 ```dart
-class LegalScope extends AbstractScope<RouteId> {
+class LegalNode extends AbstractScope<RouteId> {
   @override
   void build(ScopeBuilder<RouteId> builder) {
     builder.children = [
-      PrivacyLocation(id: RouteId.privacy, build: ...),
-      TermsLocation(id: RouteId.terms, build: ...),
+      PrivacyNode(id: RouteId.privacy, build: ...),
+      TermsNode(id: RouteId.terms, build: ...),
     ];
   }
 }
 
-class AccountShell extends AbstractShell<RouteId> {
+class AccountNode extends AbstractShell<RouteId> {
   @override
   void build(ShellBuilder<RouteId> builder) {
     builder.content = ShellContent.builder(
       (context, data, child) => Scaffold(body: child),
     );
     builder.children = [
-      DashboardLocation(id: RouteId.dashboard, build: ...),
+      DashboardNode(id: RouteId.dashboard, build: ...),
     ];
   }
 }
 
-class ChatSplitShell extends AbstractMultiShell<RouteId> {
+class ChatSplitNode extends AbstractMultiShell<RouteId> {
   @override
   void build(MultiShellBuilder<RouteId> builder) {
     final listSlot = builder.slot();
@@ -311,8 +314,8 @@ class ChatSplitShell extends AbstractMultiShell<RouteId> {
       ),
     );
     builder.children = [
-      SearchLocation(parentRouterKey: listSlot.routerKey, build: ...),
-      DetailLocation(
+      SearchNode(parentRouterKey: listSlot.routerKey, build: ...),
+      DetailNode(
         id: RouteId.detail,
         parentRouterKey: detailSlot.routerKey,
         build: ...,
@@ -321,15 +324,14 @@ class ChatSplitShell extends AbstractMultiShell<RouteId> {
   }
 }
 
-class SettingsShellLocation
-    extends AbstractShellLocation<RouteId, SettingsShellLocation> {
-  SettingsShellLocation({required super.id});
+class SettingsNode extends AbstractShellLocation<RouteId, SettingsNode> {
+  SettingsNode({required super.id});
 
   @override
   void build(ShellLocationBuilder<RouteId> builder) {
     builder.content = Content.widget(const SettingsScreen());
     builder.children = [
-      ThemeModeLocation(id: RouteId.themeMode, build: ...),
+      ThemeModeNode(id: RouteId.themeMode, build: ...),
     ];
   }
 }
@@ -430,7 +432,7 @@ This is shown in the package example in
 shape:
 
 ```dart
-ShellLocation<RouteId, SettingsLocation>(
+ShellLocation<RouteId, SettingsNode>(
   id: RouteId.settings,
   navigatorEnabled: screenSize != ScreenSize.small,
   build: (builder, location, routerKey) {
@@ -447,7 +449,7 @@ ShellLocation<RouteId, SettingsLocation>(
     };
 
     builder.children = [
-      ThemeModeLocation(id: RouteId.themeMode, build: ...),
+      ThemeModeNode(id: RouteId.themeMode, build: ...),
     ];
   },
 )
@@ -497,12 +499,12 @@ MultiShellLocation<RouteId, ChatLocation>(
     builder.content = const Content.none();
 
     builder.children = [
-      ChannelListLocation(
+      ChannelListNode(
         id: RouteId.channelList,
         parentRouterKey: listSlot.routerKey,
         build: ...,
       ),
-      ChannelDetailLocation(
+      ChannelDetailNode(
         id: RouteId.channelDetail,
         parentRouterKey: contentSlot.routerKey,
         build: ...,

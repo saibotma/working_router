@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
@@ -12,8 +12,7 @@ typedef BuildShellLocation<ID, Self extends AnyLocation<ID>> =
       WorkingRouterKey routerKey,
     );
 
-final class ShellLocationBuildResult<ID>
-    extends LocationBuildResult<ID> {
+final class ShellLocationBuildResult<ID> extends LocationBuildResult<ID> {
   final LocationWidgetBuilder<ID>? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
   final ShellContentBuilder<ID> buildShellContent;
@@ -104,7 +103,8 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
       defaultContent: _defaultContent,
       defaultPage: _buildDefaultPage,
     );
-    if (locationRender.buildWidgetOrNull == null && buildDefaultWidget == null) {
+    if (locationRender.buildWidgetOrNull == null &&
+        buildDefaultWidget == null) {
       throw StateError(
         'ShellLocationBuilder requires rendering content or defaultContent. '
         'Use content, or configure defaultContent/defaultPage for the nested '
@@ -114,8 +114,8 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
     return ShellLocationBuildResult(
       buildWidget: locationRender.buildWidgetOrNull,
       buildPage: locationRender.buildPageOrNull,
-      buildShellContent:
-          (_shellContent ?? ShellContent<ID>.child()).resolveBuilder(),
+      buildShellContent: (_shellContent ?? ShellContent<ID>.child())
+          .resolveBuilder(),
       buildShellPage: _buildShellPage,
       buildDefaultWidget: buildDefaultWidget,
       buildDefaultPage: buildDefaultPage,

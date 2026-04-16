@@ -15,11 +15,11 @@ void main() {
   runApp(const StatePreservingTabs());
 }
 
-List<LocationTreeElement<String>> buildLocations(WorkingRouterKey _) => [
-      ScaffoldLocation(
+List<RouteNode<String>> buildLocations(WorkingRouterKey _) => [
+      ScaffoldNode(
         childNodes: [
-          Tab1Location(),
-          Tab2Location(),
+          Tab1Node(),
+          Tab2Node(),
         ],
       ),
     ];
@@ -48,19 +48,19 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
       // https://github.com/lulupointu/vrouter/issues/32#issuecomment-884901775
       final activeLocation = data.activeLocation;
 
-      if (location is ScaffoldLocation &&
-          activeLocation is Tab1Location &&
+      if (location is ScaffoldNode &&
+          activeLocation is Tab1Node &&
           data.isChildOf(
-            (candidate) => candidate is ScaffoldLocation,
+            (candidate) => candidate is ScaffoldNode,
             activeLocation,
           )) {
         return [buildScaffoldPage(index: 0)];
       }
 
-      if (location is ScaffoldLocation &&
-          activeLocation is Tab2Location &&
+      if (location is ScaffoldNode &&
+          activeLocation is Tab2Node &&
           data.isChildOf(
-            (candidate) => candidate is ScaffoldLocation,
+            (candidate) => candidate is ScaffoldNode,
             activeLocation,
           )) {
         return [buildScaffoldPage(index: 1)];
@@ -82,10 +82,10 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
         // Have to return the tab for the index, also when another index
         // is currently active, because also the "temporarily deactivated"
         // navigators will still be active in the IndexedStack.
-        if ((location is Tab1Location) && index == 0) {
+        if ((location is Tab1Node) && index == 0) {
           return [tab1Page];
         }
-        if ((location is Tab2Location) && index == 1) {
+        if ((location is Tab2Node) && index == 1) {
           return [tab2Page];
         }
         return [emptyPage];
@@ -97,7 +97,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
       ChildLocationPageSkeleton<String>(child: const Placeholder());
   // Give each tab page a unique key, so that it does not get rebuilt
   // (and thus looses state) when switching between tabs. This is required,
-  // because tab1Page will also be returned (above) when Tab2Location is active
+  // because tab1Page will also be returned (above) when Tab2Node is active
   // and vice versa.
   final tab1Page = ChildLocationPageSkeleton<String>(
     buildPageKey: (_, __) => const ValueKey("tab1"),

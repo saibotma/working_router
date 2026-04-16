@@ -20,10 +20,10 @@ final class ARouteTarget extends IdRouteTarget<LocationId> {
         );
 }
 
-final class ChildARouteTarget extends ChildRouteTarget<LocationId> {
-  ChildARouteTarget()
+final class ChildAnodeRouteTarget extends ChildRouteTarget<LocationId> {
+  ChildAnodeRouteTarget()
       : super(
-          (location) => location is ALocation,
+          (location) => location is ANode,
         );
 }
 
@@ -34,10 +34,10 @@ final class AbRouteTarget extends IdRouteTarget<LocationId> {
         );
 }
 
-final class ChildAbRouteTarget extends ChildRouteTarget<LocationId> {
-  ChildAbRouteTarget()
+final class ChildAbnodeRouteTarget extends ChildRouteTarget<LocationId> {
+  ChildAbnodeRouteTarget()
       : super(
-          (location) => location is ABLocation,
+          (location) => location is ABNode,
         );
 }
 
@@ -49,10 +49,10 @@ final class AbcRouteTarget extends IdRouteTarget<LocationId> {
   }) : super(
           LocationId.abc,
           writePathParameters: (() {
-            var abclocationMatchIndex = 0;
+            var abcnodeMatchIndex = 0;
             return (location, path) {
-              if (location is ABCLocation) {
-                switch (abclocationMatchIndex++) {
+              if (location is ABCNode) {
+                switch (abcnodeMatchIndex++) {
                   case 0:
                     path(location.pathParameters[0] as PathParam<String>, id);
                     break;
@@ -67,18 +67,18 @@ final class AbcRouteTarget extends IdRouteTarget<LocationId> {
         );
 }
 
-final class ChildAbcRouteTarget extends ChildRouteTarget<LocationId> {
-  ChildAbcRouteTarget({
+final class ChildAbcnodeRouteTarget extends ChildRouteTarget<LocationId> {
+  ChildAbcnodeRouteTarget({
     required String id,
     required String b,
     required String c,
   }) : super(
-          (location) => location is ABCLocation,
+          (location) => location is ABCNode,
           writePathParameters: (() {
-            var abclocationMatchIndex = 0;
+            var abcnodeMatchIndex = 0;
             return (location, path) {
-              if (location is ABCLocation) {
-                switch (abclocationMatchIndex++) {
+              if (location is ABCNode) {
+                switch (abcnodeMatchIndex++) {
                   case 0:
                     path(location.pathParameters[0] as PathParam<String>, id);
                     break;
@@ -100,10 +100,10 @@ final class AdRouteTarget extends IdRouteTarget<LocationId> {
         );
 }
 
-final class ChildAdRouteTarget extends ChildRouteTarget<LocationId> {
-  ChildAdRouteTarget()
+final class ChildAdnodeRouteTarget extends ChildRouteTarget<LocationId> {
+  ChildAdnodeRouteTarget()
       : super(
-          (location) => location is ADLocation,
+          (location) => location is ADNode,
         );
 }
 
@@ -114,10 +114,10 @@ final class AdcRouteTarget extends IdRouteTarget<LocationId> {
         );
 }
 
-final class ChildAdcRouteTarget extends ChildRouteTarget<LocationId> {
-  ChildAdcRouteTarget()
+final class ChildAdcnodeRouteTarget extends ChildRouteTarget<LocationId> {
+  ChildAdcnodeRouteTarget()
       : super(
-          (location) => location is ADCLocation,
+          (location) => location is ADCNode,
         );
 }
 
@@ -128,10 +128,10 @@ final class AdShellRouteTarget extends IdRouteTarget<LocationId> {
         );
 }
 
-final class ChildAdshellRouteTarget extends ChildRouteTarget<LocationId> {
-  ChildAdshellRouteTarget()
+final class ChildAdnestedNodeRouteTarget extends ChildRouteTarget<LocationId> {
+  ChildAdnestedNodeRouteTarget()
       : super(
-          (location) => location is ADShellLocation,
+          (location) => location is ADNestedNode,
         );
 }
 
@@ -142,10 +142,10 @@ final class AdeRouteTarget extends IdRouteTarget<LocationId> {
         );
 }
 
-final class ChildAdeRouteTarget extends ChildRouteTarget<LocationId> {
-  ChildAdeRouteTarget()
+final class ChildAdenodeRouteTarget extends ChildRouteTarget<LocationId> {
+  ChildAdenodeRouteTarget()
       : super(
-          (location) => location is ADELocation,
+          (location) => location is ADENode,
         );
 }
 
@@ -158,16 +158,16 @@ extension BuildLocationsGeneratedRoutes on WorkingRouterSailor<LocationId> {
     routeTo(ARouteTarget());
   }
 
-  void routeToChildA() {
-    routeTo(ChildARouteTarget());
+  void routeToChildAnode() {
+    routeTo(ChildAnodeRouteTarget());
   }
 
   void routeToAb() {
     routeTo(AbRouteTarget());
   }
 
-  void routeToChildAb() {
-    routeTo(ChildAbRouteTarget());
+  void routeToChildAbnode() {
+    routeTo(ChildAbnodeRouteTarget());
   }
 
   void routeToAbc({
@@ -184,13 +184,13 @@ extension BuildLocationsGeneratedRoutes on WorkingRouterSailor<LocationId> {
     );
   }
 
-  void routeToChildAbc({
+  void routeToChildAbcnode({
     required String id,
     required String b,
     required String c,
   }) {
     routeTo(
-      ChildAbcRouteTarget(
+      ChildAbcnodeRouteTarget(
         id: id,
         b: b,
         c: c,
@@ -202,60 +202,60 @@ extension BuildLocationsGeneratedRoutes on WorkingRouterSailor<LocationId> {
     routeTo(AdRouteTarget());
   }
 
-  void routeToChildAd() {
-    routeTo(ChildAdRouteTarget());
+  void routeToChildAdnode() {
+    routeTo(ChildAdnodeRouteTarget());
   }
 
   void routeToAdc() {
     routeTo(AdcRouteTarget());
   }
 
-  void routeToChildAdc() {
-    routeTo(ChildAdcRouteTarget());
+  void routeToChildAdcnode() {
+    routeTo(ChildAdcnodeRouteTarget());
   }
 
   void routeToAdShell() {
     routeTo(AdShellRouteTarget());
   }
 
-  void routeToChildAdshell() {
-    routeTo(ChildAdshellRouteTarget());
+  void routeToChildAdnestedNode() {
+    routeTo(ChildAdnestedNodeRouteTarget());
   }
 
   void routeToAde() {
     routeTo(AdeRouteTarget());
   }
 
-  void routeToChildAde() {
-    routeTo(ChildAdeRouteTarget());
+  void routeToChildAdenode() {
+    routeTo(ChildAdenodeRouteTarget());
   }
 }
 
-extension SplashLocationGeneratedChildTargets on SplashLocation {
-  ChildRouteTarget<LocationId> childATarget() {
+extension SplashNodeGeneratedChildTargets on SplashNode {
+  ChildRouteTarget<LocationId> childAnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ALocation,
+      (location) => location is ANode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAbTarget() {
+  ChildRouteTarget<LocationId> childAbnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ABLocation,
+      (location) => location is ABNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAbcTarget({
+  ChildRouteTarget<LocationId> childAbcnodeTarget({
     required String id,
     required String b,
     required String c,
   }) {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ABCLocation,
+      (location) => location is ABCNode,
       writePathParameters: (() {
-        var abclocationMatchIndex = 0;
+        var abcnodeMatchIndex = 0;
         return (location, path) {
-          if (location is ABCLocation) {
-            switch (abclocationMatchIndex++) {
+          if (location is ABCNode) {
+            switch (abcnodeMatchIndex++) {
               case 0:
                 path(location.pathParameters[0] as PathParam<String>, id);
                 break;
@@ -270,50 +270,50 @@ extension SplashLocationGeneratedChildTargets on SplashLocation {
     );
   }
 
-  ChildRouteTarget<LocationId> childAdTarget() {
+  ChildRouteTarget<LocationId> childAdnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADLocation,
+      (location) => location is ADNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdcTarget() {
+  ChildRouteTarget<LocationId> childAdcnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADCLocation,
+      (location) => location is ADCNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdshellTarget() {
+  ChildRouteTarget<LocationId> childAdnestedNodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADShellLocation,
+      (location) => location is ADNestedNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdeTarget() {
+  ChildRouteTarget<LocationId> childAdenodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADELocation,
+      (location) => location is ADENode,
     );
   }
 }
 
-extension ALocationGeneratedChildTargets on ALocation {
-  ChildRouteTarget<LocationId> childAbTarget() {
+extension ANodeGeneratedChildTargets on ANode {
+  ChildRouteTarget<LocationId> childAbnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ABLocation,
+      (location) => location is ABNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAbcTarget({
+  ChildRouteTarget<LocationId> childAbcnodeTarget({
     required String id,
     required String b,
     required String c,
   }) {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ABCLocation,
+      (location) => location is ABCNode,
       writePathParameters: (() {
-        var abclocationMatchIndex = 0;
+        var abcnodeMatchIndex = 0;
         return (location, path) {
-          if (location is ABCLocation) {
-            switch (abclocationMatchIndex++) {
+          if (location is ABCNode) {
+            switch (abcnodeMatchIndex++) {
               case 0:
                 path(location.pathParameters[0] as PathParam<String>, id);
                 break;
@@ -328,44 +328,44 @@ extension ALocationGeneratedChildTargets on ALocation {
     );
   }
 
-  ChildRouteTarget<LocationId> childAdTarget() {
+  ChildRouteTarget<LocationId> childAdnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADLocation,
+      (location) => location is ADNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdcTarget() {
+  ChildRouteTarget<LocationId> childAdcnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADCLocation,
+      (location) => location is ADCNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdshellTarget() {
+  ChildRouteTarget<LocationId> childAdnestedNodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADShellLocation,
+      (location) => location is ADNestedNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdeTarget() {
+  ChildRouteTarget<LocationId> childAdenodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADELocation,
+      (location) => location is ADENode,
     );
   }
 }
 
-extension ABLocationGeneratedChildTargets on ABLocation {
-  ChildRouteTarget<LocationId> childAbcTarget({
+extension ABNodeGeneratedChildTargets on ABNode {
+  ChildRouteTarget<LocationId> childAbcnodeTarget({
     required String id,
     required String b,
     required String c,
   }) {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ABCLocation,
+      (location) => location is ABCNode,
       writePathParameters: (() {
-        var abclocationMatchIndex = 0;
+        var abcnodeMatchIndex = 0;
         return (location, path) {
-          if (location is ABCLocation) {
-            switch (abclocationMatchIndex++) {
+          if (location is ABCNode) {
+            switch (abcnodeMatchIndex++) {
               case 0:
                 path(location.pathParameters[0] as PathParam<String>, id);
                 break;
@@ -381,30 +381,30 @@ extension ABLocationGeneratedChildTargets on ABLocation {
   }
 }
 
-extension ADLocationGeneratedChildTargets on ADLocation {
-  ChildRouteTarget<LocationId> childAdcTarget() {
+extension ADNodeGeneratedChildTargets on ADNode {
+  ChildRouteTarget<LocationId> childAdcnodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADCLocation,
+      (location) => location is ADCNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdshellTarget() {
+  ChildRouteTarget<LocationId> childAdnestedNodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADShellLocation,
+      (location) => location is ADNestedNode,
     );
   }
 
-  ChildRouteTarget<LocationId> childAdeTarget() {
+  ChildRouteTarget<LocationId> childAdenodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADELocation,
+      (location) => location is ADENode,
     );
   }
 }
 
-extension ADShellLocationGeneratedChildTargets on ADShellLocation {
-  ChildRouteTarget<LocationId> childAdeTarget() {
+extension ADNestedNodeGeneratedChildTargets on ADNestedNode {
+  ChildRouteTarget<LocationId> childAdenodeTarget() {
     return ChildRouteTarget<LocationId>(
-      (location) => location is ADELocation,
+      (location) => location is ADENode,
     );
   }
 }

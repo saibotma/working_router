@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/multi_shell.dart';
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
@@ -13,8 +13,7 @@ typedef BuildMultiShellLocation<ID, Self extends AnyLocation<ID>> =
       MultiShellSlot contentSlot,
     );
 
-final class MultiShellLocationBuildResult<ID>
-    extends LocationBuildResult<ID> {
+final class MultiShellLocationBuildResult<ID> extends LocationBuildResult<ID> {
   final LocationWidgetBuilder<ID>? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
   final MultiShellSlot contentSlot;

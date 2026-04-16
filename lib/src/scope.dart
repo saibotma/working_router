@@ -1,10 +1,11 @@
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
 
-class ScopeBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
+class ScopeBuilder<ID> extends PathRouteNodeBuilder<ID> {
   ScopeBuilder();
 }
 
-typedef BuildScope<ID> = void Function(ScopeBuilder<ID> builder, Scope<ID> scope);
+typedef BuildScope<ID> =
+    void Function(ScopeBuilder<ID> builder, Scope<ID> scope);
 
 /// A non-rendering route scope that shares path, query, and child definitions.
 ///
@@ -18,7 +19,7 @@ typedef BuildScope<ID> = void Function(ScopeBuilder<ID> builder, Scope<ID> scope
 ///
 /// Use this when a scope is implemented by subclassing and overriding
 /// [build], for example to package a shared subtree into a named type.
-abstract class AbstractScope<ID> extends PathLocationTreeElement<ID>
+abstract class AbstractScope<ID> extends PathRouteNode<ID>
     implements BuildsWithScopeBuilder<ID> {
   AbstractScope({
     super.parentRouterKey,

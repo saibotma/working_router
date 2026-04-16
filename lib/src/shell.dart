@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/location_tree_element.dart';
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
+import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
@@ -45,8 +45,7 @@ final class _ChildShellContent<ID> extends ShellContent<ID> {
   const _ChildShellContent();
 }
 
-final class ShellBuildResult<ID>
-    extends PathLocationTreeElementRenderResult<ID> {
+final class ShellBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
   final ShellContentBuilder<ID> buildContent;
   final ShellPageBuilder? buildPage;
   final LocationWidgetBuilder<ID>? buildDefaultWidget;
@@ -60,7 +59,7 @@ final class ShellBuildResult<ID>
   });
 }
 
-class ShellBuilder<ID> extends PathLocationTreeElementBuilder<ID> {
+class ShellBuilder<ID> extends PathRouteNodeBuilder<ID> {
   ShellContent<ID>? _content;
   ShellPageBuilder? _buildPage;
   DefaultContent<ID>? _defaultContent;
@@ -130,7 +129,7 @@ class BuiltShellDefinition<ID> {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
-  final List<LocationTreeElement<ID>> children;
+  final List<RouteNode<ID>> children;
   final PageKey<ID>? pageKey;
   final ShellBuildResult<ID> render;
 
@@ -166,7 +165,7 @@ class BuiltShellDefinition<ID> {
 /// Use a shell when a part of the route tree should stay visible while child
 /// locations change inside it, such as a sidebar layout, tab scaffold, or
 /// nested flow container.
-abstract class AbstractShell<ID> extends PathLocationTreeElement<ID>
+abstract class AbstractShell<ID> extends PathRouteNode<ID>
     implements BuildsWithShellBuilder<ID> {
   final WorkingRouterKey routerKey;
   final bool navigatorEnabled;
@@ -211,7 +210,7 @@ abstract class AbstractShell<ID> extends PathLocationTreeElement<ID>
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   @override
-  List<LocationTreeElement<ID>> get children => _definition.children;
+  List<RouteNode<ID>> get children => _definition.children;
 
   @override
   LocalKey buildPageKey(WorkingRouterData<ID> data) {

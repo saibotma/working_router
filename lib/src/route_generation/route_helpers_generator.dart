@@ -83,8 +83,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
     }
 
     throw InvalidGenerationSourceError(
-      'The annotated declaration must have type LocationTreeElement<ID> or '
-      'Iterable<LocationTreeElement<ID>>.',
+      'The annotated declaration must have type RouteNode<ID> or '
+      'Iterable<RouteNode<ID>>.',
       element: element,
     );
   }
@@ -497,7 +497,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<Locations> {
   InterfaceType? _routeNodeSupertype(InterfaceType type) {
     InterfaceType? current = type;
     while (current != null) {
-      if (current.element.name == 'LocationTreeElement') {
+      if (current.element.name == 'RouteNode') {
         return current;
       }
       current = current.superclass;
@@ -750,7 +750,7 @@ class _StaticRouteTreeExtractor {
 
     if (!_isRouteNodeClass(classElement)) {
       throw InvalidGenerationSourceError(
-        '`${expression.toSource()}` does not create a LocationTreeElement.',
+        '`${expression.toSource()}` does not create a RouteNode.',
         element: rootElement,
       );
     }
@@ -1356,7 +1356,7 @@ class _StaticRouteTreeExtractor {
             .firstOrNull;
         if (childExpression == null) {
           throw InvalidGenerationSourceError(
-            'child(...) requires a LocationTreeElement.',
+            'child(...) requires a RouteNode.',
             element: elementForErrors,
           );
         }
@@ -2682,7 +2682,7 @@ class _StaticRouteTreeExtractor {
   bool _isRouteNodeClass(InterfaceElement classElement) {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
-      if (current.element.name == 'LocationTreeElement') {
+      if (current.element.name == 'RouteNode') {
         return true;
       }
       current = current.element.supertype;
@@ -2728,8 +2728,8 @@ class _StaticRouteTreeExtractor {
 
 bool _isFrameworkRouteMemberOwner(Element? element) {
   final ownerName = element?.displayName;
-  return ownerName == 'LocationTreeElement' ||
-      ownerName == 'PathLocationTreeElement' ||
+  return ownerName == 'RouteNode' ||
+      ownerName == 'PathRouteNode' ||
       ownerName == 'AnyLocation' ||
       ownerName == 'AbstractLocation' ||
       ownerName == 'AbstractShellLocation' ||

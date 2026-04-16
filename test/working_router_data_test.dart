@@ -11,7 +11,7 @@ void main() {
       final boundItemId = detail.boundParameter;
       final data = WorkingRouterData<String>(
         uri: Uri(path: '/items/123'),
-        elements: [list, detail].toIList(),
+        routeNodes: [list, detail].toIList(),
         pathParameters: {itemId: '123'}.lock,
         queryParameters: IMap(),
       );
@@ -27,7 +27,7 @@ void main() {
       final second = _NoIdSegmentLocation(path: '/second');
       final data = WorkingRouterData<String>(
         uri: Uri(path: '/parent/first/second'),
-        elements: [parent, first, second].toIList(),
+        routeNodes: [parent, first, second].toIList(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -52,7 +52,7 @@ void main() {
       final boundTab = location.boundParameter;
       final data = WorkingRouterData<String>(
         uri: Uri(path: '/query'),
-        elements: [location].toIList(),
+        routeNodes: [location].toIList(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -75,7 +75,7 @@ void main() {
         final boundEndDateTime = location.boundParameter;
         final data = WorkingRouterData<String>(
           uri: Uri(path: '/query'),
-          elements: [location].toIList(),
+          routeNodes: [location].toIList(),
           pathParameters: IMap(),
           queryParameters: IMap(),
         );
@@ -99,7 +99,7 @@ void main() {
       );
       final data = WorkingRouterData<String>(
         uri: Uri(path: '/items/123'),
-        elements: [list, detail].toIList(),
+        routeNodes: [list, detail].toIList(),
         pathParameters: {itemId: '123'}.lock,
         queryParameters: IMap(),
       );
@@ -118,7 +118,7 @@ void main() {
     WorkingRouterData<String> buildData(IList<AnyLocation<String>> locations) {
       return WorkingRouterData(
         uri: Uri(path: '/parent/child'),
-        elements: locations.cast<LocationTreeElement<String>>().toIList(),
+        routeNodes: locations.cast<RouteNode<String>>().toIList(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -164,6 +164,30 @@ void main() {
       );
     });
   });
+
+  group('WorkingRouterData route node matching', () {
+    test(
+      'isMatched includes structural route nodes while activeLocation stays semantic',
+      () {
+        final accountsNode = _AccountsNode();
+        final detail = _TestLocation(id: 'detail', path: '/detail');
+        final data = WorkingRouterData<String>(
+          uri: Uri(path: '/accounts/detail'),
+          routeNodes: [accountsNode, detail].toIList(),
+          pathParameters: IMap(),
+          queryParameters: IMap(),
+        );
+
+        expect(data.routeNodes, orderedEquals([accountsNode, detail]));
+        expect(data.isMatched<_AccountsNode>(), isTrue);
+        expect(
+          data.isMatched<_TestLocation>((location) => location.id == 'detail'),
+          isTrue,
+        );
+        expect(data.activeLocation, same(detail));
+      },
+    );
+  });
 }
 
 class _TestLocation extends AbstractLocation<String, _TestLocation> {
@@ -181,8 +205,7 @@ class _TestLocation extends AbstractLocation<String, _TestLocation> {
   }
 }
 
-class _ParamOnlyLocation
-    extends AbstractLocation<String, _ParamOnlyLocation> {
+class _ParamOnlyLocation extends AbstractLocation<String, _ParamOnlyLocation> {
   final UnboundPathParam<String> parameter;
   late final PathParam<String> boundParameter =
       definition.pathParameters.single as PathParam<String>;
@@ -201,8 +224,7 @@ class _QueryLocation extends AbstractLocation<String, _QueryLocation> {
   late final QueryParam<String> boundParameter =
       definition.queryParameters.single as QueryParam<String>;
 
-  _QueryLocation({required String id, required this.parameter})
-    : super(id: id);
+  _QueryLocation({required String id, required this.parameter}) : super(id: id);
 
   @override
   void build(LocationBuilder<String> builder) {
@@ -255,6 +277,13 @@ class _BoundParamLocation
   void build(LocationBuilder<String> builder) {
     builder.bindParam(pathParameter);
     builder.bindParam(queryParameter);
+  }
+}
+
+class _AccountsNode extends AbstractShell<String> {
+  @override
+  void build(ShellBuilder<String> builder) {
+    builder.pathLiteral('accounts');
   }
 }
 

@@ -6,7 +6,7 @@ import 'package:working_router/working_router.dart';
 
 class WorkingRouterData<ID> {
   final Uri uri;
-  final IList<LocationTreeElement<ID>> elements;
+  final IList<RouteNode<ID>> routeNodes;
 
   // Keep matched path params in their encoded URI form keyed by reusable
   // unbound path definitions. The router core is still URI-first, so URI
@@ -21,7 +21,7 @@ class WorkingRouterData<ID> {
 
   WorkingRouterData({
     required this.uri,
-    required this.elements,
+    required this.routeNodes,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required this.queryParameters,
   }) : _pathParameters = pathParameters;
@@ -44,11 +44,11 @@ class WorkingRouterData<ID> {
     return slice(data!.data);
   }
 
-  late final IList<AnyLocation<ID>> locations = elements.locations;
-  late final IList<PathLocationTreeElement<ID>> pathElements =
-      elements.pathElements;
+  late final IList<AnyLocation<ID>> _locations = routeNodes.locations;
+  late final IList<PathRouteNode<ID>> _pathRouteNodes =
+      routeNodes.pathRouteNodes;
 
-  AnyLocation<ID>? get activeLocation => locations.lastOrNull;
+  AnyLocation<ID>? get activeLocation => _locations.lastOrNull;
 
   T param<T>(Param<T> parameter) {
     return switch (parameter) {
@@ -131,7 +131,7 @@ class WorkingRouterData<ID> {
   }
 
   bool _hasDeclaredQueryParam<T>(UnboundQueryParam<T> parameter) {
-    for (final location in pathElements) {
+    for (final location in _pathRouteNodes) {
       for (final declaredParameter in location.queryParameters) {
         if (!identical(declaredParameter.unboundParam, parameter)) {
           continue;
@@ -147,35 +147,39 @@ class WorkingRouterData<ID> {
     if (locationIndex == -1) {
       return uri.path;
     }
-    final pathElementsUpToLocation = elements
+    final pathRouteNodesUpToLocation = routeNodes
         .take(locationIndex + 1)
-        .pathElements;
-    return pathElementsUpToLocation.buildPath(_pathParameters);
+        .pathRouteNodes;
+    return pathRouteNodesUpToLocation.buildPath(_pathParameters);
   }
 
-  String pathUpToNode(LocationTreeElement<ID> node) {
+  String pathUpToNode(RouteNode<ID> node) {
     final nodeIndex = _indexOfIdenticalNode(node);
     if (nodeIndex == -1) {
       return uri.path;
     }
 
-    final pathElementsUpToNode = elements.take(nodeIndex + 1).pathElements;
-    return pathElementsUpToNode.buildPath(_pathParameters);
+    final pathRouteNodesUpToNode = routeNodes
+        .take(nodeIndex + 1)
+        .pathRouteNodes;
+    return pathRouteNodesUpToNode.buildPath(_pathParameters);
   }
 
-  String pathTemplateUpToNode(LocationTreeElement<ID> node) {
+  String pathTemplateUpToNode(RouteNode<ID> node) {
     final nodeIndex = _indexOfIdenticalNode(node);
     if (nodeIndex == -1) {
       return uri.path;
     }
 
-    final pathElementsUpToNode = elements.take(nodeIndex + 1).pathElements;
-    return pathElementsUpToNode.buildPathTemplate();
+    final pathRouteNodesUpToNode = routeNodes
+        .take(nodeIndex + 1)
+        .pathRouteNodes;
+    return pathRouteNodesUpToNode.buildPathTemplate();
   }
 
-  int _indexOfIdenticalNode(LocationTreeElement<ID> node) {
-    for (var i = 0; i < elements.length; i++) {
-      if (identical(elements[i], node)) {
+  int _indexOfIdenticalNode(RouteNode<ID> node) {
+    for (var i = 0; i < routeNodes.length; i++) {
+      if (identical(routeNodes[i], node)) {
         return i;
       }
     }
@@ -188,7 +192,7 @@ class WorkingRouterData<ID> {
   ) {
     var sawParent = false;
 
-    for (final location in locations) {
+    for (final location in _locations) {
       if (parent(location)) {
         sawParent = true;
       } else if (identical(location, child)) {
@@ -200,15 +204,15 @@ class WorkingRouterData<ID> {
   }
 
   bool isIdMatched(ID id) {
-    return isMatched((location) => location.id == id);
+    return isMatched<AnyLocation<ID>>((location) => location.id == id);
   }
 
   bool isAnyIdMatched(Iterable<ID> ids) {
-    return isMatched((location) => ids.contains(location.id));
+    return isMatched<AnyLocation<ID>>((location) => ids.contains(location.id));
   }
 
   ID? matchingId(Iterable<ID> ids) {
-    for (final location in locations) {
+    for (final location in _locations) {
       if (ids.contains(location.id)) {
         return location.id;
       }
@@ -216,22 +220,34 @@ class WorkingRouterData<ID> {
     return null;
   }
 
-  bool isTypeMatched<T>() {
-    return isMatched((location) => location is T);
+  bool isTypeMatched<T extends RouteNode<ID>>() {
+    return isMatched<T>();
   }
 
-  bool isAnyTypeMatched2<T1, T2>() {
-    return isMatched((location) => location is T1 || location is T2);
+  bool isAnyTypeMatched2<T1 extends RouteNode<ID>, T2 extends RouteNode<ID>>() {
+    return isMatched<RouteNode<ID>>((node) => node is T1 || node is T2);
   }
 
-  bool isAnyTypeMatched3<T1, T2, T3>() {
-    return isMatched((location) {
-      return location is T1 || location is T2 || location is T3;
+  bool isAnyTypeMatched3<
+    T1 extends RouteNode<ID>,
+    T2 extends RouteNode<ID>,
+    T3 extends RouteNode<ID>
+  >() {
+    return isMatched<RouteNode<ID>>((node) {
+      return node is T1 || node is T2 || node is T3;
     });
   }
 
-  bool isMatched(bool Function(AnyLocation<ID> location) match) {
-    return locations.any(match);
+  /// Returns whether any matched route node of type [T] exists.
+  ///
+  /// Structural nodes such as scopes and shells participate here as well.
+  /// Use [activeLocation] / [isActive] for leaf-like semantic activity checks.
+  bool isMatched<T extends RouteNode<ID>>([bool Function(T node)? match]) {
+    final typedNodes = routeNodes.whereType<T>();
+    if (match == null) {
+      return typedNodes.isNotEmpty;
+    }
+    return typedNodes.any(match);
   }
 
   bool isIdActive(ID id) {
@@ -257,7 +273,7 @@ class WorkingRouterData<ID> {
   }
 
   bool isActive(bool Function(AnyLocation<ID> location) match) {
-    final last = locations.lastOrNull;
+    final last = _locations.lastOrNull;
     if (last == null) {
       return false;
     }
@@ -266,13 +282,13 @@ class WorkingRouterData<ID> {
 
   WorkingRouterData<ID> copyWith({
     Uri? uri,
-    IList<LocationTreeElement<ID>>? elements,
+    IList<RouteNode<ID>>? routeNodes,
     IMap<UnboundPathParam<dynamic>, String>? pathParameters,
     IMap<String, String>? queryParameters,
   }) {
     return WorkingRouterData(
       uri: uri ?? this.uri,
-      elements: elements ?? this.elements,
+      routeNodes: routeNodes ?? this.routeNodes,
       pathParameters: pathParameters ?? _pathParameters,
       queryParameters: queryParameters ?? this.queryParameters,
     );
@@ -288,7 +304,7 @@ class WorkingRouterData<ID> {
         other is WorkingRouterData &&
             runtimeType == other.runtimeType &&
             uri == other.uri &&
-            elements == other.elements &&
+            routeNodes == other.routeNodes &&
             _pathParameters == other._pathParameters &&
             queryParameters == other.queryParameters;
   }
@@ -296,13 +312,13 @@ class WorkingRouterData<ID> {
   @override
   int get hashCode {
     return uri.hashCode ^
-        elements.hashCode ^
+        routeNodes.hashCode ^
         _pathParameters.hashCode ^
         queryParameters.hashCode;
   }
 
   @override
   String toString() {
-    return 'WorkingRouterData{uri: $uri, elements: $elements, locations: $locations, pathParameters: $_pathParameters, queryParameters: $queryParameters}';
+    return 'WorkingRouterData{uri: $uri, routeNodes: $routeNodes, pathParameters: $_pathParameters, queryParameters: $queryParameters}';
   }
 }

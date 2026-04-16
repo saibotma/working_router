@@ -7,12 +7,12 @@ import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/location_page_skeleton.dart';
-import 'package:working_router/src/location_tree_element.dart';
 import 'package:working_router/src/multi_shell.dart';
 import 'package:working_router/src/multi_shell_location.dart';
 import 'package:working_router/src/multi_shell_location_page_skeleton.dart';
 import 'package:working_router/src/nested_location_page_skeleton.dart';
-import 'package:working_router/src/path_location_tree_element.dart';
+import 'package:working_router/src/path_route_node.dart';
+import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/shell_location.dart';
 import 'package:working_router/src/working_router.dart';
@@ -35,7 +35,7 @@ enum _MatchedNodeRenderKind {
 }
 
 typedef _MatchedNodeEntry<ID> = ({
-  LocationTreeElement<ID> node,
+  RouteNode<ID> node,
   WorkingRouterKey effectiveParentRouterKey,
   _MatchedNodeRenderKind renderKind,
 });
@@ -207,7 +207,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
     // working without forcing responsive tree rewrites.
     final aliasedRouterKeys = <WorkingRouterKey, WorkingRouterKey>{};
 
-    for (final node in data.elements) {
+    for (final node in data.routeNodes) {
       final inheritedParentRouterKey =
           aliasedRouterKeys[node.parentRouterKey] ??
           node.parentRouterKey ??
@@ -237,8 +237,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               renderKind: _MatchedNodeRenderKind.multiShellLocationShell,
             );
           }
-          final effectiveContentChildRouterKey = multiShellLocation
-                  .navigatorEnabled
+          final effectiveContentChildRouterKey =
+              multiShellLocation.navigatorEnabled
               ? multiShellLocation.contentRouterKey
               : effectiveParentRouterKey;
           yield (
@@ -291,7 +291,7 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
               : effectiveParentRouterKey;
           aliasedRouterKeys[shell.routerKey] = effectiveShellChildRouterKey;
           childRouterKey = effectiveShellChildRouterKey;
-        case PathLocationTreeElement<ID>():
+        case PathRouteNode<ID>():
           yield (
             node: node,
             effectiveParentRouterKey: effectiveParentRouterKey,
@@ -321,7 +321,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
           if (_navigatorWouldBuildPages(shell.routerKey, data)) {
             return true;
           }
-        case (_MatchedNodeRenderKind.multiShell, final AbstractMultiShell<ID> multiShell):
+        case (
+          _MatchedNodeRenderKind.multiShell,
+          final AbstractMultiShell<ID> multiShell,
+        ):
           if (_resolveMultiShellSlots(
             multiShell.slotDefinitions,
             data,
@@ -406,7 +409,10 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
             debugLabel: '$shell',
           ),
         ];
-      case (_MatchedNodeRenderKind.multiShell, final AbstractMultiShell<ID> multiShell):
+      case (
+        _MatchedNodeRenderKind.multiShell,
+        final AbstractMultiShell<ID> multiShell,
+      ):
         if (!multiShell.navigatorEnabled) {
           return const [];
         }
@@ -421,11 +427,12 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         return [
           MultiShellLocationPageSkeleton(
             router: router,
-            buildPages: (
-              WorkingRouter<ID> _,
-              AnyLocation<ID> location,
-              WorkingRouterData<ID> data,
-            ) => _buildPagesForLocation(location, data),
+            buildPages:
+                (
+                  WorkingRouter<ID> _,
+                  AnyLocation<ID> location,
+                  WorkingRouterData<ID> data,
+                ) => _buildPagesForLocation(location, data),
             slots: resolvedSlots,
             buildChild: (context, nestedData, slots) {
               return multiShell.buildContent(
@@ -486,11 +493,12 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
         return [
           MultiShellLocationPageSkeleton(
             router: router,
-            buildPages: (
-              WorkingRouter<ID> _,
-              AnyLocation<ID> location,
-              WorkingRouterData<ID> data,
-            ) => _buildPagesForLocation(location, data),
+            buildPages:
+                (
+                  WorkingRouter<ID> _,
+                  AnyLocation<ID> location,
+                  WorkingRouterData<ID> data,
+                ) => _buildPagesForLocation(location, data),
             slots: [
               MultiShellResolvedSlot(
                 definition: multiShellLocation.contentSlotDefinition,
@@ -536,11 +544,11 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
   }
 
   bool _hasMatchedDescendantAfter(
-    LocationTreeElement<ID> node,
+    RouteNode<ID> node,
     WorkingRouterData<ID> data,
   ) {
     var foundNode = false;
-    for (final current in data.elements) {
+    for (final current in data.routeNodes) {
       if (foundNode) {
         return true;
       }
@@ -560,7 +568,8 @@ class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
       for (final slotDefinition in slotDefinitions)
         MultiShellResolvedSlot(
           definition: slotDefinition,
-          isEnabled: containerNavigatorEnabled && slotDefinition.navigatorEnabled,
+          isEnabled:
+              containerNavigatorEnabled && slotDefinition.navigatorEnabled,
           hasRoutedContent:
               containerNavigatorEnabled &&
               slotDefinition.navigatorEnabled &&

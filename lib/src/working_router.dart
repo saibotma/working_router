@@ -11,7 +11,7 @@ import 'package:working_router/working_router.dart';
 /// This callback is used at startup and again on [WorkingRouter.refresh] so the
 /// runtime tree can react to changing application state such as permissions.
 typedef BuildLocations<ID> =
-    List<LocationTreeElement<ID>> Function(WorkingRouterKey rootRouterKey);
+    List<RouteNode<ID>> Function(WorkingRouterKey rootRouterKey);
 
 class WorkingRouter<ID> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
@@ -38,7 +38,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   final GlobalKey<NavigatorState> _rootNavigatorKey;
   final WorkingRouterKey _rootRouterKey = WorkingRouterKey();
 
-  late IList<LocationTreeElement<ID>> _routeNodeTree;
+  late IList<RouteNode<ID>> _routeNodeTree;
   final List<LocationObserverState> _observers = [];
   final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
 
@@ -140,7 +140,7 @@ class WorkingRouter<ID> extends ChangeNotifier
     }
   }
 
-  IList<LocationTreeElement<ID>> _buildRouteNodeTree() {
+  IList<RouteNode<ID>> _buildRouteNodeTree() {
     final nodes = buildLocations(_rootRouterKey);
     return nodes.toIList();
   }
@@ -209,7 +209,7 @@ class WorkingRouter<ID> extends ChangeNotifier
 
     _routeTo(
       targetData: _buildData(
-        elements: idMatches.addAll(relativeMatchNodes),
+        routeNodes: idMatches.addAll(relativeMatchNodes),
         fallback: null,
         pathParameters: nullableData!.pathParametersForRouter,
         queryParameters: nullableData!.queryParameters,
@@ -268,7 +268,7 @@ class WorkingRouter<ID> extends ChangeNotifier
     AnyLocation<ID>? fromLocation,
   }) {
     final data = nullableData!;
-    final locations = data.locations;
+    final locations = data.routeNodes.locations;
     if (locations.length <= 1) {
       // Nothing to go back to
       return;
@@ -303,21 +303,23 @@ class WorkingRouter<ID> extends ChangeNotifier
     // Keep everything up to and including the matched location
     final newLocations = locations.sublist(0, matchIndex + 1);
     final newNodes = _trimNodesToLastMatchingLocation(data, newLocations.last);
-    final newPathElements = newNodes.pathElements;
+    final newPathRouteNodes = newNodes.pathRouteNodes;
     final newPathParameters = data.pathParametersForRouter.keepKeys({
-      for (final element in newPathElements)
-        ...element.path.whereType<PathParam<dynamic>>().map((it) => it.unboundParam),
+      for (final element in newPathRouteNodes)
+        ...element.path.whereType<PathParam<dynamic>>().map(
+          (it) => it.unboundParam,
+        ),
     });
 
     final newQueryParameters = data.queryParameters.keepKeys(
-      newPathElements
+      newPathRouteNodes
           .expand((element) => element.queryParameters.map((it) => it.name))
           .toSet(),
     );
 
     _routeTo(
       targetData: _buildData(
-        elements: newNodes,
+        routeNodes: newNodes,
         fallback: null,
         pathParameters: newPathParameters,
         queryParameters: newQueryParameters,
@@ -357,15 +359,15 @@ class WorkingRouter<ID> extends ChangeNotifier
     unawaited(
       _guardBeforeLeave(
         routingVersion: myVersion,
-        newLocations: resolvedData.locations,
+        newLocations: resolvedData.routeNodes.locations,
         onAllowed: () {
-          final oldLocations = oldData?.locations;
+          final oldLocations = oldData?.routeNodes.locations;
           _updateData(resolvedData);
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _notifyObserversAfterRouteChange(
               oldLocations: oldLocations,
-              newLocations: resolvedData.locations,
+              newLocations: resolvedData.routeNodes.locations,
             );
           });
         },
@@ -403,7 +405,7 @@ class WorkingRouter<ID> extends ChangeNotifier
         continue;
       }
 
-      final currentLocations = nullableData?.locations;
+      final currentLocations = nullableData?.routeNodes.locations;
       if (currentLocations == null) {
         break;
       }
@@ -485,7 +487,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   WorkingRouterData<ID> _buildDataForUri(Uri uri) {
     final matchResult = _routeNodeTree.match(uri.pathSegments.toIList());
     return _buildData(
-      elements: matchResult.elements,
+      routeNodes: matchResult.routeNodes,
       fallback: uri,
       pathParameters: matchResult.pathParameters,
       queryParameters: uri.queryParameters.toIMap(),
@@ -506,17 +508,17 @@ class WorkingRouter<ID> extends ChangeNotifier
         :final writePathParameters,
       ):
         final matchedNodes = _routeNodeTree.matchId(id);
-        final matchedPathElements = matchedNodes.pathElements;
+        final matchedPathRouteNodes = matchedNodes.pathRouteNodes;
         final keptQueryParameterKeys =
             !retainSharedQueryParameters || currentData == null
             ? <String>{}
-            : currentData.pathElements
+            : currentData.routeNodes.pathRouteNodes
                   .expand(
                     (element) => element.queryParameters.map((it) => it.name),
                   )
                   .toSet()
                   .intersection(
-                    matchedPathElements
+                    matchedPathRouteNodes
                         .expand(
                           (element) =>
                               element.queryParameters.map((it) => it.name),
@@ -525,10 +527,10 @@ class WorkingRouter<ID> extends ChangeNotifier
                   );
 
         return _buildData(
-          elements: matchedNodes,
+          routeNodes: matchedNodes,
           fallback: null,
           pathParameters: _resolvePathParameterWrites(
-            matchedPathElements,
+            matchedPathRouteNodes,
             writePathParameters,
           ).toIMap(),
           queryParameters:
@@ -555,14 +557,14 @@ class WorkingRouter<ID> extends ChangeNotifier
         if (matchedNodes.isEmpty) {
           return data;
         }
-        final matchedPathElements = matchedNodes.pathElements;
+        final matchedPathRouteNodes = matchedNodes.pathRouteNodes;
 
         return _buildData(
-          elements: data.elements.addAll(matchedNodes),
+          routeNodes: data.routeNodes.addAll(matchedNodes),
           fallback: null,
           pathParameters: data.pathParametersForRouter.addAll(
             _resolvePathParameterWrites(
-              data.pathElements.addAll(matchedPathElements),
+              data.routeNodes.pathRouteNodes.addAll(matchedPathRouteNodes),
               writePathParameters,
             ).toIMap(),
           ),
@@ -574,14 +576,14 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   WorkingRouterData<ID> _buildData({
-    required IList<LocationTreeElement<ID>> elements,
+    required IList<RouteNode<ID>> routeNodes,
     required Uri? fallback,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
-    final pathElements = elements.pathElements;
+    final pathRouteNodes = routeNodes.pathRouteNodes;
     assert(
-      pathElements.isNotEmpty || (fallback != null),
+      pathRouteNodes.isNotEmpty || (fallback != null),
       'Fallback must not be null when locations are empty.',
     );
 
@@ -589,15 +591,15 @@ class WorkingRouter<ID> extends ChangeNotifier
       uri:
           fallback ??
           _uriFromLocations(
-            locations: pathElements,
+            locations: pathRouteNodes,
             queryParameters: queryParameters,
             pathParameters: pathParameters,
           ),
-      elements: elements,
-      pathParameters: pathElements.isEmpty
+      routeNodes: routeNodes,
+      pathParameters: pathRouteNodes.isEmpty
           ? const IMapConst({})
           : pathParameters,
-      queryParameters: pathElements.isEmpty
+      queryParameters: pathRouteNodes.isEmpty
           ? fallback!.queryParameters.toIMap()
           : queryParameters,
     );
@@ -612,7 +614,7 @@ class WorkingRouter<ID> extends ChangeNotifier
   }
 
   Uri _uriFromLocations({
-    required IList<PathLocationTreeElement<ID>> locations,
+    required IList<PathRouteNode<ID>> locations,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
@@ -622,18 +624,18 @@ class WorkingRouter<ID> extends ChangeNotifier
     );
   }
 
-  IList<LocationTreeElement<ID>> _trimNodesToLastMatchingLocation(
+  IList<RouteNode<ID>> _trimNodesToLastMatchingLocation(
     WorkingRouterData<ID> data,
     AnyLocation<ID> lastRemainingLocation,
   ) {
-    final lastRemainingNodeIndex = data.elements.indexWhere(
+    final lastRemainingNodeIndex = data.routeNodes.indexWhere(
       (node) => identical(node, lastRemainingLocation),
     );
-    return data.elements.take(lastRemainingNodeIndex + 1).toIList();
+    return data.routeNodes.take(lastRemainingNodeIndex + 1).toIList();
   }
 
   Map<UnboundPathParam<dynamic>, String> _resolvePathParameterWrites(
-    Iterable<PathLocationTreeElement<ID>> locations,
+    Iterable<PathRouteNode<ID>> locations,
     WritePathParameters<ID>? writePathParameters,
   ) {
     if (writePathParameters == null) {

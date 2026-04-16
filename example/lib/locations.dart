@@ -12,68 +12,68 @@ import 'platform_modal/platform_modal_page.dart';
 import 'pop_until_target.dart';
 import 'shell_bypass_screen.dart';
 
-class SplashLocation extends Location<LocationId, SplashLocation> {
-  SplashLocation({
+class SplashNode extends Location<LocationId, SplashNode> {
+  SplashNode({
     super.id,
     super.parentRouterKey,
     required super.build,
   });
 }
 
-class ABLocation extends Location<LocationId, ABLocation> {
-  ABLocation({
+class ABNode extends Location<LocationId, ABNode> {
+  ABNode({
     super.id,
     super.parentRouterKey,
     required super.build,
   });
 }
 
-class ABCLocation extends Location<LocationId, ABCLocation> {
-  ABCLocation({
+class ABCNode extends Location<LocationId, ABCNode> {
+  ABCNode({
     super.id,
     required super.parentRouterKey,
     required super.build,
   });
 }
 
-class ADLocation extends Location<LocationId, ADLocation> {
-  ADLocation({
+class ADNode extends Location<LocationId, ADNode> {
+  ADNode({
     super.id,
     super.parentRouterKey,
     required super.build,
   });
 }
 
-class ADShellLocation extends ShellLocation<LocationId, ADShellLocation> {
-  ADShellLocation({
+class ADNestedNode extends ShellLocation<LocationId, ADNestedNode> {
+  ADNestedNode({
     super.id,
     super.parentRouterKey,
     required super.build,
   });
 }
 
-class ADCLocation extends Location<LocationId, ADCLocation> {
-  ADCLocation({
+class ADCNode extends Location<LocationId, ADCNode> {
+  ADCNode({
     super.id,
     super.parentRouterKey,
     required super.build,
   });
 }
 
-class ADELocation extends Location<LocationId, ADELocation> {
-  ADELocation({
+class ADENode extends Location<LocationId, ADENode> {
+  ADENode({
     super.id,
     super.parentRouterKey,
     required super.build,
   });
 }
 
-class ALocation extends AbstractLocation<LocationId, ALocation> {
+class ANode extends AbstractLocation<LocationId, ANode> {
   final bool rendersStandaloneSidebar;
   final WorkingRouterKey rootRouterKey;
   final WorkingRouterKey? outerShellRouterKey;
 
-  ALocation({
+  ANode({
     super.id,
     super.parentRouterKey,
     required this.rendersStandaloneSidebar,
@@ -93,14 +93,14 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
     );
 
     builder.children = [
-      ABLocation(
+      ABNode(
         id: LocationId.ab,
         build: (builder, location) {
           builder.pathLiteral('b');
           builder.content = Content.widget(const FilledAlphabetScreen());
 
           builder.children = [
-            ABCLocation(
+            ABCNode(
               id: LocationId.abc,
               parentRouterKey: rootRouterKey,
               build: (builder, location) {
@@ -124,14 +124,14 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
           ];
         },
       ),
-      ADLocation(
+      ADNode(
         id: LocationId.ad,
         build: (builder, location) {
           builder.pathLiteral('d');
           builder.content = Content.widget(const FilledAlphabetScreen());
 
           builder.children = [
-            ADCLocation(
+            ADCNode(
               id: LocationId.adc,
               parentRouterKey: rootRouterKey,
               build: (builder, location) {
@@ -143,7 +143,7 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
               },
             ),
             if (outerShellRouterKey != null)
-              ADShellLocation(
+              ADNestedNode(
                 id: LocationId.adShell,
                 build: (builder, location, routerKey) {
                   builder.shellContent = ShellContent.builder(
@@ -154,7 +154,7 @@ class ALocation extends AbstractLocation<LocationId, ALocation> {
                   );
 
                   builder.children = [
-                    ADELocation(
+                    ADENode(
                       id: LocationId.ade,
                       parentRouterKey: outerShellRouterKey ?? routerKey,
                       build: (builder, location) {
