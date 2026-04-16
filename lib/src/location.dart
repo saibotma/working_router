@@ -204,11 +204,10 @@ class BuiltLocationDefinition<ID> {
 /// that self-type parameter everywhere. This base provides that erased view,
 /// while the public location types remain the authoring APIs.
 abstract class AnyLocation<ID> extends PathRouteNode<ID> {
-  final ID? id;
   final ISet<LocationTag> tags;
 
   AnyLocation({
-    this.id,
+    super.id,
     super.parentRouterKey,
     Iterable<LocationTag> tags = const [],
   }) : tags = tags.toISet();

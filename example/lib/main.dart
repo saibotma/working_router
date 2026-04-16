@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
 import 'route_nodes.dart';
-import 'location_id.dart';
+import 'route_node_id.dart';
 import 'responsive.dart';
 
 void main() {
@@ -34,7 +34,7 @@ class _DependentMaterialApp extends StatefulWidget {
 }
 
 class _DependentMaterialAppState extends State<_DependentMaterialApp> {
-  late final WorkingRouter<LocationId> router = WorkingRouter<LocationId>(
+  late final WorkingRouter<RouteNodeId> router = WorkingRouter<RouteNodeId>(
     noContentWidget: const Center(child: Text('No matching route.')),
     buildRouteNodes: (rootRouterKey) => buildRouteNodes(
       screenSize: widget.screenSize,

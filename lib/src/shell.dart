@@ -176,6 +176,7 @@ abstract class AbstractShell<ID> extends PathRouteNode<ID>
   /// [build], for example to package a shared navigator boundary into a named
   /// type.
   AbstractShell({
+    super.id,
     WorkingRouterKey? routerKey,
     this.navigatorEnabled = true,
     super.parentRouterKey,
@@ -249,6 +250,7 @@ class Shell<ID> extends AbstractShell<ID> {
   final BuildShell<ID> _build;
 
   Shell({
+    super.id,
     super.routerKey,
     super.navigatorEnabled,
     required BuildShell<ID> build,

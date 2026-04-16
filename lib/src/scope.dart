@@ -22,6 +22,7 @@ typedef BuildScope<ID> =
 abstract class AbstractScope<ID> extends PathRouteNode<ID>
     implements BuildsWithScopeBuilder<ID> {
   AbstractScope({
+    super.id,
     super.parentRouterKey,
   });
 
@@ -36,6 +37,7 @@ class Scope<ID> extends AbstractScope<ID> {
   final BuildScope<ID> _build;
 
   Scope({
+    super.id,
     required BuildScope<ID> build,
     super.parentRouterKey,
   }) : _build = build;

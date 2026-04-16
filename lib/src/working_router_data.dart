@@ -204,17 +204,17 @@ class WorkingRouterData<ID> {
   }
 
   bool isIdMatched(ID id) {
-    return isMatched<AnyLocation<ID>>((location) => location.id == id);
+    return isMatched<RouteNode<ID>>((node) => node.id == id);
   }
 
   bool isAnyIdMatched(Iterable<ID> ids) {
-    return isMatched<AnyLocation<ID>>((location) => ids.contains(location.id));
+    return isMatched<RouteNode<ID>>((node) => ids.contains(node.id));
   }
 
   ID? matchingId(Iterable<ID> ids) {
-    for (final location in _locations) {
-      if (ids.contains(location.id)) {
-        return location.id;
+    for (final node in routeNodes) {
+      if (ids.contains(node.id)) {
+        return node.id;
       }
     }
     return null;

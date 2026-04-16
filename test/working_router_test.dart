@@ -386,6 +386,50 @@ void main() {
       },
     );
 
+    testWidgets('routeToId throws for structural route node ids', (tester) async {
+      final router = WorkingRouter<_Id>(
+        buildRouteNodes: (_) => [
+          _BuilderLocation<_Id>(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.content = Content.widget(const Text('root'));
+              builder.children = [
+                Shell(
+                  id: _Id.a,
+                  build: (builder, shell, routerKey) {
+                    builder.pathLiteral('shell');
+                    builder.children = [
+                      _BuilderLocation<_Id>(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('detail');
+                          builder.content = Content.widget(const Text('detail'));
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+
+      expect(
+        () => router.routeToId(_Id.a),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('only supports ids declared on locations'),
+          ),
+        ),
+      );
+    });
+
     testWidgets('keeps fallback uri and empty locations for unknown path', (
       tester,
     ) async {

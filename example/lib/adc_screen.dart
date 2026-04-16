@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-import 'location_id.dart';
+import 'route_node_id.dart';
 import 'pop_until_target.dart';
 
 class ADCScreen extends StatelessWidget {
@@ -40,7 +40,7 @@ class ADCScreen extends StatelessWidget {
             child: MaterialButton(
               child: const Text('Press to pop to FallbackLocation.'),
               onPressed: () {
-                WorkingRouter.of<LocationId>(context).routeBackUntil(
+                WorkingRouter.of<RouteNodeId>(context).routeBackUntil(
                   (location) => location.hasTag(PopUntilTarget()),
                 );
               },

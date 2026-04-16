@@ -244,7 +244,6 @@ class MultiShellBuilder<ID> extends PathRouteNodeBuilder<ID> {
 /// Use a [MultiShell] when one wrapper needs to place several independent
 /// routed panes, such as a split view with separate left and right stacks.
 /// Unlike [MultiShellLocation], this type is structural only:
-/// - it has no `id`
 /// - it is not terminal on its own
 /// - every rendered nested navigator comes from an explicit slot created via
 ///   [MultiShellBuilder.slot]
@@ -256,6 +255,7 @@ abstract class AbstractMultiShell<ID> extends PathRouteNode<ID>
   final bool navigatorEnabled;
 
   AbstractMultiShell({
+    super.id,
     super.parentRouterKey,
     this.navigatorEnabled = true,
   });
@@ -335,6 +335,7 @@ class MultiShell<ID> extends AbstractMultiShell<ID> {
   final BuildMultiShell<ID> _build;
 
   MultiShell({
+    super.id,
     super.parentRouterKey,
     super.navigatorEnabled,
     required BuildMultiShell<ID> build,

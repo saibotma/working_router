@@ -508,6 +508,13 @@ class WorkingRouter<ID> extends ChangeNotifier
         :final writePathParameters,
       ):
         final matchedNodes = _routeNodeTree.matchId(id);
+        final targetLocation = matchedNodes.locations.lastOrNull;
+        if (targetLocation == null || targetLocation.id != id) {
+          throw StateError(
+            'routeToId($id) only supports ids declared on locations. '
+            'The matched route node id does not belong to a location.',
+          );
+        }
         final matchedPathRouteNodes = matchedNodes.pathRouteNodes;
         final keptQueryParameterKeys =
             !retainSharedQueryParameters || currentData == null

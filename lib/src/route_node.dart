@@ -159,9 +159,11 @@ final class _CustomPageKey<ID> extends PageKey<ID> {
 }
 
 abstract class RouteNode<ID> {
+  final ID? id;
   final WorkingRouterKey? parentRouterKey;
 
   RouteNode({
+    this.id,
     this.parentRouterKey,
   });
 
@@ -286,7 +288,7 @@ IList<RouteNode<ID>> _matchNodeById<ID>(
     return emptyNodeMatch();
   }
 
-  if (node case final AnyLocation<ID> location when location.id == id) {
+  if (node.id == id) {
     return [node].toIList();
   }
 

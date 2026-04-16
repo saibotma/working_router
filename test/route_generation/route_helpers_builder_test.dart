@@ -1447,7 +1447,7 @@ import 'package:working_router/working_router.dart';
 
 part 'shell_root_routes.g.dart';
 
-enum ShellRootRouteId { child }
+enum ShellRootRouteId { rootShell, child }
 
 class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
   ChildLocation({required super.id});
@@ -1458,6 +1458,7 @@ class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
 
 @RouteNodes()
 RouteNode<ShellRootRouteId> get appLocationTree => Shell(
+  id: ShellRootRouteId.rootShell,
   build: (builder, shell, routerKey) {
     builder.children = [
       ChildChildLocation(
@@ -1484,6 +1485,7 @@ class ChildChildLocation extends Location<ShellRootRouteId, ChildChildLocation> 
                 contains('void routeToChildChildChild()'),
                 contains('final class ChildChildChildRouteTarget'),
                 contains('routeTo(ChildChildChildRouteTarget());'),
+                isNot(contains('routeToRootShell')),
               ),
             ),
       },

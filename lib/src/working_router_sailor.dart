@@ -7,6 +7,11 @@ abstract class WorkingRouterSailor<ID> {
 
   void routeToUri(Uri uri);
 
+  /// Routes to a matched location by id.
+  ///
+  /// Route-node ids may exist on structural nodes as well, but `routeToId`
+  /// intentionally stays location-only. Passing the id of a structural node
+  /// throws.
   void routeToId(
     ID id, {
     Map<String, String> queryParameters = const {},

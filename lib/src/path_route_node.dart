@@ -289,6 +289,7 @@ abstract class PathRouteNodeBuilder<ID> {
 
 abstract class PathRouteNode<ID> extends RouteNode<ID> {
   PathRouteNode({
+    super.id,
     super.parentRouterKey,
   });
 

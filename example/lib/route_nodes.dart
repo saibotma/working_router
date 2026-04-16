@@ -1,6 +1,6 @@
 import 'package:working_router/working_router.dart';
 
-import 'location_id.dart';
+import 'route_node_id.dart';
 import 'locations.dart';
 import 'nested_screen.dart';
 import 'responsive.dart';
@@ -9,13 +9,13 @@ import 'splash_screen.dart';
 part 'route_nodes.g.dart';
 
 @RouteNodes()
-List<RouteNode<LocationId>> buildRouteNodes({
+List<RouteNode<RouteNodeId>> buildRouteNodes({
   required ScreenSize screenSize,
   required WorkingRouterKey rootRouterKey,
 }) {
   return [
     SplashNode(
-      id: LocationId.splash,
+      id: RouteNodeId.splash,
       build: (builder, location) {
         builder.content = Content.widget(const SplashScreen());
         builder.children = [
@@ -28,7 +28,7 @@ List<RouteNode<LocationId>> buildRouteNodes({
 
               builder.children = [
                 ANode(
-                  id: LocationId.a,
+                  id: RouteNodeId.a,
                   rendersStandaloneSidebar: screenSize == ScreenSize.small,
                   rootRouterKey: rootRouterKey,
                   outerShellRouterKey: routerKey,
