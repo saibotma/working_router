@@ -187,15 +187,15 @@ class WorkingRouterData<ID> {
   }
 
   bool isChildOf(
-    bool Function(AnyLocation<ID> location) parent,
+    bool Function(RouteNode<ID> node) parent,
     AnyLocation<ID> child,
   ) {
     var sawParent = false;
 
-    for (final location in _locations) {
-      if (parent(location)) {
+    for (final node in routeNodes) {
+      if (parent(node)) {
         sawParent = true;
-      } else if (identical(location, child)) {
+      } else if (identical(node, child)) {
         return sawParent;
       }
     }

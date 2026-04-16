@@ -128,7 +128,10 @@ void main() {
       final data = buildData([root, parent, child].toIList());
 
       expect(
-        data.isChildOf((location) => location.id == 'parent', child),
+        data.isChildOf(
+          (node) => node is AnyLocation<String> && node.id == 'parent',
+          child,
+        ),
         isTrue,
       );
     });
@@ -137,7 +140,10 @@ void main() {
       final data = buildData([root, parent, child].toIList());
 
       expect(
-        data.isChildOf((location) => location.id == 'parent', parent),
+        data.isChildOf(
+          (node) => node is AnyLocation<String> && node.id == 'parent',
+          parent,
+        ),
         isFalse,
       );
     });
@@ -146,7 +152,10 @@ void main() {
       final data = buildData([root, parent, child].toIList());
 
       expect(
-        data.isChildOf((location) => location.id == 'child', parent),
+        data.isChildOf(
+          (node) => node is AnyLocation<String> && node.id == 'child',
+          parent,
+        ),
         isFalse,
       );
     });
@@ -155,11 +164,17 @@ void main() {
       final data = buildData([root, parent, child].toIList());
 
       expect(
-        data.isChildOf((location) => location.id == 'other', child),
+        data.isChildOf(
+          (node) => node is AnyLocation<String> && node.id == 'other',
+          child,
+        ),
         isFalse,
       );
       expect(
-        data.isChildOf((location) => location.id == 'parent', other),
+        data.isChildOf(
+          (node) => node is AnyLocation<String> && node.id == 'parent',
+          other,
+        ),
         isFalse,
       );
     });
