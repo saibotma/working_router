@@ -325,9 +325,11 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           );
         }
         final existing = target[originalName]!;
-        if (existing.dartTypeSource != parameter.dartTypeSource ||
-            existing.optional != parameter.optional ||
-            existing.codecExpressionSource != parameter.codecExpressionSource) {
+        final mergedParameter = _mergeCompatibleQueryParameter(
+          existing,
+          parameter,
+        );
+        if (mergedParameter == null) {
           _throwGeneratedParameterError(
             'The generated helper for `$errorContext` needs conflicting $kind '
             'parameter metadata for `$originalName`.',
@@ -335,6 +337,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             fallbackElement: element,
           );
         }
+        target[originalName] = mergedParameter;
         return;
       }
 
@@ -418,6 +421,36 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     throw InvalidGenerationSourceError(
       message,
       element: parameter.sourceElement ?? fallbackElement,
+    );
+  }
+
+  _GeneratedRouteParameter? _mergeCompatibleQueryParameter(
+    _GeneratedRouteParameter existing,
+    _GeneratedRouteParameter incoming,
+  ) {
+    if (existing.codecExpressionSource != incoming.codecExpressionSource) {
+      return null;
+    }
+
+    if (_nonNullableTypeSource(existing.dartTypeSource) !=
+        _nonNullableTypeSource(incoming.dartTypeSource)) {
+      return null;
+    }
+
+    if (!existing.optional && !incoming.optional) {
+      return existing.dartTypeSource == incoming.dartTypeSource
+          ? existing
+          : null;
+    }
+
+    final mergedOptional = existing.optional && incoming.optional;
+    final preferIncomingSource = !incoming.optional && existing.optional;
+
+    return existing.copyWith(
+      dartTypeSource: _nonNullableTypeSource(existing.dartTypeSource),
+      optional: mergedOptional,
+      sourceNode: preferIncomingSource ? incoming.sourceNode : null,
+      sourceElement: preferIncomingSource ? incoming.sourceElement : null,
     );
   }
 
@@ -4715,6 +4748,12 @@ class _GeneratedRouteParameter {
 
 String _nullableTypeSource(String typeSource) {
   return typeSource.endsWith('?') ? typeSource : '$typeSource?';
+}
+
+String _nonNullableTypeSource(String typeSource) {
+  return typeSource.endsWith('?')
+      ? typeSource.substring(0, typeSource.length - 1)
+      : typeSource;
 }
 
 String _toUpperCamelCase(String value) {

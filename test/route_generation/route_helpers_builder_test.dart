@@ -2260,6 +2260,102 @@ RouteNode<ConflictRouteId> get appLocationTree =>
     },
   );
 
+  test(
+    'merges compatible nullable and required query params across a helper chain',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/compatible_query_parameter_metadata.dart': '''
+library compatible_query_parameter_metadata;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'compatible_query_parameter_metadata.g.dart';
+
+enum CompatibleRouteId { root, filter, lesson }
+
+class RootLocation extends Location<CompatibleRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<CompatibleRouteId> builder) {
+    builder.children = [
+      FilterLocation(id: CompatibleRouteId.filter),
+    ];
+  }
+}
+
+class FilterLocation extends Location<CompatibleRouteId, FilterLocation> {
+  FilterLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<CompatibleRouteId> builder) {
+    builder.pathLiteral('filter');
+    final coursePeriodId = builder.nullableStringQueryParam('coursePeriodId');
+    builder.content = Content.builder((context, data) {
+      data.param(coursePeriodId);
+      return const SizedBox.shrink();
+    });
+    builder.children = [
+      LessonLocation(id: CompatibleRouteId.lesson),
+    ];
+  }
+}
+
+class LessonLocation extends Location<CompatibleRouteId, LessonLocation> {
+  LessonLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<CompatibleRouteId> builder) {
+    builder.pathLiteral('lesson');
+    final coursePeriodId = builder.stringQueryParam('coursePeriodId');
+    builder.content = Content.builder((context, data) {
+      data.param(coursePeriodId);
+      return const SizedBox.shrink();
+    });
+  }
+}
+
+@RouteNodes()
+RouteNode<CompatibleRouteId> get appLocationTree =>
+    RootLocation(id: CompatibleRouteId.root);
+''',
+        },
+        outputs: {
+          'working_router|lib/compatible_query_parameter_metadata.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'LessonRouteTarget({required String coursePeriodId})',
+                  ),
+                  contains(
+                    'ChildRouteTarget<CompatibleRouteId> childLessonTarget({',
+                  ),
+                  contains(
+                    'required String coursePeriodId,',
+                  ),
+                  isNot(
+                    contains(
+                      'ChildRouteTarget<CompatibleRouteId> childLessonTarget({\n'
+                      '    String? coursePeriodId,',
+                    ),
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
   test('includes shell path and query params in generated helpers', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,
