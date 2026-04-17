@@ -149,6 +149,29 @@ Location<RouteId, AccountsNode>(
 final activeAccountId = data.paramOrNull(accountId);
 ```
 
+If a route node itself should keep access to a bound param after `build(...)`,
+store the returned `Param<T>` on the node instance:
+
+```dart
+class AccountNode extends AbstractShell<RouteId> {
+  late final Param<AccountId> accountId;
+
+  @override
+  void build(ShellBuilder<RouteId> builder) {
+    accountId = builder.pathParam(const AccountIdCodec());
+    builder.children = [
+      DashboardNode(id: RouteId.dashboard, accountId: accountId),
+    ];
+  }
+}
+```
+
+This is useful when matched node instances should expose their bound params for
+safe reads later.
+
+The generator supports this assignment pattern when producing typed route
+helpers.
+
 See:
 - [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart)
 - [`example/lib/locations.dart`](example/lib/locations.dart)
