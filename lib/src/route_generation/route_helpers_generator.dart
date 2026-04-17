@@ -2873,7 +2873,7 @@ class _InstanceStringContext implements _ExpressionContext {
   final Element rootElement;
   final InterfaceElement classElement;
   final ConstructorElement constructor;
-  final ConstructorDeclaration constructorNode;
+  final ConstructorDeclaration? constructorNode;
   final Map<String, _BoundStringExpression> parameterBindings;
   final _ExpressionContext? parentContext;
 
@@ -2908,10 +2908,12 @@ class _InstanceStringContext implements _ExpressionContext {
       constructor: constructor,
     );
     if (constructorNode == null) {
-      throw InvalidGenerationSourceError(
-        'Unable to read the constructor source for `${classElement.name}`.',
-        element: constructor,
-      );
+      if (!constructor.isSynthetic || creation.argumentList.arguments.isNotEmpty) {
+        throw InvalidGenerationSourceError(
+          'Unable to read the constructor source for `${classElement.name}`.',
+          element: constructor,
+        );
+      }
     }
 
     final context = _InstanceStringContext(
@@ -2923,14 +2925,22 @@ class _InstanceStringContext implements _ExpressionContext {
       parameterBindings: {},
       parentContext: parentContext,
     );
-    context.parameterBindings.addAll(
-      context._bindArguments(
-        parameters: constructorNode.parameters,
-        arguments: creation.argumentList.arguments,
-      ),
-    );
+    if (constructorNode != null) {
+      context.parameterBindings.addAll(
+        context._bindArguments(
+          parameters: constructorNode.parameters,
+          arguments: creation.argumentList.arguments,
+        ),
+      );
+    }
     return context;
   }
+
+  Iterable<FormalParameter> get _constructorParameters =>
+      constructorNode?.parameters.parameters ?? const <FormalParameter>[];
+
+  Iterable<ConstructorInitializer> get _constructorInitializers =>
+      constructorNode?.initializers ?? const <ConstructorInitializer>[];
 
   Future<String> evaluateGetter(PropertyAccessorElement getter) async {
     final node = await buildStep.resolver.astNodeFor(
@@ -3122,7 +3132,7 @@ class _InstanceStringContext implements _ExpressionContext {
       return null;
     }
 
-    final superInvocation = constructorNode.initializers
+    final superInvocation = _constructorInitializers
         .whereType<SuperConstructorInvocation>()
         .firstOrNull;
     final superConstructor =
@@ -3138,10 +3148,13 @@ class _InstanceStringContext implements _ExpressionContext {
       constructor: superConstructor,
     );
     if (superConstructorNode == null) {
-      throw InvalidGenerationSourceError(
-        'Unable to read the constructor source for `${supertype.element.name}`.',
-        element: superConstructor,
-      );
+      if (!superConstructor.isSynthetic ||
+          (superInvocation?.argumentList.arguments.isNotEmpty ?? false)) {
+        throw InvalidGenerationSourceError(
+          'Unable to read the constructor source for `${supertype.element.name}`.',
+          element: superConstructor,
+        );
+      }
     }
 
     final context = _InstanceStringContext(
@@ -3153,12 +3166,14 @@ class _InstanceStringContext implements _ExpressionContext {
       parameterBindings: {},
       parentContext: parentContext,
     );
-    context.parameterBindings.addAll(
-      context._bindArguments(
-        parameters: superConstructorNode.parameters,
-        arguments: superInvocation?.argumentList.arguments ?? const [],
-      ),
-    );
+    if (superConstructorNode != null) {
+      context.parameterBindings.addAll(
+        context._bindArguments(
+          parameters: superConstructorNode.parameters,
+          arguments: superInvocation?.argumentList.arguments ?? const [],
+        ),
+      );
+    }
     return context;
   }
 
@@ -3279,7 +3294,7 @@ class _InstanceStringContext implements _ExpressionContext {
   Future<String> _evaluateField(String name) async {
     final field = classElement.getField(name);
     if (field != null) {
-      final fieldInitializer = constructorNode.initializers
+      final fieldInitializer = _constructorInitializers
           .whereType<ConstructorFieldInitializer>()
           .firstWhereOrNull(
             (initializer) => initializer.fieldName.name == name,
@@ -3311,7 +3326,7 @@ class _InstanceStringContext implements _ExpressionContext {
   Future<Expression?> _fieldExpression(String name) async {
     final field = classElement.getField(name);
     if (field != null) {
-      final fieldFormalParameter = constructorNode.parameters.parameters
+      final fieldFormalParameter = _constructorParameters
           .firstWhereOrNull(
             (parameter) => _formalParameterName(parameter) == name,
           );
@@ -3328,7 +3343,7 @@ class _InstanceStringContext implements _ExpressionContext {
         }
       }
 
-      final fieldInitializer = constructorNode.initializers
+      final fieldInitializer = _constructorInitializers
           .whereType<ConstructorFieldInitializer>()
           .firstWhereOrNull(
             (initializer) => initializer.fieldName.name == name,
@@ -3377,7 +3392,7 @@ class _InstanceStringContext implements _ExpressionContext {
       return parameterBinding.isNull();
     }
 
-    final parameter = constructorNode.parameters.parameters.firstWhereOrNull((
+    final parameter = _constructorParameters.firstWhereOrNull((
       parameter,
     ) {
       return _formalParameterName(parameter) == name;
@@ -3399,7 +3414,7 @@ class _InstanceStringContext implements _ExpressionContext {
   Future<bool> _evaluateFieldIsNull(String name) async {
     final field = classElement.getField(name);
     if (field != null) {
-      final fieldInitializer = constructorNode.initializers
+      final fieldInitializer = _constructorInitializers
           .whereType<ConstructorFieldInitializer>()
           .firstWhereOrNull(
             (initializer) => initializer.fieldName.name == name,

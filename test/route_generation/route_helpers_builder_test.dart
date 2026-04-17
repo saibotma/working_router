@@ -1493,6 +1493,68 @@ class ChildChildLocation extends Location<ShellRootRouteId, ChildChildLocation> 
     );
   });
 
+  test(
+    'supports instantiated route node subclasses with implicit zero-arg constructors',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/implicit_constructor_routes.dart': '''
+library implicit_constructor_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'implicit_constructor_routes.g.dart';
+
+enum ImplicitConstructorRouteId { privacy }
+
+class LegalNode extends AbstractScope<ImplicitConstructorRouteId> {
+  @override
+  void build(ScopeBuilder<ImplicitConstructorRouteId> builder) {
+    builder.children = [
+      PrivacyLocation(
+        id: ImplicitConstructorRouteId.privacy,
+        build: (builder, location) {
+          builder.pathLiteral('privacy');
+          builder.content = Content.widget(const SizedBox.shrink());
+        },
+      ),
+    ];
+  }
+}
+
+class PrivacyLocation
+    extends Location<ImplicitConstructorRouteId, PrivacyLocation> {
+  PrivacyLocation({required super.id, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<ImplicitConstructorRouteId>> buildRouteNodes() => [
+  LegalNode(),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/implicit_constructor_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToPrivacy()'),
+                  contains('final class PrivacyRouteTarget'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
   test('includes shell path and query params in generated helpers', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,
