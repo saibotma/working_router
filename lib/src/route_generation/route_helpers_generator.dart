@@ -164,7 +164,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     void visit(_RouteNode node, List<_RouteNode> chain) {
       final nextChain = [...chain, node];
-      if (node.idExpression != null && node.isLocation) {
+      if (_supportsGeneratedLocationChildTarget(node)) {
         for (var i = 0; i < chain.length; i++) {
           final owner = chain[i];
           if (!owner.isLocation ||
@@ -210,6 +210,21 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       visit(root, const []);
     }
     return methods;
+  }
+
+  bool _supportsGeneratedLocationChildTarget(_RouteNode node) {
+    if (!node.isLocation) {
+      return false;
+    }
+
+    if (node.idExpression != null) {
+      return true;
+    }
+
+    return node.locationTypeSource != 'Location' &&
+        node.locationTypeSource != 'ShellLocation' &&
+        node.locationTypeSource != 'MultiShellLocation' &&
+        node.locationTypeSource != 'Scope';
   }
 
   _GeneratedRouteMethod _buildMethod(

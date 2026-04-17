@@ -1770,6 +1770,120 @@ List<RouteNode<ImportedLegalRouteId>> buildRouteNodes() => [
   );
 
   test(
+    'generates owner-bound child targets for id-less descendant locations',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/idless_child_targets_routes.dart': '''
+library idless_child_targets_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'idless_child_targets_routes.g.dart';
+
+enum IdlessChildTargetRouteId { addAccount }
+
+class AddAccountNode
+    extends Location<IdlessChildTargetRouteId, AddAccountNode> {
+  AddAccountNode({required super.id, required super.build});
+}
+
+class LegalNode extends AbstractScope<IdlessChildTargetRouteId> {
+  @override
+  void build(ScopeBuilder<IdlessChildTargetRouteId> builder) {
+    final languageCode = builder.stringQueryParam(
+      'languageCode',
+      defaultValue: const Default('de'),
+    );
+    builder.children = [
+      PrivacyLocation(
+        build: (builder, location) {
+          builder.pathLiteral('privacy');
+          builder.content = Content.builder((context, data) {
+            data.param(languageCode);
+            return const SizedBox.shrink();
+          });
+        },
+      ),
+      TermsOfUseLocation(
+        build: (builder, location) {
+          builder.pathLiteral('terms');
+          builder.content = Content.widget(const SizedBox.shrink());
+        },
+      ),
+    ];
+  }
+}
+
+class PrivacyLocation
+    extends Location<IdlessChildTargetRouteId, PrivacyLocation> {
+  PrivacyLocation({super.id, required super.build});
+}
+
+class TermsOfUseLocation
+    extends Location<IdlessChildTargetRouteId, TermsOfUseLocation> {
+  TermsOfUseLocation({super.id, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
+  AddAccountNode(
+    id: IdlessChildTargetRouteId.addAccount,
+    build: (builder, node) {
+      builder.pathLiteral('add');
+      builder.children = [
+        LegalNode(),
+      ];
+    },
+  ),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/idless_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  allOf(
+                    contains(
+                      'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+                    ),
+                    contains(
+                      'ChildRouteTarget<IdlessChildTargetRouteId> childLegalNodeTarget({',
+                    ),
+                    contains(
+                      'ChildRouteTarget<IdlessChildTargetRouteId> childPrivacyTarget({',
+                    ),
+                    contains(
+                      'ChildRouteTarget<IdlessChildTargetRouteId> get childTermsOfUseTarget',
+                    ),
+                  ),
+                  allOf(
+                    contains(
+                      '(location) => location is PrivacyLocation,',
+                    ),
+                    contains(
+                      "'languageCode': const StringRouteParamCodec().encode(value),",
+                    ),
+                    isNot(contains('void routeToPrivacy(')),
+                    isNot(contains('void routeToTermsOfUse(')),
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'reports unsupported route tree expressions at the offending node',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
