@@ -523,6 +523,11 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   }
 }
 
+String _unsupportedConditionalIdMessage(Expression expression) {
+  return 'Only `id != null ? ... : null` style conditional ids are '
+      'supported, but got condition `${expression.toSource()}`.';
+}
+
 class _StaticRouteTreeExtractor {
   final BuildStep buildStep;
   final Element rootElement;
@@ -1816,10 +1821,115 @@ class _StaticRouteTreeExtractor {
       final resolvedExpression = await evaluationContext.resolveIdExpression(
         normalizedExpression,
       );
-      return resolvedExpression?.toSource();
+      if (resolvedExpression != null) {
+        return _resolveIdExpression(
+          resolvedExpression,
+          evaluationContext: evaluationContext,
+        );
+      }
+
+      final conditionResult = await _evaluateNullableIdConditionFromContext(
+        normalizedExpression.condition,
+        evaluationContext,
+      );
+      return _resolveIdExpression(
+        conditionResult
+            ? normalizedExpression.thenExpression
+            : normalizedExpression.elseExpression,
+        evaluationContext: evaluationContext,
+      );
     }
 
     return normalizedExpression.toSource();
+  }
+
+  Future<bool> _evaluateNullableIdConditionFromContext(
+    Expression expression,
+    _ExpressionContext evaluationContext,
+  ) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    final resolvedExpression =
+        await evaluationContext.resolveIdExpression(normalizedExpression) ??
+        await evaluationContext.resolveExpression(normalizedExpression);
+    if (resolvedExpression != null &&
+        resolvedExpression.toSource() != normalizedExpression.toSource()) {
+      return _evaluateNullableIdConditionFromContext(
+        resolvedExpression,
+        evaluationContext,
+      );
+    }
+
+    final constantValue = normalizedExpression.computeConstantValue();
+    final boolValue = constantValue?.value?.toBoolValue();
+    if (boolValue != null) {
+      return boolValue;
+    }
+
+    if (normalizedExpression is! BinaryExpression) {
+      throw InvalidGenerationSourceError(
+        _unsupportedConditionalIdMessage(normalizedExpression),
+        node: normalizedExpression,
+      );
+    }
+
+    final operator = normalizedExpression.operator.lexeme;
+    if (operator != '!=' && operator != '==') {
+      throw InvalidGenerationSourceError(
+        _unsupportedConditionalIdMessage(normalizedExpression),
+        node: normalizedExpression,
+      );
+    }
+
+    final left = normalizedExpression.leftOperand;
+    final right = normalizedExpression.rightOperand;
+    if (left is NullLiteral) {
+      final targetIsNull = await _evaluateIdConditionValueIsNull(
+        right,
+        evaluationContext,
+      );
+      return operator == '!=' ? !targetIsNull : targetIsNull;
+    }
+    if (right is NullLiteral) {
+      final targetIsNull = await _evaluateIdConditionValueIsNull(
+        left,
+        evaluationContext,
+      );
+      return operator == '!=' ? !targetIsNull : targetIsNull;
+    }
+
+    throw InvalidGenerationSourceError(
+      _unsupportedConditionalIdMessage(normalizedExpression),
+      node: normalizedExpression,
+    );
+  }
+
+  Future<bool> _evaluateIdConditionValueIsNull(
+    Expression expression,
+    _ExpressionContext evaluationContext,
+  ) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    final resolvedExpression =
+        await evaluationContext.resolveIdExpression(normalizedExpression) ??
+        await evaluationContext.resolveExpression(normalizedExpression);
+    if (resolvedExpression != null &&
+        resolvedExpression.toSource() != normalizedExpression.toSource()) {
+      return _evaluateIdConditionValueIsNull(
+        resolvedExpression,
+        evaluationContext,
+      );
+    }
+
+    if (normalizedExpression is NullLiteral) {
+      return true;
+    }
+
+    final constantValue = normalizedExpression.computeConstantValue();
+    final value = constantValue?.value;
+    if (value != null) {
+      return value.isNull;
+    }
+
+    return false;
   }
 
   Future<_ResolvedHelperInvocation?> _helperInvocation(
@@ -2886,6 +2996,9 @@ class _DslStatementContext implements _ExpressionContext {
     var normalizedExpression = expression;
     while (normalizedExpression is ParenthesizedExpression) {
       normalizedExpression = normalizedExpression.expression;
+    }
+    if (normalizedExpression is ConditionalExpression) {
+      return null;
     }
     if (normalizedExpression is SimpleIdentifier) {
       final binding = _bindings[normalizedExpression.name];
