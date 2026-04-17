@@ -1810,7 +1810,7 @@ class _StaticRouteTreeExtractor {
         throw InvalidGenerationSourceError(
           'Conditional id expressions are only supported when they can be '
           'resolved from constructor arguments of the enclosing location.',
-          element: rootElement,
+          node: normalizedExpression,
         );
       }
       final resolvedExpression = await evaluationContext.resolveIdExpression(
@@ -3249,16 +3249,16 @@ class _InstanceStringContext implements _ExpressionContext {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is! BinaryExpression) {
       throw InvalidGenerationSourceError(
-        'Only `id != null ? ... : null` style conditional ids are supported.',
-        element: constructor,
+        _unsupportedConditionalIdMessage(normalizedExpression),
+        node: normalizedExpression,
       );
     }
 
     final operator = normalizedExpression.operator.lexeme;
     if (operator != '!=' && operator != '==') {
       throw InvalidGenerationSourceError(
-        'Only `id != null ? ... : null` style conditional ids are supported.',
-        element: constructor,
+        _unsupportedConditionalIdMessage(normalizedExpression),
+        node: normalizedExpression,
       );
     }
 
@@ -3274,9 +3274,14 @@ class _InstanceStringContext implements _ExpressionContext {
     }
 
     throw InvalidGenerationSourceError(
-      'Only `id != null ? ... : null` style conditional ids are supported.',
-      element: constructor,
+      _unsupportedConditionalIdMessage(normalizedExpression),
+      node: normalizedExpression,
     );
+  }
+
+  String _unsupportedConditionalIdMessage(Expression expression) {
+    return 'Only `id != null ? ... : null` style conditional ids are '
+        'supported, but got condition `${expression.toSource()}`.';
   }
 
   bool _isNullableIdCondition(Expression expression) {

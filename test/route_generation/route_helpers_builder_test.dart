@@ -975,6 +975,89 @@ final RouteNode<DerivedChildRouteId> appLocationTree =
   );
 
   test(
+    'reports unsupported conditional child ids at the offending condition',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/unsupported_conditional_id_routes.dart': '''
+library unsupported_conditional_id_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'unsupported_conditional_id_routes.g.dart';
+
+enum UnsupportedConditionalIdRouteId { chatChannel, chatChannelSend }
+
+class ChatChannelLocation
+    extends Location<UnsupportedConditionalIdRouteId, ChatChannelLocation> {
+  ChatChannelLocation({super.id});
+
+  @override
+  void build(LocationBuilder<UnsupportedConditionalIdRouteId> builder) {
+    builder.pathLiteral('channels');
+    final hasIds = id != null;
+    builder.children = [
+      ChatChannelSendLocation(
+        id: hasIds ? UnsupportedConditionalIdRouteId.chatChannelSend : null,
+      ),
+    ];
+  }
+}
+
+class ChatChannelSendLocation
+    extends Location<UnsupportedConditionalIdRouteId, ChatChannelSendLocation> {
+  ChatChannelSendLocation({super.id});
+
+  @override
+  void build(LocationBuilder<UnsupportedConditionalIdRouteId> builder) {
+    builder.pathLiteral('send');
+  }
+}
+
+@RouteNodes()
+final RouteNode<UnsupportedConditionalIdRouteId> appLocationTree =
+    ChatChannelLocation(id: UnsupportedConditionalIdRouteId.chatChannel);
+''',
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final severeMessages = logs
+          .where((log) => log.level == 'SEVERE')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        severeMessages,
+        allOf(
+          contains(
+            'Only `id != null ? ... : null` style conditional ids are supported, but got condition `hasIds`.',
+          ),
+          contains(
+            'package:working_router/unsupported_conditional_id_routes.dart:19:13',
+          ),
+          contains('id: hasIds ? UnsupportedConditionalIdRouteId.chatChannelSend : null,'),
+          isNot(
+            contains(
+              'ChatChannelLocation({UnsupportedConditionalIdRouteId? id})',
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
     'treats collection if branches as part of the generated route union',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
