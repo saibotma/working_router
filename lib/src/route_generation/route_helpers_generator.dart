@@ -4332,7 +4332,7 @@ class _GeneratedLocationChildTargetMethod {
     ];
 
     if (parameters.isEmpty) {
-      buffer.writeln('  ChildRouteTarget<$idTypeSource> $name() {');
+      buffer.writeln('  ChildRouteTarget<$idTypeSource> get $name {');
       buffer.writeln('    return ChildRouteTarget<$idTypeSource>(');
       buffer.writeln('      (location) => $childLocationMatchSource,');
       _writeConstructorOptions(buffer);

@@ -2045,7 +2045,7 @@ RouteNode<ShellLocationRouteId> get appLocationTree =>
               'extension SettingsLocationGeneratedChildTargets on SettingsLocation {',
             ),
             contains(
-              'ChildRouteTarget<ShellLocationRouteId> childThemeTarget()',
+              'ChildRouteTarget<ShellLocationRouteId> get childThemeTarget',
             ),
           ),
         ),
