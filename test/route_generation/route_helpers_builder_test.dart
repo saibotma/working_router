@@ -1722,6 +1722,68 @@ List<RouteNode<UnsupportedRouteId>> buildRouteNodes() => [
     },
   );
 
+  test(
+    'suggests checking imports for unresolved route node constructor invocations',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/missing_import_route_node.dart': '''
+library missing_import_route_node;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'missing_import_route_node.g.dart';
+
+enum MissingImportRouteId { home }
+
+class HomeLocation extends Location<MissingImportRouteId, HomeLocation> {
+  HomeLocation({required super.id, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<MissingImportRouteId>> buildRouteNodes() => [
+  HomeLocation(
+    id: MissingImportRouteId.home,
+    build: (builder, location) {
+      builder.pathLiteral('home');
+      builder.children = [
+        LegalNode(),
+      ];
+    },
+  ),
+];
+''',
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final severeMessages = logs
+          .where((log) => log.level == 'SEVERE')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        severeMessages,
+        allOf(
+          contains('Unsupported route tree expression `LegalNode()`'),
+          contains('`LegalNode()` could not be resolved here.'),
+          contains('check that `LegalNode` is imported and visible'),
+        ),
+      );
+    },
+  );
+
   test('includes shell path and query params in generated helpers', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,

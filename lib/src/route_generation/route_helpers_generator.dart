@@ -728,11 +728,40 @@ class _StaticRouteTreeExtractor {
     }
 
     throw InvalidGenerationSourceError(
-      'Unsupported route tree expression `${normalizedExpression.toSource()}`. '
-      'Use static constructor trees, helper getters, helper variables, or '
-      'zero-argument helper functions.',
+      _unsupportedRouteTreeExpressionMessage(normalizedExpression),
       node: normalizedExpression,
     );
+  }
+
+  String _unsupportedRouteTreeExpressionMessage(Expression expression) {
+    final baseMessage =
+        'Unsupported route tree expression `${expression.toSource()}`. '
+        'Use static constructor trees, helper getters, helper variables, or '
+        'zero-argument helper functions.';
+
+    final unresolvedInvocationName = switch (expression) {
+      MethodInvocation(:final target, :final methodName)
+          when target == null && expression.argumentList.arguments.isEmpty =>
+        methodName.name,
+      FunctionExpressionInvocation(:final function)
+          when expression.argumentList.arguments.isEmpty =>
+        switch (function) {
+          SimpleIdentifier() => function.name,
+          PrefixedIdentifier() => function.identifier.name,
+          PropertyAccess() => function.propertyName.name,
+          _ => null,
+        },
+      _ => null,
+    };
+
+    if (unresolvedInvocationName == null) {
+      return baseMessage;
+    }
+
+    return '$baseMessage `$unresolvedInvocationName()` could not be '
+        'resolved here. If this should create a RouteNode, check that '
+        '`$unresolvedInvocationName` is imported and visible in this '
+        'library.';
   }
 
   Future<_RouteNode> _locationFromCreation(
