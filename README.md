@@ -17,7 +17,8 @@ definition API.
   - self-built via `builder.content = ...`, with an optional page override from `builder.page = ...`
   - and returns the child `RouteNode`s as a list
 - `@RouteNodes()` generates typed `routeToX(...)` helpers and `XRouteTarget`
-  classes from one canonical route-tree file.
+  classes, plus owner-bound `childXTarget(...)` helpers, from one canonical
+  route-tree file.
 
 ## Recommended Setup
 
@@ -539,6 +540,8 @@ From `@RouteNodes()`, the generator emits:
 
 - `routeToX(...)` helpers on `WorkingRouterSailor`
 - `XRouteTarget(...)` classes for typed imperative navigation and redirects
+- `childXTarget(...)` extension helpers on concrete location types for
+  owner-bound child routing
 
 That means you can navigate either with:
 
@@ -595,6 +598,7 @@ The package example demonstrates:
 - typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes
+- generated owner-bound `childXTarget(...)` helpers
 - a custom modal page from `builder.page = ...`
 
 Run it from [`example`](example).
