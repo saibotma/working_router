@@ -8,7 +8,7 @@ import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
 typedef BuildLocation<ID, Self extends AnyLocation<ID>> =
-    void Function(LocationBuilder<ID> builder, Self location);
+    void Function(LocationBuilder<ID> builder, Self node);
 typedef LocationWidgetBuilder<ID> =
     Widget Function(BuildContext context, WorkingRouterData<ID> data);
 typedef SelfBuiltLocationPageBuilder =

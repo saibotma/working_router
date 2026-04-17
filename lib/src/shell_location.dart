@@ -8,7 +8,7 @@ import 'package:working_router/src/working_router_key.dart';
 typedef BuildShellLocation<ID, Self extends AnyLocation<ID>> =
     void Function(
       ShellLocationBuilder<ID> builder,
-      Self location,
+      Self node,
       WorkingRouterKey routerKey,
     );
 

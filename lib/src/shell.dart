@@ -15,7 +15,7 @@ typedef ShellPageBuilder = Page<dynamic> Function(LocalKey? key, Widget child);
 typedef BuildShell<ID> =
     void Function(
       ShellBuilder<ID> builder,
-      Shell<ID> shell,
+      Shell<ID> node,
       WorkingRouterKey routerKey,
     );
 

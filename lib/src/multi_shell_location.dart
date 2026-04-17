@@ -9,7 +9,7 @@ import 'package:working_router/src/working_router_key.dart';
 typedef BuildMultiShellLocation<ID, Self extends AnyLocation<ID>> =
     void Function(
       MultiShellLocationBuilder<ID> builder,
-      Self location,
+      Self node,
       MultiShellSlot contentSlot,
     );
 

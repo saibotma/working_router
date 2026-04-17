@@ -9,7 +9,7 @@ import 'package:working_router/src/working_router_key.dart';
 typedef BuildMultiShell<ID> =
     void Function(
       MultiShellBuilder<ID> builder,
-      MultiShell<ID> shell,
+      MultiShell<ID> node,
     );
 
 typedef MultiShellContentBuilder<ID> =

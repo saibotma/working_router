@@ -5,7 +5,7 @@ class ScopeBuilder<ID> extends PathRouteNodeBuilder<ID> {
 }
 
 typedef BuildScope<ID> =
-    void Function(ScopeBuilder<ID> builder, Scope<ID> scope);
+    void Function(ScopeBuilder<ID> builder, Scope<ID> node);
 
 /// A non-rendering route scope that shares path, query, and child definitions.
 ///
