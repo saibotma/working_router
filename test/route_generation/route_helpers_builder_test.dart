@@ -1555,6 +1555,173 @@ List<RouteNode<ImplicitConstructorRouteId>> buildRouteNodes() => [
     },
   );
 
+  test(
+    'supports imported instantiated route node subclasses with implicit zero-arg constructors inside collection if children',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/imported_legal_node.dart': '''
+library imported_legal_node;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+enum ImportedLegalRouteId { home, privacy }
+
+class LegalNode extends AbstractScope<ImportedLegalRouteId> {
+  @override
+  void build(ScopeBuilder<ImportedLegalRouteId> builder) {
+    builder.children = [
+      PrivacyLocation(
+        id: ImportedLegalRouteId.privacy,
+        build: (builder, location) {
+          builder.pathLiteral('privacy');
+          builder.content = Content.widget(const SizedBox.shrink());
+        },
+      ),
+    ];
+  }
+}
+
+class PrivacyLocation
+    extends Location<ImportedLegalRouteId, PrivacyLocation> {
+  PrivacyLocation({required super.id, required super.build});
+}
+''',
+          'working_router|lib/imported_implicit_constructor_routes.dart': '''
+library imported_implicit_constructor_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/imported_legal_node.dart';
+import 'package:working_router/working_router.dart';
+
+part 'imported_implicit_constructor_routes.g.dart';
+
+class HomeLocation
+    extends Location<ImportedLegalRouteId, HomeLocation> {
+  HomeLocation({required super.id, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<ImportedLegalRouteId>> buildRouteNodes() => [
+  HomeLocation(
+    id: ImportedLegalRouteId.home,
+    build: (builder, location) {
+      const includeLegal = true;
+      builder.pathLiteral('home');
+      builder.children = [
+        if (includeLegal) LegalNode(),
+      ];
+    },
+  ),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/imported_implicit_constructor_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToHome()'),
+                  contains('void routeToPrivacy()'),
+                  contains('final class PrivacyRouteTarget'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'reports unsupported route tree expressions at the offending node',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/unsupported_route_tree_expression.dart': '''
+library unsupported_route_tree_expression;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'unsupported_route_tree_expression.g.dart';
+
+enum UnsupportedRouteId { home, privacy }
+
+class PrivacyLocation extends Location<UnsupportedRouteId, PrivacyLocation> {
+  PrivacyLocation({required super.id, required super.build});
+}
+
+class HomeLocation extends Location<UnsupportedRouteId, HomeLocation> {
+  HomeLocation({required super.id, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<UnsupportedRouteId>> buildRouteNodes() => [
+  HomeLocation(
+    id: UnsupportedRouteId.home,
+    build: (builder, location) {
+      builder.pathLiteral('home');
+      builder.children = [
+        true
+            ? PrivacyLocation(
+                id: UnsupportedRouteId.privacy,
+                build: (builder, location) {
+                  builder.pathLiteral('privacy');
+                  builder.content = Content.widget(const SizedBox.shrink());
+                },
+              )
+            : PrivacyLocation(
+                id: UnsupportedRouteId.privacy,
+                build: (builder, location) {
+                  builder.pathLiteral('privacy');
+                  builder.content = Content.widget(const SizedBox.shrink());
+                },
+              ),
+      ];
+    },
+  ),
+];
+''',
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final severeMessages = logs
+          .where((log) => log.level == 'SEVERE')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        severeMessages,
+        allOf(
+          contains(
+            'Unsupported route tree expression `true ? PrivacyLocation(',
+          ),
+          contains('package:working_router/unsupported_route_tree_expression.dart:25:9'),
+          contains('? PrivacyLocation('),
+          isNot(contains('List<RouteNode<UnsupportedRouteId>> buildRouteNodes() => [')),
+        ),
+      );
+    },
+  );
+
   test('includes shell path and query params in generated helpers', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,

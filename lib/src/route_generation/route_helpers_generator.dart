@@ -731,7 +731,7 @@ class _StaticRouteTreeExtractor {
       'Unsupported route tree expression `${normalizedExpression.toSource()}`. '
       'Use static constructor trees, helper getters, helper variables, or '
       'zero-argument helper functions.',
-      element: rootElement,
+      node: normalizedExpression,
     );
   }
 
@@ -1716,7 +1716,7 @@ class _StaticRouteTreeExtractor {
       'Unsupported children expression `${normalizedExpression.toSource()}`. '
       'Use list literals, collection ifs, spreads, helper getters, helper '
       'variables, or zero-argument helper functions.',
-      element: rootElement,
+      node: normalizedExpression,
     );
   }
 
@@ -1759,7 +1759,7 @@ class _StaticRouteTreeExtractor {
         throw InvalidGenerationSourceError(
           'Unsupported list element `${element.toSource()}` in the location '
           'tree.',
-          element: rootElement,
+          node: element,
         );
     }
   }
