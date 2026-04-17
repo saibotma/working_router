@@ -1037,6 +1037,17 @@ class _StaticRouteTreeExtractor {
         )) {
           return;
         }
+        if (await _resolveDslBoundAssignment(
+          statement.expression,
+          builderParameterName: builderParameterName,
+          context: context,
+          result: result,
+          elementForErrors: elementForErrors,
+          isLocation: isLocation,
+          supportsPathAndQuery: supportsPathAndQuery,
+        )) {
+          return;
+        }
         await _resolveDslExpression(
           statement.expression,
           variableName: null,
@@ -1152,6 +1163,43 @@ class _StaticRouteTreeExtractor {
         normalizedExpression.rightHandSide,
         evaluationContext: context,
       ),
+    );
+    return true;
+  }
+
+  Future<bool> _resolveDslBoundAssignment(
+    Expression expression, {
+    required String builderParameterName,
+    required _DslStatementContext context,
+    required _ResolvedDslDefinition result,
+    required Element elementForErrors,
+    required bool isLocation,
+    required bool supportsPathAndQuery,
+  }) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is! AssignmentExpression ||
+        normalizedExpression.operator.lexeme != '=') {
+      return false;
+    }
+
+    final targetName = _assignmentTargetName(
+      normalizedExpression.leftHandSide,
+    );
+    if (targetName == null) {
+      return false;
+    }
+
+    final rightHandSide = normalizedExpression.rightHandSide;
+    context.bind(targetName, rightHandSide);
+    await _resolveDslExpression(
+      rightHandSide,
+      variableName: targetName,
+      builderParameterName: builderParameterName,
+      context: context,
+      result: result,
+      elementForErrors: elementForErrors,
+      isLocation: isLocation,
+      supportsPathAndQuery: supportsPathAndQuery,
     );
     return true;
   }
@@ -2768,6 +2816,20 @@ class _StaticRouteTreeExtractor {
       current = current.expression;
     }
     return current;
+  }
+
+  String? _assignmentTargetName(Expression expression) {
+    final normalizedExpression = _unwrapExpression(expression);
+    return switch (normalizedExpression) {
+      SimpleIdentifier() => normalizedExpression.name,
+      PrefixedIdentifier(:final prefix, :final identifier)
+          when prefix.name == 'this' =>
+        identifier.name,
+      PropertyAccess(:final realTarget, :final propertyName)
+          when realTarget is ThisExpression =>
+        propertyName.name,
+      _ => null,
+    };
   }
 
   bool _canResolveThroughContext(Expression expression) {

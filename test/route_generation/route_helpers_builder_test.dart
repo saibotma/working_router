@@ -1286,6 +1286,76 @@ RouteNode<ParameterizedRouteId> buildLocationTree({
   );
 
   test(
+    'supports path params assigned to node fields inside build methods',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/field_assigned_path_param_routes.dart': '''
+library field_assigned_path_param_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'field_assigned_path_param_routes.g.dart';
+
+enum FieldAssignedRouteId { dashboard }
+
+class DashboardLocation
+    extends Location<FieldAssignedRouteId, DashboardLocation> {
+  DashboardLocation({required super.id});
+
+  @override
+  List<PathSegment> get path => [LiteralPathSegment('dashboard')];
+}
+
+class AccountShell extends AbstractShell<FieldAssignedRouteId> {
+  late final PathParam<String> accountId;
+
+  @override
+  void build(ShellBuilder<FieldAssignedRouteId> builder) {
+    builder.pathLiteral('accounts');
+    accountId = builder.pathParam(const StringRouteParamCodec());
+    builder.children = [
+      DashboardLocation(id: FieldAssignedRouteId.dashboard),
+    ];
+  }
+}
+
+@RouteNodes()
+RouteNode<FieldAssignedRouteId> get appLocationTree => AccountShell();
+''',
+        },
+        outputs: {
+          'working_router|lib/field_assigned_path_param_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'void routeToDashboard({required String accountId}) {',
+                  ),
+                  contains(
+                    'DashboardRouteTarget({required String accountId})',
+                  ),
+                  contains(
+                    'location.pathParameters[0] as PathParam<String>,',
+                  ),
+                  contains(
+                    'accountId,',
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'resolves aliased children through helper and constructor forwarding chains',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
