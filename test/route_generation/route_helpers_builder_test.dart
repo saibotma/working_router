@@ -1770,7 +1770,7 @@ List<RouteNode<ImportedLegalRouteId>> buildRouteNodes() => [
   );
 
   test(
-    'generates owner-bound child targets for id-less descendant locations',
+    'generates owner-bound child targets for id-less descendant locations but not for scopes',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -1856,13 +1856,10 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
                       'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
                     ),
                     contains(
-                      'ChildRouteTarget<IdlessChildTargetRouteId> childLegalNodeTarget({',
-                    ),
-                    contains(
                       'ChildRouteTarget<IdlessChildTargetRouteId> childPrivacyTarget({',
                     ),
                     contains(
-                      'ChildRouteTarget<IdlessChildTargetRouteId> get childTermsOfUseTarget',
+                      'ChildRouteTarget<IdlessChildTargetRouteId> childTermsOfUseTarget({',
                     ),
                   ),
                   allOf(
@@ -1872,6 +1869,7 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
                     contains(
                       "'languageCode': const StringRouteParamCodec().encode(value),",
                     ),
+                    isNot(contains('childLegalNodeTarget')),
                     isNot(contains('void routeToPrivacy(')),
                     isNot(contains('void routeToTermsOfUse(')),
                   ),
@@ -1879,6 +1877,150 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
               ),
         },
         readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'suppresses ambiguous ancestor child targets for id-less descendant locations',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/ambiguous_idless_child_targets_routes.dart': '''
+library ambiguous_idless_child_targets_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'ambiguous_idless_child_targets_routes.g.dart';
+
+enum AmbiguousChildTargetRouteId { root, addAccount, settings }
+
+class RootLocation
+    extends Location<AmbiguousChildTargetRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<AmbiguousChildTargetRouteId> builder) {
+    builder.children = [
+      AddAccountNode(
+        id: AmbiguousChildTargetRouteId.addAccount,
+        build: (builder, node) {
+          builder.pathLiteral('add');
+          builder.children = [
+            LegalNode(),
+          ];
+        },
+      ),
+      SettingsLocation(
+        id: AmbiguousChildTargetRouteId.settings,
+        build: (builder, node) {
+          builder.pathLiteral('settings');
+          builder.children = [
+            LegalNode(),
+          ];
+        },
+      ),
+    ];
+  }
+}
+
+class AddAccountNode
+    extends Location<AmbiguousChildTargetRouteId, AddAccountNode> {
+  AddAccountNode({required super.id, required super.build});
+}
+
+class SettingsLocation
+    extends Location<AmbiguousChildTargetRouteId, SettingsLocation> {
+  SettingsLocation({required super.id, required super.build});
+}
+
+class LegalNode extends AbstractScope<AmbiguousChildTargetRouteId> {
+  @override
+  void build(ScopeBuilder<AmbiguousChildTargetRouteId> builder) {
+    builder.children = [
+      PrivacyLocation(
+        build: (builder, location) {
+          builder.pathLiteral('privacy');
+          builder.content = Content.widget(const SizedBox.shrink());
+        },
+      ),
+    ];
+  }
+}
+
+class PrivacyLocation
+    extends Location<AmbiguousChildTargetRouteId, PrivacyLocation> {
+  PrivacyLocation({super.id, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
+  RootLocation(id: AmbiguousChildTargetRouteId.root),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/ambiguous_idless_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  allOf(
+                    contains(
+                      'extension RootLocationGeneratedChildTargets on RootLocation {',
+                    ),
+                    contains(
+                      'ChildRouteTarget<AmbiguousChildTargetRouteId> get childAddAccountNodeTarget',
+                    ),
+                    contains(
+                      'ChildRouteTarget<AmbiguousChildTargetRouteId> get childSettingsTarget',
+                    ),
+                    isNot(
+                      contains(
+                        'extension RootLocationGeneratedChildTargets on RootLocation {\n'
+                        '  ChildRouteTarget<AmbiguousChildTargetRouteId> get childPrivacyTarget',
+                      ),
+                    ),
+                  ),
+                  allOf(
+                    contains(
+                      'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+                    ),
+                    contains(
+                      'extension SettingsLocationGeneratedChildTargets on SettingsLocation {',
+                    ),
+                    contains(
+                      'ChildRouteTarget<AmbiguousChildTargetRouteId> get childPrivacyTarget',
+                    ),
+                  ),
+                ),
+            ),
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final warningMessages = logs
+          .where((log) => log.level == 'WARNING')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        warningMessages,
+        allOf(
+          contains(
+            'Suppressed ambiguous generated child target method `childPrivacyTarget` for `RootLocation`',
+          ),
+          contains('No helper was generated to avoid routing to the wrong child.'),
+        ),
       );
     },
   );

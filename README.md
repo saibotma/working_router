@@ -566,6 +566,12 @@ From `@RouteNodes()`, the generator emits:
 - `childXTarget(...)` extension helpers on concrete location types for
   owner-bound child routing
 
+For owner-bound child targets:
+
+- if the same owner could reach multiple descendants that would generate the
+  same `childXTarget(...)` helper, the generator suppresses that ambiguous
+  ancestor helper and logs a warning instead of generating an unsafe API
+
 That means you can navigate either with:
 
 ```dart

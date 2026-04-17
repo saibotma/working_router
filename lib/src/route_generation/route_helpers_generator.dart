@@ -27,6 +27,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     final locationChildTargetMethods = _collectLocationChildTargetMethods(
       roots,
       declarationElement,
+      onSuppressedAmbiguousMethod: (warning) => log.warning(warning),
     );
     if (methods.isEmpty && locationChildTargetMethods.isEmpty) {
       return '';
@@ -156,18 +157,20 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
   List<_GeneratedLocationChildTargetMethod> _collectLocationChildTargetMethods(
     Iterable<_RouteNode> roots,
-    Element element,
-  ) {
+    Element element, {
+    void Function(String warning)? onSuppressedAmbiguousMethod,
+  }) {
     final methods = <_GeneratedLocationChildTargetMethod>[];
     final usedMethodsByOwnerAndName =
         <String, _GeneratedLocationChildTargetMethod>{};
+    final suppressedMethodKeys = <String>{};
 
     void visit(_RouteNode node, List<_RouteNode> chain) {
       final nextChain = [...chain, node];
       if (_supportsGeneratedLocationChildTarget(node)) {
         for (var i = 0; i < chain.length; i++) {
           final owner = chain[i];
-          if (!owner.isLocation ||
+          if (!owner.isRoutableLocation ||
               owner.locationTypeSource == 'Location' ||
               owner.locationTypeSource == 'ShellLocation' ||
               owner.locationTypeSource == 'Scope') {
@@ -186,18 +189,25 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             element: element,
           );
           final methodKey = '${method.ownerTypeSource}.${method.name}';
+          if (suppressedMethodKeys.contains(methodKey)) {
+            continue;
+          }
           final previousMethod = usedMethodsByOwnerAndName[methodKey];
-          if (previousMethod != null && !previousMethod.isEquivalent(method)) {
-            throw InvalidGenerationSourceError(
-              'Duplicate generated child target method `${method.name}` '
-              'for `${method.ownerTypeSource}`.',
-              element: element,
+          if (previousMethod != null) {
+            usedMethodsByOwnerAndName.remove(methodKey);
+            methods.remove(previousMethod);
+            suppressedMethodKeys.add(methodKey);
+            onSuppressedAmbiguousMethod?.call(
+              'Suppressed ambiguous generated child target method '
+              '`${method.name}` for `${method.ownerTypeSource}` because '
+              'multiple descendant routes would match it. No helper was '
+              'generated to avoid routing to the wrong child. Route from a '
+              'nearer owner or add ids to disambiguate.',
             );
+            continue;
           }
-          if (previousMethod == null) {
-            usedMethodsByOwnerAndName[methodKey] = method;
-            methods.add(method);
-          }
+          usedMethodsByOwnerAndName[methodKey] = method;
+          methods.add(method);
         }
       }
 
@@ -213,7 +223,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   }
 
   bool _supportsGeneratedLocationChildTarget(_RouteNode node) {
-    if (!node.isLocation) {
+    if (!node.isRoutableLocation) {
       return false;
     }
 
@@ -830,6 +840,7 @@ class _StaticRouteTreeExtractor {
             )
           : null,
       isLocation: isLocation,
+      isRoutableLocation: _isRoutableLocationLikeClass(classElement),
       locationTypeSource: classElement.displayName,
       pathSegments: pathSegments,
       queryParameters: queryParameters,
@@ -1480,6 +1491,7 @@ class _StaticRouteTreeExtractor {
                 )
           : null,
       isLocation: isLocation,
+      isRoutableLocation: isLocation,
       locationTypeSource: isLocation ? 'Location' : 'Shell',
       pathSegments: supportsPathAndQuery
           ? dslDefinition.pathSegments
@@ -2882,6 +2894,22 @@ class _StaticRouteTreeExtractor {
     return false;
   }
 
+  bool _isRoutableLocationLikeClass(InterfaceElement classElement) {
+    InterfaceType? current = classElement.thisType;
+    while (current != null) {
+      if (current.element.name == 'Location' ||
+          current.element.name == 'AbstractLocation' ||
+          current.element.name == 'ShellLocation' ||
+          current.element.name == 'AbstractShellLocation' ||
+          current.element.name == 'MultiShellLocation' ||
+          current.element.name == 'AbstractMultiShellLocation') {
+        return true;
+      }
+      current = current.element.supertype;
+    }
+    return false;
+  }
+
   bool _isShellLikeClass(InterfaceElement classElement) {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
@@ -4063,6 +4091,7 @@ class _BoundStringExpression {
 class _RouteNode {
   final String? idExpression;
   final bool isLocation;
+  final bool isRoutableLocation;
   final String locationTypeSource;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
@@ -4071,6 +4100,7 @@ class _RouteNode {
   const _RouteNode({
     required this.idExpression,
     required this.isLocation,
+    required this.isRoutableLocation,
     required this.locationTypeSource,
     required this.pathSegments,
     required this.queryParameters,
