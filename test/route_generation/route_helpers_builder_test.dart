@@ -1274,15 +1274,16 @@ RouteNode<ParameterizedRouteId> buildLocationTree({
 }
 ''',
         },
-        outputs: {
-          'working_router|lib/parameterized_builder_routes.working_router.g.part':
-              decodedMatches(
-                allOf(
-                  contains('extension BuildLocationTreeGeneratedRoutes'),
-                  contains('void routeToRoot()'),
-                  contains('void routeToChat()'),
-                  contains(
-                    'void routeToChannel({required String channelId}) {',
+      outputs: {
+        'working_router|lib/parameterized_builder_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains('// ignore_for_file: type=lint'),
+                contains('extension BuildLocationTreeGeneratedRoutes'),
+                contains('void routeToRoot()'),
+                contains('void routeToChat()'),
+                contains(
+                  'void routeToChannel({required String channelId}) {',
                   ),
                   contains(
                     'void routeToChannelSend({required String channelId}) {',

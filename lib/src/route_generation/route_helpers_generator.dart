@@ -33,6 +33,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     final buffer = StringBuffer();
+    buffer.writeln('// ignore_for_file: type=lint');
+    buffer.writeln();
 
     for (final method in methods) {
       buffer.writeln(method.renderTargetClass());
