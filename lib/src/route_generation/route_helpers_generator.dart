@@ -316,21 +316,23 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       final originalName = parameter.routeKey;
       if (target.containsKey(originalName)) {
         if (identical(target, pathParameters)) {
-          throw InvalidGenerationSourceError(
+          _throwGeneratedParameterError(
             'The generated helper for `$errorContext` needs two path '
             'parameters named `$originalName`. Rename one of those path '
             'parameter fields.',
-            element: element,
+            parameter: parameter,
+            fallbackElement: element,
           );
         }
         final existing = target[originalName]!;
         if (existing.dartTypeSource != parameter.dartTypeSource ||
             existing.optional != parameter.optional ||
             existing.codecExpressionSource != parameter.codecExpressionSource) {
-          throw InvalidGenerationSourceError(
+          _throwGeneratedParameterError(
             'The generated helper for `$errorContext` needs conflicting $kind '
             'parameter metadata for `$originalName`.',
-            element: element,
+            parameter: parameter,
+            fallbackElement: element,
           );
         }
         return;
@@ -340,20 +342,22 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       final previousOriginalName = usedParameterNames[parameterName];
       if (previousOriginalName != null &&
           previousOriginalName != originalName) {
-        throw InvalidGenerationSourceError(
+        _throwGeneratedParameterError(
           'The generated helper for `$errorContext` needs two $kind '
           'parameters that both map to `$parameterName` '
           '($previousOriginalName and $originalName).',
-          element: element,
+          parameter: parameter,
+          fallbackElement: element,
         );
       }
 
       if (pathParameters.containsKey(originalName) &&
           !identical(target, pathParameters)) {
-        throw InvalidGenerationSourceError(
+        _throwGeneratedParameterError(
           'The generated helper for `$errorContext` uses `$originalName` as '
           'both a path parameter and a query parameter.',
-          element: element,
+          parameter: parameter,
+          fallbackElement: element,
         );
       }
 
@@ -371,6 +375,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
               dartTypeSource: segment.dartTypeSource,
               codecExpressionSource: segment.codecExpressionSource,
               optional: false,
+              sourceNode: segment.sourceNode,
+              sourceElement: segment.sourceElement,
             ),
             pathParameters,
             'path',
@@ -386,6 +392,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             dartTypeSource: queryParameter.dartTypeSource,
             codecExpressionSource: queryParameter.codecExpressionSource,
             optional: queryParameter.optional,
+            sourceNode: queryParameter.sourceNode,
+            sourceElement: queryParameter.sourceElement,
           ),
           queryParameters,
           'query',
@@ -394,6 +402,23 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     return (pathParameters, queryParameters);
+  }
+
+  Never _throwGeneratedParameterError(
+    String message, {
+    required _GeneratedRouteParameter parameter,
+    required Element fallbackElement,
+  }) {
+    if (parameter.sourceNode != null) {
+      throw InvalidGenerationSourceError(
+        message,
+        node: parameter.sourceNode,
+      );
+    }
+    throw InvalidGenerationSourceError(
+      message,
+      element: parameter.sourceElement ?? fallbackElement,
+    );
   }
 
   List<_GeneratedPathWrite> _collectPathWrites(
@@ -1272,6 +1297,8 @@ class _StaticRouteTreeExtractor {
                   pathParameterIndex:
                       segmentMetadata.pathParameterIndex ??
                       result.pathParameterCount,
+                  sourceNode: segmentMetadata.sourceNode,
+                  sourceElement: segmentMetadata.sourceElement,
                 )
               : segmentMetadata,
         );
@@ -1353,6 +1380,8 @@ class _StaticRouteTreeExtractor {
             dartTypeSource: codecMetadata.dartTypeSource,
             codecExpressionSource: codecMetadata.codecExpressionSource,
             pathParameterIndex: result.pathParameterCount,
+            sourceNode: normalizedExpression,
+            sourceElement: elementForErrors,
           ),
         );
         result.pathParameterCount += 1;
@@ -1602,6 +1631,8 @@ class _StaticRouteTreeExtractor {
           ),
           codecExpressionSource: _expressionSource(arguments[1]),
           optional: namedArguments.containsKey('defaultValue'),
+          sourceNode: invocation,
+          sourceElement: elementForErrors,
         );
       case 'stringQueryParam':
       case 'nullableStringQueryParam':
@@ -1712,6 +1743,8 @@ class _StaticRouteTreeExtractor {
           optional:
               namedArguments.containsKey('defaultValue') ||
               methodName.startsWith('nullable'),
+          sourceNode: invocation,
+          sourceElement: elementForErrors,
         );
       default:
         return null;
@@ -2319,6 +2352,7 @@ class _StaticRouteTreeExtractor {
       ),
       codecExpressionSource: _expressionSource(codecExpression),
       memberName: memberName,
+      sourceElement: element,
     );
   }
 
@@ -2560,6 +2594,8 @@ class _StaticRouteTreeExtractor {
       ),
       codecExpressionSource: _expressionSource(resolvedCodecExpression),
       optional: defaultValueExpression != null,
+      sourceNode: normalizedExpression,
+      sourceElement: element,
     );
   }
 
@@ -2583,7 +2619,10 @@ class _StaticRouteTreeExtractor {
     throw InvalidGenerationSourceError(
       'Duplicate query parameter key `${metadata.key}` with conflicting '
       'definitions.',
-      element: element,
+      node: metadata.sourceNode,
+      element: metadata.sourceNode == null
+          ? metadata.sourceElement ?? element
+          : null,
     );
   }
 
@@ -4556,6 +4595,8 @@ class _RoutePathParameterSegmentMetadata extends _PathSegmentMetadata {
   final String codecExpressionSource;
   final String? memberName;
   final int? pathParameterIndex;
+  final AstNode? sourceNode;
+  final Element? sourceElement;
 
   const _RoutePathParameterSegmentMetadata({
     required this.key,
@@ -4563,6 +4604,8 @@ class _RoutePathParameterSegmentMetadata extends _PathSegmentMetadata {
     required this.codecExpressionSource,
     this.memberName,
     this.pathParameterIndex,
+    this.sourceNode,
+    this.sourceElement,
   });
 }
 
@@ -4581,12 +4624,16 @@ class _RouteQueryParameterMetadata {
   final String dartTypeSource;
   final String codecExpressionSource;
   final bool optional;
+  final AstNode? sourceNode;
+  final Element? sourceElement;
 
   const _RouteQueryParameterMetadata({
     required this.key,
     required this.dartTypeSource,
     required this.codecExpressionSource,
     required this.optional,
+    this.sourceNode,
+    this.sourceElement,
   });
 
   _RouteQueryParameterMetadata copyWith({
@@ -4594,6 +4641,8 @@ class _RouteQueryParameterMetadata {
     String? dartTypeSource,
     String? codecExpressionSource,
     bool? optional,
+    AstNode? sourceNode,
+    Element? sourceElement,
   }) {
     return _RouteQueryParameterMetadata(
       key: key ?? this.key,
@@ -4601,6 +4650,8 @@ class _RouteQueryParameterMetadata {
       codecExpressionSource:
           codecExpressionSource ?? this.codecExpressionSource,
       optional: optional ?? this.optional,
+      sourceNode: sourceNode ?? this.sourceNode,
+      sourceElement: sourceElement ?? this.sourceElement,
     );
   }
 }
@@ -4627,6 +4678,8 @@ class _GeneratedRouteParameter {
   final String dartTypeSource;
   final String codecExpressionSource;
   final bool optional;
+  final AstNode? sourceNode;
+  final Element? sourceElement;
 
   const _GeneratedRouteParameter({
     required this.routeKey,
@@ -4634,6 +4687,8 @@ class _GeneratedRouteParameter {
     required this.dartTypeSource,
     required this.codecExpressionSource,
     required this.optional,
+    this.sourceNode,
+    this.sourceElement,
   });
 
   _GeneratedRouteParameter copyWith({
@@ -4642,6 +4697,8 @@ class _GeneratedRouteParameter {
     String? dartTypeSource,
     String? codecExpressionSource,
     bool? optional,
+    AstNode? sourceNode,
+    Element? sourceElement,
   }) {
     return _GeneratedRouteParameter(
       routeKey: routeKey ?? this.routeKey,
@@ -4650,6 +4707,8 @@ class _GeneratedRouteParameter {
       codecExpressionSource:
           codecExpressionSource ?? this.codecExpressionSource,
       optional: optional ?? this.optional,
+      sourceNode: sourceNode ?? this.sourceNode,
+      sourceElement: sourceElement ?? this.sourceElement,
     );
   }
 }

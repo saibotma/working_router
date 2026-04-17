@@ -2169,6 +2169,97 @@ List<RouteNode<MissingImportRouteId>> buildRouteNodes() => [
     },
   );
 
+  test(
+    'reports conflicting generated query parameter metadata at the offending declaration',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/conflicting_query_parameter_metadata.dart': '''
+library conflicting_query_parameter_metadata;
+
+import 'package:working_router/working_router.dart';
+
+part 'conflicting_query_parameter_metadata.g.dart';
+
+enum ConflictRouteId { root, group, lesson }
+
+class RootLocation extends Location<ConflictRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<ConflictRouteId> builder) {
+    builder.children = [
+      GroupLocation(id: ConflictRouteId.group),
+    ];
+  }
+}
+
+class GroupLocation extends Location<ConflictRouteId, GroupLocation> {
+  GroupLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<ConflictRouteId> builder) {
+    builder.pathLiteral('group');
+    final coursePeriodId = builder.stringQueryParam('coursePeriodId');
+    builder.children = [
+      LessonLocation(id: ConflictRouteId.lesson),
+    ];
+  }
+}
+
+class LessonLocation extends Location<ConflictRouteId, LessonLocation> {
+  LessonLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<ConflictRouteId> builder) {
+    builder.pathLiteral('lesson');
+    final coursePeriodId = builder.intQueryParam('coursePeriodId');
+  }
+}
+
+@RouteNodes()
+RouteNode<ConflictRouteId> get appLocationTree =>
+    RootLocation(id: ConflictRouteId.root);
+''',
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final severeMessages = logs
+          .where((log) => log.level == 'SEVERE')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        severeMessages,
+        allOf(
+          contains(
+            'The generated helper for `ConflictRouteId.lesson` needs conflicting query parameter metadata for `coursePeriodId`.',
+          ),
+          contains(
+            'package:working_router/conflicting_query_parameter_metadata.dart:39:28',
+          ),
+          contains("builder.intQueryParam('coursePeriodId')"),
+          isNot(
+            contains(
+              'package:working_router/conflicting_query_parameter_metadata.dart:44:32',
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
   test('includes shell path and query params in generated helpers', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,
