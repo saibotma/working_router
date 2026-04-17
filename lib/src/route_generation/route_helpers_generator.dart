@@ -198,11 +198,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             methods.remove(previousMethod);
             suppressedMethodKeys.add(methodKey);
             onSuppressedAmbiguousMethod?.call(
-              'Suppressed ambiguous generated child target method '
-              '`${method.name}` for `${method.ownerTypeSource}` because '
-              'multiple descendant routes would match it. No helper was '
-              'generated to avoid routing to the wrong child. Route from a '
-              'nearer owner or add ids to disambiguate.',
+              'Skipped `${method.ownerTypeSource}.${method.name}`: multiple '
+              'descendant routes would match this child target.',
             );
             continue;
           }

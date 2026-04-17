@@ -2017,9 +2017,8 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
         warningMessages,
         allOf(
           contains(
-            'Suppressed ambiguous generated child target method `childPrivacyTarget` for `RootLocation`',
+            'Skipped `RootLocation.childPrivacyTarget`: multiple descendant routes would match this child target.',
           ),
-          contains('No helper was generated to avoid routing to the wrong child.'),
         ),
       );
     },
