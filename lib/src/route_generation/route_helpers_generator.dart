@@ -143,22 +143,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         }
       }
 
-      if (chain.isNotEmpty && node.isLocation) {
-        final childMethod = _buildChildMethod(node, element);
-        final previousMethod = usedMethodsByName[childMethod.name];
-        if (previousMethod != null &&
-            !previousMethod.isEquivalent(childMethod)) {
-          throw InvalidGenerationSourceError(
-            'Duplicate generated method name `${childMethod.name}`.',
-            element: element,
-          );
-        }
-        if (previousMethod == null) {
-          usedMethodsByName[childMethod.name] = childMethod;
-          methods.add(childMethod);
-        }
-      }
-
       for (final child in node.children) {
         visit(child, nextChain);
       }
@@ -254,34 +238,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       name: methodName,
       targetClassName: targetClassName,
       idExpression: idExpression,
-      pathWrites: pathWrites,
-      pathParameters: pathParameters,
-      queryParameters: queryParameters,
-    );
-  }
-
-  _GeneratedRouteMethod _buildChildMethod(_RouteNode node, Element element) {
-    final childMethodBaseName = _childMethodBaseNameForNode(node);
-    final methodName = 'routeToChild${_toUpperCamelCase(childMethodBaseName)}';
-    final targetClassName =
-        'Child${_toUpperCamelCase(childMethodBaseName)}RouteTarget';
-    final (pathParameters, queryParameters) = _collectParameters(
-      [node],
-      element: element,
-      errorContext: node.locationTypeSource,
-    );
-    final pathWrites = _collectPathWrites(
-      [node],
-      pathParameters,
-      element: element,
-      errorContext: node.locationTypeSource,
-    );
-
-    return _GeneratedRouteMethod.toChild(
-      idTypeSource: _idTypeSource(element),
-      name: methodName,
-      targetClassName: targetClassName,
-      childLocationMatchSource: _routeNodeMatchSource(node),
       pathWrites: pathWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
@@ -4081,27 +4037,6 @@ class _GeneratedRouteMethod {
       targetClassName: targetClassName,
       idExpression: idExpression,
       childLocationMatchSource: null,
-      pathWrites: pathWrites,
-      pathParameters: pathParameters,
-      queryParameters: queryParameters,
-    );
-  }
-
-  factory _GeneratedRouteMethod.toChild({
-    required String idTypeSource,
-    required String name,
-    required String targetClassName,
-    required String childLocationMatchSource,
-    required List<_GeneratedPathWrite> pathWrites,
-    required Map<String, _GeneratedRouteParameter> pathParameters,
-    required Map<String, _GeneratedRouteParameter> queryParameters,
-  }) {
-    return _GeneratedRouteMethod._(
-      idTypeSource: idTypeSource,
-      name: name,
-      targetClassName: targetClassName,
-      idExpression: null,
-      childLocationMatchSource: childLocationMatchSource,
       pathWrites: pathWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
