@@ -194,6 +194,13 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           }
           final previousMethod = usedMethodsByOwnerAndName[methodKey];
           if (previousMethod != null) {
+            if (previousMethod.isEquivalent(method) &&
+                _branchSelectionsAreMutuallyExclusive(
+                  previousMethod.exclusiveBranchSelections,
+                  method.exclusiveBranchSelections,
+                )) {
+              continue;
+            }
             usedMethodsByOwnerAndName.remove(methodKey);
             methods.remove(previousMethod);
             suppressedMethodKeys.add(methodKey);
@@ -292,6 +299,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       idTypeSource: _idTypeSource(element),
       name: 'child${_toUpperCamelCase(childMethodBaseName)}Target',
       childLocationMatchSource: _routeNodeMatchSource(target),
+      exclusiveBranchSelections: target.exclusiveBranchSelections,
       pathWrites: pathWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
@@ -569,6 +577,7 @@ String _unsupportedConditionalIdMessage(Expression expression) {
 class _StaticRouteTreeExtractor {
   final BuildStep buildStep;
   final Element rootElement;
+  int _nextExclusiveBranchGroupId = 0;
 
   _StaticRouteTreeExtractor({
     required this.buildStep,
@@ -1171,6 +1180,7 @@ class _StaticRouteTreeExtractor {
           );
         }
       case IfStatement():
+        final branchGroupId = _nextExclusiveBranchGroupId++;
         final thenResult = result.copy();
         await _resolveDslStatement(
           statement.thenStatement,
@@ -1180,6 +1190,12 @@ class _StaticRouteTreeExtractor {
           elementForErrors: elementForErrors,
           isLocation: isLocation,
           supportsPathAndQuery: supportsPathAndQuery,
+        );
+        _markExclusiveBranchChildren(
+          baseline: result,
+          branchResult: thenResult,
+          groupId: branchGroupId,
+          branchId: 0,
         );
         result.merge(thenResult);
         final elseStatement = statement.elseStatement;
@@ -1193,6 +1209,12 @@ class _StaticRouteTreeExtractor {
             elementForErrors: elementForErrors,
             isLocation: isLocation,
             supportsPathAndQuery: supportsPathAndQuery,
+          );
+          _markExclusiveBranchChildren(
+            baseline: result,
+            branchResult: elseResult,
+            groupId: branchGroupId,
+            branchId: 1,
           );
           result.merge(elseResult);
         }
@@ -1246,6 +1268,32 @@ class _StaticRouteTreeExtractor {
       ),
     );
     return true;
+  }
+
+  void _markExclusiveBranchChildren({
+    required _ResolvedDslDefinition baseline,
+    required _ResolvedDslDefinition branchResult,
+    required int groupId,
+    required int branchId,
+  }) {
+    final markedChildren = _withExclusiveBranchSelection(
+      branchResult.children.skip(baseline.children.length),
+      groupId,
+      branchId,
+    );
+    for (var i = 0; i < markedChildren.length; i++) {
+      branchResult.children[baseline.children.length + i] = markedChildren[i];
+    }
+  }
+
+  List<_RouteNode> _withExclusiveBranchSelection(
+    Iterable<_RouteNode> nodes,
+    int groupId,
+    int branchId,
+  ) {
+    return [
+      for (final node in nodes) node.withExclusiveBranch(groupId, branchId),
+    ];
   }
 
   Future<bool> _resolveDslBoundAssignment(
@@ -2043,21 +2091,29 @@ class _StaticRouteTreeExtractor {
         );
       case IfElement():
         final result = <_RouteNode>[];
-        result.addAll(
-          await _locationsFromCollectionElement(
-            element.thenElement,
-            evaluationContext: evaluationContext,
-          ),
+        final thenResult = await _locationsFromCollectionElement(
+          element.thenElement,
+          evaluationContext: evaluationContext,
         );
         final elseElement = element.elseElement;
-        if (elseElement != null) {
-          result.addAll(
+        if (elseElement == null) {
+          result.addAll(thenResult);
+          return result;
+        }
+        final branchGroupId = _nextExclusiveBranchGroupId++;
+        result.addAll(
+          _withExclusiveBranchSelection(thenResult, branchGroupId, 0),
+        );
+        result.addAll(
+          _withExclusiveBranchSelection(
             await _locationsFromCollectionElement(
               elseElement,
               evaluationContext: evaluationContext,
             ),
-          );
-        }
+            branchGroupId,
+            1,
+          ),
+        );
         return result;
       default:
         throw InvalidGenerationSourceError(
@@ -4336,6 +4392,7 @@ class _RouteNode {
   final bool isLocation;
   final bool isRoutableLocation;
   final String locationTypeSource;
+  final Map<int, int> exclusiveBranchSelections;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
   final List<_RouteNode> children;
@@ -4345,10 +4402,29 @@ class _RouteNode {
     required this.isLocation,
     required this.isRoutableLocation,
     required this.locationTypeSource,
+    this.exclusiveBranchSelections = const {},
     required this.pathSegments,
     required this.queryParameters,
     required this.children,
   });
+
+  _RouteNode withExclusiveBranch(int groupId, int branchId) {
+    return _RouteNode(
+      idExpression: idExpression,
+      isLocation: isLocation,
+      isRoutableLocation: isRoutableLocation,
+      locationTypeSource: locationTypeSource,
+      exclusiveBranchSelections: {
+        ...exclusiveBranchSelections,
+        groupId: branchId,
+      },
+      pathSegments: pathSegments,
+      queryParameters: queryParameters,
+      children: [
+        for (final child in children) child.withExclusiveBranch(groupId, branchId),
+      ],
+    );
+  }
 }
 
 class _GeneratedRouteMethod {
@@ -4578,6 +4654,7 @@ class _GeneratedLocationChildTargetMethod {
   final String idTypeSource;
   final String name;
   final String childLocationMatchSource;
+  final Map<int, int> exclusiveBranchSelections;
   final List<_GeneratedPathWrite> pathWrites;
   final Map<String, _GeneratedRouteParameter> pathParameters;
   final Map<String, _GeneratedRouteParameter> queryParameters;
@@ -4587,6 +4664,7 @@ class _GeneratedLocationChildTargetMethod {
     required this.idTypeSource,
     required this.name,
     required this.childLocationMatchSource,
+    required this.exclusiveBranchSelections,
     required this.pathWrites,
     required this.pathParameters,
     required this.queryParameters,
@@ -4784,6 +4862,19 @@ bool _parametersEquivalent(
   }
 
   return true;
+}
+
+bool _branchSelectionsAreMutuallyExclusive(
+  Map<int, int> first,
+  Map<int, int> second,
+) {
+  for (final entry in first.entries) {
+    final otherBranchId = second[entry.key];
+    if (otherBranchId != null && otherBranchId != entry.value) {
+      return true;
+    }
+  }
+  return false;
 }
 
 sealed class _PathSegmentMetadata {

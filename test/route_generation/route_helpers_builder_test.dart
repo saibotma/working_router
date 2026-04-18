@@ -2111,6 +2111,107 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
   );
 
   test(
+    'keeps one owner-bound child target for equivalent duplicate descendants',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/equivalent_duplicate_child_targets_routes.dart': '''
+library equivalent_duplicate_child_targets_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'equivalent_duplicate_child_targets_routes.g.dart';
+
+enum EquivalentDuplicateChildTargetRouteId { root }
+
+bool get useFirstLegalBranch => throw UnimplementedError();
+
+class RootLocation
+    extends Location<EquivalentDuplicateChildTargetRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(
+    LocationBuilder<EquivalentDuplicateChildTargetRouteId> builder,
+  ) {
+    builder.children = [
+      if (useFirstLegalBranch)
+        LegalNode()
+      else
+        LegalNode(),
+    ];
+  }
+}
+
+class LegalNode extends AbstractScope<EquivalentDuplicateChildTargetRouteId> {
+  @override
+  void build(ScopeBuilder<EquivalentDuplicateChildTargetRouteId> builder) {
+    builder.children = [
+      PrivacyLocation(
+        build: (builder, node) {
+          builder.pathLiteral('privacy');
+          builder.content = Content.widget(const SizedBox.shrink());
+        },
+      ),
+    ];
+  }
+}
+
+class PrivacyLocation
+    extends Location<EquivalentDuplicateChildTargetRouteId, PrivacyLocation> {
+  PrivacyLocation({super.id, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<EquivalentDuplicateChildTargetRouteId>> buildRouteNodes() => [
+  RootLocation(id: EquivalentDuplicateChildTargetRouteId.root),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/equivalent_duplicate_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'extension RootLocationGeneratedChildTargets on RootLocation {',
+                  ),
+                  contains(
+                    'childPrivacyTarget',
+                  ),
+                ),
+              ),
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final warningMessages = logs
+          .where((log) => log.level == 'WARNING')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        warningMessages,
+        isNot(
+          contains(
+            'Skipped `RootLocation.childPrivacyTarget`: multiple descendant routes would match this child target.',
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
     'reports unsupported route tree expressions at the offending node',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
