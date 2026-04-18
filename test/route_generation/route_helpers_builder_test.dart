@@ -1033,6 +1033,92 @@ final RouteNode<DerivedChildAliasRouteId> appLocationTree =
     },
   );
 
+  test('supports builder.bindParam for generated helper parameters', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions.empty,
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/bind_param_routes.dart': '''
+library bind_param_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'bind_param_routes.g.dart';
+
+enum BindParamRouteId { root, channel, send }
+
+const channelIdParam = UnboundPathParam<String>(StringRouteParamCodec());
+const keepParam = UnboundQueryParam<String>('keep', StringRouteParamCodec());
+
+class RootLocation extends Location<BindParamRouteId, RootLocation> {
+  RootLocation();
+
+  @override
+  void build(LocationBuilder<BindParamRouteId> builder) {
+    builder.children = [
+      ChannelLocation(id: BindParamRouteId.channel),
+    ];
+  }
+}
+
+class ChannelLocation extends Location<BindParamRouteId, ChannelLocation> {
+  ChannelLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<BindParamRouteId> builder) {
+    builder.pathLiteral('channels');
+    final channelId = builder.bindParam(channelIdParam);
+    final keep = builder.bindParam(keepParam);
+    builder.children = [
+      SendLocation(id: BindParamRouteId.send),
+    ];
+  }
+}
+
+class SendLocation extends Location<BindParamRouteId, SendLocation> {
+  SendLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<BindParamRouteId> builder) {
+    builder.pathLiteral('send');
+  }
+}
+
+@RouteNodes()
+RouteNode<BindParamRouteId> get appLocationTree => RootLocation();
+''',
+      },
+      outputs: {
+        'working_router|lib/bind_param_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains(
+                  'void routeToChannel({required String channelId, required String keep}) {',
+                ),
+                contains(
+                  'ChannelRouteTarget({required String channelId, required String keep})',
+                ),
+                contains(
+                  'void routeToSend({required String channelId, required String keep}) {',
+                ),
+                contains(
+                  "'keep': StringRouteParamCodec().encode(keep)",
+                ),
+                contains(
+                  'location.pathParameters[0] as PathParam<String>',
+                ),
+              ),
+            ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
+
   test(
     'treats collection if branches as part of the generated route union',
     () async {

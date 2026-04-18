@@ -1452,6 +1452,66 @@ class _StaticRouteTreeExtractor {
           result.queryParameters,
           element: elementForErrors,
         );
+      case 'bindParam':
+        if (!supportsPathAndQuery) {
+          return;
+        }
+        final parameterExpression = normalizedExpression.argumentList.arguments
+            .whereType<Expression>()
+            .firstOrNull;
+        if (parameterExpression == null) {
+          throw InvalidGenerationSourceError(
+            'bindParam(...) requires an UnboundParam.',
+            element: elementForErrors,
+          );
+        }
+        final boundParameterMetadata = await _dslBoundParamMetadata(
+          parameterExpression,
+          elementForErrors,
+          evaluationContext: context,
+        );
+        if (boundParameterMetadata == null) {
+          throw InvalidGenerationSourceError(
+            'bindParam(...) requires an UnboundPathParam or '
+            'UnboundQueryParam.',
+            element: elementForErrors,
+          );
+        }
+        if (boundParameterMetadata.isPath) {
+          if (variableName == null) {
+            throw InvalidGenerationSourceError(
+              'Store the result of bindParam(...) for unbound path params in '
+              'a local variable so generated route helpers can name that '
+              'parameter.',
+              element: elementForErrors,
+            );
+          }
+          result.pathSegments.add(
+            _RoutePathParameterSegmentMetadata(
+              key: _stripParamSuffix(variableName),
+              dartTypeSource: boundParameterMetadata.dartTypeSource,
+              codecExpressionSource:
+                  boundParameterMetadata.codecExpressionSource,
+              pathParameterIndex: result.pathParameterCount,
+              sourceNode: boundParameterMetadata.sourceNode,
+              sourceElement: boundParameterMetadata.sourceElement,
+            ),
+          );
+          result.pathParameterCount += 1;
+          return;
+        }
+        _registerQueryParameterMetadata(
+          _RouteQueryParameterMetadata(
+            key: boundParameterMetadata.queryKey!,
+            dartTypeSource: boundParameterMetadata.dartTypeSource,
+            codecExpressionSource: boundParameterMetadata.codecExpressionSource,
+            optional: boundParameterMetadata.optional,
+            sourceNode: boundParameterMetadata.sourceNode,
+            sourceElement: boundParameterMetadata.sourceElement,
+          ),
+          result.queryParameters,
+          element: elementForErrors,
+        );
       case 'id':
         if (!isLocation) {
           return;
@@ -1778,6 +1838,120 @@ class _StaticRouteTreeExtractor {
               methodName.startsWith('nullable'),
           sourceNode: invocation,
           sourceElement: elementForErrors,
+        );
+      default:
+        return null;
+    }
+  }
+
+  Future<_DslBoundParamMetadata?> _dslBoundParamMetadata(
+    Expression expression,
+    Element element, {
+    _ExpressionContext? evaluationContext,
+  }) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (evaluationContext != null &&
+        _canResolveThroughContext(normalizedExpression)) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null) {
+        return _dslBoundParamMetadata(
+          boundExpression,
+          element,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
+
+    final referencedElement = _expressionElement(normalizedExpression);
+    if (referencedElement != null) {
+      final targetExpression = await _declarationExpression(referencedElement);
+      return _dslBoundParamMetadata(
+        targetExpression,
+        referencedElement,
+        evaluationContext: evaluationContext,
+      );
+    }
+
+    if (normalizedExpression is! InstanceCreationExpression) {
+      return null;
+    }
+
+    final typeName = normalizedExpression.constructorName.type
+        .toSource()
+        .split('<')
+        .first;
+    final positionalArguments = normalizedExpression.argumentList.arguments
+        .where((argument) => argument is! NamedExpression)
+        .whereType<Expression>()
+        .toList(growable: false);
+
+    switch (typeName) {
+      case 'UnboundPathParam':
+        var codecExpression = positionalArguments.firstOrNull;
+        if (codecExpression == null) {
+          return null;
+        }
+        if (evaluationContext != null &&
+            _canResolveThroughContext(_unwrapExpression(codecExpression))) {
+          final boundCodecExpression = await evaluationContext.resolveExpression(
+            _unwrapExpression(codecExpression),
+          );
+          if (boundCodecExpression != null) {
+            codecExpression = boundCodecExpression;
+          }
+        }
+        return _DslBoundParamMetadata(
+          isPath: true,
+          dartTypeSource: _codecValueTypeSourceForExpression(
+            codecExpression,
+            element,
+          ),
+          codecExpressionSource: _expressionSource(codecExpression),
+          optional: false,
+          sourceNode: normalizedExpression,
+          sourceElement: element,
+        );
+      case 'UnboundQueryParam':
+        var keyExpression = positionalArguments.firstOrNull;
+        var codecExpression = positionalArguments.skip(1).firstOrNull;
+        final defaultValueExpression = _namedArgumentExpression(
+          normalizedExpression.argumentList.arguments,
+          'defaultValue',
+        );
+        if (keyExpression == null || codecExpression == null) {
+          return null;
+        }
+        if (evaluationContext != null &&
+            _canResolveThroughContext(_unwrapExpression(keyExpression))) {
+          final boundKeyExpression = await evaluationContext.resolveExpression(
+            _unwrapExpression(keyExpression),
+          );
+          if (boundKeyExpression != null) {
+            keyExpression = boundKeyExpression;
+          }
+        }
+        if (evaluationContext != null &&
+            _canResolveThroughContext(_unwrapExpression(codecExpression))) {
+          final boundCodecExpression = await evaluationContext.resolveExpression(
+            _unwrapExpression(codecExpression),
+          );
+          if (boundCodecExpression != null) {
+            codecExpression = boundCodecExpression;
+          }
+        }
+        return _DslBoundParamMetadata(
+          isPath: false,
+          queryKey: _stringLiteral(keyExpression, element),
+          dartTypeSource: _codecValueTypeSourceForExpression(
+            codecExpression,
+            element,
+          ),
+          codecExpressionSource: _expressionSource(codecExpression),
+          optional: defaultValueExpression != null,
+          sourceNode: normalizedExpression,
+          sourceElement: element,
         );
       default:
         return null;
@@ -4649,6 +4823,26 @@ class _DslCodecMetadata {
   const _DslCodecMetadata({
     required this.dartTypeSource,
     required this.codecExpressionSource,
+  });
+}
+
+class _DslBoundParamMetadata {
+  final bool isPath;
+  final String? queryKey;
+  final String dartTypeSource;
+  final String codecExpressionSource;
+  final bool optional;
+  final AstNode? sourceNode;
+  final Element? sourceElement;
+
+  const _DslBoundParamMetadata({
+    required this.isPath,
+    this.queryKey,
+    required this.dartTypeSource,
+    required this.codecExpressionSource,
+    required this.optional,
+    required this.sourceNode,
+    required this.sourceElement,
   });
 }
 
