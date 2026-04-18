@@ -2212,6 +2212,110 @@ List<RouteNode<EquivalentDuplicateChildTargetRouteId>> buildRouteNodes() => [
   );
 
   test(
+    'keeps one owner-bound child target for equivalent duplicates across owner instances of the same type',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/equivalent_owner_instance_child_targets_routes.dart': '''
+library equivalent_owner_instance_child_targets_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'equivalent_owner_instance_child_targets_routes.g.dart';
+
+enum EquivalentOwnerInstanceChildTargetRouteId { root }
+
+class RootLocation
+    extends Location<EquivalentOwnerInstanceChildTargetRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(
+    LocationBuilder<EquivalentOwnerInstanceChildTargetRouteId> builder,
+  ) {
+    builder.children = [
+      OwnerLocation(),
+      OwnerLocation(),
+    ];
+  }
+}
+
+class OwnerLocation
+    extends Location<EquivalentOwnerInstanceChildTargetRouteId, OwnerLocation> {
+  OwnerLocation();
+
+  @override
+  void build(
+    LocationBuilder<EquivalentOwnerInstanceChildTargetRouteId> builder,
+  ) {
+    builder.pathLiteral('owner');
+    builder.children = [
+      SendLocation(),
+    ];
+  }
+}
+
+class SendLocation
+    extends Location<EquivalentOwnerInstanceChildTargetRouteId, SendLocation> {
+  SendLocation();
+
+  @override
+  void build(
+    LocationBuilder<EquivalentOwnerInstanceChildTargetRouteId> builder,
+  ) {
+    builder.pathLiteral('send');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+List<RouteNode<EquivalentOwnerInstanceChildTargetRouteId>> buildRouteNodes() => [
+  RootLocation(id: EquivalentOwnerInstanceChildTargetRouteId.root),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/equivalent_owner_instance_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'extension OwnerLocationGeneratedChildTargets on OwnerLocation {',
+                  ),
+                  contains('childSendTarget'),
+                ),
+              ),
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final warningMessages = logs
+          .where((log) => log.level == 'WARNING')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        warningMessages,
+        isNot(
+          contains(
+            'Skipped `OwnerLocation.childSendTarget`: multiple descendant routes would match this child target.',
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
     'reports unsupported route tree expressions at the offending node',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

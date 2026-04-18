@@ -195,10 +195,11 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           final previousMethod = usedMethodsByOwnerAndName[methodKey];
           if (previousMethod != null) {
             if (previousMethod.isEquivalent(method) &&
-                _branchSelectionsAreMutuallyExclusive(
+                (!identical(previousMethod.ownerNode, method.ownerNode) ||
+                    _branchSelectionsAreMutuallyExclusive(
                   previousMethod.exclusiveBranchSelections,
                   method.exclusiveBranchSelections,
-                )) {
+                ))) {
               continue;
             }
             usedMethodsByOwnerAndName.remove(methodKey);
@@ -295,6 +296,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     );
 
     return _GeneratedLocationChildTargetMethod(
+      ownerNode: owner,
       ownerTypeSource: owner.locationTypeSource,
       idTypeSource: _idTypeSource(element),
       name: 'child${_toUpperCamelCase(childMethodBaseName)}Target',
@@ -4650,6 +4652,7 @@ class _GeneratedRouteMethod {
 }
 
 class _GeneratedLocationChildTargetMethod {
+  final _RouteNode ownerNode;
   final String ownerTypeSource;
   final String idTypeSource;
   final String name;
@@ -4660,6 +4663,7 @@ class _GeneratedLocationChildTargetMethod {
   final Map<String, _GeneratedRouteParameter> queryParameters;
 
   const _GeneratedLocationChildTargetMethod({
+    required this.ownerNode,
     required this.ownerTypeSource,
     required this.idTypeSource,
     required this.name,
