@@ -1033,6 +1033,117 @@ final RouteNode<DerivedChildAliasRouteId> appLocationTree =
     },
   );
 
+  test(
+    'supports conditional child ids for reused AbstractLocation subclasses',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/derived_child_ids_abstract_location_routes.dart':
+              '''
+library derived_child_ids_abstract_location_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'derived_child_ids_abstract_location_routes.g.dart';
+
+enum DerivedChildAbstractLocationRouteId {
+  root,
+  search,
+  chatChannel,
+  chatChannelSend,
+}
+
+class RootLocation extends AbstractLocation<
+    DerivedChildAbstractLocationRouteId,
+    RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<DerivedChildAbstractLocationRouteId> builder) {
+    builder.children = [
+      ChatChannelNode(id: DerivedChildAbstractLocationRouteId.chatChannel),
+      SearchLocation(id: DerivedChildAbstractLocationRouteId.search),
+    ];
+  }
+}
+
+class SearchLocation extends AbstractLocation<
+    DerivedChildAbstractLocationRouteId,
+    SearchLocation> {
+  SearchLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<DerivedChildAbstractLocationRouteId> builder) {
+    builder.pathLiteral('search');
+    builder.children = [
+      ChatChannelNode(),
+    ];
+  }
+}
+
+class ChatChannelNode extends AbstractLocation<
+    DerivedChildAbstractLocationRouteId,
+    ChatChannelNode> {
+  ChatChannelNode({super.id});
+
+  @override
+  void build(LocationBuilder<DerivedChildAbstractLocationRouteId> builder) {
+    builder.pathLiteral('channels');
+    final channelId = builder.stringPathParam();
+    final hasIds = id != null;
+    builder.children = [
+      ChatChannelSendLocation(
+        id: hasIds
+            ? DerivedChildAbstractLocationRouteId.chatChannelSend
+            : null,
+      ),
+    ];
+  }
+}
+
+class ChatChannelSendLocation extends AbstractLocation<
+    DerivedChildAbstractLocationRouteId,
+    ChatChannelSendLocation> {
+  ChatChannelSendLocation({super.id});
+
+  @override
+  void build(LocationBuilder<DerivedChildAbstractLocationRouteId> builder) {
+    builder.pathLiteral('send');
+  }
+}
+
+@RouteNodes()
+final RouteNode<DerivedChildAbstractLocationRouteId> appLocationTree =
+    RootLocation(id: DerivedChildAbstractLocationRouteId.root);
+''',
+        },
+        outputs: {
+          'working_router|lib/derived_child_ids_abstract_location_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToRoot()'),
+                  contains('void routeToSearch()'),
+                  contains(
+                    'void routeToChatChannel({required String channelId}) {',
+                  ),
+                  contains(
+                    'void routeToChatChannelSend({required String channelId}) {',
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
   test('supports builder.bindParam for generated helper parameters', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,

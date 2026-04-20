@@ -2301,7 +2301,118 @@ class _StaticRouteTreeExtractor {
       return value.isNull;
     }
 
+    if (normalizedExpression is SimpleIdentifier) {
+      final namedResult = await _evaluateNamedValueIsNullInContext(
+        normalizedExpression.name,
+        evaluationContext,
+      );
+      if (namedResult != null) {
+        return namedResult;
+      }
+    }
+    if (normalizedExpression is PrefixedIdentifier &&
+        normalizedExpression.prefix.name == 'this') {
+      final fieldResult = await _evaluateFieldIsNullInContext(
+        normalizedExpression.identifier.name,
+        evaluationContext,
+      );
+      if (fieldResult != null) {
+        return fieldResult;
+      }
+    }
+    if (normalizedExpression is PropertyAccess &&
+        normalizedExpression.realTarget is ThisExpression) {
+      final fieldResult = await _evaluateFieldIsNullInContext(
+        normalizedExpression.propertyName.name,
+        evaluationContext,
+      );
+      if (fieldResult != null) {
+        return fieldResult;
+      }
+    }
+
+    final contextualResult = await _evaluateExpressionIsNullInContext(
+      normalizedExpression,
+      evaluationContext,
+    );
+    if (contextualResult != null) {
+      return contextualResult;
+    }
+
     return false;
+  }
+
+  Future<bool?> _evaluateNamedValueIsNullInContext(
+    String name,
+    _ExpressionContext? evaluationContext,
+  ) async {
+    if (evaluationContext == null) {
+      return null;
+    }
+    if (evaluationContext case _DslStatementContext(
+      :final _bindings,
+      :final parent,
+    )) {
+      final binding = _bindings[name];
+      if (binding != null && binding.toSource() != name) {
+        return _evaluateIdConditionValueIsNull(binding, evaluationContext);
+      }
+      return _evaluateNamedValueIsNullInContext(name, parent);
+    }
+    if (evaluationContext case _InstanceStringContext()) {
+      return evaluationContext._evaluateNamedValueIsNull(name);
+    }
+    if (evaluationContext case _FunctionExpressionContext(
+      :final parameterBindings,
+      :final parentContext,
+    )) {
+      final binding = parameterBindings[name];
+      if (binding != null && binding.toSource() != name) {
+        return _evaluateIdConditionValueIsNull(binding, evaluationContext);
+      }
+      return _evaluateNamedValueIsNullInContext(name, parentContext);
+    }
+    return null;
+  }
+
+  Future<bool?> _evaluateFieldIsNullInContext(
+    String name,
+    _ExpressionContext? evaluationContext,
+  ) async {
+    if (evaluationContext == null) {
+      return null;
+    }
+    if (evaluationContext case _DslStatementContext(:final parent)) {
+      return _evaluateFieldIsNullInContext(name, parent);
+    }
+    if (evaluationContext case _InstanceStringContext()) {
+      return evaluationContext._evaluateFieldIsNull(name);
+    }
+    if (evaluationContext case _FunctionExpressionContext(
+      :final parentContext,
+    )) {
+      return _evaluateFieldIsNullInContext(name, parentContext);
+    }
+    return null;
+  }
+
+  Future<bool?> _evaluateExpressionIsNullInContext(
+    Expression expression,
+    _ExpressionContext? evaluationContext,
+  ) async {
+    if (evaluationContext == null) {
+      return null;
+    }
+    if (evaluationContext case _DslStatementContext(:final parent)) {
+      return _evaluateExpressionIsNullInContext(expression, parent);
+    }
+    if (evaluationContext case _InstanceStringContext()) {
+      return evaluationContext._evaluateIsNull(expression);
+    }
+    if (evaluationContext case _FunctionExpressionContext()) {
+      return evaluationContext._evaluateIsNull(expression);
+    }
+    return null;
   }
 
   Future<_ResolvedHelperInvocation?> _helperInvocation(
@@ -3564,6 +3675,58 @@ class _InstanceStringContext implements _ExpressionContext {
         }
         return fieldExpression;
       }
+
+      if (_hasUnboundConstructorParameter(normalizedExpression.name)) {
+        return null;
+      }
+    }
+    if (normalizedExpression is PrefixedIdentifier &&
+        normalizedExpression.prefix.name == 'this') {
+      final fieldExpression = await _fieldExpression(
+        normalizedExpression.identifier.name,
+      );
+      if (fieldExpression != null &&
+          fieldExpression.toSource() != normalizedExpression.toSource()) {
+        if (_canResolveFurther(fieldExpression)) {
+          final resolvedExpression = await _resolveExpression(
+            fieldExpression,
+            visited,
+          );
+          if (resolvedExpression != null) {
+            return resolvedExpression;
+          }
+        }
+        return fieldExpression;
+      }
+      if (_hasUnboundConstructorParameter(
+        normalizedExpression.identifier.name,
+      )) {
+        return null;
+      }
+    }
+    if (normalizedExpression is PropertyAccess &&
+        normalizedExpression.realTarget is ThisExpression) {
+      final fieldExpression = await _fieldExpression(
+        normalizedExpression.propertyName.name,
+      );
+      if (fieldExpression != null &&
+          fieldExpression.toSource() != normalizedExpression.toSource()) {
+        if (_canResolveFurther(fieldExpression)) {
+          final resolvedExpression = await _resolveExpression(
+            fieldExpression,
+            visited,
+          );
+          if (resolvedExpression != null) {
+            return resolvedExpression;
+          }
+        }
+        return fieldExpression;
+      }
+      if (_hasUnboundConstructorParameter(
+        normalizedExpression.propertyName.name,
+      )) {
+        return null;
+      }
     }
     return _resolveParentExpression(
       parentContext,
@@ -3596,6 +3759,14 @@ class _InstanceStringContext implements _ExpressionContext {
           return _resolveIdExpression(parameterBinding.expression, visited);
         }
       }
+      final fieldExpression = await _fieldExpression(normalizedExpression.name);
+      if (fieldExpression != null &&
+          fieldExpression.toSource() != normalizedExpression.toSource()) {
+        return _resolveIdExpression(fieldExpression, visited);
+      }
+      if (_hasUnboundConstructorParameter(normalizedExpression.name)) {
+        return null;
+      }
       final parentExpression = await _resolveParentExpression(
         parentContext,
         normalizedExpression,
@@ -3607,6 +3778,36 @@ class _InstanceStringContext implements _ExpressionContext {
           parentExpression,
           visited,
         );
+      }
+    }
+    if (normalizedExpression is PrefixedIdentifier &&
+        normalizedExpression.prefix.name == 'this') {
+      final fieldExpression = await _fieldExpression(
+        normalizedExpression.identifier.name,
+      );
+      if (fieldExpression != null &&
+          fieldExpression.toSource() != normalizedExpression.toSource()) {
+        return _resolveIdExpression(fieldExpression, visited);
+      }
+      if (_hasUnboundConstructorParameter(
+        normalizedExpression.identifier.name,
+      )) {
+        return null;
+      }
+    }
+    if (normalizedExpression is PropertyAccess &&
+        normalizedExpression.realTarget is ThisExpression) {
+      final fieldExpression = await _fieldExpression(
+        normalizedExpression.propertyName.name,
+      );
+      if (fieldExpression != null &&
+          fieldExpression.toSource() != normalizedExpression.toSource()) {
+        return _resolveIdExpression(fieldExpression, visited);
+      }
+      if (_hasUnboundConstructorParameter(
+        normalizedExpression.propertyName.name,
+      )) {
+        return null;
       }
     }
     if (normalizedExpression is ConditionalExpression) {
@@ -3627,6 +3828,16 @@ class _InstanceStringContext implements _ExpressionContext {
       return _resolveIdExpression(branch, visited);
     }
     return normalizedExpression;
+  }
+
+  bool _hasUnboundConstructorParameter(String name) {
+    if (parameterBindings.containsKey(name)) {
+      return false;
+    }
+
+    return _constructorParameters.any((parameter) {
+      return _formalParameterName(parameter) == name;
+    });
   }
 
   Map<String, _BoundStringExpression> _bindArguments({
@@ -4305,6 +4516,42 @@ class _FunctionExpressionContext implements _ExpressionContext {
       'generated route ids.',
       element: executable,
     );
+  }
+
+  Future<bool> _evaluateIsNull(Expression expression) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is NullLiteral) {
+      return true;
+    }
+    if (normalizedExpression is SimpleIdentifier) {
+      final boundExpression = parameterBindings[normalizedExpression.name];
+      if (boundExpression != null) {
+        return _evaluateIsNull(boundExpression);
+      }
+      final parentExpression = await parentContext?.resolveExpression(
+        normalizedExpression,
+      );
+      if (parentExpression != null &&
+          parentExpression.toSource() != normalizedExpression.toSource()) {
+        return _evaluateIsNull(parentExpression);
+      }
+    }
+
+    final constantValue = normalizedExpression.computeConstantValue();
+    final value = constantValue?.value;
+    if (value != null) {
+      return value.isNull;
+    }
+
+    final parent = parentContext;
+    if (parent is _InstanceStringContext) {
+      return parent._evaluateIsNull(normalizedExpression);
+    }
+    if (parent is _FunctionExpressionContext) {
+      return parent._evaluateIsNull(normalizedExpression);
+    }
+
+    return false;
   }
 
   Expression _unwrapExpression(Expression expression) {
