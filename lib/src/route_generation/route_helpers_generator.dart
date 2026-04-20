@@ -155,6 +155,18 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     return methods;
   }
 
+  bool _locationChildTargetMethodsAreCompatible(
+    _GeneratedLocationChildTargetMethod first,
+    _GeneratedLocationChildTargetMethod second,
+  ) {
+    return first.isEquivalent(second) &&
+        (!identical(first.ownerNode, second.ownerNode) ||
+            _branchSelectionsAreMutuallyExclusive(
+              first.exclusiveBranchSelections,
+              second.exclusiveBranchSelections,
+            ));
+  }
+
   List<_GeneratedLocationChildTargetMethod> _collectLocationChildTargetMethods(
     Iterable<_RouteNode> roots,
     Element element, {
@@ -197,9 +209,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             if (previousMethod.isEquivalent(method) &&
                 (!identical(previousMethod.ownerNode, method.ownerNode) ||
                     _branchSelectionsAreMutuallyExclusive(
-                  previousMethod.exclusiveBranchSelections,
-                  method.exclusiveBranchSelections,
-                ))) {
+                      previousMethod.exclusiveBranchSelections,
+                      method.exclusiveBranchSelections,
+                    ))) {
               continue;
             }
             usedMethodsByOwnerAndName.remove(methodKey);
@@ -223,6 +235,38 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     for (final root in roots) {
       visit(root, const []);
+    }
+    final methodsByOwnerAndTargetType =
+        <String, List<_GeneratedLocationChildTargetMethod>>{};
+    for (final method in methods) {
+      final familyKey = '${method.ownerTypeSource}.${method.targetTypeSource}';
+      methodsByOwnerAndTargetType.putIfAbsent(familyKey, () => []).add(method);
+    }
+    for (final family in methodsByOwnerAndTargetType.values) {
+      for (final method in family) {
+        if (method.hasTargetId) {
+          continue;
+        }
+        final hasConflictingFamilyMember = family.any(
+          (other) =>
+              !identical(other, method) &&
+              !_locationChildTargetMethodsAreCompatible(method, other),
+        );
+        if (!hasConflictingFamilyMember) {
+          continue;
+        }
+
+        final methodKey = '${method.ownerTypeSource}.${method.name}';
+        if (suppressedMethodKeys.contains(methodKey)) {
+          continue;
+        }
+        methods.remove(method);
+        suppressedMethodKeys.add(methodKey);
+        onSuppressedAmbiguousMethod?.call(
+          'Skipped `${method.ownerTypeSource}.${method.name}`: multiple '
+          'descendant routes would match this child target.',
+        );
+      }
     }
     return methods;
   }
@@ -300,6 +344,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       ownerTypeSource: owner.locationTypeSource,
       idTypeSource: _idTypeSource(element),
       name: 'child${_toUpperCamelCase(childMethodBaseName)}Target',
+      targetTypeSource: target.locationTypeSource,
+      hasTargetId: target.idExpression != null,
       childLocationMatchSource: _routeNodeMatchSource(target),
       exclusiveBranchSelections: target.exclusiveBranchSelections,
       pathWrites: pathWrites,
@@ -525,18 +571,14 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   }
 
   String _routeNodeMatchSource(_RouteNode node) {
-    if ((node.locationTypeSource == 'Location' ||
-            node.locationTypeSource == 'ShellLocation') &&
-        node.idExpression != null) {
+    if (node.idExpression != null) {
       return 'location.id == ${node.idExpression}';
     }
     return 'location is ${node.locationTypeSource}';
   }
 
   String _childMethodBaseNameForNode(_RouteNode node) {
-    if ((node.locationTypeSource == 'Location' ||
-            node.locationTypeSource == 'ShellLocation') &&
-        node.idExpression != null) {
+    if (node.idExpression != null) {
       return node.idExpression!.split('.').last;
     }
     return _childMethodBaseName(node.locationTypeSource);
@@ -1945,9 +1987,10 @@ class _StaticRouteTreeExtractor {
         }
         if (evaluationContext != null &&
             _canResolveThroughContext(_unwrapExpression(codecExpression))) {
-          final boundCodecExpression = await evaluationContext.resolveExpression(
-            _unwrapExpression(codecExpression),
-          );
+          final boundCodecExpression = await evaluationContext
+              .resolveExpression(
+                _unwrapExpression(codecExpression),
+              );
           if (boundCodecExpression != null) {
             codecExpression = boundCodecExpression;
           }
@@ -1984,9 +2027,10 @@ class _StaticRouteTreeExtractor {
         }
         if (evaluationContext != null &&
             _canResolveThroughContext(_unwrapExpression(codecExpression))) {
-          final boundCodecExpression = await evaluationContext.resolveExpression(
-            _unwrapExpression(codecExpression),
-          );
+          final boundCodecExpression = await evaluationContext
+              .resolveExpression(
+                _unwrapExpression(codecExpression),
+              );
           if (boundCodecExpression != null) {
             codecExpression = boundCodecExpression;
           }
@@ -3414,7 +3458,8 @@ class _InstanceStringContext implements _ExpressionContext {
       constructor: constructor,
     );
     if (constructorNode == null) {
-      if (!constructor.isSynthetic || creation.argumentList.arguments.isNotEmpty) {
+      if (!constructor.isSynthetic ||
+          creation.argumentList.arguments.isNotEmpty) {
         throw InvalidGenerationSourceError(
           'Unable to read the constructor source for `${classElement.name}`.',
           element: constructor,
@@ -3837,10 +3882,9 @@ class _InstanceStringContext implements _ExpressionContext {
   Future<Expression?> _fieldExpression(String name) async {
     final field = classElement.getField(name);
     if (field != null) {
-      final fieldFormalParameter = _constructorParameters
-          .firstWhereOrNull(
-            (parameter) => _formalParameterName(parameter) == name,
-          );
+      final fieldFormalParameter = _constructorParameters.firstWhereOrNull(
+        (parameter) => _formalParameterName(parameter) == name,
+      );
       if (fieldFormalParameter != null &&
           _unwrapFormalParameter(fieldFormalParameter)
               is FieldFormalParameter) {
@@ -4423,7 +4467,8 @@ class _RouteNode {
       pathSegments: pathSegments,
       queryParameters: queryParameters,
       children: [
-        for (final child in children) child.withExclusiveBranch(groupId, branchId),
+        for (final child in children)
+          child.withExclusiveBranch(groupId, branchId),
       ],
     );
   }
@@ -4656,6 +4701,8 @@ class _GeneratedLocationChildTargetMethod {
   final String ownerTypeSource;
   final String idTypeSource;
   final String name;
+  final String targetTypeSource;
+  final bool hasTargetId;
   final String childLocationMatchSource;
   final Map<int, int> exclusiveBranchSelections;
   final List<_GeneratedPathWrite> pathWrites;
@@ -4667,6 +4714,8 @@ class _GeneratedLocationChildTargetMethod {
     required this.ownerTypeSource,
     required this.idTypeSource,
     required this.name,
+    required this.targetTypeSource,
+    required this.hasTargetId,
     required this.childLocationMatchSource,
     required this.exclusiveBranchSelections,
     required this.pathWrites,

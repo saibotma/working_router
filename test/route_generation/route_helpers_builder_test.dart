@@ -1094,26 +1094,25 @@ RouteNode<BindParamRouteId> get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
-        'working_router|lib/bind_param_routes.working_router.g.part':
-            decodedMatches(
-              allOf(
-                contains(
-                  'void routeToChannel({required String channelId, required String keep}) {',
-                ),
-                contains(
-                  'ChannelRouteTarget({required String channelId, required String keep})',
-                ),
-                contains(
-                  'void routeToSend({required String channelId, required String keep}) {',
-                ),
-                contains(
-                  "'keep': StringRouteParamCodec().encode(keep)",
-                ),
-                contains(
-                  'location.pathParameters[0] as PathParam<String>',
-                ),
-              ),
+        'working_router|lib/bind_param_routes.working_router.g.part': decodedMatches(
+          allOf(
+            contains(
+              'void routeToChannel({required String channelId, required String keep}) {',
             ),
+            contains(
+              'ChannelRouteTarget({required String channelId, required String keep})',
+            ),
+            contains(
+              'void routeToSend({required String channelId, required String keep}) {',
+            ),
+            contains(
+              "'keep': StringRouteParamCodec().encode(keep)",
+            ),
+            contains(
+              'location.pathParameters[0] as PathParam<String>',
+            ),
+          ),
+        ),
       },
       readerWriter: readerWriter,
     );
@@ -1348,16 +1347,16 @@ RouteNode<ParameterizedRouteId> buildLocationTree({
 }
 ''',
         },
-      outputs: {
-        'working_router|lib/parameterized_builder_routes.working_router.g.part':
-            decodedMatches(
-              allOf(
-                contains('// ignore_for_file: type=lint'),
-                contains('extension BuildLocationTreeGeneratedRoutes'),
-                contains('void routeToRoot()'),
-                contains('void routeToChat()'),
-                contains(
-                  'void routeToChannel({required String channelId}) {',
+        outputs: {
+          'working_router|lib/parameterized_builder_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('// ignore_for_file: type=lint'),
+                  contains('extension BuildLocationTreeGeneratedRoutes'),
+                  contains('void routeToRoot()'),
+                  contains('void routeToChat()'),
+                  contains(
+                    'void routeToChannel({required String channelId}) {',
                   ),
                   contains(
                     'void routeToChannelSend({required String channelId}) {',
@@ -1934,33 +1933,32 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
 ''',
         },
         outputs: {
-          'working_router|lib/idless_child_targets_routes.working_router.g.part':
-              decodedMatches(
-                allOf(
-                  allOf(
-                    contains(
-                      'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
-                    ),
-                    contains(
-                      'ChildRouteTarget<IdlessChildTargetRouteId> childPrivacyTarget({',
-                    ),
-                    contains(
-                      'ChildRouteTarget<IdlessChildTargetRouteId> childTermsOfUseTarget({',
-                    ),
-                  ),
-                  allOf(
-                    contains(
-                      '(location) => location is PrivacyLocation,',
-                    ),
-                    contains(
-                      "'languageCode': const StringRouteParamCodec().encode(value),",
-                    ),
-                    isNot(contains('childLegalNodeTarget')),
-                    isNot(contains('void routeToPrivacy(')),
-                    isNot(contains('void routeToTermsOfUse(')),
-                  ),
+          'working_router|lib/idless_child_targets_routes.working_router.g.part': decodedMatches(
+            allOf(
+              allOf(
+                contains(
+                  'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+                ),
+                contains(
+                  'ChildRouteTarget<IdlessChildTargetRouteId> childPrivacyTarget({',
+                ),
+                contains(
+                  'ChildRouteTarget<IdlessChildTargetRouteId> childTermsOfUseTarget({',
                 ),
               ),
+              allOf(
+                contains(
+                  '(location) => location is PrivacyLocation,',
+                ),
+                contains(
+                  "'languageCode': const StringRouteParamCodec().encode(value),",
+                ),
+                isNot(contains('childLegalNodeTarget')),
+                isNot(contains('void routeToPrivacy(')),
+                isNot(contains('void routeToTermsOfUse(')),
+              ),
+            ),
+          ),
         },
         readerWriter: readerWriter,
       );
@@ -2055,39 +2053,38 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
 ''',
         },
         outputs: {
-          'working_router|lib/ambiguous_idless_child_targets_routes.working_router.g.part':
-              decodedMatches(
-                allOf(
-                  allOf(
-                    contains(
-                      'extension RootLocationGeneratedChildTargets on RootLocation {',
-                    ),
-                    contains(
-                      'ChildRouteTarget<AmbiguousChildTargetRouteId> get childAddAccountNodeTarget',
-                    ),
-                    contains(
-                      'ChildRouteTarget<AmbiguousChildTargetRouteId> get childSettingsTarget',
-                    ),
-                    isNot(
-                      contains(
-                        'extension RootLocationGeneratedChildTargets on RootLocation {\n'
-                        '  ChildRouteTarget<AmbiguousChildTargetRouteId> get childPrivacyTarget',
-                      ),
-                    ),
-                  ),
-                  allOf(
-                    contains(
-                      'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
-                    ),
-                    contains(
-                      'extension SettingsLocationGeneratedChildTargets on SettingsLocation {',
-                    ),
-                    contains(
-                      'ChildRouteTarget<AmbiguousChildTargetRouteId> get childPrivacyTarget',
-                    ),
+          'working_router|lib/ambiguous_idless_child_targets_routes.working_router.g.part': decodedMatches(
+            allOf(
+              allOf(
+                contains(
+                  'extension RootLocationGeneratedChildTargets on RootLocation {',
+                ),
+                contains(
+                  'ChildRouteTarget<AmbiguousChildTargetRouteId> get childAddAccountTarget',
+                ),
+                contains(
+                  'ChildRouteTarget<AmbiguousChildTargetRouteId> get childSettingsTarget',
+                ),
+                isNot(
+                  contains(
+                    'extension RootLocationGeneratedChildTargets on RootLocation {\n'
+                    '  ChildRouteTarget<AmbiguousChildTargetRouteId> get childPrivacyTarget',
                   ),
                 ),
+              ),
+              allOf(
+                contains(
+                  'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+                ),
+                contains(
+                  'extension SettingsLocationGeneratedChildTargets on SettingsLocation {',
+                ),
+                contains(
+                  'ChildRouteTarget<AmbiguousChildTargetRouteId> get childPrivacyTarget',
+                ),
+              ),
             ),
+          ),
         },
         onLog: (log) => logs.add(
           (level: log.level.name, message: log.message),
@@ -2111,6 +2108,126 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
   );
 
   test(
+    'prefers id-based child targets over ambiguous type-based child targets',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/ambiguous_mixed_id_child_targets_routes.dart': '''
+library ambiguous_mixed_id_child_targets_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'ambiguous_mixed_id_child_targets_routes.g.dart';
+
+enum AmbiguousMixedIdChildTargetRouteId { root, chatChannel }
+
+class RootLocation
+    extends Location<AmbiguousMixedIdChildTargetRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(
+    LocationBuilder<AmbiguousMixedIdChildTargetRouteId> builder,
+  ) {
+    builder.children = [
+      ChatChannelNode(id: AmbiguousMixedIdChildTargetRouteId.chatChannel),
+      ChatSearchLocation(
+        build: (builder, node) {
+          builder.pathLiteral('search');
+          builder.children = [
+            ChatChannelNode(),
+          ];
+        },
+      ),
+    ];
+  }
+}
+
+class ChatChannelNode
+    extends Location<AmbiguousMixedIdChildTargetRouteId, ChatChannelNode> {
+  ChatChannelNode({super.id});
+
+  @override
+  void build(
+    LocationBuilder<AmbiguousMixedIdChildTargetRouteId> builder,
+  ) {
+    builder.pathLiteral('channel');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+class ChatSearchLocation
+    extends Location<AmbiguousMixedIdChildTargetRouteId, ChatSearchLocation> {
+  ChatSearchLocation({required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<AmbiguousMixedIdChildTargetRouteId>> buildRouteNodes() => [
+  RootLocation(id: AmbiguousMixedIdChildTargetRouteId.root),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/ambiguous_mixed_id_child_targets_routes.working_router.g.part': decodedMatches(
+            allOf(
+              contains(
+                'extension RootLocationGeneratedChildTargets on RootLocation {',
+              ),
+              contains('get childChatChannelTarget {'),
+              contains(
+                'location.id == AmbiguousMixedIdChildTargetRouteId.chatChannel,',
+              ),
+              isNot(
+                contains(
+                  'extension RootLocationGeneratedChildTargets on RootLocation {\n'
+                  '  ChildRouteTarget<AmbiguousMixedIdChildTargetRouteId>\n'
+                  '  get childChatChannelNodeTarget',
+                ),
+              ),
+              contains(
+                'extension ChatSearchLocationGeneratedChildTargets on ChatSearchLocation {',
+              ),
+              contains('get childChatChannelNodeTarget {'),
+            ),
+          ),
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final warningMessages = logs
+          .where((log) => log.level == 'WARNING')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        warningMessages,
+        contains(
+          'Skipped `RootLocation.childChatChannelNodeTarget`: multiple descendant routes would match this child target.',
+        ),
+      );
+      expect(
+        warningMessages,
+        isNot(
+          contains(
+            'Skipped `RootLocation.childChatChannelTarget`: multiple descendant routes would match this child target.',
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
     'keeps one owner-bound child target for equivalent duplicate descendants',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
@@ -2123,7 +2240,8 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
       await testBuilder(
         builder,
         {
-          'working_router|lib/equivalent_duplicate_child_targets_routes.dart': '''
+          'working_router|lib/equivalent_duplicate_child_targets_routes.dart':
+              '''
 library equivalent_duplicate_child_targets_routes;
 
 import 'package:flutter/widgets.dart';
@@ -2224,7 +2342,8 @@ List<RouteNode<EquivalentDuplicateChildTargetRouteId>> buildRouteNodes() => [
       await testBuilder(
         builder,
         {
-          'working_router|lib/equivalent_owner_instance_child_targets_routes.dart': '''
+          'working_router|lib/equivalent_owner_instance_child_targets_routes.dart':
+              '''
 library equivalent_owner_instance_child_targets_routes;
 
 import 'package:flutter/widgets.dart';
@@ -2390,9 +2509,15 @@ List<RouteNode<UnsupportedRouteId>> buildRouteNodes() => [
           contains(
             'Unsupported route tree expression `true ? PrivacyLocation(',
           ),
-          contains('package:working_router/unsupported_route_tree_expression.dart:25:9'),
+          contains(
+            'package:working_router/unsupported_route_tree_expression.dart:25:9',
+          ),
           contains('? PrivacyLocation('),
-          isNot(contains('List<RouteNode<UnsupportedRouteId>> buildRouteNodes() => [')),
+          isNot(
+            contains(
+              'List<RouteNode<UnsupportedRouteId>> buildRouteNodes() => [',
+            ),
+          ),
         ),
       );
     },
