@@ -2220,6 +2220,20 @@ class _StaticRouteTreeExtractor {
     _ExpressionContext evaluationContext,
   ) async {
     final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is SimpleIdentifier) {
+      final boundExpression = await _lookupNamedExpressionInContext(
+        normalizedExpression.name,
+        evaluationContext,
+      );
+      if (boundExpression != null &&
+          boundExpression.expression.toSource() !=
+              normalizedExpression.toSource()) {
+        return _evaluateNullableIdConditionFromContext(
+          boundExpression.expression,
+          boundExpression.context,
+        );
+      }
+    }
     final resolvedExpression =
         await evaluationContext.resolveIdExpression(normalizedExpression) ??
         await evaluationContext.resolveExpression(normalizedExpression);
@@ -2411,6 +2425,65 @@ class _StaticRouteTreeExtractor {
     }
     if (evaluationContext case _FunctionExpressionContext()) {
       return evaluationContext._evaluateIsNull(expression);
+    }
+    return null;
+  }
+
+  Future<_ResolvedContextExpression?> _lookupNamedExpressionInContext(
+    String name,
+    _ExpressionContext? evaluationContext,
+  ) async {
+    if (evaluationContext == null) {
+      return null;
+    }
+    if (evaluationContext case _DslStatementContext(
+      :final _bindings,
+      :final parent,
+    )) {
+      final binding = _bindings[name];
+      if (binding != null) {
+        return _ResolvedContextExpression(
+          expression: binding,
+          context: evaluationContext,
+        );
+      }
+      return _lookupNamedExpressionInContext(name, parent);
+    }
+    if (evaluationContext case _InstanceStringContext()) {
+      final parameterBinding = evaluationContext.parameterBindings[name];
+      if (parameterBinding != null) {
+        return _ResolvedContextExpression(
+          expression: parameterBinding.expression,
+          context: evaluationContext,
+        );
+      }
+      final fieldExpression = await evaluationContext._fieldExpression(name);
+      if (fieldExpression != null && fieldExpression.toSource() != name) {
+        return _ResolvedContextExpression(
+          expression: fieldExpression,
+          context: evaluationContext,
+        );
+      }
+      if (evaluationContext._hasUnboundConstructorParameter(name)) {
+        return null;
+      }
+      return _lookupNamedExpressionInContext(
+        name,
+        evaluationContext.parentContext,
+      );
+    }
+    if (evaluationContext case _FunctionExpressionContext(
+      :final parameterBindings,
+      :final parentContext,
+    )) {
+      final binding = parameterBindings[name];
+      if (binding != null) {
+        return _ResolvedContextExpression(
+          expression: binding,
+          context: evaluationContext,
+        );
+      }
+      return _lookupNamedExpressionInContext(name, parentContext);
     }
     return null;
   }
@@ -3422,6 +3495,16 @@ class _ResolvedHelperInvocation {
   final _ExpressionContext context;
 
   const _ResolvedHelperInvocation({
+    required this.expression,
+    required this.context,
+  });
+}
+
+class _ResolvedContextExpression {
+  final Expression expression;
+  final _ExpressionContext context;
+
+  const _ResolvedContextExpression({
     required this.expression,
     required this.context,
   });

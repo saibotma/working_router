@@ -1144,6 +1144,148 @@ final RouteNode<DerivedChildAbstractLocationRouteId> appLocationTree =
     },
   );
 
+  test(
+    'supports nested conditional child ids through reused AbstractLocation subclasses',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/nested_derived_child_ids_abstract_location_routes.dart':
+              '''
+library nested_derived_child_ids_abstract_location_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'nested_derived_child_ids_abstract_location_routes.g.dart';
+
+enum NestedDerivedChildAbstractLocationRouteId {
+  root,
+  search,
+  chatChannel,
+  chatChannelInfo,
+  chatChannelEditChannelName,
+}
+
+class RootLocation extends AbstractLocation<
+    NestedDerivedChildAbstractLocationRouteId,
+    RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(
+    LocationBuilder<NestedDerivedChildAbstractLocationRouteId> builder,
+  ) {
+    builder.children = [
+      ChatChannelNode(
+        id: NestedDerivedChildAbstractLocationRouteId.chatChannel,
+      ),
+      SearchLocation(id: NestedDerivedChildAbstractLocationRouteId.search),
+    ];
+  }
+}
+
+class SearchLocation extends AbstractLocation<
+    NestedDerivedChildAbstractLocationRouteId,
+    SearchLocation> {
+  SearchLocation({required super.id});
+
+  @override
+  void build(
+    LocationBuilder<NestedDerivedChildAbstractLocationRouteId> builder,
+  ) {
+    builder.pathLiteral('search');
+    builder.children = [
+      ChatChannelNode(),
+    ];
+  }
+}
+
+class ChatChannelNode extends AbstractLocation<
+    NestedDerivedChildAbstractLocationRouteId,
+    ChatChannelNode> {
+  ChatChannelNode({super.id});
+
+  @override
+  void build(
+    LocationBuilder<NestedDerivedChildAbstractLocationRouteId> builder,
+  ) {
+    builder.pathLiteral('channels');
+    final channelId = builder.stringPathParam();
+    final hasIds = id != null;
+    builder.children = [
+      ChatChannelInfoLocation(
+        id: hasIds
+            ? NestedDerivedChildAbstractLocationRouteId.chatChannelInfo
+            : null,
+        build: (builder, location) {
+          builder.pathLiteral('info');
+          builder.children = [
+            ChatChannelEditChannelNameLocation(
+              id: hasIds
+                  ? NestedDerivedChildAbstractLocationRouteId
+                      .chatChannelEditChannelName
+                  : null,
+            ),
+          ];
+        },
+      ),
+    ];
+  }
+}
+
+class ChatChannelInfoLocation extends Location<
+    NestedDerivedChildAbstractLocationRouteId,
+    ChatChannelInfoLocation> {
+  ChatChannelInfoLocation({super.id, required super.build});
+}
+
+class ChatChannelEditChannelNameLocation extends AbstractLocation<
+    NestedDerivedChildAbstractLocationRouteId,
+    ChatChannelEditChannelNameLocation> {
+  ChatChannelEditChannelNameLocation({super.id});
+
+  @override
+  void build(
+    LocationBuilder<NestedDerivedChildAbstractLocationRouteId> builder,
+  ) {
+    builder.pathLiteral('edit-name');
+  }
+}
+
+@RouteNodes()
+final RouteNode<NestedDerivedChildAbstractLocationRouteId> appLocationTree =
+    RootLocation(id: NestedDerivedChildAbstractLocationRouteId.root);
+''',
+        },
+        outputs: {
+          'working_router|lib/nested_derived_child_ids_abstract_location_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToRoot()'),
+                  contains('void routeToSearch()'),
+                  contains(
+                    'void routeToChatChannel({required String channelId}) {',
+                  ),
+                  contains(
+                    'void routeToChatChannelInfo({required String channelId}) {',
+                  ),
+                  contains(
+                    'void routeToChatChannelEditChannelName({required String channelId}) {',
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
   test('supports builder.bindParam for generated helper parameters', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,
