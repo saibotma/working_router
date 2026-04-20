@@ -155,26 +155,12 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     return methods;
   }
 
-  bool _locationChildTargetMethodsAreCompatible(
-    _GeneratedLocationChildTargetMethod first,
-    _GeneratedLocationChildTargetMethod second,
-  ) {
-    return first.isEquivalent(second) &&
-        (!identical(first.ownerNode, second.ownerNode) ||
-            _branchSelectionsAreMutuallyExclusive(
-              first.exclusiveBranchSelections,
-              second.exclusiveBranchSelections,
-            ));
-  }
-
   List<_GeneratedLocationChildTargetMethod> _collectLocationChildTargetMethods(
     Iterable<_RouteNode> roots,
     Element element, {
     void Function(String warning)? onSuppressedAmbiguousMethod,
   }) {
-    final methods = <_GeneratedLocationChildTargetMethod>[];
-    final usedMethodsByOwnerAndName =
-        <String, _GeneratedLocationChildTargetMethod>{};
+    final variants = <_GeneratedLocationChildTargetMethodVariant>[];
     final suppressedMethodKeys = <String>{};
 
     void visit(_RouteNode node, List<_RouteNode> chain) {
@@ -194,37 +180,14 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             continue;
           }
 
-          final method = _buildLocationChildTargetMethod(
-            owner: owner,
-            relativeChain: relativeChain,
-            target: node,
-            element: element,
+          variants.add(
+            _buildLocationChildTargetMethodVariant(
+              owner: owner,
+              relativeChain: relativeChain,
+              target: node,
+              element: element,
+            ),
           );
-          final methodKey = '${method.ownerTypeSource}.${method.name}';
-          if (suppressedMethodKeys.contains(methodKey)) {
-            continue;
-          }
-          final previousMethod = usedMethodsByOwnerAndName[methodKey];
-          if (previousMethod != null) {
-            if (previousMethod.isEquivalent(method) &&
-                (!identical(previousMethod.ownerNode, method.ownerNode) ||
-                    _branchSelectionsAreMutuallyExclusive(
-                      previousMethod.exclusiveBranchSelections,
-                      method.exclusiveBranchSelections,
-                    ))) {
-              continue;
-            }
-            usedMethodsByOwnerAndName.remove(methodKey);
-            methods.remove(previousMethod);
-            suppressedMethodKeys.add(methodKey);
-            onSuppressedAmbiguousMethod?.call(
-              'Skipped `${method.ownerTypeSource}.${method.name}`: multiple '
-              'descendant routes would match this child target.',
-            );
-            continue;
-          }
-          usedMethodsByOwnerAndName[methodKey] = method;
-          methods.add(method);
         }
       }
 
@@ -236,6 +199,44 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     for (final root in roots) {
       visit(root, const []);
     }
+
+    final methods = <_GeneratedLocationChildTargetMethod>[];
+    final variantsByOwnerAndName =
+        <String, List<_GeneratedLocationChildTargetMethodVariant>>{};
+    for (final variant in variants) {
+      final methodKey = '${variant.ownerTypeSource}.${variant.name}';
+      variantsByOwnerAndName.putIfAbsent(methodKey, () => []).add(variant);
+    }
+    for (final entry in variantsByOwnerAndName.entries) {
+      final deduplicatedVariants =
+          <_GeneratedLocationChildTargetMethodVariant>[];
+      for (final variant in entry.value) {
+        final hasCompatibleVariant = deduplicatedVariants.any(
+          (previous) => _locationChildTargetMethodVariantsAreCompatible(
+            previous,
+            variant,
+          ),
+        );
+        if (!hasCompatibleVariant) {
+          deduplicatedVariants.add(variant);
+        }
+      }
+
+      final method = _mergeLocationChildTargetMethodVariants(
+        deduplicatedVariants,
+      );
+      if (method != null) {
+        methods.add(method);
+        continue;
+      }
+
+      suppressedMethodKeys.add(entry.key);
+      onSuppressedAmbiguousMethod?.call(
+        'Skipped `${entry.key}`: multiple descendant routes would match this '
+        'child target.',
+      );
+    }
+
     final methodsByOwnerAndTargetType =
         <String, List<_GeneratedLocationChildTargetMethod>>{};
     for (final method in methods) {
@@ -269,6 +270,25 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       }
     }
     return methods;
+  }
+
+  bool _locationChildTargetMethodsAreCompatible(
+    _GeneratedLocationChildTargetMethod first,
+    _GeneratedLocationChildTargetMethod second,
+  ) {
+    return first.isEquivalent(second);
+  }
+
+  bool _locationChildTargetMethodVariantsAreCompatible(
+    _GeneratedLocationChildTargetMethodVariant first,
+    _GeneratedLocationChildTargetMethodVariant second,
+  ) {
+    return first.isEquivalent(second) &&
+        (!identical(first.ownerNode, second.ownerNode) ||
+            _branchSelectionsAreMutuallyExclusive(
+              first.exclusiveBranchSelections,
+              second.exclusiveBranchSelections,
+            ));
   }
 
   bool _supportsGeneratedLocationChildTarget(_RouteNode node) {
@@ -318,7 +338,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     );
   }
 
-  _GeneratedLocationChildTargetMethod _buildLocationChildTargetMethod({
+  _GeneratedLocationChildTargetMethodVariant
+  _buildLocationChildTargetMethodVariant({
     required _RouteNode owner,
     required List<_RouteNode> relativeChain,
     required _RouteNode target,
@@ -339,8 +360,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           '${owner.locationTypeSource} -> ${target.idExpression ?? target.locationTypeSource}',
     );
 
-    return _GeneratedLocationChildTargetMethod(
+    return _GeneratedLocationChildTargetMethodVariant(
       ownerNode: owner,
+      ownerIdExpression: owner.idExpression,
       ownerTypeSource: owner.locationTypeSource,
       idTypeSource: _idTypeSource(element),
       name: 'child${_toUpperCamelCase(childMethodBaseName)}Target',
@@ -352,6 +374,63 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       pathParameters: pathParameters,
       queryParameters: queryParameters,
     );
+  }
+
+  _GeneratedLocationChildTargetMethod? _mergeLocationChildTargetMethodVariants(
+    List<_GeneratedLocationChildTargetMethodVariant> variants,
+  ) {
+    if (variants.isEmpty) {
+      return null;
+    }
+
+    final first = variants.first;
+    if (variants.length == 1) {
+      return _GeneratedLocationChildTargetMethod(variants: variants);
+    }
+
+    if (variants.any(
+      (variant) =>
+          variant.ownerTypeSource != first.ownerTypeSource ||
+          variant.idTypeSource != first.idTypeSource ||
+          variant.name != first.name ||
+          variant.targetTypeSource != first.targetTypeSource ||
+          !_parametersEquivalent(
+            variant.pathParameters,
+            first.pathParameters,
+          ) ||
+          !_parametersEquivalent(
+            variant.queryParameters,
+            first.queryParameters,
+          ),
+    )) {
+      return null;
+    }
+
+    final defaultVariants = variants
+        .where((variant) => variant.ownerIdExpression == null)
+        .toList(growable: false);
+    if (defaultVariants.length > 1) {
+      return null;
+    }
+
+    final usedOwnerIds = <String>{};
+    for (final variant in variants) {
+      final ownerIdExpression = variant.ownerIdExpression;
+      if (ownerIdExpression == null) {
+        continue;
+      }
+      if (!usedOwnerIds.add(ownerIdExpression)) {
+        return null;
+      }
+    }
+
+    final orderedVariants = [
+      ...variants
+          .where((variant) => variant.ownerIdExpression != null)
+          .sortedBy((variant) => variant.ownerIdExpression!),
+      ...defaultVariants,
+    ];
+    return _GeneratedLocationChildTargetMethod(variants: orderedVariants);
   }
 
   (Map<String, _GeneratedRouteParameter>, Map<String, _GeneratedRouteParameter>)
@@ -5027,7 +5106,100 @@ class _GeneratedRouteMethod {
 }
 
 class _GeneratedLocationChildTargetMethod {
+  final List<_GeneratedLocationChildTargetMethodVariant> variants;
+
+  const _GeneratedLocationChildTargetMethod({
+    required this.variants,
+  });
+
+  String get ownerTypeSource => variants.first.ownerTypeSource;
+
+  String get name => variants.first.name;
+
+  String get targetTypeSource => variants.first.targetTypeSource;
+
+  bool get hasTargetId => variants.any((variant) => variant.hasTargetId);
+
+  bool isEquivalent(_GeneratedLocationChildTargetMethod other) {
+    if (variants.length != other.variants.length) {
+      return false;
+    }
+
+    for (var i = 0; i < variants.length; i++) {
+      if (!variants[i].isOwnerAwareEquivalent(other.variants[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  String renderMethod() {
+    if (variants.length == 1) {
+      return variants.single.renderMethod();
+    }
+
+    final first = variants.first;
+    final buffer = StringBuffer();
+    final parameters = [
+      ...first.pathParameters.entries,
+      ...first.queryParameters.entries,
+    ];
+
+    if (parameters.isEmpty) {
+      buffer.writeln(
+        '  ChildRouteTarget<${first.idTypeSource}> get ${first.name} {',
+      );
+      _writeOwnerDispatch(buffer, first, indent: '    ');
+      buffer.writeln('  }');
+      return buffer.toString();
+    }
+
+    buffer.writeln('  ChildRouteTarget<${first.idTypeSource}> ${first.name}({');
+    for (final parameter in parameters) {
+      final generatedParameter = parameter.value;
+      final typeSource = generatedParameter.optional
+          ? _nullableTypeSource(generatedParameter.dartTypeSource)
+          : generatedParameter.dartTypeSource;
+      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+      buffer.writeln(
+        '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      );
+    }
+    buffer.writeln('  }) {');
+    _writeOwnerDispatch(buffer, first, indent: '    ');
+    buffer.writeln('  }');
+    return buffer.toString();
+  }
+
+  void _writeOwnerDispatch(
+    StringBuffer buffer,
+    _GeneratedLocationChildTargetMethodVariant first, {
+    required String indent,
+  }) {
+    final defaultVariant = variants
+        .where((variant) => variant.ownerIdExpression == null)
+        .singleOrNull;
+    for (final variant in variants.where(
+      (variant) => variant.ownerIdExpression != null,
+    )) {
+      buffer.writeln('$indent if (id == ${variant.ownerIdExpression}) {');
+      variant.writeReturnStatement(buffer, '$indent  ');
+      buffer.writeln('$indent }');
+    }
+    if (defaultVariant != null) {
+      defaultVariant.writeReturnStatement(buffer, indent);
+      return;
+    }
+    buffer.writeln(
+      "$indent throw StateError('Child target ${first.name} is not "
+      "available for \$runtimeType with id \$id.');",
+    );
+  }
+}
+
+class _GeneratedLocationChildTargetMethodVariant {
   final _RouteNode ownerNode;
+  final String? ownerIdExpression;
   final String ownerTypeSource;
   final String idTypeSource;
   final String name;
@@ -5039,8 +5211,9 @@ class _GeneratedLocationChildTargetMethod {
   final Map<String, _GeneratedRouteParameter> pathParameters;
   final Map<String, _GeneratedRouteParameter> queryParameters;
 
-  const _GeneratedLocationChildTargetMethod({
+  const _GeneratedLocationChildTargetMethodVariant({
     required this.ownerNode,
+    required this.ownerIdExpression,
     required this.ownerTypeSource,
     required this.idTypeSource,
     required this.name,
@@ -5053,7 +5226,7 @@ class _GeneratedLocationChildTargetMethod {
     required this.queryParameters,
   });
 
-  bool isEquivalent(_GeneratedLocationChildTargetMethod other) {
+  bool isEquivalent(_GeneratedLocationChildTargetMethodVariant other) {
     return ownerTypeSource == other.ownerTypeSource &&
         _generatedTargetDefinitionEquivalent(
           name: name,
@@ -5073,6 +5246,12 @@ class _GeneratedLocationChildTargetMethod {
         );
   }
 
+  bool isOwnerAwareEquivalent(
+    _GeneratedLocationChildTargetMethodVariant other,
+  ) {
+    return ownerIdExpression == other.ownerIdExpression && isEquivalent(other);
+  }
+
   String renderMethod() {
     final buffer = StringBuffer();
     final parameters = [
@@ -5082,10 +5261,7 @@ class _GeneratedLocationChildTargetMethod {
 
     if (parameters.isEmpty) {
       buffer.writeln('  ChildRouteTarget<$idTypeSource> get $name {');
-      buffer.writeln('    return ChildRouteTarget<$idTypeSource>(');
-      buffer.writeln('      (location) => $childLocationMatchSource,');
-      _writeConstructorOptions(buffer);
-      buffer.writeln('    );');
+      writeReturnStatement(buffer, '    ');
       buffer.writeln('  }');
       return buffer.toString();
     }
@@ -5102,15 +5278,22 @@ class _GeneratedLocationChildTargetMethod {
       );
     }
     buffer.writeln('  }) {');
-    buffer.writeln('    return ChildRouteTarget<$idTypeSource>(');
-    buffer.writeln('      (location) => $childLocationMatchSource,');
-    _writeConstructorOptions(buffer);
-    buffer.writeln('    );');
+    writeReturnStatement(buffer, '    ');
     buffer.writeln('  }');
     return buffer.toString();
   }
 
-  void _writeConstructorOptions(StringBuffer buffer) {
+  void writeReturnStatement(StringBuffer buffer, String indent) {
+    buffer.writeln('$indent return ChildRouteTarget<$idTypeSource>(');
+    buffer.writeln('$indent   (location) => $childLocationMatchSource,');
+    _writeConstructorOptions(buffer, indent: '$indent  ');
+    buffer.writeln('$indent);');
+  }
+
+  void _writeConstructorOptions(
+    StringBuffer buffer, {
+    required String indent,
+  }) {
     if (pathWrites.isNotEmpty) {
       final pathWritesByLocationType =
           <String, Map<int, List<_GeneratedPathWrite>>>{};
@@ -5124,56 +5307,58 @@ class _GeneratedLocationChildTargetMethod {
             .add(pathWrite);
       }
 
-      buffer.writeln('      writePathParameters: (() {');
+      buffer.writeln('$indent writePathParameters: (() {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
-        buffer.writeln('        var $counterName = 0;');
+        buffer.writeln('$indent   var $counterName = 0;');
       }
-      buffer.writeln('        return (location, path) {');
+      buffer.writeln('$indent   return (location, path) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
-          '          if (${entry.value.values.first.first.locationMatchSource}) {',
+          '$indent     if '
+          '(${entry.value.values.first.first.locationMatchSource}) {',
         );
-        buffer.writeln('            switch ($counterName++) {');
+        buffer.writeln('$indent       switch ($counterName++) {');
         final occurrences = entry.value.entries.toList()
           ..sort((left, right) => left.key.compareTo(right.key));
         for (final occurrence in occurrences) {
-          buffer.writeln('              case ${occurrence.key}:');
+          buffer.writeln('$indent         case ${occurrence.key}:');
           for (final pathWrite in occurrence.value) {
             buffer.writeln(
-              '                path(${pathWrite.parameterAccessorSource}, '
+              '$indent           path(${pathWrite.parameterAccessorSource}, '
               '${pathWrite.parameterName});',
             );
           }
-          buffer.writeln('                break;');
+          buffer.writeln('$indent           break;');
         }
-        buffer.writeln('            }');
-        buffer.writeln('          }');
+        buffer.writeln('$indent       }');
+        buffer.writeln('$indent     }');
       }
-      buffer.writeln('        };');
-      buffer.writeln('      })(),');
+      buffer.writeln('$indent   };');
+      buffer.writeln('$indent })(),');
     }
 
     if (queryParameters.isNotEmpty) {
-      buffer.writeln('      queryParameters: {');
+      buffer.writeln('$indent queryParameters: {');
       for (final parameter in queryParameters.entries) {
         final generatedParameter = parameter.value;
         if (generatedParameter.optional) {
           buffer.writeln(
-            "        if (${generatedParameter.parameterName} case final value?) "
+            "$indent   if (${generatedParameter.parameterName} case final "
+            'value?) '
             "'${parameter.key}': "
             "${generatedParameter.codecExpressionSource}.encode(value),",
           );
         } else {
           buffer.writeln(
-            "        '${parameter.key}': "
+            "$indent   '${parameter.key}': "
             "${generatedParameter.codecExpressionSource}.encode("
             "${generatedParameter.parameterName}),",
           );
         }
       }
-      buffer.writeln('      },');
+      buffer.writeln('$indent },');
     }
   }
 }

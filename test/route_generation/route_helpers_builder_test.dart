@@ -2688,6 +2688,199 @@ List<RouteNode<EquivalentOwnerInstanceChildTargetRouteId>> buildRouteNodes() => 
   );
 
   test(
+    'keeps owner-bound child targets when mixed owner ids can dispatch safely',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/mixed_owner_id_child_targets_routes.dart': '''
+library mixed_owner_id_child_targets_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'mixed_owner_id_child_targets_routes.g.dart';
+
+enum MixedOwnerIdChildTargetRouteId {
+  root,
+  chatChannel,
+  chatChannelSend,
+  chatChannelInfo,
+  chatChannelEditName,
+}
+
+class RootLocation
+    extends Location<MixedOwnerIdChildTargetRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(
+    LocationBuilder<MixedOwnerIdChildTargetRouteId> builder,
+  ) {
+    builder.children = [
+      ChatChannelNode(id: MixedOwnerIdChildTargetRouteId.chatChannel),
+      SearchLocation(
+        build: (builder, location) {
+          builder.pathLiteral('search');
+          builder.children = [
+            ChatChannelNode(),
+          ];
+        },
+      ),
+    ];
+  }
+}
+
+class SearchLocation
+    extends Location<MixedOwnerIdChildTargetRouteId, SearchLocation> {
+  SearchLocation({required super.build});
+}
+
+class ChatChannelNode extends AbstractLocation<
+    MixedOwnerIdChildTargetRouteId,
+    ChatChannelNode> {
+  ChatChannelNode({super.id});
+
+  @override
+  void build(
+    LocationBuilder<MixedOwnerIdChildTargetRouteId> builder,
+  ) {
+    final hasIds = id != null;
+    builder.pathLiteral('channel');
+    final channelId = builder.stringPathParam();
+    builder.content = Content.widget(const SizedBox.shrink());
+    builder.children = [
+      ChatChannelSendLocation(
+        id: hasIds ? MixedOwnerIdChildTargetRouteId.chatChannelSend : null,
+      ),
+      ChatChannelInfoLocation(
+        id: hasIds ? MixedOwnerIdChildTargetRouteId.chatChannelInfo : null,
+        build: (builder, location) {
+          builder.pathLiteral('info');
+          builder.content = Content.widget(const SizedBox.shrink());
+          builder.children = [
+            ChatChannelEditNameLocation(
+              id: hasIds
+                  ? MixedOwnerIdChildTargetRouteId.chatChannelEditName
+                  : null,
+            ),
+          ];
+        },
+      ),
+    ];
+  }
+}
+
+class ChatChannelSendLocation extends AbstractLocation<
+    MixedOwnerIdChildTargetRouteId,
+    ChatChannelSendLocation> {
+  ChatChannelSendLocation({super.id});
+
+  @override
+  void build(
+    LocationBuilder<MixedOwnerIdChildTargetRouteId> builder,
+  ) {
+    builder.pathLiteral('send');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+class ChatChannelInfoLocation extends Location<
+    MixedOwnerIdChildTargetRouteId,
+    ChatChannelInfoLocation> {
+  ChatChannelInfoLocation({super.id, required super.build});
+}
+
+class ChatChannelEditNameLocation extends AbstractLocation<
+    MixedOwnerIdChildTargetRouteId,
+    ChatChannelEditNameLocation> {
+  ChatChannelEditNameLocation({super.id});
+
+  @override
+  void build(
+    LocationBuilder<MixedOwnerIdChildTargetRouteId> builder,
+  ) {
+    builder.pathLiteral('edit-name');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+List<RouteNode<MixedOwnerIdChildTargetRouteId>> buildRouteNodes() => [
+  RootLocation(id: MixedOwnerIdChildTargetRouteId.root),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/mixed_owner_id_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'extension ChatChannelNodeGeneratedChildTargets on ChatChannelNode {',
+                  ),
+                  contains('get childChatChannelSendTarget {'),
+                  contains(
+                    'if (id == MixedOwnerIdChildTargetRouteId.chatChannel) {',
+                  ),
+                  contains(
+                    'MixedOwnerIdChildTargetRouteId.chatChannelSend,',
+                  ),
+                  contains(
+                    '(location) => location is ChatChannelSendLocation,',
+                  ),
+                  allOf(
+                    contains(
+                      'extension ChatChannelInfoLocationGeneratedChildTargets',
+                    ),
+                    contains('on ChatChannelInfoLocation {'),
+                    contains('get childChatChannelEditNameTarget {'),
+                    contains(
+                      'MixedOwnerIdChildTargetRouteId.chatChannelEditName,',
+                    ),
+                    contains(
+                      '(location) => location is ChatChannelEditNameLocation,',
+                    ),
+                  ),
+                ),
+              ),
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final warningMessages = logs
+          .where((log) => log.level == 'WARNING')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        warningMessages,
+        isNot(
+          contains(
+            'Skipped `ChatChannelNode.childChatChannelSendTarget`: multiple descendant routes would match this child target.',
+          ),
+        ),
+      );
+      expect(
+        warningMessages,
+        isNot(
+          contains(
+            'Skipped `ChatChannelInfoLocation.childChatChannelEditNameTarget`: multiple descendant routes would match this child target.',
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
     'reports unsupported route tree expressions at the offending node',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
