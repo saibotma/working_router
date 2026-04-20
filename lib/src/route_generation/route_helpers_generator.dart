@@ -62,6 +62,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       );
       for (final method in entry.value) {
         buffer.writeln(method.renderMethod());
+        buffer.writeln(method.renderRouteMethod());
       }
       buffer.writeln('}');
     }
@@ -5150,6 +5151,8 @@ class _GeneratedLocationChildTargetMethod {
     return true;
   }
 
+  String get routeMethodName => _routeMethodNameForChildTarget(name);
+
   String renderMethod() {
     if (variants.length == 1) {
       return variants.single.renderMethod();
@@ -5184,6 +5187,53 @@ class _GeneratedLocationChildTargetMethod {
     }
     buffer.writeln('  }) {');
     _writeOwnerDispatch(buffer, first, indent: '    ');
+    buffer.writeln('  }');
+    return buffer.toString();
+  }
+
+  String renderRouteMethod() {
+    final first = variants.first;
+    final buffer = StringBuffer();
+    final parameters = [
+      ...first.pathParameters.entries,
+      ...first.queryParameters.entries,
+    ];
+
+    if (parameters.isEmpty) {
+      buffer.writeln('  void $routeMethodName(BuildContext context) {');
+      buffer.writeln(
+        '    WorkingRouter.of<${first.idTypeSource}>(context).routeTo($name);',
+      );
+      buffer.writeln('  }');
+      return buffer.toString();
+    }
+
+    buffer.writeln('  void $routeMethodName(');
+    buffer.writeln('    BuildContext context, {');
+    for (final parameter in parameters) {
+      final generatedParameter = parameter.value;
+      final typeSource = generatedParameter.optional
+          ? _nullableTypeSource(generatedParameter.dartTypeSource)
+          : generatedParameter.dartTypeSource;
+      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+      buffer.writeln(
+        '      $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      );
+    }
+    buffer.writeln('    }');
+    buffer.writeln('  ) {');
+    buffer.writeln(
+      '    WorkingRouter.of<${first.idTypeSource}>(context).routeTo(',
+    );
+    buffer.writeln('      $name(');
+    for (final parameter in parameters) {
+      final generatedParameter = parameter.value;
+      buffer.writeln(
+        '        ${generatedParameter.parameterName}: ${generatedParameter.parameterName},',
+      );
+    }
+    buffer.writeln('      ),');
+    buffer.writeln('    );');
     buffer.writeln('  }');
     return buffer.toString();
   }
@@ -5269,6 +5319,8 @@ class _GeneratedLocationChildTargetMethodVariant {
     return ownerIdExpression == other.ownerIdExpression && isEquivalent(other);
   }
 
+  String get routeMethodName => _routeMethodNameForChildTarget(name);
+
   String renderMethod() {
     final buffer = StringBuffer();
     final parameters = [
@@ -5296,6 +5348,50 @@ class _GeneratedLocationChildTargetMethodVariant {
     }
     buffer.writeln('  }) {');
     writeReturnStatement(buffer, '    ');
+    buffer.writeln('  }');
+    return buffer.toString();
+  }
+
+  String renderRouteMethod() {
+    final buffer = StringBuffer();
+    final parameters = [
+      ...pathParameters.entries,
+      ...queryParameters.entries,
+    ];
+
+    if (parameters.isEmpty) {
+      buffer.writeln('  void $routeMethodName(BuildContext context) {');
+      buffer.writeln(
+        '    WorkingRouter.of<$idTypeSource>(context).routeTo($name);',
+      );
+      buffer.writeln('  }');
+      return buffer.toString();
+    }
+
+    buffer.writeln('  void $routeMethodName(');
+    buffer.writeln('    BuildContext context, {');
+    for (final parameter in parameters) {
+      final generatedParameter = parameter.value;
+      final typeSource = generatedParameter.optional
+          ? _nullableTypeSource(generatedParameter.dartTypeSource)
+          : generatedParameter.dartTypeSource;
+      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+      buffer.writeln(
+        '      $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      );
+    }
+    buffer.writeln('    }');
+    buffer.writeln('  ) {');
+    buffer.writeln('    WorkingRouter.of<$idTypeSource>(context).routeTo(');
+    buffer.writeln('      $name(');
+    for (final parameter in parameters) {
+      final generatedParameter = parameter.value;
+      buffer.writeln(
+        '        ${generatedParameter.parameterName}: ${generatedParameter.parameterName},',
+      );
+    }
+    buffer.writeln('      ),');
+    buffer.writeln('    );');
     buffer.writeln('  }');
     return buffer.toString();
   }
@@ -5649,6 +5745,22 @@ String _childMethodBaseName(String locationTypeSource) {
   }
 
   return locationTypeSource;
+}
+
+String _routeMethodNameForChildTarget(String childTargetMethodName) {
+  const prefix = 'child';
+  const suffix = 'Target';
+  if (childTargetMethodName.startsWith(prefix) &&
+      childTargetMethodName.endsWith(suffix) &&
+      childTargetMethodName.length > prefix.length + suffix.length) {
+    final middle = childTargetMethodName.substring(
+      prefix.length,
+      childTargetMethodName.length - suffix.length,
+    );
+    return 'routeToChild$middle';
+  }
+
+  return 'routeTo${_toUpperCamelCase(childTargetMethodName)}';
 }
 
 String _toParameterIdentifier(String value) {

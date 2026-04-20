@@ -85,7 +85,6 @@ RouteNode<AppRouteId> get appLocationTree => _appLocationTree;
                 contains(
                   'void routeToItem({required String itemId, required String keep}) {',
                 ),
-                isNot(contains('void routeToChildItem(')),
               ),
               allOf(
                 contains(
@@ -107,7 +106,6 @@ RouteNode<AppRouteId> get appLocationTree => _appLocationTree;
                   '    required String detail,\n'
                   '  }) {',
                 ),
-                isNot(contains('void routeToChildItemDetails(')),
                 isNot(contains('final class ChildItemDetailsRouteTarget')),
                 isNot(contains('routeTo(ChildItemDetailsRouteTarget(')),
               ),
@@ -127,6 +125,9 @@ RouteNode<AppRouteId> get appLocationTree => _appLocationTree;
                 ),
                 contains(
                   'return ChildRouteTarget<AppRouteId>(',
+                ),
+                contains(
+                  'void routeToChildItemDetails(',
                 ),
               ),
             ),
@@ -2200,15 +2201,29 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
                 ),
               ),
               allOf(
-                contains(
-                  '(location) => location is PrivacyLocation,',
+                allOf(
+                  contains(
+                    '(location) => location is PrivacyLocation,',
+                  ),
+                  contains(
+                    'void routeToChildPrivacy(BuildContext context, {',
+                  ),
+                  contains(
+                    'WorkingRouter.of<IdlessChildTargetRouteId>(',
+                  ),
+                  contains('context,'),
+                  contains(
+                    'childPrivacyTarget(',
+                  ),
                 ),
-                contains(
-                  "'languageCode': const StringRouteParamCodec().encode(value),",
+                allOf(
+                  contains(
+                    "'languageCode': const StringRouteParamCodec().encode(value),",
+                  ),
+                  isNot(contains('childLegalNodeTarget')),
+                  isNot(contains('void routeToPrivacy(')),
+                  isNot(contains('void routeToTermsOfUse(')),
                 ),
-                isNot(contains('childLegalNodeTarget')),
-                isNot(contains('void routeToPrivacy(')),
-                isNot(contains('void routeToTermsOfUse(')),
               ),
             ),
           ),
@@ -2835,6 +2850,16 @@ List<RouteNode<MixedOwnerIdChildTargetRouteId>> buildRouteNodes() => [
                   ),
                   contains(
                     '(location) => location is ChatChannelSendLocation,',
+                  ),
+                  allOf(
+                    contains(
+                      'void routeToChildChatChannelSend(BuildContext context) {',
+                    ),
+                    contains(
+                      'WorkingRouter.of<MixedOwnerIdChildTargetRouteId>(',
+                    ),
+                    contains('context,'),
+                    contains('routeToChildChatChannelEditName('),
                   ),
                   allOf(
                     contains(
