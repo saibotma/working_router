@@ -565,12 +565,26 @@ From `@RouteNodes()`, the generator emits:
 - `XRouteTarget(...)` classes for typed imperative navigation and redirects
 - `childXTarget(...)` extension helpers on concrete location types for
   owner-bound child routing
+- `routeToChildX(BuildContext context, ...)` extension helpers on concrete
+  location types as sugar over `childXTarget(...)`
 
 For owner-bound child targets:
 
 - if the same owner could reach multiple descendants that would generate the
   same `childXTarget(...)` helper, the generator suppresses that ambiguous
   ancestor helper and logs a warning instead of generating an unsafe API
+
+Preferred pattern:
+
+```dart
+node.routeToChildAbc(context, c: 'see');
+```
+
+Use the lower-level target form when you need to compose or store the target:
+
+```dart
+router.routeTo(node.childAbcTarget(c: 'see'));
+```
 
 That means you can navigate either with:
 

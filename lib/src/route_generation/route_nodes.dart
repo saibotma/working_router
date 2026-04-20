@@ -15,8 +15,17 @@
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
-/// `WorkingRouterSailor<ID>` for every location in the route-node tree that has a non-null
-/// `id`.
+/// `WorkingRouterSailor<ID>` for every location in the route-node tree that has
+/// a non-null `id`.
+///
+/// For owner-bound child routing it also generates:
+/// - `childXTarget(...)` helpers on the owning location type
+/// - `routeToChildX(BuildContext context, ...)` convenience helpers on the same
+///   owning location type
+///
+/// Prefer `node.routeToChildX(context, ...)` from widget code, and use
+/// `node.childXTarget(...)` directly when you need to compose or pass around the
+/// target object itself.
 ///
 /// The generated helper name is derived from the enum case in the `id`, and
 /// its required parameters are the union of:
