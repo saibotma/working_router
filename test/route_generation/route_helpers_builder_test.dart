@@ -2430,28 +2430,27 @@ List<RouteNode<AmbiguousMixedIdChildTargetRouteId>> buildRouteNodes() => [
 ''',
         },
         outputs: {
-          'working_router|lib/ambiguous_mixed_id_child_targets_routes.working_router.g.part': decodedMatches(
-            allOf(
-              contains(
-                'extension RootLocationGeneratedChildTargets on RootLocation {',
-              ),
-              contains('get childChatChannelTarget {'),
-              contains(
-                'location.id == AmbiguousMixedIdChildTargetRouteId.chatChannel,',
-              ),
-              isNot(
-                contains(
-                  'extension RootLocationGeneratedChildTargets on RootLocation {\n'
-                  '  ChildRouteTarget<AmbiguousMixedIdChildTargetRouteId>\n'
-                  '  get childChatChannelNodeTarget',
+          'working_router|lib/ambiguous_mixed_id_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'extension RootLocationGeneratedChildTargets on RootLocation {',
+                  ),
+                  contains('get childChatChannelTarget {'),
+                  contains(
+                    'location.id == AmbiguousMixedIdChildTargetRouteId.chatChannel,',
+                  ),
+                  isNot(
+                    contains(
+                      'get childChatChannelNodeTarget',
+                    ),
+                  ),
+                  contains(
+                    'extension ChatSearchLocationGeneratedChildTargets on ChatSearchLocation {',
+                  ),
+                  contains('get childChatChannelTarget {'),
                 ),
               ),
-              contains(
-                'extension ChatSearchLocationGeneratedChildTargets on ChatSearchLocation {',
-              ),
-              contains('get childChatChannelNodeTarget {'),
-            ),
-          ),
         },
         onLog: (log) => logs.add(
           (level: log.level.name, message: log.message),
@@ -2465,8 +2464,10 @@ List<RouteNode<AmbiguousMixedIdChildTargetRouteId>> buildRouteNodes() => [
           .join('\n');
       expect(
         warningMessages,
-        contains(
-          'Skipped `RootLocation.childChatChannelNodeTarget`: multiple descendant routes would match this child target.',
+        isNot(
+          contains(
+            'Skipped `RootLocation.childChatChannelTarget`: multiple descendant routes would match this child target.',
+          ),
         ),
       );
       expect(

@@ -211,6 +211,23 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       final deduplicatedVariants =
           <_GeneratedLocationChildTargetMethodVariant>[];
       for (final variant in entry.value) {
+        final previousForSameOwner = deduplicatedVariants
+            .where(
+              (previous) => identical(previous.ownerNode, variant.ownerNode),
+            )
+            .toList(growable: false);
+        if (!variant.hasTargetId &&
+            previousForSameOwner.any((previous) => previous.hasTargetId)) {
+          continue;
+        }
+        if (variant.hasTargetId &&
+            previousForSameOwner.any((previous) => !previous.hasTargetId)) {
+          deduplicatedVariants.removeWhere(
+            (previous) =>
+                identical(previous.ownerNode, variant.ownerNode) &&
+                !previous.hasTargetId,
+          );
+        }
         final hasCompatibleVariant = deduplicatedVariants.any(
           (previous) => _locationChildTargetMethodVariantsAreCompatible(
             previous,
@@ -5621,13 +5638,14 @@ String _toUpperCamelCase(String value) {
 }
 
 String _childMethodBaseName(String locationTypeSource) {
-  const suffix = 'Location';
-  if (locationTypeSource.endsWith(suffix) &&
-      locationTypeSource.length > suffix.length) {
-    return locationTypeSource.substring(
-      0,
-      locationTypeSource.length - suffix.length,
-    );
+  for (final suffix in const ['Location', 'Node']) {
+    if (locationTypeSource.endsWith(suffix) &&
+        locationTypeSource.length > suffix.length) {
+      return locationTypeSource.substring(
+        0,
+        locationTypeSource.length - suffix.length,
+      );
+    }
   }
 
   return locationTypeSource;
