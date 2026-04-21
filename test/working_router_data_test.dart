@@ -234,9 +234,30 @@ void main() {
         data.isAnyIdMatched([_TestId.other, _TestId.accounts]),
         isTrue,
       );
-      expect(data.matchingId([_TestId.other, _TestId.accounts]), _TestId.accounts);
-      expect(data.isIdLeaf(_TestId.accounts), isFalse);
+      expect(
+        data.matchingId([_TestId.other, _TestId.accounts]),
+        _TestId.accounts,
+      );
       expect(data.leaf, same(detail));
+    });
+
+    test('lastMatched returns the most specific matched node of a type', () {
+      final root = _TestLocation(id: _TestId.root, path: '/');
+      final parent = _TestLocation(id: _TestId.parent, path: '/parent');
+      final child = _TestLocation(id: _TestId.child, path: '/child');
+      final data = WorkingRouterData<_TestId>(
+        uri: Uri(path: '/parent/child'),
+        routeNodes: [root, parent, child].toIList(),
+        pathParameters: IMap(),
+        queryParameters: IMap(),
+      );
+
+      expect(data.lastMatched<_TestLocation>(), same(child));
+      expect(
+        data.lastMatched<_TestLocation>((location) => location.id != _TestId.child),
+        same(parent),
+      );
+      expect(data.lastMatched<_AccountsNode>(), isNull);
     });
   });
 }

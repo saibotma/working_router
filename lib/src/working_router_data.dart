@@ -241,7 +241,7 @@ class WorkingRouterData<ID extends Enum> {
   /// Returns whether any matched route node of type [T] exists.
   ///
   /// Structural nodes such as scopes and shells participate here as well.
-  /// Use [leaf] / [isLeaf] for leaf-like semantic activity checks.
+  /// Use [leaf] for terminal semantic activity checks.
   bool isMatched<T extends RouteNode<ID>>([bool Function(T node)? match]) {
     final typedNodes = routeNodes.whereType<T>();
     if (match == null) {
@@ -250,34 +250,17 @@ class WorkingRouterData<ID extends Enum> {
     return typedNodes.any(match);
   }
 
-  bool isIdLeaf(ID id) {
-    return isLeaf((location) => location.id == id);
-  }
-
-  bool isAnyIdLeaf(Iterable<ID> ids) {
-    return isLeaf((location) => ids.contains(location.id));
-  }
-
-  bool isTypeLeaf<T>() {
-    return isLeaf((location) => location is T);
-  }
-
-  bool isAnyTypeLeaf2<T1, T2>() {
-    return isLeaf((location) => location is T1 || location is T2);
-  }
-
-  bool isAnyTypeLeaf3<T1, T2, T3>() {
-    return isLeaf((location) {
-      return location is T1 || location is T2 || location is T3;
-    });
-  }
-
-  bool isLeaf(bool Function(AnyLocation<ID> location) match) {
-    final last = _locations.lastOrNull;
-    if (last == null) {
-      return false;
+  T? lastMatched<T extends RouteNode<ID>>([bool Function(T node)? match]) {
+    for (var i = routeNodes.length - 1; i >= 0; i--) {
+      final node = routeNodes[i];
+      if (node is! T) {
+        continue;
+      }
+      if (match == null || match(node)) {
+        return node;
+      }
     }
-    return match(last);
+    return null;
   }
 
   WorkingRouterData<ID> copyWith({

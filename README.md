@@ -116,7 +116,8 @@ Important details:
   `builder.bindParam(...)`, read the bound `Param` with `data.param(...)`, and
   read the reusable unbound definition with `data.paramOrNull(...)`.
 - `WorkingRouterData` exposes the full matched chain as `data.routeNodes`.
-  Use `data.leaf` when you specifically need the active semantic
+  Use `data.lastMatched<T>()` when you need the most specific matched node of a
+  type, and `data.leaf` when you specifically need the terminal semantic
   location.
 - `content` and `defaultContent` may depend on `context` and `data`, but they
   should not switch semantic page role based on other external mutable state.
