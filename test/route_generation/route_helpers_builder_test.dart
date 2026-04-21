@@ -2244,7 +2244,7 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
   );
 
   test(
-    'prefers enum child ids for child target naming and matching',
+    'uses structural child target names unless ids are needed',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -2312,12 +2312,12 @@ List<RouteNode<ChildIdChildTargetRouteId>> buildRouteNodes() => [
                 'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
               ),
               contains(
-                'ChildRouteTarget<ChildIdChildTargetRouteId> get childPrivacyTarget',
+                'ChildRouteTarget<ChildIdChildTargetRouteId> get childLegalLeafTarget',
               ),
               contains(
                 '(node) => node.localId == LegalChildId.privacy,',
               ),
-              isNot(contains('childLegalLeafTarget')),
+              isNot(contains('childPrivacyTarget')),
             ),
           ),
         },
@@ -2327,7 +2327,7 @@ List<RouteNode<ChildIdChildTargetRouteId>> buildRouteNodes() => [
   );
 
   test(
-    'prefers shorter direct child chains over deeper local-id descendants',
+    'generates ancestor-prefixed child targets for deeper descendants',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -2347,7 +2347,6 @@ import 'package:working_router/working_router.dart';
 part 'direct_child_precedence_routes.g.dart';
 
 enum DirectChildPrecedenceRouteId { root }
-enum LessonLocalId { accountMember }
 
 class RootLocation
     extends Location<DirectChildPrecedenceRouteId, RootLocation> {
@@ -2371,7 +2370,7 @@ class LessonLocation
     builder.pathLiteral('lesson');
     final lessonId = builder.stringPathParam();
     builder.children = [
-      AccountMemberLocation(localId: LessonLocalId.accountMember),
+      AccountMemberLocation(),
     ];
   }
 }
@@ -2396,20 +2395,36 @@ List<RouteNode<DirectChildPrecedenceRouteId>> buildRouteNodes() => [
         outputs: {
           'working_router|lib/direct_child_precedence_routes.working_router.g.part': decodedMatches(
             allOf(
+              allOf(
+                contains(
+                  'extension RootLocationGeneratedChildTargets on RootLocation {',
+                ),
+                contains(
+                  'ChildRouteTarget<DirectChildPrecedenceRouteId> get childAccountMemberTarget {',
+                ),
               contains(
-                'extension RootLocationGeneratedChildTargets on RootLocation {',
+                'childLessonAccountMemberTarget({required String lessonId})',
               ),
-              contains(
-                'ChildRouteTarget<DirectChildPrecedenceRouteId> get childAccountMemberTarget {',
+                contains(
+                  'return ChildRouteTarget<DirectChildPrecedenceRouteId>(',
+                ),
+                contains(
+                  'return resolveExactChildRouteNodes<DirectChildPrecedenceRouteId>(this, [',
+                ),
+                contains(
+                  '(node) => node is AccountMemberLocation,',
+                ),
               ),
-              contains(
-                'return ChildRouteTarget<DirectChildPrecedenceRouteId>(',
-              ),
-              contains(
-                'return resolveExactChildRouteNodes<DirectChildPrecedenceRouteId>(this, [',
-              ),
-              contains(
-                '(node) => node is AccountMemberLocation,',
+              allOf(
+                contains(
+                  'required String lessonId,',
+                ),
+                contains(
+                  'void routeToChildLessonAccountMember(',
+                ),
+                contains(
+                  '(node) => node is LessonLocation,',
+                ),
               ),
               isNot(
                 contains(
@@ -2431,7 +2446,7 @@ List<RouteNode<DirectChildPrecedenceRouteId>> buildRouteNodes() => [
   );
 
   test(
-    'suppresses ambiguous ancestor child targets for id-less descendant locations',
+    'generates prefixed ancestor child targets for id-less descendant locations',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -2531,10 +2546,10 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
                   'ChildRouteTarget<AmbiguousChildTargetRouteId> get childSettingsTarget',
                 ),
                 contains(
-                  'void routeToFirstChildPrivacy(BuildContext context) {',
+                  'get childAddAccountLegalPrivacyTarget {',
                 ),
                 contains(
-                  'WorkingRouter.of<AmbiguousChildTargetRouteId>(context).routeTo(',
+                  'get childSettingsLegalPrivacyTarget {',
                 ),
                 isNot(
                   contains(
@@ -2555,9 +2570,7 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
                 ),
                 isNot(
                   contains(
-                    'void routeToFirstChildPrivacy(BuildContext context) {\n'
-                    '    WorkingRouter.of<AmbiguousChildTargetRouteId>(context).routeTo(\n'
-                    '      FirstChildRouteTarget<AmbiguousChildTargetRouteId>(',
+                    'routeToFirstChild',
                   ),
                 ),
               ),
@@ -2778,7 +2791,7 @@ List<RouteNode<EquivalentDuplicateChildTargetRouteId>> buildRouteNodes() => [
                     'extension RootLocationGeneratedChildTargets on RootLocation {',
                   ),
                   contains(
-                    'childPrivacyTarget',
+                    'childLegalPrivacyTarget',
                   ),
                 ),
               ),

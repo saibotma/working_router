@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:math' as math;
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -219,11 +220,12 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       visit(root, const []);
     }
 
+    final namedVariants = _assignLocationChildTargetMethodNames(variants);
     final methods = <_GeneratedLocationChildTargetMethod>[];
     final firstRouteMethods = <_GeneratedFirstLocationChildRouteMethod>[];
     final variantsByOwnerAndName =
         <String, List<_GeneratedLocationChildTargetMethodVariant>>{};
-    for (final variant in variants) {
+    for (final variant in namedVariants) {
       final methodKey = '${variant.ownerTypeSource}.${variant.name}';
       variantsByOwnerAndName.putIfAbsent(methodKey, () => []).add(variant);
     }
@@ -321,6 +323,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         final hasConflictingFamilyMember = family.any(
           (other) =>
               !identical(other, method) &&
+              other.name == method.name &&
               !_locationChildTargetMethodsAreCompatible(method, other),
         );
         if (!hasConflictingFamilyMember) {
@@ -377,6 +380,122 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       return first.hasTargetIdentity ? 1 : -1;
     }
     return 0;
+  }
+
+  List<_GeneratedLocationChildTargetMethodVariant>
+  _assignLocationChildTargetMethodNames(
+    List<_GeneratedLocationChildTargetMethodVariant> variants,
+  ) {
+    final variantsByOwnerType =
+        <String, List<_GeneratedLocationChildTargetMethodVariant>>{};
+    for (final variant in variants) {
+      variantsByOwnerType
+          .putIfAbsent(variant.ownerTypeSource, () => [])
+          .add(variant);
+    }
+
+    final namedVariants = <_GeneratedLocationChildTargetMethodVariant>[];
+    for (final ownerTypeVariants in variantsByOwnerType.values) {
+      final assignedNames =
+          <_GeneratedLocationChildTargetMethodVariant, String>{};
+      final pending = ownerTypeVariants.toSet();
+      var segmentLength = 1;
+
+      while (pending.isNotEmpty) {
+        final candidateGroups =
+            <String, List<_GeneratedLocationChildTargetMethodVariant>>{};
+        for (final variant in pending) {
+          final candidate = _childTargetMethodNameFromSegments(
+            variant.structuralNameSegments,
+            length: segmentLength,
+          );
+          candidateGroups.putIfAbsent(candidate, () => []).add(variant);
+        }
+
+        final nextPending = <_GeneratedLocationChildTargetMethodVariant>{};
+        for (final group in candidateGroups.values) {
+          if (group.length == 1) {
+            assignedNames[group.single] = _childTargetMethodNameFromSegments(
+              group.single.structuralNameSegments,
+              length: segmentLength,
+            );
+            continue;
+          }
+
+          final canExpandStructurally = group.any(
+            (variant) => variant.structuralNameSegments.length > segmentLength,
+          );
+          if (canExpandStructurally) {
+            nextPending.addAll(group);
+            continue;
+          }
+
+          final identityGroups =
+              <String, List<_GeneratedLocationChildTargetMethodVariant>>{};
+          for (final variant in group) {
+            final identityCandidate = _childTargetMethodNameFromSegments(
+              variant.identityAwareNameSegments,
+              length: segmentLength,
+            );
+            identityGroups.putIfAbsent(identityCandidate, () => []).add(variant);
+          }
+
+          for (final entry in identityGroups.entries) {
+            final identityGroup = entry.value;
+            if (identityGroup.length == 1) {
+              assignedNames[identityGroup.single] = entry.key;
+              continue;
+            }
+
+            for (final variant in identityGroup) {
+              assignedNames[variant] = entry.key;
+            }
+          }
+        }
+
+        if (nextPending.length == pending.length) {
+          for (final variant in nextPending) {
+            assignedNames.putIfAbsent(
+              variant,
+              () => _childTargetMethodNameFromSegments(
+                variant.identityAwareNameSegments,
+                length: variant.identityAwareNameSegments.length,
+              ),
+            );
+          }
+          break;
+        }
+
+        pending
+          ..clear()
+          ..addAll(nextPending);
+        segmentLength += 1;
+      }
+
+      for (final variant in ownerTypeVariants) {
+        namedVariants.add(
+          variant.copyWith(
+            name:
+                assignedNames[variant] ??
+                _childTargetMethodNameFromSegments(
+                  variant.identityAwareNameSegments,
+                  length: variant.identityAwareNameSegments.length,
+                ),
+          ),
+        );
+      }
+    }
+
+    return namedVariants;
+  }
+
+  String _childTargetMethodNameFromSegments(
+    List<String> segments, {
+    required int length,
+  }) {
+    final clampedLength = math.min(length, segments.length);
+    final usedSegments = segments.skip(segments.length - clampedLength);
+    return 'child${_toUpperCamelCase(usedSegments.join())}Target';
   }
 
   bool _supportsGeneratedLocationChildTarget(_RouteNode node) {
@@ -437,7 +556,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     required _RouteNode target,
     required Element element,
   }) {
-    final childMethodBaseName = _childMethodBaseNameForNode(target);
     final (pathParameters, queryParameters) = _collectParameters(
       relativeChain,
       element: element,
@@ -458,12 +576,19 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       ownerSelectorMatchSource: _ownerSelectorMatchSource(owner),
       ownerTypeSource: owner.locationTypeSource,
       idTypeSource: _idTypeSource(element),
-      name: 'child${_toUpperCamelCase(childMethodBaseName)}Target',
+      name: '',
       targetTypeSource: target.locationTypeSource,
       hasTargetIdentity:
           target.localIdExpression != null || target.idExpression != null,
       childLocationMatchSource: _childRouteNodeMatchSource(target),
       relativeDepth: relativeChain.length,
+      structuralNameSegments: [
+        for (final node in relativeChain)
+          _childMethodBaseName(node.locationTypeSource),
+      ],
+      identityAwareNameSegments: [
+        for (final node in relativeChain) _childMethodBaseNameForNode(node),
+      ],
       relativeNodeMatchSources: [
         for (final node in relativeChain) _routeNodeMatchSourceOn('node', node),
       ],
@@ -5571,6 +5696,8 @@ class _GeneratedLocationChildTargetMethodVariant {
   final bool hasTargetIdentity;
   final String childLocationMatchSource;
   final int relativeDepth;
+  final List<String> structuralNameSegments;
+  final List<String> identityAwareNameSegments;
   final List<String> relativeNodeMatchSources;
   final Map<int, int> exclusiveBranchSelections;
   final List<_GeneratedPathWrite> pathWrites;
@@ -5588,6 +5715,8 @@ class _GeneratedLocationChildTargetMethodVariant {
     required this.hasTargetIdentity,
     required this.childLocationMatchSource,
     required this.relativeDepth,
+    required this.structuralNameSegments,
+    required this.identityAwareNameSegments,
     required this.relativeNodeMatchSources,
     required this.exclusiveBranchSelections,
     required this.pathWrites,
@@ -5618,6 +5747,30 @@ class _GeneratedLocationChildTargetMethodVariant {
           otherPathParameters: other.pathParameters,
           otherQueryParameters: other.queryParameters,
         );
+  }
+
+  _GeneratedLocationChildTargetMethodVariant copyWith({
+    String? name,
+  }) {
+    return _GeneratedLocationChildTargetMethodVariant(
+      ownerNode: ownerNode,
+      ownerSelectorExpression: ownerSelectorExpression,
+      ownerSelectorMatchSource: ownerSelectorMatchSource,
+      ownerTypeSource: ownerTypeSource,
+      idTypeSource: idTypeSource,
+      name: name ?? this.name,
+      targetTypeSource: targetTypeSource,
+      hasTargetIdentity: hasTargetIdentity,
+      childLocationMatchSource: childLocationMatchSource,
+      relativeDepth: relativeDepth,
+      structuralNameSegments: structuralNameSegments,
+      identityAwareNameSegments: identityAwareNameSegments,
+      relativeNodeMatchSources: relativeNodeMatchSources,
+      exclusiveBranchSelections: exclusiveBranchSelections,
+      pathWrites: pathWrites,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
   }
 
   bool isOwnerAwareEquivalent(
