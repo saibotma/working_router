@@ -598,6 +598,12 @@ relative routing, use the generated fallback:
 node.routeToFirstChildAbc(context, c: 'see');
 ```
 
+Important: `routeToFirstChildX(...)` is only generated when all ambiguous
+matching descendants still collapse to the same generated helper signature.
+So the only remaining ambiguity is which matching descendant will be chosen
+first at runtime. The helper is not generated when one branch would require
+extra path/query parameters or incompatible parameter metadata.
+
 That means you can navigate either with:
 
 ```dart

@@ -32,6 +32,12 @@
 /// `node.routeToFirstChildX(context, ...)` helper only if first-match semantics
 /// are really what you want.
 ///
+/// `routeToFirstChildX(...)` is intentionally limited: the generator only emits
+/// it when every ambiguous matching descendant would still produce the same
+/// generated parameter surface. That means the helper may be ambiguous about
+/// which matching descendant is chosen at runtime, but it is not ambiguous
+/// about which path/query parameters are required or how they are encoded.
+///
 /// Global route ids and local child ids are both enum-based. The generated
 /// helper name is derived from the enum case in the `id` or `localId`, and its
 /// required parameters are the union of:
