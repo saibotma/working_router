@@ -273,11 +273,12 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       );
       if (firstRouteMethod != null) {
         firstRouteMethods.add(firstRouteMethod);
+      } else {
+        onSuppressedAmbiguousMethod?.call(
+          'Skipped `${entry.key}`: multiple descendant routes would match this '
+          'child target.',
+        );
       }
-      onSuppressedAmbiguousMethod?.call(
-        'Skipped `${entry.key}`: multiple descendant routes would match this '
-        'child target.',
-      );
     }
 
     final methodsByOwnerAndTargetType =
@@ -310,10 +311,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           _GeneratedFirstLocationChildRouteMethod(
             variants: method.variants,
           ),
-        );
-        onSuppressedAmbiguousMethod?.call(
-          'Skipped `${method.ownerTypeSource}.${method.name}`: multiple '
-          'descendant routes would match this child target.',
         );
       }
     }

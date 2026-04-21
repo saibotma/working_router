@@ -577,7 +577,7 @@ For owner-bound child targets:
   route type names for generated `childXTarget(...)` names and matching
 - if the same owner could reach multiple descendants that would generate the
   same `childXTarget(...)` helper, the generator suppresses that safe ancestor
-  helper, logs a warning, and generates `routeToFirstChildX(...)` instead
+  helper and generates `routeToFirstChildX(...)` instead
 
 Preferred pattern:
 

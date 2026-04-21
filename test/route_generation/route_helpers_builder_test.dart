@@ -2462,11 +2462,7 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
           .join('\n');
       expect(
         warningMessages,
-        allOf(
-          contains(
-            'Skipped `RootLocation.childPrivacyTarget`: multiple descendant routes would match this child target.',
-          ),
-        ),
+        isEmpty,
       );
     },
   );
