@@ -567,12 +567,17 @@ From `@RouteNodes()`, the generator emits:
   owner-bound child routing
 - `routeToChildX(BuildContext context, ...)` extension helpers on concrete
   location types as sugar over `childXTarget(...)`
+- `routeToFirstChildX(BuildContext context, ...)` only for ambiguous
+  first-match child routing when no safe `childXTarget(...)` can be generated
 
 For owner-bound child targets:
 
+- global route ids are enum values
+- child routing can use local enum `localId` values, which are preferred over
+  route type names for generated `childXTarget(...)` names and matching
 - if the same owner could reach multiple descendants that would generate the
-  same `childXTarget(...)` helper, the generator suppresses that ambiguous
-  ancestor helper and logs a warning instead of generating an unsafe API
+  same `childXTarget(...)` helper, the generator suppresses that safe ancestor
+  helper, logs a warning, and generates `routeToFirstChildX(...)` instead
 
 Preferred pattern:
 
@@ -584,6 +589,13 @@ Use the lower-level target form when you need to compose or store the target:
 
 ```dart
 router.routeTo(node.childAbcTarget(c: 'see'));
+```
+
+If the route is ambiguous on purpose and you explicitly want first-match
+relative routing, use the generated fallback:
+
+```dart
+node.routeToFirstChildAbc(context, c: 'see');
 ```
 
 That means you can navigate either with:

@@ -5,14 +5,15 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildShellLocation<ID, Self extends AnyLocation<ID>> =
+typedef BuildShellLocation<ID extends Enum, Self extends AnyLocation<ID>> =
     void Function(
       ShellLocationBuilder<ID> builder,
       Self node,
       WorkingRouterKey routerKey,
     );
 
-final class ShellLocationBuildResult<ID> extends LocationBuildResult<ID> {
+final class ShellLocationBuildResult<ID extends Enum>
+    extends LocationBuildResult<ID> {
   final LocationWidgetBuilder<ID>? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
   final ShellContentBuilder<ID> buildShellContent;
@@ -36,7 +37,7 @@ final class ShellLocationBuildResult<ID> extends LocationBuildResult<ID> {
   SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
-class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
+class ShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
   ShellContent<ID>? _shellContent;
   ShellPageBuilder? _buildShellPage;
   DefaultContent<ID>? _defaultContent;
@@ -143,7 +144,7 @@ class ShellLocationBuilder<ID> extends LocationBuilder<ID> {
 /// shell location then behaves like a normal [Location] for rendering, while
 /// descendants that would normally inherit or explicitly target this shell
 /// location's [routerKey] are routed to its parent navigator instead.
-abstract class AbstractShellLocation<ID, Self extends AnyLocation<ID>>
+abstract class AbstractShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
     extends AnyLocation<ID>
     implements BuildsWithShellLocationBuilder<ID> {
   final WorkingRouterKey routerKey;
@@ -155,6 +156,7 @@ abstract class AbstractShellLocation<ID, Self extends AnyLocation<ID>>
   /// overriding [build] directly.
   AbstractShellLocation({
     super.id,
+    super.localId,
     super.parentRouterKey,
     super.tags,
     WorkingRouterKey? routerKey,
@@ -203,12 +205,13 @@ abstract class AbstractShellLocation<ID, Self extends AnyLocation<ID>>
 /// Callback-based convenience shell location.
 ///
 /// Use this when the shell location is defined inline with a `build:` callback.
-class ShellLocation<ID, Self extends AnyLocation<ID>>
+class ShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
     extends AbstractShellLocation<ID, Self> {
   final BuildShellLocation<ID, Self> _build;
 
   ShellLocation({
     super.id,
+    super.localId,
     super.parentRouterKey,
     super.tags,
     super.routerKey,
@@ -222,13 +225,13 @@ class ShellLocation<ID, Self extends AnyLocation<ID>>
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
+LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID extends Enum>(
   DefaultContent<ID>? defaultContent,
 ) {
   return defaultContent?.resolveWidgetBuilder();
 }
 
-SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID extends Enum>({
   required DefaultContent<ID>? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {

@@ -15,7 +15,7 @@ enum RouteTransitionReason {
 }
 
 /// Immutable transition context passed to transition callbacks.
-class RouteTransition<ID> {
+class RouteTransition<ID extends Enum> {
   final WorkingRouterData<ID>? from;
   final WorkingRouterData<ID> to;
   final RouteTransitionReason reason;
@@ -28,15 +28,15 @@ class RouteTransition<ID> {
 }
 
 /// The result of a transition callback.
-sealed class TransitionDecision<ID> {
+sealed class TransitionDecision<ID extends Enum> {
   const TransitionDecision();
 }
 
-final class AllowTransition<ID> extends TransitionDecision<ID> {
+final class AllowTransition<ID extends Enum> extends TransitionDecision<ID> {
   const AllowTransition();
 }
 
-final class BlockTransition<ID> extends TransitionDecision<ID> {
+final class BlockTransition<ID extends Enum> extends TransitionDecision<ID> {
   const BlockTransition();
 }
 
@@ -46,7 +46,7 @@ final class BlockTransition<ID> extends TransitionDecision<ID> {
 /// resolves the redirected target and runs the transition decider again with
 /// [RouteTransition.reason] set to [RouteTransitionReason.redirect]. That
 /// second pass is required for chained redirects.
-final class RedirectTransition<ID> extends TransitionDecision<ID> {
+final class RedirectTransition<ID extends Enum> extends TransitionDecision<ID> {
   final RouteTarget<ID> to;
 
   const RedirectTransition(this.to);
@@ -56,7 +56,7 @@ final class RedirectTransition<ID> extends TransitionDecision<ID> {
   }
 
   factory RedirectTransition.toUri(Uri uri) {
-    return RedirectTransition(UriRouteTarget(uri));
+    return RedirectTransition(UriRouteTarget<ID>(uri));
   }
 
   factory RedirectTransition.toId(

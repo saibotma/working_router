@@ -2234,6 +2234,89 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
   );
 
   test(
+    'prefers enum child ids for child target naming and matching',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/child_id_child_targets_routes.dart': '''
+library child_id_child_targets_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'child_id_child_targets_routes.g.dart';
+
+enum ChildIdChildTargetRouteId { addAccount }
+enum LegalChildId { privacy }
+
+class AddAccountNode
+    extends Location<ChildIdChildTargetRouteId, AddAccountNode> {
+  AddAccountNode({required super.id, required super.build});
+}
+
+class LegalNode extends AbstractScope<ChildIdChildTargetRouteId> {
+  @override
+  void build(ScopeBuilder<ChildIdChildTargetRouteId> builder) {
+    builder.children = [
+      LegalLeafLocation(
+        localId: LegalChildId.privacy,
+        build: (builder, location) {
+          builder.pathLiteral('privacy');
+          builder.content = Content.widget(const SizedBox.shrink());
+        },
+      ),
+    ];
+  }
+}
+
+class LegalLeafLocation
+    extends Location<ChildIdChildTargetRouteId, LegalLeafLocation> {
+  LegalLeafLocation({super.localId, required super.build});
+}
+
+@RouteNodes()
+List<RouteNode<ChildIdChildTargetRouteId>> buildRouteNodes() => [
+  AddAccountNode(
+    id: ChildIdChildTargetRouteId.addAccount,
+    build: (builder, node) {
+      builder.pathLiteral('add');
+      builder.children = [
+        LegalNode(),
+      ];
+    },
+  ),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/child_id_child_targets_routes.working_router.g.part': decodedMatches(
+            allOf(
+              contains(
+                'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+              ),
+              contains(
+                'ChildRouteTarget<ChildIdChildTargetRouteId> get childPrivacyTarget',
+              ),
+              contains(
+                '(location) => location.localId == LegalChildId.privacy,',
+              ),
+              isNot(contains('childLegalLeafTarget')),
+            ),
+          ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'suppresses ambiguous ancestor child targets for id-less descendant locations',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
@@ -2333,6 +2416,12 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
                 contains(
                   'ChildRouteTarget<AmbiguousChildTargetRouteId> get childSettingsTarget',
                 ),
+                contains(
+                  'void routeToFirstChildPrivacy(BuildContext context) {',
+                ),
+                contains(
+                  'WorkingRouter.of<AmbiguousChildTargetRouteId>(context).routeTo(',
+                ),
                 isNot(
                   contains(
                     'extension RootLocationGeneratedChildTargets on RootLocation {\n'
@@ -2349,6 +2438,13 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
                 ),
                 contains(
                   'ChildRouteTarget<AmbiguousChildTargetRouteId> get childPrivacyTarget',
+                ),
+                isNot(
+                  contains(
+                    'void routeToFirstChildPrivacy(BuildContext context) {\n'
+                    '    WorkingRouter.of<AmbiguousChildTargetRouteId>(context).routeTo(\n'
+                    '      ChildRouteTarget<AmbiguousChildTargetRouteId>(',
+                  ),
                 ),
               ),
             ),

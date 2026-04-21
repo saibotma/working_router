@@ -7,7 +7,7 @@ import 'package:working_router/src/widgets/nested_routing.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 
-class MultiShellLocationPageSkeleton<ID>
+class MultiShellLocationPageSkeleton<ID extends Enum>
     extends BuilderLocationPageSkeleton<ID> {
   MultiShellLocationPageSkeleton({
     required WorkingRouter<ID> router,
@@ -44,7 +44,7 @@ class MultiShellLocationPageSkeleton<ID>
          },
        );
 
-  static MultiShellResolvedSlotChild _buildSlotChild<ID>({
+  static MultiShellResolvedSlotChild _buildSlotChild<ID extends Enum>({
     required BuildContext context,
     required WorkingRouterData<ID> data,
     required MultiShellResolvedSlot<ID> resolvedSlot,
@@ -91,7 +91,7 @@ class MultiShellLocationPageSkeleton<ID>
     );
   }
 
-  static Page<dynamic> _buildDefaultPage<ID>({
+  static Page<dynamic> _buildDefaultPage<ID extends Enum>({
     required WorkingRouterData<ID> data,
     required MultiShellResolvedSlot<ID> resolvedSlot,
   }) {

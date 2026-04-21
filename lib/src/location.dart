@@ -7,14 +7,14 @@ import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildLocation<ID, Self extends AnyLocation<ID>> =
+typedef BuildLocation<ID extends Enum, Self extends AnyLocation<ID>> =
     void Function(LocationBuilder<ID> builder, Self node);
-typedef LocationWidgetBuilder<ID> =
+typedef LocationWidgetBuilder<ID extends Enum> =
     Widget Function(BuildContext context, WorkingRouterData<ID> data);
 typedef SelfBuiltLocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
 
-sealed class Content<ID> {
+sealed class Content<ID extends Enum> {
   const Content();
 
   factory Content.widget(Widget widget) = _StaticContent<ID>;
@@ -33,7 +33,7 @@ sealed class Content<ID> {
   }
 }
 
-sealed class DefaultContent<ID> {
+sealed class DefaultContent<ID extends Enum> {
   const DefaultContent();
 
   factory DefaultContent.widget(Widget widget) = _StaticDefaultContent<ID>;
@@ -50,35 +50,36 @@ sealed class DefaultContent<ID> {
   }
 }
 
-final class _StaticContent<ID> extends Content<ID> {
+final class _StaticContent<ID extends Enum> extends Content<ID> {
   final Widget widget;
 
   const _StaticContent(this.widget);
 }
 
-final class _BuilderContent<ID> extends Content<ID> {
+final class _BuilderContent<ID extends Enum> extends Content<ID> {
   final LocationWidgetBuilder<ID> builder;
 
   const _BuilderContent(this.builder);
 }
 
-final class _NoContent<ID> extends Content<ID> {
+final class _NoContent<ID extends Enum> extends Content<ID> {
   const _NoContent();
 }
 
-final class _StaticDefaultContent<ID> extends DefaultContent<ID> {
+final class _StaticDefaultContent<ID extends Enum> extends DefaultContent<ID> {
   final Widget widget;
 
   const _StaticDefaultContent(this.widget);
 }
 
-final class _BuilderDefaultContent<ID> extends DefaultContent<ID> {
+final class _BuilderDefaultContent<ID extends Enum> extends DefaultContent<ID> {
   final LocationWidgetBuilder<ID> builder;
 
   const _BuilderDefaultContent(this.builder);
 }
 
-abstract class LocationBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
+abstract class LocationBuildResult<ID extends Enum>
+    extends PathRouteNodeRenderResult<ID> {
   const LocationBuildResult();
 
   LocationWidgetBuilder<ID>? get buildWidgetOrNull;
@@ -86,7 +87,8 @@ abstract class LocationBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
   SelfBuiltLocationPageBuilder? get buildPageOrNull;
 }
 
-final class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
+final class SelfBuiltLocationBuildResult<ID extends Enum>
+    extends LocationBuildResult<ID> {
   final LocationWidgetBuilder<ID> buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
 
@@ -102,7 +104,7 @@ final class SelfBuiltLocationBuildResult<ID> extends LocationBuildResult<ID> {
   SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
-final class NonRenderingLocationBuildResult<ID>
+final class NonRenderingLocationBuildResult<ID extends Enum>
     extends LocationBuildResult<ID> {
   const NonRenderingLocationBuildResult();
 
@@ -113,7 +115,7 @@ final class NonRenderingLocationBuildResult<ID>
   SelfBuiltLocationPageBuilder? get buildPageOrNull => null;
 }
 
-class LocationBuilder<ID> extends PathRouteNodeBuilder<ID> {
+class LocationBuilder<ID extends Enum> extends PathRouteNodeBuilder<ID> {
   Content<ID>? _content;
   SelfBuiltLocationPageBuilder? _buildPage;
 
@@ -172,7 +174,7 @@ class LocationBuilder<ID> extends PathRouteNodeBuilder<ID> {
   }
 }
 
-class BuiltLocationDefinition<ID> {
+class BuiltLocationDefinition<ID extends Enum> {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
@@ -203,11 +205,12 @@ class BuiltLocationDefinition<ID> {
 /// a single common type that means "any location in the tree" without exposing
 /// that self-type parameter everywhere. This base provides that erased view,
 /// while the public location types remain the authoring APIs.
-abstract class AnyLocation<ID> extends PathRouteNode<ID> {
+abstract class AnyLocation<ID extends Enum> extends PathRouteNode<ID> {
   final ISet<LocationTag> tags;
 
   AnyLocation({
     super.id,
+    super.localId,
     super.parentRouterKey,
     Iterable<LocationTag> tags = const [],
   }) : tags = tags.toISet();
@@ -276,20 +279,21 @@ abstract class AnyLocation<ID> extends PathRouteNode<ID> {
   /// because they may change during runtime, and should not
   /// cause a page rebuild.
   /// Two locations are considered equal if they have the same type
-  /// and the same id (including both having null id).
+  /// and the same ids (including both having null ids).
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is AnyLocation<dynamic> &&
             runtimeType == other.runtimeType &&
-            id == other.id;
+            id == other.id &&
+            localId == other.localId;
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, id);
+  int get hashCode => Object.hash(runtimeType, id, localId);
 }
 
-abstract class AbstractLocation<ID, Self extends AnyLocation<ID>>
+abstract class AbstractLocation<ID extends Enum, Self extends AnyLocation<ID>>
     extends AnyLocation<ID>
     implements BuildsWithLocationBuilder<ID> {
   /// Override-based base class for reusable location subclasses.
@@ -298,6 +302,7 @@ abstract class AbstractLocation<ID, Self extends AnyLocation<ID>>
   /// [build] directly.
   AbstractLocation({
     super.id,
+    super.localId,
     super.parentRouterKey,
     super.tags,
   });
@@ -306,7 +311,7 @@ abstract class AbstractLocation<ID, Self extends AnyLocation<ID>>
   LocationBuilder<ID> createBuilder() => LocationBuilder<ID>();
 }
 
-class Location<ID, Self extends AnyLocation<ID>>
+class Location<ID extends Enum, Self extends AnyLocation<ID>>
     extends AbstractLocation<ID, Self> {
   final BuildLocation<ID, Self> _build;
 
@@ -315,6 +320,7 @@ class Location<ID, Self extends AnyLocation<ID>>
   /// Use this when the location is defined inline with a `build:` callback.
   Location({
     super.id,
+    super.localId,
     super.parentRouterKey,
     super.tags,
     required BuildLocation<ID, Self> build,
@@ -326,7 +332,7 @@ class Location<ID, Self extends AnyLocation<ID>>
   }
 }
 
-List<Page<dynamic>> buildDefaultPagesForSlot<ID>({
+List<Page<dynamic>> buildDefaultPagesForSlot<ID extends Enum>({
   required WorkingRouterData<ID> data,
   required WorkingRouterKey routerKey,
   required LocationWidgetBuilder<ID>? buildDefaultWidget,

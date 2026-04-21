@@ -24,12 +24,14 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     );
     final roots = await extractor.extract(declarationElement);
     final methods = _collectRouteMethods(roots, declarationElement);
-    final locationChildTargetMethods = _collectLocationChildTargetMethods(
+    final locationChildTargetResult = _collectLocationChildTargetMethods(
       roots,
       declarationElement,
       onSuppressedAmbiguousMethod: (warning) => log.warning(warning),
     );
-    if (methods.isEmpty && locationChildTargetMethods.isEmpty) {
+    if (methods.isEmpty &&
+        locationChildTargetResult.methods.isEmpty &&
+        locationChildTargetResult.firstRouteMethods.isEmpty) {
       return '';
     }
 
@@ -53,15 +55,31 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     buffer.writeln('}');
 
     final childMethodsByOwner = groupBy(
-      locationChildTargetMethods,
+      locationChildTargetResult.methods,
       (method) => method.ownerTypeSource,
     );
-    for (final entry in childMethodsByOwner.entries) {
+    final firstChildMethodsByOwner = groupBy(
+      locationChildTargetResult.firstRouteMethods,
+      (method) => method.ownerTypeSource,
+    );
+    final ownerTypes = <String>{
+      ...childMethodsByOwner.keys,
+      ...firstChildMethodsByOwner.keys,
+    }.toList()
+      ..sort();
+    for (final ownerType in ownerTypes) {
       buffer.writeln(
-        'extension ${entry.key}GeneratedChildTargets on ${entry.key} {',
+        'extension ${ownerType}GeneratedChildTargets on $ownerType {',
       );
-      for (final method in entry.value) {
+      for (final method
+          in childMethodsByOwner[ownerType] ??
+              const <_GeneratedLocationChildTargetMethod>[]) {
         buffer.writeln(method.renderMethod());
+        buffer.writeln(method.renderRouteMethod());
+      }
+      for (final method
+          in firstChildMethodsByOwner[ownerType] ??
+              const <_GeneratedFirstLocationChildRouteMethod>[]) {
         buffer.writeln(method.renderRouteMethod());
       }
       buffer.writeln('}');
@@ -156,7 +174,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     return methods;
   }
 
-  List<_GeneratedLocationChildTargetMethod> _collectLocationChildTargetMethods(
+  _GeneratedLocationChildTargetMethodsResult _collectLocationChildTargetMethods(
     Iterable<_RouteNode> roots,
     Element element, {
     void Function(String warning)? onSuppressedAmbiguousMethod,
@@ -202,6 +220,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     final methods = <_GeneratedLocationChildTargetMethod>[];
+    final firstRouteMethods = <_GeneratedFirstLocationChildRouteMethod>[];
     final variantsByOwnerAndName =
         <String, List<_GeneratedLocationChildTargetMethodVariant>>{};
     for (final variant in variants) {
@@ -217,16 +236,16 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
               (previous) => identical(previous.ownerNode, variant.ownerNode),
             )
             .toList(growable: false);
-        if (!variant.hasTargetId &&
-            previousForSameOwner.any((previous) => previous.hasTargetId)) {
+        if (!variant.hasTargetIdentity &&
+            previousForSameOwner.any((previous) => previous.hasTargetIdentity)) {
           continue;
         }
-        if (variant.hasTargetId &&
-            previousForSameOwner.any((previous) => !previous.hasTargetId)) {
+        if (variant.hasTargetIdentity &&
+            previousForSameOwner.any((previous) => !previous.hasTargetIdentity)) {
           deduplicatedVariants.removeWhere(
             (previous) =>
                 identical(previous.ownerNode, variant.ownerNode) &&
-                !previous.hasTargetId,
+                !previous.hasTargetIdentity,
           );
         }
         final hasCompatibleVariant = deduplicatedVariants.any(
@@ -249,6 +268,12 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       }
 
       suppressedMethodKeys.add(entry.key);
+      final firstRouteMethod = _mergeFirstLocationChildRouteMethodVariants(
+        deduplicatedVariants,
+      );
+      if (firstRouteMethod != null) {
+        firstRouteMethods.add(firstRouteMethod);
+      }
       onSuppressedAmbiguousMethod?.call(
         'Skipped `${entry.key}`: multiple descendant routes would match this '
         'child target.',
@@ -263,7 +288,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
     for (final family in methodsByOwnerAndTargetType.values) {
       for (final method in family) {
-        if (method.hasTargetId) {
+        if (method.hasTargetIdentity) {
           continue;
         }
         final hasConflictingFamilyMember = family.any(
@@ -281,13 +306,21 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         }
         methods.remove(method);
         suppressedMethodKeys.add(methodKey);
+        firstRouteMethods.add(
+          _GeneratedFirstLocationChildRouteMethod(
+            variants: method.variants,
+          ),
+        );
         onSuppressedAmbiguousMethod?.call(
           'Skipped `${method.ownerTypeSource}.${method.name}`: multiple '
           'descendant routes would match this child target.',
         );
       }
     }
-    return methods;
+    return _GeneratedLocationChildTargetMethodsResult(
+      methods: methods,
+      firstRouteMethods: firstRouteMethods,
+    );
   }
 
   bool _locationChildTargetMethodsAreCompatible(
@@ -312,6 +345,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   bool _supportsGeneratedLocationChildTarget(_RouteNode node) {
     if (!node.isRoutableLocation) {
       return false;
+    }
+
+    if (node.localIdExpression != null) {
+      return true;
     }
 
     if (node.idExpression != null) {
@@ -380,13 +417,15 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     return _GeneratedLocationChildTargetMethodVariant(
       ownerNode: owner,
-      ownerIdExpression: owner.idExpression,
+      ownerSelectorExpression: _ownerSelectorExpression(owner),
+      ownerSelectorMatchSource: _ownerSelectorMatchSource(owner),
       ownerTypeSource: owner.locationTypeSource,
       idTypeSource: _idTypeSource(element),
       name: 'child${_toUpperCamelCase(childMethodBaseName)}Target',
       targetTypeSource: target.locationTypeSource,
-      hasTargetId: target.idExpression != null,
-      childLocationMatchSource: _routeNodeMatchSource(target),
+      hasTargetIdentity:
+          target.localIdExpression != null || target.idExpression != null,
+      childLocationMatchSource: _childRouteNodeMatchSource(target),
       exclusiveBranchSelections: target.exclusiveBranchSelections,
       pathWrites: pathWrites,
       pathParameters: pathParameters,
@@ -425,7 +464,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     final defaultVariants = variants
-        .where((variant) => variant.ownerIdExpression == null)
+        .where((variant) => variant.ownerSelectorExpression == null)
         .toList(growable: false);
     if (defaultVariants.length > 1) {
       return null;
@@ -433,22 +472,78 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     final usedOwnerIds = <String>{};
     for (final variant in variants) {
-      final ownerIdExpression = variant.ownerIdExpression;
-      if (ownerIdExpression == null) {
+      final ownerSelectorExpression = variant.ownerSelectorExpression;
+      if (ownerSelectorExpression == null) {
         continue;
       }
-      if (!usedOwnerIds.add(ownerIdExpression)) {
+      if (!usedOwnerIds.add(ownerSelectorExpression)) {
         return null;
       }
     }
 
     final orderedVariants = [
       ...variants
-          .where((variant) => variant.ownerIdExpression != null)
-          .sortedBy((variant) => variant.ownerIdExpression!),
+          .where((variant) => variant.ownerSelectorExpression != null)
+          .sortedBy((variant) => variant.ownerSelectorExpression!),
       ...defaultVariants,
     ];
     return _GeneratedLocationChildTargetMethod(variants: orderedVariants);
+  }
+
+  _GeneratedFirstLocationChildRouteMethod?
+  _mergeFirstLocationChildRouteMethodVariants(
+    List<_GeneratedLocationChildTargetMethodVariant> variants,
+  ) {
+    if (variants.isEmpty) {
+      return null;
+    }
+
+    final first = variants.first;
+    if (variants.any(
+      (variant) =>
+          variant.ownerTypeSource != first.ownerTypeSource ||
+          variant.idTypeSource != first.idTypeSource ||
+          variant.name != first.name ||
+          !_parametersEquivalent(variant.pathParameters, first.pathParameters) ||
+          !_parametersEquivalent(
+            variant.queryParameters,
+            first.queryParameters,
+          ),
+    )) {
+      return null;
+    }
+
+    final defaultVariants = variants
+        .where((variant) => variant.ownerSelectorExpression == null)
+        .toList(growable: false);
+    if (defaultVariants.length > 1 &&
+        defaultVariants
+                .map((variant) => variant.ownerNode)
+                .toSet()
+                .length >
+            1) {
+      return null;
+    }
+
+    final firstVariantByOwnerSelector =
+        <String, _GeneratedLocationChildTargetMethodVariant>{};
+    for (final variant in variants) {
+      final ownerSelectorExpression = variant.ownerSelectorExpression;
+      if (ownerSelectorExpression == null) {
+        continue;
+      }
+      firstVariantByOwnerSelector.putIfAbsent(ownerSelectorExpression, () {
+        return variant;
+      });
+    }
+
+    final orderedVariants = [
+      ...firstVariantByOwnerSelector.entries.sortedBy((entry) => entry.key).map(
+        (entry) => entry.value,
+      ),
+      if (defaultVariants.isNotEmpty) defaultVariants.first,
+    ];
+    return _GeneratedFirstLocationChildRouteMethod(variants: orderedVariants);
   }
 
   (Map<String, _GeneratedRouteParameter>, Map<String, _GeneratedRouteParameter>)
@@ -659,10 +754,11 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   }
 
   String _routeNodeMatchDiscriminator(_RouteNode node) {
-    if ((node.locationTypeSource == 'Location' ||
-            node.locationTypeSource == 'ShellLocation') &&
-        node.idExpression != null) {
+    if (node.idExpression != null) {
       return node.idExpression!;
+    }
+    if (node.localIdExpression != null) {
+      return node.localIdExpression!;
     }
     return node.locationTypeSource;
   }
@@ -671,14 +767,41 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     if (node.idExpression != null) {
       return 'location.id == ${node.idExpression}';
     }
+    if (node.localIdExpression != null) {
+      return 'location.localId == ${node.localIdExpression}';
+    }
     return 'location is ${node.locationTypeSource}';
   }
 
   String _childMethodBaseNameForNode(_RouteNode node) {
+    if (node.localIdExpression != null) {
+      return node.localIdExpression!.split('.').last;
+    }
     if (node.idExpression != null) {
       return node.idExpression!.split('.').last;
     }
     return _childMethodBaseName(node.locationTypeSource);
+  }
+
+  String _childRouteNodeMatchSource(_RouteNode node) {
+    if (node.localIdExpression != null) {
+      return 'location.localId == ${node.localIdExpression}';
+    }
+    return _routeNodeMatchSource(node);
+  }
+
+  String? _ownerSelectorExpression(_RouteNode node) {
+    return node.localIdExpression ?? node.idExpression;
+  }
+
+  String? _ownerSelectorMatchSource(_RouteNode node) {
+    if (node.localIdExpression != null) {
+      return 'localId == ${node.localIdExpression}';
+    }
+    if (node.idExpression != null) {
+      return 'id == ${node.idExpression}';
+    }
+    return null;
   }
 
   InterfaceType? _routeNodeSupertype(InterfaceType type) {
@@ -1044,6 +1167,13 @@ class _StaticRouteTreeExtractor {
               evaluationContext: evaluationContext,
             )
           : null,
+      localIdExpression: await _resolveIdExpression(
+        _namedArgumentExpression(
+          expression.argumentList.arguments,
+          'localId',
+        ),
+        evaluationContext: evaluationContext,
+      ),
       isLocation: isLocation,
       isRoutableLocation: _isRoutableLocationLikeClass(classElement),
       locationTypeSource: classElement.displayName,
@@ -1724,6 +1854,26 @@ class _StaticRouteTreeExtractor {
           idExpression,
           evaluationContext: context,
         );
+      case 'localId':
+        final localIdExpression = normalizedExpression.argumentList.arguments
+            .whereType<Expression>()
+            .firstOrNull;
+        if (localIdExpression == null) {
+          throw InvalidGenerationSourceError(
+            'localId(...) requires a route local id value.',
+            element: elementForErrors,
+          );
+        }
+        if (result.locationLocalIdExpression != null) {
+          throw InvalidGenerationSourceError(
+            'localId(...) may only be called once per inline route node.',
+            element: elementForErrors,
+          );
+        }
+        result.locationLocalIdExpression = await _resolveIdExpression(
+          localIdExpression,
+          evaluationContext: context,
+        );
       case 'child':
         final childExpression = normalizedExpression.argumentList.arguments
             .whereType<Expression>()
@@ -1798,6 +1948,12 @@ class _StaticRouteTreeExtractor {
                   evaluationContext: evaluationContext,
                 )
           : null,
+      localIdExpression:
+          dslDefinition.locationLocalIdExpression ??
+          await _resolveIdExpression(
+            _namedArgumentExpression(arguments, 'localId'),
+            evaluationContext: evaluationContext,
+          ),
       isLocation: isLocation,
       isRoutableLocation: isLocation,
       locationTypeSource: isLocation ? 'Location' : 'Shell',
@@ -2309,7 +2465,24 @@ class _StaticRouteTreeExtractor {
       );
     }
 
+    _validateEnumConstantExpression(normalizedExpression);
     return normalizedExpression.toSource();
+  }
+
+  void _validateEnumConstantExpression(Expression expression) {
+    final constantValue = expression.computeConstantValue();
+    final staticType = expression.staticType;
+    if (constantValue != null &&
+        staticType is InterfaceType &&
+        staticType.element is EnumElement) {
+      return;
+    }
+
+    throw InvalidGenerationSourceError(
+      'Generated route ids and child ids must resolve to enum constants, but '
+      'got `${expression.toSource()}`.',
+      node: expression,
+    );
   }
 
   Future<bool> _evaluateNullableIdConditionFromContext(
@@ -3609,6 +3782,7 @@ class _ResolvedContextExpression {
 
 class _ResolvedDslDefinition {
   String? locationIdExpression;
+  String? locationLocalIdExpression;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
   final List<_RouteNode> children;
@@ -3616,6 +3790,7 @@ class _ResolvedDslDefinition {
 
   _ResolvedDslDefinition({
     required this.locationIdExpression,
+    required this.locationLocalIdExpression,
     required this.pathSegments,
     required this.queryParameters,
     required this.children,
@@ -3625,6 +3800,7 @@ class _ResolvedDslDefinition {
   factory _ResolvedDslDefinition.empty() {
     return _ResolvedDslDefinition(
       locationIdExpression: null,
+      locationLocalIdExpression: null,
       pathSegments: <_PathSegmentMetadata>[],
       queryParameters: <String, _RouteQueryParameterMetadata>{},
       children: <_RouteNode>[],
@@ -3635,6 +3811,7 @@ class _ResolvedDslDefinition {
   _ResolvedDslDefinition copy() {
     return _ResolvedDslDefinition(
       locationIdExpression: locationIdExpression,
+      locationLocalIdExpression: locationLocalIdExpression,
       pathSegments: [...pathSegments],
       queryParameters: {...queryParameters},
       children: [...children],
@@ -3644,6 +3821,7 @@ class _ResolvedDslDefinition {
 
   void merge(_ResolvedDslDefinition other) {
     locationIdExpression ??= other.locationIdExpression;
+    locationLocalIdExpression ??= other.locationLocalIdExpression;
     if (pathSegments.isEmpty) {
       pathSegments.addAll(other.pathSegments);
     }
@@ -4862,6 +5040,7 @@ class _BoundStringExpression {
 
 class _RouteNode {
   final String? idExpression;
+  final String? localIdExpression;
   final bool isLocation;
   final bool isRoutableLocation;
   final String locationTypeSource;
@@ -4872,6 +5051,7 @@ class _RouteNode {
 
   const _RouteNode({
     required this.idExpression,
+    required this.localIdExpression,
     required this.isLocation,
     required this.isRoutableLocation,
     required this.locationTypeSource,
@@ -4884,6 +5064,7 @@ class _RouteNode {
   _RouteNode withExclusiveBranch(int groupId, int branchId) {
     return _RouteNode(
       idExpression: idExpression,
+      localIdExpression: localIdExpression,
       isLocation: isLocation,
       isRoutableLocation: isRoutableLocation,
       locationTypeSource: locationTypeSource,
@@ -5136,7 +5317,8 @@ class _GeneratedLocationChildTargetMethod {
 
   String get targetTypeSource => variants.first.targetTypeSource;
 
-  bool get hasTargetId => variants.any((variant) => variant.hasTargetId);
+  bool get hasTargetIdentity =>
+      variants.any((variant) => variant.hasTargetIdentity);
 
   bool isEquivalent(_GeneratedLocationChildTargetMethod other) {
     if (variants.length != other.variants.length) {
@@ -5244,12 +5426,12 @@ class _GeneratedLocationChildTargetMethod {
     required String indent,
   }) {
     final defaultVariant = variants
-        .where((variant) => variant.ownerIdExpression == null)
+        .where((variant) => variant.ownerSelectorExpression == null)
         .singleOrNull;
     for (final variant in variants.where(
-      (variant) => variant.ownerIdExpression != null,
+      (variant) => variant.ownerSelectorExpression != null,
     )) {
-      buffer.writeln('$indent if (id == ${variant.ownerIdExpression}) {');
+      buffer.writeln('$indent if (${variant.ownerSelectorMatchSource}) {');
       variant.writeReturnStatement(buffer, '$indent  ');
       buffer.writeln('$indent }');
     }
@@ -5264,14 +5446,84 @@ class _GeneratedLocationChildTargetMethod {
   }
 }
 
+class _GeneratedFirstLocationChildRouteMethod {
+  final List<_GeneratedLocationChildTargetMethodVariant> variants;
+
+  const _GeneratedFirstLocationChildRouteMethod({
+    required this.variants,
+  });
+
+  String get ownerTypeSource => variants.first.ownerTypeSource;
+
+  String get name => variants.first.name;
+
+  String get routeMethodName => _firstRouteMethodNameForChildTarget(name);
+
+  String renderRouteMethod() {
+    final first = variants.first;
+    final buffer = StringBuffer();
+    final parameters = [
+      ...first.pathParameters.entries,
+      ...first.queryParameters.entries,
+    ];
+
+    if (parameters.isEmpty) {
+      buffer.writeln('  void $routeMethodName(BuildContext context) {');
+      _writeOwnerDispatch(buffer, indent: '    ');
+      buffer.writeln('  }');
+      return buffer.toString();
+    }
+
+    buffer.writeln('  void $routeMethodName(');
+    buffer.writeln('    BuildContext context, {');
+    for (final parameter in parameters) {
+      final generatedParameter = parameter.value;
+      final typeSource = generatedParameter.optional
+          ? _nullableTypeSource(generatedParameter.dartTypeSource)
+          : generatedParameter.dartTypeSource;
+      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+      buffer.writeln(
+        '      $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      );
+    }
+    buffer.writeln('    }');
+    buffer.writeln('  ) {');
+    _writeOwnerDispatch(buffer, indent: '    ');
+    buffer.writeln('  }');
+    return buffer.toString();
+  }
+
+  void _writeOwnerDispatch(StringBuffer buffer, {required String indent}) {
+    final defaultVariant = variants
+        .where((variant) => variant.ownerSelectorExpression == null)
+        .singleOrNull;
+    for (final variant in variants.where(
+      (variant) => variant.ownerSelectorExpression != null,
+    )) {
+      buffer.writeln('$indent if (${variant.ownerSelectorMatchSource}) {');
+      variant.writeRouteToFirstStatement(buffer, '$indent  ');
+      buffer.writeln('$indent }');
+    }
+    if (defaultVariant != null) {
+      defaultVariant.writeRouteToFirstStatement(buffer, indent);
+      return;
+    }
+    buffer.writeln(
+      "$indent throw StateError('First child route helper $routeMethodName is not "
+      "available for \$runtimeType with id \$id and localId \$localId.');",
+    );
+  }
+}
+
 class _GeneratedLocationChildTargetMethodVariant {
   final _RouteNode ownerNode;
-  final String? ownerIdExpression;
+  final String? ownerSelectorExpression;
+  final String? ownerSelectorMatchSource;
   final String ownerTypeSource;
   final String idTypeSource;
   final String name;
   final String targetTypeSource;
-  final bool hasTargetId;
+  final bool hasTargetIdentity;
   final String childLocationMatchSource;
   final Map<int, int> exclusiveBranchSelections;
   final List<_GeneratedPathWrite> pathWrites;
@@ -5280,12 +5532,13 @@ class _GeneratedLocationChildTargetMethodVariant {
 
   const _GeneratedLocationChildTargetMethodVariant({
     required this.ownerNode,
-    required this.ownerIdExpression,
+    required this.ownerSelectorExpression,
+    required this.ownerSelectorMatchSource,
     required this.ownerTypeSource,
     required this.idTypeSource,
     required this.name,
     required this.targetTypeSource,
-    required this.hasTargetId,
+    required this.hasTargetIdentity,
     required this.childLocationMatchSource,
     required this.exclusiveBranchSelections,
     required this.pathWrites,
@@ -5316,7 +5569,9 @@ class _GeneratedLocationChildTargetMethodVariant {
   bool isOwnerAwareEquivalent(
     _GeneratedLocationChildTargetMethodVariant other,
   ) {
-    return ownerIdExpression == other.ownerIdExpression && isEquivalent(other);
+    return ownerSelectorExpression == other.ownerSelectorExpression &&
+        ownerSelectorMatchSource == other.ownerSelectorMatchSource &&
+        isEquivalent(other);
   }
 
   String get routeMethodName => _routeMethodNameForChildTarget(name);
@@ -5403,6 +5658,17 @@ class _GeneratedLocationChildTargetMethodVariant {
     buffer.writeln('$indent);');
   }
 
+  void writeRouteToFirstStatement(StringBuffer buffer, String indent) {
+    buffer.writeln(
+      '$indent WorkingRouter.of<$idTypeSource>(context).routeTo(',
+    );
+    buffer.writeln('$indent   ChildRouteTarget<$idTypeSource>(');
+    buffer.writeln('$indent     (location) => $childLocationMatchSource,');
+    _writeConstructorOptions(buffer, indent: '$indent    ');
+    buffer.writeln('$indent   ),');
+    buffer.writeln('$indent );');
+  }
+
   void _writeConstructorOptions(
     StringBuffer buffer, {
     required String indent,
@@ -5474,6 +5740,16 @@ class _GeneratedLocationChildTargetMethodVariant {
       buffer.writeln('$indent },');
     }
   }
+}
+
+class _GeneratedLocationChildTargetMethodsResult {
+  final List<_GeneratedLocationChildTargetMethod> methods;
+  final List<_GeneratedFirstLocationChildRouteMethod> firstRouteMethods;
+
+  const _GeneratedLocationChildTargetMethodsResult({
+    required this.methods,
+    required this.firstRouteMethods,
+  });
 }
 
 bool _generatedTargetDefinitionEquivalent({
@@ -5761,6 +6037,22 @@ String _routeMethodNameForChildTarget(String childTargetMethodName) {
   }
 
   return 'routeTo${_toUpperCamelCase(childTargetMethodName)}';
+}
+
+String _firstRouteMethodNameForChildTarget(String childTargetMethodName) {
+  const prefix = 'child';
+  const suffix = 'Target';
+  if (childTargetMethodName.startsWith(prefix) &&
+      childTargetMethodName.endsWith(suffix) &&
+      childTargetMethodName.length > prefix.length + suffix.length) {
+    final middle = childTargetMethodName.substring(
+      prefix.length,
+      childTargetMethodName.length - suffix.length,
+    );
+    return 'routeToFirstChild$middle';
+  }
+
+  return 'routeToFirst${_toUpperCamelCase(childTargetMethodName)}';
 }
 
 String _toParameterIdentifier(String value) {

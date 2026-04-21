@@ -9,35 +9,35 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/shell_location.dart';
 import 'package:working_router/src/working_router_data.dart';
 
-abstract interface class BuildsWithLocationBuilder<ID> {
+abstract interface class BuildsWithLocationBuilder<ID extends Enum> {
   void build(LocationBuilder<ID> builder);
 }
 
-abstract interface class BuildsWithScopeBuilder<ID> {
+abstract interface class BuildsWithScopeBuilder<ID extends Enum> {
   void build(ScopeBuilder<ID> builder);
 }
 
-abstract interface class BuildsWithShellBuilder<ID> {
+abstract interface class BuildsWithShellBuilder<ID extends Enum> {
   void build(ShellBuilder<ID> builder);
 }
 
-abstract interface class BuildsWithShellLocationBuilder<ID> {
+abstract interface class BuildsWithShellLocationBuilder<ID extends Enum> {
   void build(ShellLocationBuilder<ID> builder);
 }
 
-abstract interface class BuildsWithMultiShellBuilder<ID> {
+abstract interface class BuildsWithMultiShellBuilder<ID extends Enum> {
   void build(MultiShellBuilder<ID> builder);
 }
 
-abstract interface class BuildsWithMultiShellLocationBuilder<ID> {
+abstract interface class BuildsWithMultiShellLocationBuilder<ID extends Enum> {
   void build(MultiShellLocationBuilder<ID> builder);
 }
 
-abstract class PathRouteNodeRenderResult<ID> {
+abstract class PathRouteNodeRenderResult<ID extends Enum> {
   const PathRouteNodeRenderResult();
 }
 
-abstract class PathRouteNodeBuilder<ID> {
+abstract class PathRouteNodeBuilder<ID extends Enum> {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
@@ -287,9 +287,10 @@ abstract class PathRouteNodeBuilder<ID> {
   }
 }
 
-abstract class PathRouteNode<ID> extends RouteNode<ID> {
+abstract class PathRouteNode<ID extends Enum> extends RouteNode<ID> {
   PathRouteNode({
     super.id,
+    super.localId,
     super.parentRouterKey,
   });
 

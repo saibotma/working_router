@@ -19,7 +19,7 @@ import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildPages<ID> =
+typedef BuildPages<ID extends Enum> =
     List<LocationPageSkeleton<ID>> Function(
       WorkingRouter<ID> router,
       AnyLocation<ID> location,
@@ -34,13 +34,13 @@ enum _MatchedNodeRenderKind {
   multiShellLocationShell,
 }
 
-typedef _MatchedNodeEntry<ID> = ({
+typedef _MatchedNodeEntry<ID extends Enum> = ({
   RouteNode<ID> node,
   WorkingRouterKey effectiveParentRouterKey,
   _MatchedNodeRenderKind renderKind,
 });
 
-class WorkingRouterDelegate<ID> extends RouterDelegate<Uri>
+class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin {
   @override
   late final GlobalKey<NavigatorState> navigatorKey;

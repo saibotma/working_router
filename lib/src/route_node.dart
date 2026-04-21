@@ -11,7 +11,7 @@ sealed class PathSegment {
   const PathSegment();
 }
 
-typedef WritePathParameters<ID> =
+typedef WritePathParameters<ID extends Enum> =
     void Function(
       PathRouteNode<ID> location,
       void Function<T>(PathParam<T> parameter, T value) path,
@@ -86,7 +86,7 @@ class QueryParam<T> implements Param<T> {
   QueryParam(this.unboundParam);
 }
 
-typedef CustomPageKeyBuilder<ID> =
+typedef CustomPageKeyBuilder<ID extends Enum> =
     LocalKey Function(WorkingRouterData<ID> data);
 
 /// Describes how a [RouteNode] builds its [Page] key.
@@ -103,7 +103,7 @@ typedef CustomPageKeyBuilder<ID> =
 /// lesson `2` behaves like a page replacement and resets page-level state.
 ///
 /// Use [PageKey.custom] for fully custom behavior.
-sealed class PageKey<ID> {
+sealed class PageKey<ID extends Enum> {
   const PageKey();
 
   /// Keys the page by `runtimeType` plus `data.pathTemplateUpToNode(node)`.
@@ -129,7 +129,7 @@ sealed class PageKey<ID> {
   LocalKey build(RouteNode<ID> node, WorkingRouterData<ID> data);
 }
 
-final class _TemplatePathPageKey<ID> extends PageKey<ID> {
+final class _TemplatePathPageKey<ID extends Enum> extends PageKey<ID> {
   const _TemplatePathPageKey();
 
   @override
@@ -138,7 +138,7 @@ final class _TemplatePathPageKey<ID> extends PageKey<ID> {
   }
 }
 
-final class _PathPageKey<ID> extends PageKey<ID> {
+final class _PathPageKey<ID extends Enum> extends PageKey<ID> {
   const _PathPageKey();
 
   @override
@@ -147,7 +147,7 @@ final class _PathPageKey<ID> extends PageKey<ID> {
   }
 }
 
-final class _CustomPageKey<ID> extends PageKey<ID> {
+final class _CustomPageKey<ID extends Enum> extends PageKey<ID> {
   final CustomPageKeyBuilder<ID> _build;
 
   const _CustomPageKey(this._build);
@@ -158,12 +158,19 @@ final class _CustomPageKey<ID> extends PageKey<ID> {
   }
 }
 
-abstract class RouteNode<ID> {
+abstract class RouteNode<ID extends Enum> {
   final ID? id;
+  /// Optional enum identity used only for owner-bound child routing.
+  ///
+  /// Unlike [id], a [localId] only needs to be meaningful within the current
+  /// owner subtree. Generated `childXTarget(...)` helpers prefer this over the
+  /// route type name when it is available.
+  final Enum? localId;
   final WorkingRouterKey? parentRouterKey;
 
   RouteNode({
     this.id,
+    this.localId,
     this.parentRouterKey,
   });
 
@@ -193,21 +200,21 @@ abstract class RouteNode<ID> {
   }
 }
 
-typedef RouteMatch<ID> = ({
+typedef RouteMatch<ID extends Enum> = ({
   IList<RouteNode<ID>> routeNodes,
   IMap<UnboundPathParam<dynamic>, String> pathParameters,
 });
 
-RouteMatch<ID> emptyRouteMatch<ID>() => (
+RouteMatch<ID> emptyRouteMatch<ID extends Enum>() => (
   routeNodes: const IListConst([]),
   pathParameters: const IMapConst({}),
 );
 
-extension RouteMatchX<ID> on RouteMatch<ID> {
+extension RouteMatchX<ID extends Enum> on RouteMatch<ID> {
   bool get isEmpty => routeNodes.isEmpty;
 }
 
-extension TreeElementsX<ID> on Iterable<RouteNode<ID>> {
+extension TreeElementsX<ID extends Enum> on Iterable<RouteNode<ID>> {
   IList<AnyLocation<ID>> get locations =>
       whereType<AnyLocation<ID>>().toIList();
 
@@ -235,9 +242,9 @@ extension TreeElementsX<ID> on Iterable<RouteNode<ID>> {
   }
 }
 
-IList<RouteNode<ID>> emptyNodeMatch<ID>() => const IListConst([]);
+IList<RouteNode<ID>> emptyNodeMatch<ID extends Enum>() => const IListConst([]);
 
-RouteMatch<ID> _matchNode<ID>(
+RouteMatch<ID> _matchNode<ID extends Enum>(
   RouteNode<ID> node,
   IList<String> uriPathSegments,
 ) {
@@ -280,7 +287,7 @@ RouteMatch<ID> _matchNode<ID>(
   );
 }
 
-IList<RouteNode<ID>> _matchNodeById<ID>(
+IList<RouteNode<ID>> _matchNodeById<ID extends Enum>(
   RouteNode<ID> node,
   ID id,
 ) {
@@ -302,7 +309,7 @@ IList<RouteNode<ID>> _matchNodeById<ID>(
   return emptyNodeMatch();
 }
 
-IList<RouteNode<ID>> matchRelativeNode<ID>(
+IList<RouteNode<ID>> matchRelativeNode<ID extends Enum>(
   RouteNode<ID> node,
   bool Function(AnyLocation<ID> location) predicate,
 ) {
@@ -378,7 +385,8 @@ Map<UnboundPathParam<dynamic>, String>? startsWith(
   return pathParameters;
 }
 
-extension RouteNodePathBuilder<ID> on Iterable<PathRouteNode<ID>> {
+extension RouteNodePathBuilder<ID extends Enum>
+    on Iterable<PathRouteNode<ID>> {
   String buildPath(IMap<UnboundPathParam<dynamic>, String> pathParameters) {
     final uriPathSegments = <String>[];
     for (final location in this) {

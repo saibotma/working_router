@@ -9,7 +9,7 @@ import 'package:working_router/working_router.dart';
 /// [WorkingRouter.refresh] as long as the surrounding shell widget is reused.
 /// This is what lets working_router support dynamic route trees without
 /// immediately discarding nested navigator state on every refresh.
-class NestedRouting<ID> extends StatefulWidget {
+class NestedRouting<ID extends Enum> extends StatefulWidget {
   final WorkingRouter<ID> router;
   final BuildPages<ID> buildPages;
   final List<Page<dynamic>> Function(WorkingRouterData<ID> data)?
@@ -30,7 +30,7 @@ class NestedRouting<ID> extends StatefulWidget {
   State<NestedRouting<ID>> createState() => _NestedRoutingState<ID>();
 }
 
-class _NestedRoutingState<ID> extends State<NestedRouting<ID>> {
+class _NestedRoutingState<ID extends Enum> extends State<NestedRouting<ID>> {
   late WorkingRouterDelegate<ID>? _delegate = WorkingRouterDelegate(
     isRootDelegate: false,
     routerKey: widget.routerKey,

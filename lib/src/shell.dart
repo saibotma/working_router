@@ -5,21 +5,21 @@ import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef ShellContentBuilder<ID> =
+typedef ShellContentBuilder<ID extends Enum> =
     Widget Function(
       BuildContext context,
       WorkingRouterData<ID> data,
       Widget child,
     );
 typedef ShellPageBuilder = Page<dynamic> Function(LocalKey? key, Widget child);
-typedef BuildShell<ID> =
+typedef BuildShell<ID extends Enum> =
     void Function(
       ShellBuilder<ID> builder,
       Shell<ID> node,
       WorkingRouterKey routerKey,
     );
 
-sealed class ShellContent<ID> {
+sealed class ShellContent<ID extends Enum> {
   const ShellContent();
 
   factory ShellContent.builder(ShellContentBuilder<ID> builder) =
@@ -35,17 +35,18 @@ sealed class ShellContent<ID> {
   }
 }
 
-final class _BuilderShellContent<ID> extends ShellContent<ID> {
+final class _BuilderShellContent<ID extends Enum> extends ShellContent<ID> {
   final ShellContentBuilder<ID> builder;
 
   const _BuilderShellContent(this.builder);
 }
 
-final class _ChildShellContent<ID> extends ShellContent<ID> {
+final class _ChildShellContent<ID extends Enum> extends ShellContent<ID> {
   const _ChildShellContent();
 }
 
-final class ShellBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
+final class ShellBuildResult<ID extends Enum>
+    extends PathRouteNodeRenderResult<ID> {
   final ShellContentBuilder<ID> buildContent;
   final ShellPageBuilder? buildPage;
   final LocationWidgetBuilder<ID>? buildDefaultWidget;
@@ -59,7 +60,7 @@ final class ShellBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
   });
 }
 
-class ShellBuilder<ID> extends PathRouteNodeBuilder<ID> {
+class ShellBuilder<ID extends Enum> extends PathRouteNodeBuilder<ID> {
   ShellContent<ID>? _content;
   ShellPageBuilder? _buildPage;
   DefaultContent<ID>? _defaultContent;
@@ -125,7 +126,7 @@ class ShellBuilder<ID> extends PathRouteNodeBuilder<ID> {
   }
 }
 
-class BuiltShellDefinition<ID> {
+class BuiltShellDefinition<ID extends Enum> {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
@@ -165,7 +166,7 @@ class BuiltShellDefinition<ID> {
 /// Use a shell when a part of the route tree should stay visible while child
 /// locations change inside it, such as a sidebar layout, tab scaffold, or
 /// nested flow container.
-abstract class AbstractShell<ID> extends PathRouteNode<ID>
+abstract class AbstractShell<ID extends Enum> extends PathRouteNode<ID>
     implements BuildsWithShellBuilder<ID> {
   final WorkingRouterKey routerKey;
   final bool navigatorEnabled;
@@ -177,6 +178,7 @@ abstract class AbstractShell<ID> extends PathRouteNode<ID>
   /// type.
   AbstractShell({
     super.id,
+    super.localId,
     WorkingRouterKey? routerKey,
     this.navigatorEnabled = true,
     super.parentRouterKey,
@@ -246,11 +248,12 @@ abstract class AbstractShell<ID> extends PathRouteNode<ID>
 /// Callback-based convenience shell.
 ///
 /// Use this when the shell is defined inline with a `build:` callback.
-class Shell<ID> extends AbstractShell<ID> {
+class Shell<ID extends Enum> extends AbstractShell<ID> {
   final BuildShell<ID> _build;
 
   Shell({
     super.id,
+    super.localId,
     super.routerKey,
     super.navigatorEnabled,
     required BuildShell<ID> build,
@@ -263,13 +266,13 @@ class Shell<ID> extends AbstractShell<ID> {
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
+LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID extends Enum>(
   DefaultContent<ID>? defaultContent,
 ) {
   return defaultContent?.resolveWidgetBuilder();
 }
 
-SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID extends Enum>({
   required DefaultContent<ID>? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/working_router.dart';
 
-typedef LocationChildBuilder<ID> =
+typedef LocationChildBuilder<ID extends Enum> =
     Widget Function(BuildContext, WorkingRouterData<ID> data);
 typedef LocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
-typedef LocationPageKeyBuilder<ID> =
+typedef LocationPageKeyBuilder<ID extends Enum> =
     LocalKey Function(AnyLocation<ID> location, WorkingRouterData<ID> data);
-typedef LocationChildWrapper<ID> =
+typedef LocationChildWrapper<ID extends Enum> =
     Widget Function(
       BuildContext context,
       AnyLocation<ID> location,
@@ -16,7 +16,7 @@ typedef LocationChildWrapper<ID> =
       Widget child,
     );
 
-abstract interface class LocationPageSkeleton<ID> {
+abstract interface class LocationPageSkeleton<ID extends Enum> {
   LocationPage inflate({
     required WorkingRouter<ID> router,
     required WorkingRouterData<ID> data,
@@ -31,7 +31,8 @@ abstract interface class LocationPageSkeleton<ID> {
 /// gets passed to [buildPage].
 ///
 /// Does not hold state and thus can be reused.
-class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
+class BuilderLocationPageSkeleton<ID extends Enum>
+    implements LocationPageSkeleton<ID> {
   final LocationChildBuilder<ID> buildChild;
   final LocationPageBuilder? buildPage;
   final LocationPageKeyBuilder<ID>? buildPageKey;
@@ -102,7 +103,8 @@ class BuilderLocationPageSkeleton<ID> implements LocationPageSkeleton<ID> {
   }
 }
 
-class ChildLocationPageSkeleton<ID> extends BuilderLocationPageSkeleton<ID> {
+class ChildLocationPageSkeleton<ID extends Enum>
+    extends BuilderLocationPageSkeleton<ID> {
   ChildLocationPageSkeleton({
     required Widget child,
     super.buildPage,

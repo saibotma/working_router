@@ -6,20 +6,20 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildMultiShell<ID> =
+typedef BuildMultiShell<ID extends Enum> =
     void Function(
       MultiShellBuilder<ID> builder,
       MultiShell<ID> node,
     );
 
-typedef MultiShellContentBuilder<ID> =
+typedef MultiShellContentBuilder<ID extends Enum> =
     Widget Function(
       BuildContext context,
       WorkingRouterData<ID> data,
       MultiShellSlotChildren<ID> slots,
     );
 
-sealed class MultiShellContent<ID> {
+sealed class MultiShellContent<ID extends Enum> {
   const MultiShellContent();
 
   factory MultiShellContent.builder(MultiShellContentBuilder<ID> builder) =
@@ -33,7 +33,8 @@ sealed class MultiShellContent<ID> {
   }
 }
 
-final class _BuilderMultiShellContent<ID> extends MultiShellContent<ID> {
+final class _BuilderMultiShellContent<ID extends Enum>
+    extends MultiShellContent<ID> {
   final MultiShellContentBuilder<ID> builder;
 
   const _BuilderMultiShellContent(this.builder);
@@ -52,7 +53,7 @@ final class MultiShellSlot {
   String toString() => 'MultiShellSlot(${debugLabel ?? routerKey.hashCode})';
 }
 
-final class MultiShellSlotDefinition<ID> {
+final class MultiShellSlotDefinition<ID extends Enum> {
   final MultiShellSlot slot;
   final bool navigatorEnabled;
   final LocationWidgetBuilder<ID>? buildDefaultWidget;
@@ -68,7 +69,7 @@ final class MultiShellSlotDefinition<ID> {
   bool get hasDefault => buildDefaultWidget != null;
 }
 
-final class MultiShellResolvedSlot<ID> {
+final class MultiShellResolvedSlot<ID extends Enum> {
   final MultiShellSlotDefinition<ID> definition;
   final bool isEnabled;
   final bool hasRoutedContent;
@@ -103,7 +104,7 @@ final class MultiShellResolvedSlotChild {
   });
 }
 
-final class MultiShellSlotChildren<ID> {
+final class MultiShellSlotChildren<ID extends Enum> {
   final Map<MultiShellSlot, MultiShellResolvedSlotChild> _children;
 
   const MultiShellSlotChildren(this._children);
@@ -159,7 +160,8 @@ final class MultiShellSlotChildren<ID> {
   }
 }
 
-final class MultiShellBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
+final class MultiShellBuildResult<ID extends Enum>
+    extends PathRouteNodeRenderResult<ID> {
   final List<MultiShellSlotDefinition<ID>> slots;
   final MultiShellContentBuilder<ID> buildContent;
   final ShellPageBuilder? buildPage;
@@ -171,7 +173,7 @@ final class MultiShellBuildResult<ID> extends PathRouteNodeRenderResult<ID> {
   });
 }
 
-class MultiShellBuilder<ID> extends PathRouteNodeBuilder<ID> {
+class MultiShellBuilder<ID extends Enum> extends PathRouteNodeBuilder<ID> {
   final List<MultiShellSlotDefinition<ID>> _slots = [];
   MultiShellContent<ID>? _content;
   ShellPageBuilder? _buildPage;
@@ -250,12 +252,13 @@ class MultiShellBuilder<ID> extends PathRouteNodeBuilder<ID> {
 ///
 /// Each enabled slot must resolve to routed content or define default content.
 /// Disabled slots alias targeted child routes back to the parent navigator.
-abstract class AbstractMultiShell<ID> extends PathRouteNode<ID>
+abstract class AbstractMultiShell<ID extends Enum> extends PathRouteNode<ID>
     implements BuildsWithMultiShellBuilder<ID> {
   final bool navigatorEnabled;
 
   AbstractMultiShell({
     super.id,
+    super.localId,
     super.parentRouterKey,
     this.navigatorEnabled = true,
   });
@@ -331,11 +334,12 @@ abstract class AbstractMultiShell<ID> extends PathRouteNode<ID>
 ///
 /// Use this when defining a structural multi-shell inline instead of
 /// subclassing [AbstractMultiShell].
-class MultiShell<ID> extends AbstractMultiShell<ID> {
+class MultiShell<ID extends Enum> extends AbstractMultiShell<ID> {
   final BuildMultiShell<ID> _build;
 
   MultiShell({
     super.id,
+    super.localId,
     super.parentRouterKey,
     super.navigatorEnabled,
     required BuildMultiShell<ID> build,
@@ -347,13 +351,13 @@ class MultiShell<ID> extends AbstractMultiShell<ID> {
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
+LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID extends Enum>(
   DefaultContent<ID>? defaultContent,
 ) {
   return defaultContent?.resolveWidgetBuilder();
 }
 
-SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID extends Enum>({
   required DefaultContent<ID>? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {

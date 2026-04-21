@@ -10,16 +10,18 @@ import 'package:working_router/working_router.dart';
 ///
 /// This callback is used at startup and again on [WorkingRouter.refresh] so the
 /// runtime tree can react to changing application state such as permissions.
-typedef BuildRouteNodes<ID> =
+typedef BuildRouteNodes<ID extends Enum> =
     List<RouteNode<ID>> Function(WorkingRouterKey rootRouterKey);
 
-class WorkingRouter<ID> extends ChangeNotifier
+class WorkingRouter<ID extends Enum> extends ChangeNotifier
     implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
   /// Does not notify widgets at all.
   /// This is meant to be used for one off calls to the router,
   /// and not rebuilding a widget based router data changes.
   /// Use [WorkingRouterData.of] for this instead.
-  static WorkingRouterDataSailor<ID> of<ID>(BuildContext context) {
+  static WorkingRouterDataSailor<ID> of<ID extends Enum>(
+    BuildContext context,
+  ) {
     final inheritedWidget = context
         .dependOnInheritedWidgetOfExactType<InheritedWorkingRouter<ID>>();
     return inheritedWidget!.sailor;
@@ -725,7 +727,7 @@ class WorkingRouter<ID> extends ChangeNotifier
 /// A synchronous callback that decides how to handle a route transition.
 ///
 /// Keep this callback fast and side-effect free.
-typedef TransitionDecider<ID> =
+typedef TransitionDecider<ID extends Enum> =
     TransitionDecision<ID> Function(
       WorkingRouter<ID> router,
       RouteTransition<ID> transition,

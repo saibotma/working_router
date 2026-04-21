@@ -3,7 +3,7 @@ import 'package:working_router/src/working_router_data.dart';
 
 typedef WorkingRouterFunction = dynamic Function(WorkingRouterData<dynamic>);
 
-class InheritedWorkingRouterData<ID>
+class InheritedWorkingRouterData<ID extends Enum>
     extends InheritedModel<WorkingRouterFunction> {
   final WorkingRouterData<ID> data;
 

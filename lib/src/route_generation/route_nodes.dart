@@ -16,19 +16,25 @@
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
 /// `WorkingRouterSailor<ID>` for every location in the route-node tree that has
-/// a non-null `id`.
+/// a non-null enum `id`.
 ///
 /// For owner-bound child routing it also generates:
 /// - `childXTarget(...)` helpers on the owning location type
 /// - `routeToChildX(BuildContext context, ...)` convenience helpers on the same
 ///   owning location type
+/// - `routeToFirstChildX(BuildContext context, ...)` only when the owner can
+///   reach multiple matching descendants and the generator cannot prove a safe
+///   `childXTarget(...)`
 ///
 /// Prefer `node.routeToChildX(context, ...)` from widget code, and use
 /// `node.childXTarget(...)` directly when you need to compose or pass around the
-/// target object itself.
+/// target object itself. When a child route is ambiguous, prefer the generated
+/// `node.routeToFirstChildX(context, ...)` helper only if first-match semantics
+/// are really what you want.
 ///
-/// The generated helper name is derived from the enum case in the `id`, and
-/// its required parameters are the union of:
+/// Global route ids and local child ids are both enum-based. The generated
+/// helper name is derived from the enum case in the `id` or `localId`, and its
+/// required parameters are the union of:
 /// - all path parameters from the full ancestor chain
 /// - all query parameter keys from the full ancestor chain
 ///

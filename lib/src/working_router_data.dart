@@ -4,7 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/working_router.dart';
 
-class WorkingRouterData<ID> {
+class WorkingRouterData<ID extends Enum> {
   final Uri uri;
   final IList<RouteNode<ID>> routeNodes;
 
@@ -26,14 +26,14 @@ class WorkingRouterData<ID> {
     required this.queryParameters,
   }) : _pathParameters = pathParameters;
 
-  static WorkingRouterData<ID> of<ID>(BuildContext context) {
+  static WorkingRouterData<ID> of<ID extends Enum>(BuildContext context) {
     final data = InheritedModel.inheritFrom<InheritedWorkingRouterData<ID>>(
       context,
     );
     return data!.data;
   }
 
-  static Slice ofSliced<ID, Slice>(
+  static Slice ofSliced<ID extends Enum, Slice>(
     BuildContext context,
     Slice Function(WorkingRouterData<ID>) slice,
   ) {

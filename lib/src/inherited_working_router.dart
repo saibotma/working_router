@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:working_router/src/working_router_data_sailor.dart';
 
-class InheritedWorkingRouter<ID> extends InheritedWidget {
+class InheritedWorkingRouter<ID extends Enum> extends InheritedWidget {
   final WorkingRouterDataSailor<ID> sailor;
 
   const InheritedWorkingRouter({

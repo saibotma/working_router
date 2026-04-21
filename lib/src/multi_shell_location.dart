@@ -6,14 +6,15 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildMultiShellLocation<ID, Self extends AnyLocation<ID>> =
+typedef BuildMultiShellLocation<ID extends Enum, Self extends AnyLocation<ID>> =
     void Function(
       MultiShellLocationBuilder<ID> builder,
       Self node,
       MultiShellSlot contentSlot,
     );
 
-final class MultiShellLocationBuildResult<ID> extends LocationBuildResult<ID> {
+final class MultiShellLocationBuildResult<ID extends Enum>
+    extends LocationBuildResult<ID> {
   final LocationWidgetBuilder<ID>? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
   final MultiShellSlot contentSlot;
@@ -41,7 +42,7 @@ final class MultiShellLocationBuildResult<ID> extends LocationBuildResult<ID> {
   SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
-class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
+class MultiShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
   final MultiShellSlot _contentSlot = MultiShellSlot.internal(
     debugLabel: 'content',
   );
@@ -183,7 +184,10 @@ class MultiShellLocationBuilder<ID> extends LocationBuilder<ID> {
 /// pages. Extra slots must be created via [MultiShellLocationBuilder.slot] and
 /// may define their own default content/page. Children without an explicit
 /// `parentRouterKey` inherit the [contentSlot].
-abstract class AbstractMultiShellLocation<ID, Self extends AnyLocation<ID>>
+abstract class AbstractMultiShellLocation<
+  ID extends Enum,
+  Self extends AnyLocation<ID>
+>
     extends AnyLocation<ID>
     implements BuildsWithMultiShellLocationBuilder<ID> {
   final MultiShellSlot contentSlot;
@@ -191,6 +195,7 @@ abstract class AbstractMultiShellLocation<ID, Self extends AnyLocation<ID>>
 
   AbstractMultiShellLocation({
     super.id,
+    super.localId,
     super.parentRouterKey,
     super.tags,
     WorkingRouterKey? contentRouterKey,
@@ -251,12 +256,13 @@ abstract class AbstractMultiShellLocation<ID, Self extends AnyLocation<ID>>
 /// Use this when defining a multi shell location inline instead of subclassing
 /// [AbstractMultiShellLocation]. The `build` callback receives the built-in
 /// `contentSlot` explicitly.
-class MultiShellLocation<ID, Self extends AnyLocation<ID>>
+class MultiShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
     extends AbstractMultiShellLocation<ID, Self> {
   final BuildMultiShellLocation<ID, Self> _build;
 
   MultiShellLocation({
     super.id,
+    super.localId,
     super.parentRouterKey,
     super.tags,
     super.contentRouterKey,
@@ -270,13 +276,13 @@ class MultiShellLocation<ID, Self extends AnyLocation<ID>>
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID>(
+LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID extends Enum>(
   DefaultContent<ID>? defaultContent,
 ) {
   return defaultContent?.resolveWidgetBuilder();
 }
 
-SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID>({
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID extends Enum>({
   required DefaultContent<ID>? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {

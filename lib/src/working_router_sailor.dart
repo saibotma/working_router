@@ -1,6 +1,6 @@
 import 'package:working_router/working_router.dart';
 
-abstract class WorkingRouterSailor<ID> {
+abstract class WorkingRouterSailor<ID extends Enum> {
   void routeTo(RouteTarget<ID> target);
 
   void routeToUriString(String uriString);
