@@ -17,7 +17,7 @@ definition API.
   - self-built via `builder.content = ...`, with an optional page override from `builder.page = ...`
   - and returns the child `RouteNode`s as a list
 - `@RouteNodes()` generates typed `routeToX(...)` helpers and `XRouteTarget`
-  classes, plus owner-bound `childXTarget(...)` helpers, from one canonical
+  classes, plus start-anchored `childXTarget(...)` helpers, from one canonical
   route-tree file.
 
 ## Recommended Setup
@@ -564,20 +564,33 @@ From `@RouteNodes()`, the generator emits:
 - `routeToX(...)` helpers on `WorkingRouterSailor`
 - `XRouteTarget(...)` classes for typed imperative navigation and redirects
 - `childXTarget(...)` extension helpers on concrete location types for
-  owner-bound child routing
+  start-anchored child routing
 - `routeToChildX(BuildContext context, ...)` extension helpers on concrete
   location types as sugar over `childXTarget(...)`
 - `routeToFirstChildX(BuildContext context, ...)` only for ambiguous
   first-match child routing when no safe `childXTarget(...)` can be generated
 
-For owner-bound child targets:
+For start-anchored child targets:
 
 - global route ids are enum values
 - child routing can use local enum `localId` values, which are preferred over
   route type names for generated `childXTarget(...)` names and matching
-- if the same owner could reach multiple descendants that would generate the
+- if the same start node could reach multiple descendants that would generate the
   same `childXTarget(...)` helper, the generator suppresses that safe ancestor
   helper and generates `routeToFirstChildX(...)` instead
+
+Runtime target types:
+
+- `ChildRouteTarget(...)` is the safe form. It is anchored at a concrete
+  `start` location instance and uses `resolveChildPathNodes` to resolve the
+  exact live descendant route-node chain below that start node at navigation
+  time.
+- `resolveChildPathNodes` is not just a predicate. It returns the concrete
+  route-node path to append below `start`, which avoids ambiguous first-match
+  routing when multiple descendants could satisfy the same leaf match.
+- `FirstChildRouteTarget(...)` is the explicit first-match fallback. It starts
+  from the current active leaf and walks descendants depth-first until its
+  predicate matches.
 
 Preferred pattern:
 
@@ -659,7 +672,7 @@ The package example demonstrates:
 - typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes
-- generated owner-bound `childXTarget(...)` helpers
+- generated start-anchored `childXTarget(...)` helpers
 - a custom modal page from `builder.page = ...`
 
 Run it from [`example`](example).

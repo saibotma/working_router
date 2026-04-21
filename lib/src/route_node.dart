@@ -160,10 +160,10 @@ final class _CustomPageKey<ID extends Enum> extends PageKey<ID> {
 
 abstract class RouteNode<ID extends Enum> {
   final ID? id;
-  /// Optional enum identity used only for owner-bound child routing.
+  /// Optional enum identity used only for start-anchored child routing.
   ///
   /// Unlike [id], a [localId] only needs to be meaningful within the current
-  /// owner subtree. Generated `childXTarget(...)` helpers prefer this over the
+  /// start subtree. Generated `childXTarget(...)` helpers prefer this over the
   /// route type name when it is available.
   final Enum? localId;
   final WorkingRouterKey? parentRouterKey;
@@ -425,4 +425,30 @@ extension RouteNodePathBuilder<ID extends Enum>
 
     return '/${uriPathSegments.join('/')}';
   }
+}
+
+IList<RouteNode<ID>>? resolveExactChildRouteNodes<ID extends Enum>(
+  RouteNode<ID> owner,
+  List<bool Function(RouteNode<ID> node)> relativeMatchers,
+) {
+  var children = owner.children;
+  final matchedNodes = <RouteNode<ID>>[];
+
+  for (final matcher in relativeMatchers) {
+    RouteNode<ID>? matchedChild;
+    for (final child in children) {
+      if (matcher(child)) {
+        matchedChild = child;
+        break;
+      }
+    }
+    if (matchedChild == null) {
+      return null;
+    }
+
+    matchedNodes.add(matchedChild);
+    children = matchedChild.children;
+  }
+
+  return matchedNodes.toIList();
 }

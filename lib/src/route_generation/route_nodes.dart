@@ -18,11 +18,12 @@
 /// `WorkingRouterSailor<ID>` for every location in the route-node tree that has
 /// a non-null enum `id`.
 ///
-/// For owner-bound child routing it also generates:
+/// For start-anchored child routing it also generates:
 /// - `childXTarget(...)` helpers on the owning location type
 /// - `routeToChildX(BuildContext context, ...)` convenience helpers on the same
 ///   owning location type
-/// - `routeToFirstChildX(BuildContext context, ...)` only when the owner can
+/// - `routeToFirstChildX(BuildContext context, ...)` only when the start node
+///   can
 ///   reach multiple matching descendants and the generator cannot prove a safe
 ///   `childXTarget(...)`
 ///
@@ -31,6 +32,12 @@
 /// target object itself. When a child route is ambiguous, prefer the generated
 /// `node.routeToFirstChildX(context, ...)` helper only if first-match semantics
 /// are really what you want.
+///
+/// Generated `childXTarget(...)` helpers create a [ChildRouteTarget], which is
+/// anchored at `this` and resolves the exact live descendant route-node chain
+/// below that start node at navigation time. Generated `routeToFirstChildX(...)`
+/// helpers use [FirstChildRouteTarget] instead, which keeps explicit
+/// first-match descendant search semantics.
 ///
 /// `routeToFirstChildX(...)` is intentionally limited: the generator only emits
 /// it when every ambiguous matching descendant would still produce the same

@@ -127,6 +127,9 @@ RouteNode<AppRouteId> get appLocationTree => _appLocationTree;
                   'return ChildRouteTarget<AppRouteId>(',
                 ),
                 contains(
+                  'return resolveExactChildRouteNodes<AppRouteId>(this, [',
+                ),
+                contains(
                   'void routeToChildItemDetails(',
                 ),
               ),
@@ -2199,31 +2202,38 @@ List<RouteNode<IdlessChildTargetRouteId>> buildRouteNodes() => [
                 contains(
                   'ChildRouteTarget<IdlessChildTargetRouteId> childTermsOfUseTarget({',
                 ),
+                contains(
+                  'return ChildRouteTarget<IdlessChildTargetRouteId>(',
+                ),
+                contains(
+                  'return resolveExactChildRouteNodes<IdlessChildTargetRouteId>(this, [',
+                ),
+                contains(
+                  '(node) => node is LegalNode,',
+                ),
               ),
               allOf(
-                allOf(
-                  contains(
-                    '(location) => location is PrivacyLocation,',
-                  ),
-                  contains(
-                    'void routeToChildPrivacy(BuildContext context, {',
-                  ),
-                  contains(
-                    'WorkingRouter.of<IdlessChildTargetRouteId>(',
-                  ),
-                  contains('context,'),
-                  contains(
-                    'childPrivacyTarget(',
-                  ),
+                contains(
+                  '(node) => node is PrivacyLocation,',
                 ),
-                allOf(
-                  contains(
-                    "'languageCode': const StringRouteParamCodec().encode(value),",
-                  ),
-                  isNot(contains('childLegalNodeTarget')),
-                  isNot(contains('void routeToPrivacy(')),
-                  isNot(contains('void routeToTermsOfUse(')),
+                contains(
+                  'void routeToChildPrivacy(BuildContext context, {',
                 ),
+              ),
+              allOf(
+                contains(
+                  'WorkingRouter.of<IdlessChildTargetRouteId>(',
+                ),
+                contains('context,'),
+                contains(
+                  'childPrivacyTarget(',
+                ),
+                contains(
+                  "'languageCode': const StringRouteParamCodec().encode(value),",
+                ),
+                isNot(contains('childLegalNodeTarget')),
+                isNot(contains('void routeToPrivacy(')),
+                isNot(contains('void routeToTermsOfUse(')),
               ),
             ),
           ),
@@ -2305,9 +2315,113 @@ List<RouteNode<ChildIdChildTargetRouteId>> buildRouteNodes() => [
                 'ChildRouteTarget<ChildIdChildTargetRouteId> get childPrivacyTarget',
               ),
               contains(
-                '(location) => location.localId == LegalChildId.privacy,',
+                '(node) => node.localId == LegalChildId.privacy,',
               ),
               isNot(contains('childLegalLeafTarget')),
+            ),
+          ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'prefers shorter direct child chains over deeper local-id descendants',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/direct_child_precedence_routes.dart': '''
+library direct_child_precedence_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'direct_child_precedence_routes.g.dart';
+
+enum DirectChildPrecedenceRouteId { root }
+enum LessonLocalId { accountMember }
+
+class RootLocation
+    extends Location<DirectChildPrecedenceRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder<DirectChildPrecedenceRouteId> builder) {
+    builder.children = [
+      LessonLocation(),
+      AccountMemberLocation(),
+    ];
+  }
+}
+
+class LessonLocation
+    extends Location<DirectChildPrecedenceRouteId, LessonLocation> {
+  LessonLocation();
+
+  @override
+  void build(LocationBuilder<DirectChildPrecedenceRouteId> builder) {
+    builder.pathLiteral('lesson');
+    final lessonId = builder.stringPathParam();
+    builder.children = [
+      AccountMemberLocation(localId: LessonLocalId.accountMember),
+    ];
+  }
+}
+
+class AccountMemberLocation
+    extends Location<DirectChildPrecedenceRouteId, AccountMemberLocation> {
+  AccountMemberLocation({super.localId});
+
+  @override
+  void build(LocationBuilder<DirectChildPrecedenceRouteId> builder) {
+    builder.pathLiteral('account-member');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+List<RouteNode<DirectChildPrecedenceRouteId>> buildRouteNodes() => [
+  RootLocation(id: DirectChildPrecedenceRouteId.root),
+];
+''',
+        },
+        outputs: {
+          'working_router|lib/direct_child_precedence_routes.working_router.g.part': decodedMatches(
+            allOf(
+              contains(
+                'extension RootLocationGeneratedChildTargets on RootLocation {',
+              ),
+              contains(
+                'ChildRouteTarget<DirectChildPrecedenceRouteId> get childAccountMemberTarget {',
+              ),
+              contains(
+                'return ChildRouteTarget<DirectChildPrecedenceRouteId>(',
+              ),
+              contains(
+                'return resolveExactChildRouteNodes<DirectChildPrecedenceRouteId>(this, [',
+              ),
+              contains(
+                '(node) => node is AccountMemberLocation,',
+              ),
+              isNot(
+                contains(
+                  'extension RootLocationGeneratedChildTargets on RootLocation {\n'
+                  '  ChildRouteTarget<DirectChildPrecedenceRouteId> get childAccountMemberTarget {\n'
+                  '    return ChildRouteTarget<DirectChildPrecedenceRouteId>(\n'
+                  '      start: this,\n'
+                  '      resolveChildPathNodes: () {\n'
+                  '        return resolveExactChildRouteNodes<DirectChildPrecedenceRouteId>(this, [\n'
+                  '          (node) => node is LessonLocation,\n',
+                ),
+              ),
             ),
           ),
         },
@@ -2443,7 +2557,7 @@ List<RouteNode<AmbiguousChildTargetRouteId>> buildRouteNodes() => [
                   contains(
                     'void routeToFirstChildPrivacy(BuildContext context) {\n'
                     '    WorkingRouter.of<AmbiguousChildTargetRouteId>(context).routeTo(\n'
-                    '      ChildRouteTarget<AmbiguousChildTargetRouteId>(',
+                    '      FirstChildRouteTarget<AmbiguousChildTargetRouteId>(',
                   ),
                 ),
               ),
@@ -2545,7 +2659,7 @@ List<RouteNode<AmbiguousMixedIdChildTargetRouteId>> buildRouteNodes() => [
                   ),
                   contains('get childChatChannelTarget {'),
                   contains(
-                    'location.id == AmbiguousMixedIdChildTargetRouteId.chatChannel,',
+                    'node.id == AmbiguousMixedIdChildTargetRouteId.chatChannel',
                   ),
                   isNot(
                     contains(
@@ -2941,7 +3055,7 @@ List<RouteNode<MixedOwnerIdChildTargetRouteId>> buildRouteNodes() => [
                     'MixedOwnerIdChildTargetRouteId.chatChannelSend,',
                   ),
                   contains(
-                    '(location) => location is ChatChannelSendLocation,',
+                    '(node) => node is ChatChannelSendLocation,',
                   ),
                   allOf(
                     contains(
@@ -2963,7 +3077,7 @@ List<RouteNode<MixedOwnerIdChildTargetRouteId>> buildRouteNodes() => [
                       'MixedOwnerIdChildTargetRouteId.chatChannelEditName,',
                     ),
                     contains(
-                      '(location) => location is ChatChannelEditNameLocation,',
+                      '(node) => node is ChatChannelEditNameLocation,',
                     ),
                   ),
                 ),

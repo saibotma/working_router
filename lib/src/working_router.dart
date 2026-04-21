@@ -227,7 +227,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     WritePathParameters<ID>? writePathParameters,
   }) {
     routeTo(
-      ChildRouteTarget(
+      FirstChildRouteTarget(
         predicate,
         queryParameters: queryParameters,
         writePathParameters: writePathParameters,
@@ -552,6 +552,41 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
                   .addAll(queryParameters.toIMap()),
         );
       case ChildRouteTarget(
+        :final start,
+        :final resolveChildPathNodes,
+        :final queryParameters,
+        :final writePathParameters,
+      ):
+        final data = currentData!;
+        final startIndex = data.routeNodes.indexWhere(
+          (node) => identical(node, start),
+        );
+        if (startIndex == -1) {
+          return data;
+        }
+
+        final matchedNodes = resolveChildPathNodes();
+        if (matchedNodes == null || matchedNodes.isEmpty) {
+          return data;
+        }
+        final routeNodes = data.routeNodes.take(startIndex + 1).toIList().addAll(
+          matchedNodes,
+        );
+
+        return _buildData(
+          routeNodes: routeNodes,
+          fallback: null,
+          pathParameters: data.pathParametersForRouter.addAll(
+            _resolvePathParameterWrites(
+              routeNodes.pathRouteNodes,
+              writePathParameters,
+            ).toIMap(),
+          ),
+          queryParameters: data.queryParameters.addAll(
+            queryParameters.toIMap(),
+          ),
+        );
+      case FirstChildRouteTarget(
         :final predicate,
         :final queryParameters,
         :final writePathParameters,
@@ -566,14 +601,15 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
         if (matchedNodes.isEmpty) {
           return data;
         }
-        final matchedPathRouteNodes = matchedNodes.pathRouteNodes;
+
+        final routeNodes = data.routeNodes.addAll(matchedNodes);
 
         return _buildData(
-          routeNodes: data.routeNodes.addAll(matchedNodes),
+          routeNodes: routeNodes,
           fallback: null,
           pathParameters: data.pathParametersForRouter.addAll(
             _resolvePathParameterWrites(
-              data.routeNodes.pathRouteNodes.addAll(matchedPathRouteNodes),
+              routeNodes.pathRouteNodes,
               writePathParameters,
             ).toIMap(),
           ),

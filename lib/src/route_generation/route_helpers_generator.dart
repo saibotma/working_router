@@ -236,15 +236,41 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
               (previous) => identical(previous.ownerNode, variant.ownerNode),
             )
             .toList(growable: false);
-        if (!variant.hasTargetIdentity &&
-            previousForSameOwner.any((previous) => previous.hasTargetIdentity)) {
+        final higherPrecedencePreviousForSameOwner = previousForSameOwner.where(
+          (previous) =>
+              _compareLocationChildTargetVariantPrecedence(
+                previous,
+                variant,
+              ) >
+              0,
+        );
+        if (higherPrecedencePreviousForSameOwner.isNotEmpty) {
           continue;
         }
+        deduplicatedVariants.removeWhere(
+          (previous) =>
+              identical(previous.ownerNode, variant.ownerNode) &&
+              _compareLocationChildTargetVariantPrecedence(variant, previous) >
+                  0,
+        );
         if (variant.hasTargetIdentity &&
-            previousForSameOwner.any((previous) => !previous.hasTargetIdentity)) {
+            previousForSameOwner.any(
+              (previous) =>
+                  _compareLocationChildTargetVariantPrecedence(
+                    previous,
+                    variant,
+                  ) ==
+                  0 &&
+                  !previous.hasTargetIdentity,
+            )) {
           deduplicatedVariants.removeWhere(
             (previous) =>
                 identical(previous.ownerNode, variant.ownerNode) &&
+                _compareLocationChildTargetVariantPrecedence(
+                      previous,
+                      variant,
+                    ) ==
+                    0 &&
                 !previous.hasTargetIdentity,
           );
         }
@@ -339,6 +365,20 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             ));
   }
 
+  int _compareLocationChildTargetVariantPrecedence(
+    _GeneratedLocationChildTargetMethodVariant first,
+    _GeneratedLocationChildTargetMethodVariant second,
+  ) {
+    final depthComparison = second.relativeDepth.compareTo(first.relativeDepth);
+    if (depthComparison != 0) {
+      return depthComparison;
+    }
+    if (first.hasTargetIdentity != second.hasTargetIdentity) {
+      return first.hasTargetIdentity ? 1 : -1;
+    }
+    return 0;
+  }
+
   bool _supportsGeneratedLocationChildTarget(_RouteNode node) {
     if (!node.isRoutableLocation) {
       return false;
@@ -423,6 +463,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       hasTargetIdentity:
           target.localIdExpression != null || target.idExpression != null,
       childLocationMatchSource: _childRouteNodeMatchSource(target),
+      relativeDepth: relativeChain.length,
+      relativeNodeMatchSources: [
+        for (final node in relativeChain) _routeNodeMatchSourceOn('node', node),
+      ],
       exclusiveBranchSelections: target.exclusiveBranchSelections,
       pathWrites: pathWrites,
       pathParameters: pathParameters,
@@ -761,13 +805,17 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   }
 
   String _routeNodeMatchSource(_RouteNode node) {
+    return _routeNodeMatchSourceOn('location', node);
+  }
+
+  String _routeNodeMatchSourceOn(String variableName, _RouteNode node) {
     if (node.idExpression != null) {
-      return 'location.id == ${node.idExpression}';
+      return '$variableName.id == ${node.idExpression}';
     }
     if (node.localIdExpression != null) {
-      return 'location.localId == ${node.localIdExpression}';
+      return '$variableName.localId == ${node.localIdExpression}';
     }
-    return 'location is ${node.locationTypeSource}';
+    return '$variableName is ${node.locationTypeSource}';
   }
 
   String _childMethodBaseNameForNode(_RouteNode node) {
@@ -5522,6 +5570,8 @@ class _GeneratedLocationChildTargetMethodVariant {
   final String targetTypeSource;
   final bool hasTargetIdentity;
   final String childLocationMatchSource;
+  final int relativeDepth;
+  final List<String> relativeNodeMatchSources;
   final Map<int, int> exclusiveBranchSelections;
   final List<_GeneratedPathWrite> pathWrites;
   final Map<String, _GeneratedRouteParameter> pathParameters;
@@ -5537,6 +5587,8 @@ class _GeneratedLocationChildTargetMethodVariant {
     required this.targetTypeSource,
     required this.hasTargetIdentity,
     required this.childLocationMatchSource,
+    required this.relativeDepth,
+    required this.relativeNodeMatchSources,
     required this.exclusiveBranchSelections,
     required this.pathWrites,
     required this.pathParameters,
@@ -5545,6 +5597,11 @@ class _GeneratedLocationChildTargetMethodVariant {
 
   bool isEquivalent(_GeneratedLocationChildTargetMethodVariant other) {
     return ownerTypeSource == other.ownerTypeSource &&
+        relativeDepth == other.relativeDepth &&
+        const ListEquality<String>().equals(
+          relativeNodeMatchSources,
+          other.relativeNodeMatchSources,
+        ) &&
         _generatedTargetDefinitionEquivalent(
           name: name,
           targetClassName: '',
@@ -5650,7 +5707,16 @@ class _GeneratedLocationChildTargetMethodVariant {
 
   void writeReturnStatement(StringBuffer buffer, String indent) {
     buffer.writeln('$indent return ChildRouteTarget<$idTypeSource>(');
-    buffer.writeln('$indent   (location) => $childLocationMatchSource,');
+    buffer.writeln('$indent   start: this,');
+    buffer.writeln('$indent   resolveChildPathNodes: () {');
+    buffer.writeln(
+      '$indent     return resolveExactChildRouteNodes<$idTypeSource>(this, [',
+    );
+    for (final matchSource in relativeNodeMatchSources) {
+      buffer.writeln('$indent       (node) => $matchSource,');
+    }
+    buffer.writeln('$indent     ]);');
+    buffer.writeln('$indent   },');
     _writeConstructorOptions(buffer, indent: '$indent  ');
     buffer.writeln('$indent);');
   }
@@ -5659,7 +5725,7 @@ class _GeneratedLocationChildTargetMethodVariant {
     buffer.writeln(
       '$indent WorkingRouter.of<$idTypeSource>(context).routeTo(',
     );
-    buffer.writeln('$indent   ChildRouteTarget<$idTypeSource>(');
+    buffer.writeln('$indent   FirstChildRouteTarget<$idTypeSource>(');
     buffer.writeln('$indent     (location) => $childLocationMatchSource,');
     _writeConstructorOptions(buffer, indent: '$indent    ');
     buffer.writeln('$indent   ),');
