@@ -307,6 +307,12 @@ abstract class AbstractLocation<ID extends Enum, Self extends AnyLocation<ID>>
     super.tags,
   });
 
+  /// Mirrors the `node` callback parameter used by [Location].
+  ///
+  /// This makes override-based locations easier to keep in sync with inline
+  /// callback-based locations when moving builder code between the two forms.
+  Self get node => this as Self;
+
   @override
   LocationBuilder<ID> createBuilder() => LocationBuilder<ID>();
 }

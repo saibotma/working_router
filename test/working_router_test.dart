@@ -2036,7 +2036,7 @@ Future<void> _pumpApp(WidgetTester tester, WorkingRouter<_Id> router) async {
   await _pumpRouterApp(tester, router);
 }
 
-Future<void> _pumpRouterApp<ID>(
+Future<void> _pumpRouterApp<ID extends Enum>(
   WidgetTester tester,
   WorkingRouter<ID> router,
 ) async {
@@ -2310,7 +2310,8 @@ class _SelfBuiltAccountLocation
   }
 }
 
-class _BuilderLocation<ID> extends Location<ID, _BuilderLocation<ID>> {
+class _BuilderLocation<ID extends Enum>
+    extends Location<ID, _BuilderLocation<ID>> {
   _BuilderLocation({
     required super.id,
     super.parentRouterKey,
@@ -2318,7 +2319,7 @@ class _BuilderLocation<ID> extends Location<ID, _BuilderLocation<ID>> {
   });
 }
 
-class _BuilderShellLocation<ID>
+class _BuilderShellLocation<ID extends Enum>
     extends ShellLocation<ID, _BuilderShellLocation<ID>> {
   _BuilderShellLocation({
     required super.id,
@@ -2328,7 +2329,7 @@ class _BuilderShellLocation<ID>
   });
 }
 
-class _BuilderMultiShellLocation<ID>
+class _BuilderMultiShellLocation<ID extends Enum>
     extends MultiShellLocation<ID, _BuilderMultiShellLocation<ID>> {
   _BuilderMultiShellLocation({
     required super.id,
@@ -2338,7 +2339,7 @@ class _BuilderMultiShellLocation<ID>
   });
 }
 
-class _BuilderMultiShell<ID> extends MultiShell<ID> {
+class _BuilderMultiShell<ID extends Enum> extends MultiShell<ID> {
   _BuilderMultiShell({
     super.parentRouterKey,
     super.navigatorEnabled,

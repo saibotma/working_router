@@ -205,6 +205,13 @@ abstract class AbstractMultiShellLocation<
          debugLabel: 'content',
        );
 
+  /// Mirrors the `node` callback parameter used by [MultiShellLocation].
+  ///
+  /// This makes override-based multi shell locations easier to keep in sync
+  /// with inline callback-based multi shell locations when moving builder code
+  /// between the two forms.
+  Self get node => this as Self;
+
   @override
   MultiShellLocationBuilder<ID> createBuilder() => MultiShellLocationBuilder();
 

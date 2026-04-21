@@ -2,14 +2,26 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:working_router/working_router.dart';
 
+enum _TestId {
+  list,
+  detail,
+  query,
+  queryNullable,
+  root,
+  parent,
+  child,
+  other,
+  accounts,
+}
+
 void main() {
   group('WorkingRouterData path helpers', () {
     test('pathTemplateUpToNode ignores hydrated path parameter values', () {
       const itemId = UnboundPathParam(StringRouteParamCodec());
-      final list = _TestLocation(id: 'list', path: '/items');
-      final detail = _ParamOnlyLocation(id: 'detail', parameter: itemId);
+      final list = _TestLocation(id: _TestId.list, path: '/items');
+      final detail = _ParamOnlyLocation(id: _TestId.detail, parameter: itemId);
       final boundItemId = detail.boundParameter;
-      final data = WorkingRouterData<String>(
+      final data = WorkingRouterData<_TestId>(
         uri: Uri(path: '/items/123'),
         routeNodes: [list, detail].toIList(),
         pathParameters: {itemId: '123'}.lock,
@@ -25,7 +37,7 @@ void main() {
       final parent = _NoIdSegmentLocation(path: '/parent');
       final first = _NoIdSegmentLocation(path: '/first');
       final second = _NoIdSegmentLocation(path: '/second');
-      final data = WorkingRouterData<String>(
+      final data = WorkingRouterData<_TestId>(
         uri: Uri(path: '/parent/first/second'),
         routeNodes: [parent, first, second].toIList(),
         pathParameters: IMap(),
@@ -48,9 +60,9 @@ void main() {
         StringRouteParamCodec(),
         defaultValue: Default('all'),
       );
-      final location = _QueryLocation(id: 'query', parameter: tab);
+      final location = _QueryLocation(id: _TestId.query, parameter: tab);
       final boundTab = location.boundParameter;
-      final data = WorkingRouterData<String>(
+      final data = WorkingRouterData<_TestId>(
         uri: Uri(path: '/query'),
         routeNodes: [location].toIList(),
         pathParameters: IMap(),
@@ -69,11 +81,11 @@ void main() {
           defaultValue: Default<DateTime?>(null),
         );
         final location = _NullableQueryLocation(
-          id: 'query-nullable',
+          id: _TestId.queryNullable,
           parameter: endDateTime,
         );
         final boundEndDateTime = location.boundParameter;
-        final data = WorkingRouterData<String>(
+        final data = WorkingRouterData<_TestId>(
           uri: Uri(path: '/query'),
           routeNodes: [location].toIList(),
           pathParameters: IMap(),
@@ -91,13 +103,13 @@ void main() {
         StringRouteParamCodec(),
         defaultValue: Default('all'),
       );
-      final list = _TestLocation(id: 'list', path: '/items');
+      final list = _TestLocation(id: _TestId.list, path: '/items');
       final detail = _BoundParamLocation(
-        id: 'detail',
+        id: _TestId.detail,
         pathParameter: itemId,
         queryParameter: tab,
       );
-      final data = WorkingRouterData<String>(
+      final data = WorkingRouterData<_TestId>(
         uri: Uri(path: '/items/123'),
         routeNodes: [list, detail].toIList(),
         pathParameters: {itemId: '123'}.lock,
@@ -110,15 +122,17 @@ void main() {
   });
 
   group('WorkingRouterData.isChildOf', () {
-    final root = _TestLocation(id: 'root', path: '/');
-    final parent = _TestLocation(id: 'parent', path: '/parent');
-    final child = _TestLocation(id: 'child', path: '/child');
-    final other = _TestLocation(id: 'other', path: '/other');
+    final root = _TestLocation(id: _TestId.root, path: '/');
+    final parent = _TestLocation(id: _TestId.parent, path: '/parent');
+    final child = _TestLocation(id: _TestId.child, path: '/child');
+    final other = _TestLocation(id: _TestId.other, path: '/other');
 
-    WorkingRouterData<String> buildData(IList<AnyLocation<String>> locations) {
+    WorkingRouterData<_TestId> buildData(
+      IList<AnyLocation<_TestId>> locations,
+    ) {
       return WorkingRouterData(
         uri: Uri(path: '/parent/child'),
-        routeNodes: locations.cast<RouteNode<String>>().toIList(),
+        routeNodes: locations.cast<RouteNode<_TestId>>().toIList(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -129,7 +143,7 @@ void main() {
 
       expect(
         data.isChildOf(
-          (node) => node is AnyLocation<String> && node.id == 'parent',
+          (node) => node is AnyLocation<_TestId> && node.id == _TestId.parent,
           child,
         ),
         isTrue,
@@ -141,7 +155,7 @@ void main() {
 
       expect(
         data.isChildOf(
-          (node) => node is AnyLocation<String> && node.id == 'parent',
+          (node) => node is AnyLocation<_TestId> && node.id == _TestId.parent,
           parent,
         ),
         isFalse,
@@ -153,7 +167,7 @@ void main() {
 
       expect(
         data.isChildOf(
-          (node) => node is AnyLocation<String> && node.id == 'child',
+          (node) => node is AnyLocation<_TestId> && node.id == _TestId.child,
           parent,
         ),
         isFalse,
@@ -165,14 +179,14 @@ void main() {
 
       expect(
         data.isChildOf(
-          (node) => node is AnyLocation<String> && node.id == 'other',
+          (node) => node is AnyLocation<_TestId> && node.id == _TestId.other,
           child,
         ),
         isFalse,
       );
       expect(
         data.isChildOf(
-          (node) => node is AnyLocation<String> && node.id == 'parent',
+          (node) => node is AnyLocation<_TestId> && node.id == _TestId.parent,
           other,
         ),
         isFalse,
@@ -184,9 +198,9 @@ void main() {
     test(
       'isMatched includes structural route nodes while leaf stays semantic',
       () {
-        final accountsNode = _AccountsNode(id: 'accounts');
-        final detail = _TestLocation(id: 'detail', path: '/detail');
-        final data = WorkingRouterData<String>(
+        final accountsNode = _AccountsNode(id: _TestId.accounts);
+        final detail = _TestLocation(id: _TestId.detail, path: '/detail');
+        final data = WorkingRouterData<_TestId>(
           uri: Uri(path: '/accounts/detail'),
           routeNodes: [accountsNode, detail].toIList(),
           pathParameters: IMap(),
@@ -196,7 +210,9 @@ void main() {
         expect(data.routeNodes, orderedEquals([accountsNode, detail]));
         expect(data.isMatched<_AccountsNode>(), isTrue);
         expect(
-          data.isMatched<_TestLocation>((location) => location.id == 'detail'),
+          data.isMatched<_TestLocation>(
+            (location) => location.id == _TestId.detail,
+          ),
           isTrue,
         );
         expect(data.leaf, same(detail));
@@ -204,90 +220,95 @@ void main() {
     );
 
     test('isIdMatched includes structural route node ids', () {
-      final accountsNode = _AccountsNode(id: 'accounts');
-      final detail = _TestLocation(id: 'detail', path: '/detail');
-      final data = WorkingRouterData<String>(
+      final accountsNode = _AccountsNode(id: _TestId.accounts);
+      final detail = _TestLocation(id: _TestId.detail, path: '/detail');
+      final data = WorkingRouterData<_TestId>(
         uri: Uri(path: '/accounts/detail'),
         routeNodes: [accountsNode, detail].toIList(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
 
-      expect(data.isIdMatched('accounts'), isTrue);
-      expect(data.isAnyIdMatched(['missing', 'accounts']), isTrue);
-      expect(data.matchingId(['missing', 'accounts']), 'accounts');
-      expect(data.isIdLeaf('accounts'), isFalse);
+      expect(data.isIdMatched(_TestId.accounts), isTrue);
+      expect(
+        data.isAnyIdMatched([_TestId.other, _TestId.accounts]),
+        isTrue,
+      );
+      expect(data.matchingId([_TestId.other, _TestId.accounts]), _TestId.accounts);
+      expect(data.isIdLeaf(_TestId.accounts), isFalse);
       expect(data.leaf, same(detail));
     });
   });
 }
 
-class _TestLocation extends AbstractLocation<String, _TestLocation> {
+class _TestLocation extends AbstractLocation<_TestId, _TestLocation> {
   final List<PathSegment> _segments;
 
-  _TestLocation({required String id, required String path})
+  _TestLocation({required _TestId id, required String path})
     : _segments = _pathSegments(path),
       super(id: id);
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder<_TestId> builder) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
   }
 }
 
-class _ParamOnlyLocation extends AbstractLocation<String, _ParamOnlyLocation> {
+class _ParamOnlyLocation
+    extends AbstractLocation<_TestId, _ParamOnlyLocation> {
   final UnboundPathParam<String> parameter;
   late final PathParam<String> boundParameter =
       definition.pathParameters.single as PathParam<String>;
 
-  _ParamOnlyLocation({required String id, required this.parameter})
+  _ParamOnlyLocation({required _TestId id, required this.parameter})
     : super(id: id);
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder<_TestId> builder) {
     builder.bindParam(parameter);
   }
 }
 
-class _QueryLocation extends AbstractLocation<String, _QueryLocation> {
+class _QueryLocation extends AbstractLocation<_TestId, _QueryLocation> {
   final UnboundQueryParam<String> parameter;
   late final QueryParam<String> boundParameter =
       definition.queryParameters.single as QueryParam<String>;
 
-  _QueryLocation({required String id, required this.parameter}) : super(id: id);
+  _QueryLocation({required _TestId id, required this.parameter})
+    : super(id: id);
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder<_TestId> builder) {
     builder.bindParam(parameter);
   }
 }
 
 class _NullableQueryLocation
-    extends AbstractLocation<String, _NullableQueryLocation> {
+    extends AbstractLocation<_TestId, _NullableQueryLocation> {
   final UnboundQueryParam<DateTime?> parameter;
   late final QueryParam<DateTime?> boundParameter =
       definition.queryParameters.single as QueryParam<DateTime?>;
 
-  _NullableQueryLocation({required String id, required this.parameter})
+  _NullableQueryLocation({required _TestId id, required this.parameter})
     : super(id: id);
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder<_TestId> builder) {
     builder.bindParam(parameter);
   }
 }
 
 class _NoIdSegmentLocation
-    extends AbstractLocation<String, _NoIdSegmentLocation> {
+    extends AbstractLocation<_TestId, _NoIdSegmentLocation> {
   final List<PathSegment> _segments;
 
   _NoIdSegmentLocation({required String path})
     : _segments = _pathSegments(path);
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder<_TestId> builder) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
@@ -295,28 +316,28 @@ class _NoIdSegmentLocation
 }
 
 class _BoundParamLocation
-    extends AbstractLocation<String, _BoundParamLocation> {
+    extends AbstractLocation<_TestId, _BoundParamLocation> {
   final UnboundPathParam<String> pathParameter;
   final UnboundQueryParam<String> queryParameter;
 
   _BoundParamLocation({
-    required String id,
+    required _TestId id,
     required this.pathParameter,
     required this.queryParameter,
   }) : super(id: id);
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder<_TestId> builder) {
     builder.bindParam(pathParameter);
     builder.bindParam(queryParameter);
   }
 }
 
-class _AccountsNode extends AbstractShell<String> {
+class _AccountsNode extends AbstractShell<_TestId> {
   _AccountsNode({required super.id});
 
   @override
-  void build(ShellBuilder<String> builder) {
+  void build(ShellBuilder<_TestId> builder) {
     builder.pathLiteral('accounts');
   }
 }

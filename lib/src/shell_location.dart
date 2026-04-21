@@ -163,6 +163,13 @@ abstract class AbstractShellLocation<ID extends Enum, Self extends AnyLocation<I
     this.navigatorEnabled = true,
   }) : routerKey = routerKey ?? WorkingRouterKey();
 
+  /// Mirrors the `node` callback parameter used by [ShellLocation].
+  ///
+  /// This makes override-based shell locations easier to keep in sync with
+  /// inline callback-based shell locations when moving builder code between the
+  /// two forms.
+  Self get node => this as Self;
+
   @override
   ShellLocationBuilder<ID> createBuilder() => ShellLocationBuilder<ID>();
 
