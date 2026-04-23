@@ -10,24 +10,24 @@ import 'package:working_router/working_router.dart';
 ///
 /// This callback is used at startup and again on [WorkingRouter.refresh] so the
 /// runtime tree can react to changing application state such as permissions.
-typedef BuildRouteNodes<ID extends Enum> =
-    List<RouteNode<ID>> Function(WorkingRouterKey rootRouterKey);
+typedef BuildRouteNodes =
+    List<RouteNode> Function(WorkingRouterKey rootRouterKey);
 
-class WorkingRouter<ID extends Enum> extends ChangeNotifier
-    implements RouterConfig<Uri>, WorkingRouterDataSailor<ID> {
+class WorkingRouter extends ChangeNotifier
+    implements RouterConfig<Uri>, WorkingRouterDataSailor {
   /// Does not notify widgets at all.
   /// This is meant to be used for one off calls to the router,
   /// and not rebuilding a widget based router data changes.
   /// Use [WorkingRouterData.of] for this instead.
-  static WorkingRouterDataSailor<ID> of<ID extends Enum>(
+  static WorkingRouterDataSailor of(
     BuildContext context,
   ) {
     final inheritedWidget = context
-        .dependOnInheritedWidgetOfExactType<InheritedWorkingRouter<ID>>();
+        .dependOnInheritedWidgetOfExactType<InheritedWorkingRouter>();
     return inheritedWidget!.sailor;
   }
 
-  late final WorkingRouterDelegate<ID> _rootDelegate;
+  late final WorkingRouterDelegate _rootDelegate;
   final WorkingRouteInformationParser _informationParser =
       WorkingRouteInformationParser();
   final RouteInformationProvider _informationProvider =
@@ -40,9 +40,9 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   final GlobalKey<NavigatorState> _rootNavigatorKey;
   final WorkingRouterKey _rootRouterKey = WorkingRouterKey();
 
-  late IList<RouteNode<ID>> _routeNodeTree;
+  late IList<RouteNode> _routeNodeTree;
   final List<LocationObserverState> _observers = [];
-  final List<WorkingRouterDelegate<ID>> _nestedDelegates = [];
+  final List<WorkingRouterDelegate> _nestedDelegates = [];
 
   /// Counter to track routing requests and prevent race conditions.
   /// Each routing request captures this value at start; if a newer request
@@ -54,9 +54,9 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     "Don't use this property directly. "
     "Get is using the data getter. Set it using _updateData.",
   )
-  WorkingRouterData<ID>? _data;
+  WorkingRouterData? _data;
 
-  final TransitionDecider<ID>? _decideTransition;
+  final TransitionDecider? _decideTransition;
   final int _redirectLimit;
 
   /// Rebuilds the routing tree used by this router instance.
@@ -66,16 +66,16 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   ///
   /// When using `@RouteNodes`, pass a closure here that builds the same route
   /// tree shape as the annotated generator entrypoint.
-  final BuildRouteNodes<ID> buildRouteNodes;
-  final LocationChildWrapper<ID>? wrapLocationChild;
+  final BuildRouteNodes buildRouteNodes;
+  final LocationChildWrapper? wrapLocationChild;
 
   WorkingRouter({
     required this.buildRouteNodes,
-    BuildPages<ID>? buildRootPages,
+    BuildPages? buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     this.wrapLocationChild,
-    TransitionDecider<ID>? decideTransition,
+    TransitionDecider? decideTransition,
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
@@ -84,7 +84,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
        _decideTransition = decideTransition,
        _redirectLimit = redirectLimit {
     _routeNodeTree = _buildRouteNodeTree();
-    _rootDelegate = WorkingRouterDelegate<ID>(
+    _rootDelegate = WorkingRouterDelegate(
       debugLabel: "root",
       isRootDelegate: true,
       router: this,
@@ -102,10 +102,10 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   @override
   @protected
   // ignore: deprecated_member_use_from_same_package
-  WorkingRouterData<ID> get data => _data!;
+  WorkingRouterData get data => _data!;
 
   // ignore: deprecated_member_use_from_same_package
-  WorkingRouterData<ID>? get nullableData => _data;
+  WorkingRouterData? get nullableData => _data;
 
   @override
   BackButtonDispatcher? get backButtonDispatcher => RootBackButtonDispatcher();
@@ -142,7 +142,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     }
   }
 
-  IList<RouteNode<ID>> _buildRouteNodeTree() {
+  IList<RouteNode> _buildRouteNodeTree() {
     final nodes = buildRouteNodes(_rootRouterKey);
     return nodes.toIList();
   }
@@ -158,7 +158,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   @override
-  void routeTo(RouteTarget<ID> target) {
+  void routeTo(RouteTarget target) {
     _routeTo(
       targetData: _buildDataForTarget(
         target,
@@ -183,9 +183,9 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
 
   @override
   void routeToId(
-    ID id, {
+    AnyNodeId id, {
     Map<String, String> queryParameters = const {},
-    WritePathParameters<ID>? writePathParameters,
+    WritePathParameters? writePathParameters,
   }) {
     routeTo(
       IdRouteTarget(
@@ -197,7 +197,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   @override
-  void slideIn(ID id) {
+  void slideIn(AnyNodeId id) {
     final idMatches = _routeNodeTree.matchId(id);
     final targetLocation = idMatches.locations.lastOrNull;
     final currentLocation = nullableData?.leaf;
@@ -222,9 +222,9 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
 
   @override
   void routeToChildWhere(
-    bool Function(AnyLocation<ID> location) predicate, {
+    bool Function(AnyLocation location) predicate, {
     Map<String, String> queryParameters = const {},
-    WritePathParameters<ID>? writePathParameters,
+    WritePathParameters? writePathParameters,
   }) {
     routeTo(
       FirstChildRouteTarget(
@@ -238,7 +238,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   @override
   void routeToChild<T>({
     Map<String, String> queryParameters = const {},
-    WritePathParameters<ID>? writePathParameters,
+    WritePathParameters? writePathParameters,
   }) {
     routeToChildWhere(
       (it) => it is T,
@@ -253,7 +253,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   @override
-  void routeBackFrom(AnyLocation<ID> fromLocation) {
+  void routeBackFrom(AnyLocation fromLocation) {
     _routeBackUntil(
       (it) => !it.shouldBeSkippedOnRouteBack,
       fromLocation: fromLocation,
@@ -261,13 +261,13 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   @override
-  void routeBackUntil(bool Function(AnyLocation<ID> location) match) {
+  void routeBackUntil(bool Function(AnyLocation location) match) {
     _routeBackUntil(match);
   }
 
   void _routeBackUntil(
-    bool Function(AnyLocation<ID> location) match, {
-    AnyLocation<ID>? fromLocation,
+    bool Function(AnyLocation location) match, {
+    AnyLocation? fromLocation,
   }) {
     final data = nullableData!;
     final locations = data.routeNodes.locations;
@@ -331,8 +331,8 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   int _routeBackStartIndex({
-    required IList<AnyLocation<ID>> locations,
-    required AnyLocation<ID> fromLocation,
+    required IList<AnyLocation> locations,
+    required AnyLocation fromLocation,
   }) {
     for (var i = locations.length - 1; i >= 0; i--) {
       if (identical(locations[i], fromLocation)) {
@@ -343,7 +343,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   void _routeTo({
-    required WorkingRouterData<ID> targetData,
+    required WorkingRouterData targetData,
     required RouteTransitionReason reason,
   }) {
     final myVersion = ++_routingVersion;
@@ -390,7 +390,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
 
   Future<void> _guardBeforeLeave({
     required int routingVersion,
-    required IList<AnyLocation<ID>> newLocations,
+    required IList<AnyLocation> newLocations,
     required void Function() onAllowed,
   }) async {
     final observers = _observers.reversed.toList(growable: false);
@@ -412,7 +412,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
         break;
       }
 
-      final observedLocation = NearestLocation.of<ID>(context);
+      final observedLocation = NearestLocation.of(context);
       if (currentLocations.contains(observedLocation) &&
           !newLocations.contains(observedLocation)) {
         if (!(await observer.widget.beforeLeave?.call() ?? true)) {
@@ -428,9 +428,9 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     onAllowed();
   }
 
-  WorkingRouterData<ID>? _resolveTransitionDecision({
-    required WorkingRouterData<ID>? oldData,
-    required WorkingRouterData<ID> initialData,
+  WorkingRouterData? _resolveTransitionDecision({
+    required WorkingRouterData? oldData,
+    required WorkingRouterData initialData,
     required RouteTransitionReason initialReason,
   }) {
     final decideTransition = _decideTransition;
@@ -486,7 +486,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     }
   }
 
-  WorkingRouterData<ID> _buildDataForUri(Uri uri) {
+  WorkingRouterData _buildDataForUri(Uri uri) {
     final matchResult = _routeNodeTree.match(uri.pathSegments.toIList());
     return _buildData(
       routeNodes: matchResult.routeNodes,
@@ -496,9 +496,9 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     );
   }
 
-  WorkingRouterData<ID> _buildDataForTarget(
-    RouteTarget<ID> target, {
-    required WorkingRouterData<ID>? currentData,
+  WorkingRouterData _buildDataForTarget(
+    RouteTarget target, {
+    required WorkingRouterData? currentData,
     bool retainSharedQueryParameters = true,
   }) {
     switch (target) {
@@ -620,8 +620,8 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     }
   }
 
-  WorkingRouterData<ID> _buildData({
-    required IList<RouteNode<ID>> routeNodes,
+  WorkingRouterData _buildData({
+    required IList<RouteNode> routeNodes,
     required Uri? fallback,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
@@ -659,7 +659,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   Uri _uriFromLocations({
-    required IList<PathRouteNode<ID>> locations,
+    required IList<PathRouteNode> locations,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
@@ -669,9 +669,9 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     );
   }
 
-  IList<RouteNode<ID>> _trimNodesToLastMatchingLocation(
-    WorkingRouterData<ID> data,
-    AnyLocation<ID> lastRemainingLocation,
+  IList<RouteNode> _trimNodesToLastMatchingLocation(
+    WorkingRouterData data,
+    AnyLocation lastRemainingLocation,
   ) {
     final lastRemainingNodeIndex = data.routeNodes.indexWhere(
       (node) => identical(node, lastRemainingLocation),
@@ -680,8 +680,8 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
   }
 
   Map<UnboundPathParam<dynamic>, String> _resolvePathParameterWrites(
-    Iterable<PathRouteNode<ID>> locations,
-    WritePathParameters<ID>? writePathParameters,
+    Iterable<PathRouteNode> locations,
+    WritePathParameters? writePathParameters,
   ) {
     if (writePathParameters == null) {
       return const {};
@@ -715,8 +715,8 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
 
   /// Notifies all location observers after a route change.
   void _notifyObserversAfterRouteChange({
-    required IList<AnyLocation<ID>>? oldLocations,
-    required IList<AnyLocation<ID>> newLocations,
+    required IList<AnyLocation>? oldLocations,
+    required IList<AnyLocation> newLocations,
   }) {
     if (oldLocations?.isEmpty ?? true) {
       return;
@@ -731,7 +731,7 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
       if (!context.mounted) {
         continue;
       }
-      final observedLocation = NearestLocation.of<ID>(context);
+      final observedLocation = NearestLocation.of(context);
       if (oldLocations!.contains(observedLocation)) {
         if (newLocations.contains(observedLocation)) {
           observer.widget.afterUpdate?.call();
@@ -744,18 +744,18 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
     }
   }
 
-  void _updateData(WorkingRouterData<ID> data) {
+  void _updateData(WorkingRouterData data) {
     // ignore: deprecated_member_use_from_same_package
     _data = data;
     _rootDelegate.updateData(data);
     notifyListeners();
   }
 
-  void addNestedDelegate(WorkingRouterDelegate<ID> delegate) {
+  void addNestedDelegate(WorkingRouterDelegate delegate) {
     _nestedDelegates.add(delegate);
   }
 
-  void removeNestedDelegate(WorkingRouterDelegate<ID> delegate) {
+  void removeNestedDelegate(WorkingRouterDelegate delegate) {
     _nestedDelegates.remove(delegate);
   }
 }
@@ -763,8 +763,8 @@ class WorkingRouter<ID extends Enum> extends ChangeNotifier
 /// A synchronous callback that decides how to handle a route transition.
 ///
 /// Keep this callback fast and side-effect free.
-typedef TransitionDecider<ID extends Enum> =
-    TransitionDecision<ID> Function(
-      WorkingRouter<ID> router,
-      RouteTransition<ID> transition,
+typedef TransitionDecider =
+    TransitionDecision Function(
+      WorkingRouter router,
+      RouteTransition transition,
     );

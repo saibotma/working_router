@@ -7,21 +7,21 @@ import 'package:working_router/src/widgets/nested_routing.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 
-class MultiShellLocationPageSkeleton<ID extends Enum>
-    extends BuilderLocationPageSkeleton<ID> {
+class MultiShellLocationPageSkeleton
+    extends BuilderLocationPageSkeleton {
   MultiShellLocationPageSkeleton({
-    required WorkingRouter<ID> router,
-    required List<LocationPageSkeleton<ID>> Function(
-      WorkingRouter<ID> router,
-      AnyLocation<ID> location,
-      WorkingRouterData<ID> data,
+    required WorkingRouter router,
+    required List<LocationPageSkeleton> Function(
+      WorkingRouter router,
+      AnyLocation location,
+      WorkingRouterData data,
     )
     buildPages,
-    required Iterable<MultiShellResolvedSlot<ID>> slots,
+    required Iterable<MultiShellResolvedSlot> slots,
     required Widget Function(
       BuildContext context,
-      WorkingRouterData<ID> data,
-      MultiShellSlotChildren<ID> slots,
+      WorkingRouterData data,
+      MultiShellSlotChildren slots,
     )
     buildChild,
     super.buildPage,
@@ -29,7 +29,7 @@ class MultiShellLocationPageSkeleton<ID extends Enum>
     String? debugLabel,
   }) : super(
          buildChild: (context, data) {
-           final slotChildren = MultiShellSlotChildren<ID>({
+           final slotChildren = MultiShellSlotChildren({
              for (final resolvedSlot in slots)
                resolvedSlot.slot: _buildSlotChild(
                  context: context,
@@ -44,15 +44,15 @@ class MultiShellLocationPageSkeleton<ID extends Enum>
          },
        );
 
-  static MultiShellResolvedSlotChild _buildSlotChild<ID extends Enum>({
+  static MultiShellResolvedSlotChild _buildSlotChild({
     required BuildContext context,
-    required WorkingRouterData<ID> data,
-    required MultiShellResolvedSlot<ID> resolvedSlot,
-    required WorkingRouter<ID> router,
-    required List<LocationPageSkeleton<ID>> Function(
-      WorkingRouter<ID> router,
-      AnyLocation<ID> location,
-      WorkingRouterData<ID> data,
+    required WorkingRouterData data,
+    required MultiShellResolvedSlot resolvedSlot,
+    required WorkingRouter router,
+    required List<LocationPageSkeleton> Function(
+      WorkingRouter router,
+      AnyLocation location,
+      WorkingRouterData data,
     )
     buildPages,
     required String? debugLabel,
@@ -73,7 +73,7 @@ class MultiShellLocationPageSkeleton<ID extends Enum>
 
     return MultiShellResolvedSlotChild(
       isEnabled: true,
-      child: NestedRouting<ID>(
+      child: NestedRouting(
         router: router,
         buildPages: buildPages,
         buildDefaultPages: buildDefaultWidget == null
@@ -91,9 +91,9 @@ class MultiShellLocationPageSkeleton<ID extends Enum>
     );
   }
 
-  static Page<dynamic> _buildDefaultPage<ID extends Enum>({
-    required WorkingRouterData<ID> data,
-    required MultiShellResolvedSlot<ID> resolvedSlot,
+  static Page<dynamic> _buildDefaultPage({
+    required WorkingRouterData data,
+    required MultiShellResolvedSlot resolvedSlot,
   }) {
     final buildDefaultWidget = resolvedSlot.definition.buildDefaultWidget!;
     final defaultChild = InheritedWorkingRouterData(

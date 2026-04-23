@@ -19,11 +19,11 @@ import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildPages<ID extends Enum> =
-    List<LocationPageSkeleton<ID>> Function(
-      WorkingRouter<ID> router,
-      AnyLocation<ID> location,
-      WorkingRouterData<ID> data,
+typedef BuildPages =
+    List<LocationPageSkeleton> Function(
+      WorkingRouter router,
+      AnyLocation location,
+      WorkingRouterData data,
     );
 
 enum _MatchedNodeRenderKind {
@@ -34,22 +34,22 @@ enum _MatchedNodeRenderKind {
   multiShellLocationShell,
 }
 
-typedef _MatchedNodeEntry<ID extends Enum> = ({
-  RouteNode<ID> node,
+typedef _MatchedNodeEntry = ({
+  RouteNode node,
   WorkingRouterKey effectiveParentRouterKey,
   _MatchedNodeRenderKind renderKind,
 });
 
-class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
+class WorkingRouterDelegate extends RouterDelegate<Uri>
     with ChangeNotifier, PopNavigatorRouterDelegateMixin {
   @override
   late final GlobalKey<NavigatorState> navigatorKey;
 
   WorkingRouterKey routerKey;
   final bool isRootDelegate;
-  final WorkingRouter<ID> router;
-  final BuildPages<ID>? buildPages;
-  final List<Page<dynamic>> Function(WorkingRouterData<ID> data)?
+  final WorkingRouter router;
+  final BuildPages? buildPages;
+  final List<Page<dynamic>> Function(WorkingRouterData data)?
   buildDefaultPages;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
@@ -60,7 +60,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
   // Have an extra data property here and don't get it directly from router,
   // because nested delegates should not use the newest data, when their
   // route gets animated out.
-  WorkingRouterData<ID>? _data;
+  WorkingRouterData? _data;
 
   WorkingRouterDelegate({
     required this.isRootDelegate,
@@ -187,8 +187,8 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
   /// a node back to a different ancestor navigator. This method resolves that
   /// ownership and yields only the nodes assigned to the current delegate's
   /// navigator.
-  Iterable<_MatchedNodeEntry<ID>> _matchedNodesForNavigator(
-    WorkingRouterData<ID> data,
+  Iterable<_MatchedNodeEntry> _matchedNodesForNavigator(
+    WorkingRouterData data,
   ) sync* {
     for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
       if (identical(entry.effectiveParentRouterKey, routerKey)) {
@@ -197,8 +197,8 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
     }
   }
 
-  Iterable<_MatchedNodeEntry<ID>> _matchedNodesWithEffectiveParentRouterKeys(
-    WorkingRouterData<ID> data,
+  Iterable<_MatchedNodeEntry> _matchedNodesWithEffectiveParentRouterKeys(
+    WorkingRouterData data,
   ) sync* {
     WorkingRouterKey childRouterKey = router.rootRouterKey;
     // Disabled shells and multi shell content slots still have stable router
@@ -214,7 +214,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
           childRouterKey;
       final effectiveParentRouterKey = inheritedParentRouterKey;
       switch (node) {
-        case final AbstractMultiShell<ID> multiShell:
+        case final AbstractMultiShell multiShell:
           if (multiShell.navigatorEnabled) {
             yield (
               node: node,
@@ -229,7 +229,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
                 : effectiveParentRouterKey;
           }
           childRouterKey = effectiveParentRouterKey;
-        case final AbstractMultiShellLocation<ID, dynamic> multiShellLocation:
+        case final AbstractMultiShellLocation multiShellLocation:
           if (multiShellLocation.navigatorEnabled) {
             yield (
               node: node,
@@ -256,7 +256,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
                 : effectiveParentRouterKey;
           }
           childRouterKey = effectiveContentChildRouterKey;
-        case final AbstractShellLocation<ID, dynamic> shellLocation:
+        case final AbstractShellLocation shellLocation:
           // A shell location contributes two render phases from one matched
           // semantic node: its outer shell page on the parent navigator and
           // its inner location page on its own nested navigator.
@@ -278,7 +278,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
           aliasedRouterKeys[shellLocation.routerKey] =
               effectiveShellChildRouterKey;
           childRouterKey = effectiveShellChildRouterKey;
-        case final AbstractShell<ID> shell:
+        case final AbstractShell shell:
           if (shell.navigatorEnabled) {
             yield (
               node: node,
@@ -291,7 +291,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
               : effectiveParentRouterKey;
           aliasedRouterKeys[shell.routerKey] = effectiveShellChildRouterKey;
           childRouterKey = effectiveShellChildRouterKey;
-        case PathRouteNode<ID>():
+        case PathRouteNode():
           yield (
             node: node,
             effectiveParentRouterKey: effectiveParentRouterKey,
@@ -304,7 +304,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
 
   bool _navigatorWouldBuildPages(
     WorkingRouterKey navigatorRouterKey,
-    WorkingRouterData<ID> data,
+    WorkingRouterData data,
   ) {
     // A shell only contributes a page when its own navigator would actually
     // build at least one page from later matched descendants. If no matched
@@ -317,13 +317,13 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
       }
 
       switch ((entry.renderKind, entry.node)) {
-        case (_MatchedNodeRenderKind.shell, final AbstractShell<ID> shell):
+        case (_MatchedNodeRenderKind.shell, final AbstractShell shell):
           if (_navigatorWouldBuildPages(shell.routerKey, data)) {
             return true;
           }
         case (
           _MatchedNodeRenderKind.multiShell,
-          final AbstractMultiShell<ID> multiShell,
+          final AbstractMultiShell multiShell,
         ):
           if (_resolveMultiShellSlots(
             multiShell.slotDefinitions,
@@ -334,14 +334,14 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
           }
         case (
           _MatchedNodeRenderKind.shellLocationShell,
-          final AbstractShellLocation<ID, dynamic> shellLocation,
+          final AbstractShellLocation shellLocation,
         ):
           if (_navigatorWouldBuildPages(shellLocation.routerKey, data)) {
             return true;
           }
         case (
           _MatchedNodeRenderKind.multiShellLocationShell,
-          final AbstractMultiShellLocation<ID, dynamic> multiShellLocation,
+          final AbstractMultiShellLocation multiShellLocation,
         ):
           if (_navigatorWouldBuildPages(
                 multiShellLocation.contentRouterKey,
@@ -354,7 +354,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
               ).isNotEmpty) {
             return true;
           }
-        case (_, final AnyLocation<ID> location):
+        case (_, final AnyLocation location):
           if (_buildPagesForLocation(location, data).isNotEmpty) {
             return true;
           }
@@ -364,12 +364,12 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
     return false;
   }
 
-  List<LocationPageSkeleton<ID>> _buildPagesForMatchedEntry(
-    _MatchedNodeEntry<ID> entry,
-    WorkingRouterData<ID> data,
+  List<LocationPageSkeleton> _buildPagesForMatchedEntry(
+    _MatchedNodeEntry entry,
+    WorkingRouterData data,
   ) {
     switch ((entry.renderKind, entry.node)) {
-      case (_MatchedNodeRenderKind.shell, final AbstractShell<ID> shell):
+      case (_MatchedNodeRenderKind.shell, final AbstractShell shell):
         if (!shell.navigatorEnabled) {
           return const [];
         }
@@ -411,7 +411,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
         ];
       case (
         _MatchedNodeRenderKind.multiShell,
-        final AbstractMultiShell<ID> multiShell,
+        final AbstractMultiShell multiShell,
       ):
         if (!multiShell.navigatorEnabled) {
           return const [];
@@ -429,9 +429,9 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
             router: router,
             buildPages:
                 (
-                  WorkingRouter<ID> _,
-                  AnyLocation<ID> location,
-                  WorkingRouterData<ID> data,
+                  WorkingRouter _,
+                  AnyLocation location,
+                  WorkingRouterData data,
                 ) => _buildPagesForLocation(location, data),
             slots: resolvedSlots,
             buildChild: (context, nestedData, slots) {
@@ -447,7 +447,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
         ];
       case (
         _MatchedNodeRenderKind.shellLocationShell,
-        final AbstractShellLocation<ID, dynamic> shellLocation,
+        final AbstractShellLocation shellLocation,
       ):
         if (!shellLocation.navigatorEnabled) {
           return const [];
@@ -476,7 +476,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
         ];
       case (
         _MatchedNodeRenderKind.multiShellLocationShell,
-        final AbstractMultiShellLocation<ID, dynamic> multiShellLocation,
+        final AbstractMultiShellLocation multiShellLocation,
       ):
         if (!multiShellLocation.navigatorEnabled) {
           return const [];
@@ -495,9 +495,9 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
             router: router,
             buildPages:
                 (
-                  WorkingRouter<ID> _,
-                  AnyLocation<ID> location,
-                  WorkingRouterData<ID> data,
+                  WorkingRouter _,
+                  AnyLocation location,
+                  WorkingRouterData data,
                 ) => _buildPagesForLocation(location, data),
             slots: [
               MultiShellResolvedSlot(
@@ -518,16 +518,16 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
             debugLabel: '$multiShellLocation',
           ),
         ];
-      case (_, final AnyLocation<ID> location):
+      case (_, final AnyLocation location):
         return _buildPagesForLocation(location, data);
     }
 
     return const [];
   }
 
-  List<LocationPageSkeleton<ID>> _buildPagesForLocation(
-    AnyLocation<ID> location,
-    WorkingRouterData<ID> data,
+  List<LocationPageSkeleton> _buildPagesForLocation(
+    AnyLocation location,
+    WorkingRouterData data,
   ) {
     if (!location.contributesPage) {
       return const [];
@@ -544,8 +544,8 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
   }
 
   bool _hasMatchedDescendantAfter(
-    RouteNode<ID> node,
-    WorkingRouterData<ID> data,
+    RouteNode node,
+    WorkingRouterData data,
   ) {
     var foundNode = false;
     for (final current in data.routeNodes) {
@@ -559,9 +559,9 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
     return false;
   }
 
-  List<MultiShellResolvedSlot<ID>> _resolveMultiShellSlots(
-    List<MultiShellSlotDefinition<ID>> slotDefinitions,
-    WorkingRouterData<ID> data, {
+  List<MultiShellResolvedSlot> _resolveMultiShellSlots(
+    List<MultiShellSlotDefinition> slotDefinitions,
+    WorkingRouterData data, {
     required bool containerNavigatorEnabled,
   }) {
     return [
@@ -581,9 +581,9 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
   /// Adapts the new location-owned `buildWidget` / `buildPage` API to the
   /// existing skeleton-based delegate flow. Returns `null` when the location
   /// still relies on the legacy `buildPages` callback.
-  List<LocationPageSkeleton<ID>>? _selfBuiltPages(
-    AnyLocation<ID> location,
-    WorkingRouterData<ID> data,
+  List<LocationPageSkeleton>? _selfBuiltPages(
+    AnyLocation location,
+    WorkingRouterData data,
   ) {
     if (!location.buildsOwnPage) {
       return null;
@@ -605,7 +605,7 @@ class WorkingRouterDelegate<ID extends Enum> extends RouterDelegate<Uri>
     ];
   }
 
-  void updateData(WorkingRouterData<ID> data) {
+  void updateData(WorkingRouterData data) {
     _data = data;
     refresh();
   }

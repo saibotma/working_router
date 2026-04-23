@@ -9,10 +9,10 @@ import 'package:working_router/working_router.dart';
 /// [WorkingRouter.refresh] as long as the surrounding shell widget is reused.
 /// This is what lets working_router support dynamic route trees without
 /// immediately discarding nested navigator state on every refresh.
-class NestedRouting<ID extends Enum> extends StatefulWidget {
-  final WorkingRouter<ID> router;
-  final BuildPages<ID> buildPages;
-  final List<Page<dynamic>> Function(WorkingRouterData<ID> data)?
+class NestedRouting extends StatefulWidget {
+  final WorkingRouter router;
+  final BuildPages buildPages;
+  final List<Page<dynamic>> Function(WorkingRouterData data)?
   buildDefaultPages;
   final WorkingRouterKey routerKey;
   final String? debugLabel;
@@ -27,11 +27,11 @@ class NestedRouting<ID extends Enum> extends StatefulWidget {
   });
 
   @override
-  State<NestedRouting<ID>> createState() => _NestedRoutingState<ID>();
+  State<NestedRouting> createState() => _NestedRoutingState();
 }
 
-class _NestedRoutingState<ID extends Enum> extends State<NestedRouting<ID>> {
-  late WorkingRouterDelegate<ID>? _delegate = WorkingRouterDelegate(
+class _NestedRoutingState extends State<NestedRouting> {
+  late WorkingRouterDelegate? _delegate = WorkingRouterDelegate(
     isRootDelegate: false,
     routerKey: widget.routerKey,
     router: widget.router,
@@ -41,7 +41,7 @@ class _NestedRoutingState<ID extends Enum> extends State<NestedRouting<ID>> {
   );
 
   @override
-  void didUpdateWidget(covariant NestedRouting<ID> oldWidget) {
+  void didUpdateWidget(covariant NestedRouting oldWidget) {
     // The stateful nested delegate is reused across widget updates, so keep
     // its router ownership key in sync when the surrounding shell now targets
     // a different nested router boundary.
@@ -53,7 +53,7 @@ class _NestedRoutingState<ID extends Enum> extends State<NestedRouting<ID>> {
 
   @override
   void didChangeDependencies() {
-    final data = WorkingRouterData.of<ID>(context);
+    final data = WorkingRouterData.of(context);
     _delegate!.updateData(data);
     super.didChangeDependencies();
   }
@@ -61,7 +61,7 @@ class _NestedRoutingState<ID extends Enum> extends State<NestedRouting<ID>> {
   @override
   Widget build(BuildContext context) {
     // Depend on working router to make didChangeDependencies get called.
-    WorkingRouterData.of<ID>(context);
+    WorkingRouterData.of(context);
 
     // Followed https://github.com/flutter/flutter/issues/55570#issuecomment-665330166
     // on how to connect this to the root back button dispatcher.

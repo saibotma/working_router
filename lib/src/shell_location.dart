@@ -5,20 +5,20 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildShellLocation<ID extends Enum, Self extends AnyLocation<ID>> =
+typedef BuildShellLocation<Self extends AnyLocation<Self>> =
     void Function(
-      ShellLocationBuilder<ID> builder,
+      ShellLocationBuilder builder,
       Self node,
       WorkingRouterKey routerKey,
     );
 
-final class ShellLocationBuildResult<ID extends Enum>
-    extends LocationBuildResult<ID> {
-  final LocationWidgetBuilder<ID>? buildWidget;
+final class ShellLocationBuildResult
+    extends LocationBuildResult {
+  final LocationWidgetBuilder? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
-  final ShellContentBuilder<ID> buildShellContent;
+  final ShellContentBuilder buildShellContent;
   final ShellPageBuilder? buildShellPage;
-  final LocationWidgetBuilder<ID>? buildDefaultWidget;
+  final LocationWidgetBuilder? buildDefaultWidget;
   final SelfBuiltLocationPageBuilder? buildDefaultPage;
 
   const ShellLocationBuildResult({
@@ -31,21 +31,21 @@ final class ShellLocationBuildResult<ID extends Enum>
   });
 
   @override
-  LocationWidgetBuilder<ID>? get buildWidgetOrNull => buildWidget;
+  LocationWidgetBuilder? get buildWidgetOrNull => buildWidget;
 
   @override
   SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
-class ShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
-  ShellContent<ID>? _shellContent;
+class ShellLocationBuilder extends LocationBuilder {
+  ShellContent? _shellContent;
   ShellPageBuilder? _buildShellPage;
-  DefaultContent<ID>? _defaultContent;
+  DefaultContent? _defaultContent;
   SelfBuiltLocationPageBuilder? _buildDefaultPage;
 
   ShellLocationBuilder();
 
-  set shellContent(ShellContent<ID> shellContent) {
+  set shellContent(ShellContent shellContent) {
     if (_shellContent != null) {
       throw StateError(
         'ShellLocationBuilder shellContent was already configured. '
@@ -70,7 +70,7 @@ class ShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
   ///
   /// This is most useful when `content = const Content.none()` should suppress
   /// the location's own page while still keeping a default nested page alive.
-  set defaultContent(DefaultContent<ID> content) {
+  set defaultContent(DefaultContent content) {
     if (_defaultContent != null) {
       throw StateError(
         'ShellLocationBuilder defaultContent was already configured. '
@@ -91,7 +91,7 @@ class ShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
   }
 
   @override
-  LocationBuildResult<ID>? resolveRender() {
+  LocationBuildResult? resolveRender() {
     final locationRender = super.resolveRender();
     if (locationRender == null) {
       throw StateError(
@@ -115,7 +115,7 @@ class ShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
     return ShellLocationBuildResult(
       buildWidget: locationRender.buildWidgetOrNull,
       buildPage: locationRender.buildPageOrNull,
-      buildShellContent: (_shellContent ?? ShellContent<ID>.child())
+      buildShellContent: (_shellContent ?? const ShellContent.child())
           .resolveBuilder(),
       buildShellPage: _buildShellPage,
       buildDefaultWidget: buildDefaultWidget,
@@ -144,9 +144,9 @@ class ShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
 /// shell location then behaves like a normal [Location] for rendering, while
 /// descendants that would normally inherit or explicitly target this shell
 /// location's [routerKey] are routed to its parent navigator instead.
-abstract class AbstractShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
-    extends AnyLocation<ID>
-    implements BuildsWithShellLocationBuilder<ID> {
+abstract class AbstractShellLocation<Self extends AnyLocation<Self>>
+    extends AnyLocation<Self>
+    implements BuildsWithShellLocationBuilder {
   final WorkingRouterKey routerKey;
   final bool navigatorEnabled;
 
@@ -171,11 +171,11 @@ abstract class AbstractShellLocation<ID extends Enum, Self extends AnyLocation<I
   Self get node => this as Self;
 
   @override
-  ShellLocationBuilder<ID> createBuilder() => ShellLocationBuilder<ID>();
+  ShellLocationBuilder createBuilder() => ShellLocationBuilder();
 
-  ShellLocationBuildResult<ID> get _shellLocationRender {
+  ShellLocationBuildResult get _shellLocationRender {
     final render = definition.render;
-    if (render is! ShellLocationBuildResult<ID>) {
+    if (render is! ShellLocationBuildResult) {
       throw StateError(
         'ShellLocation $runtimeType did not resolve a shell render. '
         'This indicates a framework bug.',
@@ -186,7 +186,7 @@ abstract class AbstractShellLocation<ID extends Enum, Self extends AnyLocation<I
 
   Widget buildShellContent(
     BuildContext context,
-    WorkingRouterData<ID> data,
+    WorkingRouterData data,
     Widget child,
   ) {
     return _shellLocationRender.buildShellContent(context, data, child);
@@ -199,7 +199,7 @@ abstract class AbstractShellLocation<ID extends Enum, Self extends AnyLocation<I
 
   bool get hasDefaultPage => _shellLocationRender.buildDefaultWidget != null;
 
-  List<Page<dynamic>> buildDefaultPages(WorkingRouterData<ID> data) {
+  List<Page<dynamic>> buildDefaultPages(WorkingRouterData data) {
     return buildDefaultPagesForSlot(
       data: data,
       routerKey: routerKey,
@@ -212,9 +212,9 @@ abstract class AbstractShellLocation<ID extends Enum, Self extends AnyLocation<I
 /// Callback-based convenience shell location.
 ///
 /// Use this when the shell location is defined inline with a `build:` callback.
-class ShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
-    extends AbstractShellLocation<ID, Self> {
-  final BuildShellLocation<ID, Self> _build;
+class ShellLocation<Self extends AnyLocation<Self>>
+    extends AbstractShellLocation<Self> {
+  final BuildShellLocation<Self> _build;
 
   ShellLocation({
     super.id,
@@ -223,23 +223,23 @@ class ShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
     super.tags,
     super.routerKey,
     super.navigatorEnabled,
-    required BuildShellLocation<ID, Self> build,
+    required BuildShellLocation<Self> build,
   }) : _build = build;
 
   @override
-  void build(ShellLocationBuilder<ID> builder) {
+  void build(ShellLocationBuilder builder) {
     _build(builder, this as Self, routerKey);
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID extends Enum>(
-  DefaultContent<ID>? defaultContent,
+LocationWidgetBuilder? _resolveDefaultWidgetBuilder(
+  DefaultContent? defaultContent,
 ) {
   return defaultContent?.resolveWidgetBuilder();
 }
 
-SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID extends Enum>({
-  required DefaultContent<ID>? defaultContent,
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder({
+  required DefaultContent? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {
   if (defaultPage != null && defaultContent == null) {

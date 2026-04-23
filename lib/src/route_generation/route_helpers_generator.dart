@@ -18,7 +18,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     BuildStep buildStep,
   ) async {
     final declarationElement = _declarationElement(element);
-    final typeSource = _idTypeSource(declarationElement);
+    _validateRouteDeclarationType(declarationElement);
     final extractor = _StaticRouteTreeExtractor(
       buildStep: buildStep,
       rootElement: declarationElement,
@@ -46,7 +46,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     final extensionName =
         '${_toUpperCamelCase(declarationElement.displayName)}GeneratedRoutes';
     buffer.writeln(
-      'extension $extensionName on WorkingRouterSailor<$typeSource> {',
+      'extension $extensionName on WorkingRouterSailor {',
     );
 
     for (final method in methods) {
@@ -88,26 +88,26 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     return buffer.toString();
   }
 
-  String _idTypeSource(Element element) {
+  void _validateRouteDeclarationType(Element element) {
     _validateDeclarationTarget(element);
 
     if (element case ExecutableElement()) {
       final routeNodeType = _routeNodeType(element.returnType);
-      if (routeNodeType != null && routeNodeType.typeArguments.length == 1) {
-        return routeNodeType.typeArguments.single.getDisplayString();
+      if (routeNodeType != null) {
+        return;
       }
     }
 
     if (element case PropertyInducingElement()) {
       final routeNodeType = _routeNodeType(element.type);
-      if (routeNodeType != null && routeNodeType.typeArguments.length == 1) {
-        return routeNodeType.typeArguments.single.getDisplayString();
+      if (routeNodeType != null) {
+        return;
       }
     }
 
     throw InvalidGenerationSourceError(
-      'The annotated declaration must have type RouteNode<ID> or '
-      'Iterable<RouteNode<ID>>.',
+      'The annotated declaration must have type RouteNode or '
+      'Iterable<RouteNode>.',
       element: element,
     );
   }
@@ -522,10 +522,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     String idExpression,
     Element element,
   ) {
-    final methodName =
-        'routeTo${_toUpperCamelCase(idExpression.split('.').last)}';
-    final targetClassName =
-        '${_toUpperCamelCase(idExpression.split('.').last)}RouteTarget';
+    final idBaseName = _identityBaseNameFromExpression(idExpression);
+    final methodName = 'routeTo${_toUpperCamelCase(idBaseName)}';
+    final targetClassName = '${_toUpperCamelCase(idBaseName)}RouteTarget';
     final (pathParameters, queryParameters) = _collectParameters(
       chain,
       element: element,
@@ -539,7 +538,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     );
 
     return _GeneratedRouteMethod.toId(
-      idTypeSource: _idTypeSource(element),
       name: methodName,
       targetClassName: targetClassName,
       idExpression: idExpression,
@@ -575,7 +573,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       ownerSelectorExpression: _ownerSelectorExpression(owner),
       ownerSelectorMatchSource: _ownerSelectorMatchSource(owner),
       ownerTypeSource: owner.locationTypeSource,
-      idTypeSource: _idTypeSource(element),
       name: '',
       targetTypeSource: target.locationTypeSource,
       hasTargetIdentity:
@@ -614,7 +611,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     if (variants.any(
       (variant) =>
           variant.ownerTypeSource != first.ownerTypeSource ||
-          variant.idTypeSource != first.idTypeSource ||
           variant.name != first.name ||
           variant.targetTypeSource != first.targetTypeSource ||
           !_parametersEquivalent(
@@ -668,7 +664,6 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     if (variants.any(
       (variant) =>
           variant.ownerTypeSource != first.ownerTypeSource ||
-          variant.idTypeSource != first.idTypeSource ||
           variant.name != first.name ||
           !_parametersEquivalent(variant.pathParameters, first.pathParameters) ||
           !_parametersEquivalent(
@@ -945,10 +940,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
   String _childMethodBaseNameForNode(_RouteNode node) {
     if (node.localIdExpression != null) {
-      return node.localIdExpression!.split('.').last;
+      return _identityBaseNameFromExpression(node.localIdExpression!);
     }
     if (node.idExpression != null) {
-      return node.idExpression!.split('.').last;
+      return _identityBaseNameFromExpression(node.idExpression!);
     }
     return _childMethodBaseName(node.locationTypeSource);
   }
@@ -2635,24 +2630,7 @@ class _StaticRouteTreeExtractor {
       );
     }
 
-    _validateEnumConstantExpression(normalizedExpression);
     return normalizedExpression.toSource();
-  }
-
-  void _validateEnumConstantExpression(Expression expression) {
-    final constantValue = expression.computeConstantValue();
-    final staticType = expression.staticType;
-    if (constantValue != null &&
-        staticType is InterfaceType &&
-        staticType.element is EnumElement) {
-      return;
-    }
-
-    throw InvalidGenerationSourceError(
-      'Generated route ids and child ids must resolve to enum constants, but '
-      'got `${expression.toSource()}`.',
-      node: expression,
-    );
   }
 
   Future<bool> _evaluateNullableIdConditionFromContext(
@@ -5253,7 +5231,6 @@ class _RouteNode {
 }
 
 class _GeneratedRouteMethod {
-  final String idTypeSource;
   final String name;
   final String targetClassName;
   final String? idExpression;
@@ -5263,7 +5240,6 @@ class _GeneratedRouteMethod {
   final Map<String, _GeneratedRouteParameter> queryParameters;
 
   const _GeneratedRouteMethod._({
-    required this.idTypeSource,
     required this.name,
     required this.targetClassName,
     required this.idExpression,
@@ -5274,7 +5250,6 @@ class _GeneratedRouteMethod {
   });
 
   factory _GeneratedRouteMethod.toId({
-    required String idTypeSource,
     required String name,
     required String targetClassName,
     required String idExpression,
@@ -5283,7 +5258,6 @@ class _GeneratedRouteMethod {
     required Map<String, _GeneratedRouteParameter> queryParameters,
   }) {
     return _GeneratedRouteMethod._(
-      idTypeSource: idTypeSource,
       name: name,
       targetClassName: targetClassName,
       idExpression: idExpression,
@@ -5359,21 +5333,18 @@ class _GeneratedRouteMethod {
       ...pathParameters.entries,
       ...queryParameters.entries,
     ];
-    final canUseConstConstructor = idExpression != null && parameters.isEmpty;
-
     if (idExpression != null) {
       buffer.writeln(
-        'final class $targetClassName extends IdRouteTarget<$idTypeSource> {',
+        'final class $targetClassName extends IdRouteTarget {',
       );
     } else {
       buffer.writeln(
-        'final class $targetClassName extends ChildRouteTarget<$idTypeSource> {',
+        'final class $targetClassName extends ChildRouteTarget {',
       );
     }
 
     if (parameters.isEmpty) {
-      final constKeyword = canUseConstConstructor ? 'const ' : '';
-      buffer.writeln('  $constKeyword$targetClassName()');
+      buffer.writeln('  $targetClassName()');
     } else {
       buffer.writeln('  $targetClassName({');
       for (final parameter in parameters) {
@@ -5519,14 +5490,14 @@ class _GeneratedLocationChildTargetMethod {
 
     if (parameters.isEmpty) {
       buffer.writeln(
-        '  ChildRouteTarget<${first.idTypeSource}> get ${first.name} {',
+        '  ChildRouteTarget get ${first.name} {',
       );
       _writeOwnerDispatch(buffer, first, indent: '    ');
       buffer.writeln('  }');
       return buffer.toString();
     }
 
-    buffer.writeln('  ChildRouteTarget<${first.idTypeSource}> ${first.name}({');
+    buffer.writeln('  ChildRouteTarget ${first.name}({');
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
       final typeSource = generatedParameter.optional
@@ -5554,7 +5525,7 @@ class _GeneratedLocationChildTargetMethod {
     if (parameters.isEmpty) {
       buffer.writeln('  void $routeMethodName(BuildContext context) {');
       buffer.writeln(
-        '    WorkingRouter.of<${first.idTypeSource}>(context).routeTo($name);',
+        '    WorkingRouter.of(context).routeTo($name);',
       );
       buffer.writeln('  }');
       return buffer.toString();
@@ -5574,9 +5545,7 @@ class _GeneratedLocationChildTargetMethod {
     }
     buffer.writeln('    }');
     buffer.writeln('  ) {');
-    buffer.writeln(
-      '    WorkingRouter.of<${first.idTypeSource}>(context).routeTo(',
-    );
+    buffer.writeln('    WorkingRouter.of(context).routeTo(');
     buffer.writeln('      $name(');
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
@@ -5690,7 +5659,6 @@ class _GeneratedLocationChildTargetMethodVariant {
   final String? ownerSelectorExpression;
   final String? ownerSelectorMatchSource;
   final String ownerTypeSource;
-  final String idTypeSource;
   final String name;
   final String targetTypeSource;
   final bool hasTargetIdentity;
@@ -5709,7 +5677,6 @@ class _GeneratedLocationChildTargetMethodVariant {
     required this.ownerSelectorExpression,
     required this.ownerSelectorMatchSource,
     required this.ownerTypeSource,
-    required this.idTypeSource,
     required this.name,
     required this.targetTypeSource,
     required this.hasTargetIdentity,
@@ -5757,7 +5724,6 @@ class _GeneratedLocationChildTargetMethodVariant {
       ownerSelectorExpression: ownerSelectorExpression,
       ownerSelectorMatchSource: ownerSelectorMatchSource,
       ownerTypeSource: ownerTypeSource,
-      idTypeSource: idTypeSource,
       name: name ?? this.name,
       targetTypeSource: targetTypeSource,
       hasTargetIdentity: hasTargetIdentity,
@@ -5791,13 +5757,13 @@ class _GeneratedLocationChildTargetMethodVariant {
     ];
 
     if (parameters.isEmpty) {
-      buffer.writeln('  ChildRouteTarget<$idTypeSource> get $name {');
+      buffer.writeln('  ChildRouteTarget get $name {');
       writeReturnStatement(buffer, '    ');
       buffer.writeln('  }');
       return buffer.toString();
     }
 
-    buffer.writeln('  ChildRouteTarget<$idTypeSource> $name({');
+    buffer.writeln('  ChildRouteTarget $name({');
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
       final typeSource = generatedParameter.optional
@@ -5824,7 +5790,7 @@ class _GeneratedLocationChildTargetMethodVariant {
     if (parameters.isEmpty) {
       buffer.writeln('  void $routeMethodName(BuildContext context) {');
       buffer.writeln(
-        '    WorkingRouter.of<$idTypeSource>(context).routeTo($name);',
+        '    WorkingRouter.of(context).routeTo($name);',
       );
       buffer.writeln('  }');
       return buffer.toString();
@@ -5844,7 +5810,7 @@ class _GeneratedLocationChildTargetMethodVariant {
     }
     buffer.writeln('    }');
     buffer.writeln('  ) {');
-    buffer.writeln('    WorkingRouter.of<$idTypeSource>(context).routeTo(');
+    buffer.writeln('    WorkingRouter.of(context).routeTo(');
     buffer.writeln('      $name(');
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
@@ -5859,12 +5825,10 @@ class _GeneratedLocationChildTargetMethodVariant {
   }
 
   void writeReturnStatement(StringBuffer buffer, String indent) {
-    buffer.writeln('$indent return ChildRouteTarget<$idTypeSource>(');
+    buffer.writeln('$indent return ChildRouteTarget(');
     buffer.writeln('$indent   start: this,');
     buffer.writeln('$indent   resolveChildPathNodes: () {');
-    buffer.writeln(
-      '$indent     return resolveExactChildRouteNodes<$idTypeSource>(this, [',
-    );
+    buffer.writeln('$indent     return resolveExactChildRouteNodes(this, [');
     for (final matchSource in relativeNodeMatchSources) {
       buffer.writeln('$indent       (node) => $matchSource,');
     }
@@ -5875,10 +5839,8 @@ class _GeneratedLocationChildTargetMethodVariant {
   }
 
   void writeRouteToFirstStatement(StringBuffer buffer, String indent) {
-    buffer.writeln(
-      '$indent WorkingRouter.of<$idTypeSource>(context).routeTo(',
-    );
-    buffer.writeln('$indent   FirstChildRouteTarget<$idTypeSource>(');
+    buffer.writeln('$indent WorkingRouter.of(context).routeTo(');
+    buffer.writeln('$indent   FirstChildRouteTarget(');
     buffer.writeln('$indent     (location) => $childLocationMatchSource,');
     _writeConstructorOptions(buffer, indent: '$indent    ');
     buffer.writeln('$indent   ),');
@@ -6237,6 +6199,16 @@ String _childMethodBaseName(String locationTypeSource) {
   }
 
   return locationTypeSource;
+}
+
+String _identityBaseNameFromExpression(String expression) {
+  final token = expression.split('.').last;
+  for (final suffix in const ['LocalId', 'NodeId', 'Id']) {
+    if (token.endsWith(suffix) && token.length > suffix.length) {
+      return token.substring(0, token.length - suffix.length);
+    }
+  }
+  return token;
 }
 
 String _routeMethodNameForChildTarget(String childTargetMethodName) {

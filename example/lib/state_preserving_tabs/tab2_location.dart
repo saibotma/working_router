@@ -1,10 +1,10 @@
 import 'package:working_router/working_router.dart';
 
-class Tab2Node extends AbstractLocation<String, Tab2Node> {
+class Tab2Node extends AbstractLocation<Tab2Node> {
   Tab2Node();
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder builder) {
     builder.pathLiteral('tab2');
   }
 }

@@ -29,7 +29,7 @@ void main() {
       expect(router.nullableData!.uri.path, '/c');
     });
 
-    testWidgets('redirects transitions to URI and ID', (tester) async {
+    testWidgets('redirects transitions to URI and id targets', (tester) async {
       final uriRouter = _buildRouter(
         decideTransition: (_, transition) {
           if (transition.to.uri.path == '/a') {
@@ -46,7 +46,7 @@ void main() {
       final idRouter = _buildRouter(
         decideTransition: (_, transition) {
           if (transition.to.uri.path == '/a') {
-            return RedirectTransition.toId(_Id.c);
+            return RedirectTransition.toId(_PathId.c);
           }
           return const AllowTransition();
         },
@@ -304,7 +304,7 @@ void main() {
 
       final ancestorLocation = router.nullableData!.routeNodes
           .whereType<_PathLocation>()
-          .singleWhere((location) => location.id == _Id.a);
+          .singleWhere((location) => location.id == _PathId.a);
 
       router.routeBackFrom(ancestorLocation);
       await tester.pump();
@@ -312,30 +312,30 @@ void main() {
       expect(router.nullableData!.uri.path, '/');
       expect(
         router.nullableData!.routeNodes
-            .whereType<AnyLocation<_Id>>()
+            .whereType<AnyLocation>()
             .map((location) => location.id)
             .toList(),
-        [_Id.root],
+        [_PathId.root],
       );
     });
 
     testWidgets(
       'non-rendering location leaves its parent page visible while staying active',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.content = Content.widget(const Text('root'));
                 builder.children = [
-                  _BuilderLocation<_Id>(
+                  _BuilderLocation(
                     id: _Id.a,
                     build: (builder, location) {
                       builder.pathLiteral('settings');
                       builder.content = Content.widget(const Text('settings'));
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           build: (builder, location) {
                             builder.pathLiteral('edit');
@@ -387,19 +387,20 @@ void main() {
     );
 
     testWidgets('routeToId throws for structural route node ids', (tester) async {
-      final router = WorkingRouter<_Id>(
+      final shellId = NodeId<Shell>();
+      final router = WorkingRouter(
         buildRouteNodes: (_) => [
-          _BuilderLocation<_Id>(
+          _BuilderLocation(
             id: _Id.root,
             build: (builder, location) {
-              builder.content = Content.widget(const Text('root'));
-              builder.children = [
-                Shell(
-                  id: _Id.a,
-                  build: (builder, shell, routerKey) {
+                builder.content = Content.widget(const Text('root'));
+                builder.children = [
+                  Shell(
+                    id: shellId,
+                    build: (builder, shell, routerKey) {
                     builder.pathLiteral('shell');
                     builder.children = [
-                      _BuilderLocation<_Id>(
+                      _BuilderLocation(
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('detail');
@@ -419,7 +420,7 @@ void main() {
       await _pumpRouterApp(tester, router);
 
       expect(
-        () => router.routeToId(_Id.a),
+        () => router.routeToId(shellId),
         throwsA(
           isA<StateError>().having(
             (error) => error.message,
@@ -456,7 +457,7 @@ void main() {
       await tester.pump();
 
       expect(
-        () => router.routeToChildWhere((location) => location.id == _Id.b),
+        () => router.routeToChildWhere((location) => location.id == _PathId.b),
         returnsNormally,
       );
       await tester.pump();
@@ -471,7 +472,7 @@ void main() {
       router.routeToUri(Uri(path: '/does-not-exist'));
       await tester.pump();
 
-      expect(() => router.slideIn(_Id.a), returnsNormally);
+      expect(() => router.slideIn(_PathId.a), returnsNormally);
       await tester.pump();
 
       expect(router.nullableData!.routeNodes, isEmpty);
@@ -487,7 +488,7 @@ void main() {
       await tester.pump();
       expect(router.nullableData!.uri.path, '/a');
 
-      router.routeToChildWhere((location) => location.id == _Id.b);
+      router.routeToChildWhere((location) => location.id == _PathId.b);
       await tester.pump();
       expect(router.nullableData!.uri.path, '/a/b');
     });
@@ -496,19 +497,19 @@ void main() {
       tester,
     ) async {
       var sawExpectedData = false;
-      final keys = <_Id, LocalKey>{};
+      final keys = <Object, LocalKey>{};
 
-      final router = WorkingRouter<_Id>(
+      final router = WorkingRouter(
         buildRouteNodes: (_) => [
           _PathLocation(
-            id: _Id.root,
+            id: _PathId.root,
             path: '',
             children: [
               _PathLocation(
-                id: _Id.a,
+                id: _PathId.a,
                 path: 'a',
                 children: [
-                  _PathLocation(id: _Id.b, path: 'b', children: []),
+                  _PathLocation(id: _PathId.b, path: 'b', children: []),
                 ],
               ),
             ],
@@ -516,12 +517,12 @@ void main() {
         ],
         buildRootPages: (_, location, _) {
           return [
-            ChildLocationPageSkeleton<_Id>(
+            ChildLocationPageSkeleton(
               buildPageKey: (keyLocation, data) {
-                if (keyLocation.id == _Id.a) {
+                if (keyLocation.id == _PathId.a) {
                   sawExpectedData =
                       data.uri.path == '/a/b' &&
-                      data.leaf?.id == _Id.b &&
+                      data.leaf?.id == _PathId.b &&
                       data.routeNodes.contains(keyLocation);
                 }
                 final key = ValueKey('${keyLocation.id}:${data.uri.path}');
@@ -539,7 +540,7 @@ void main() {
       await tester.pump();
 
       expect(sawExpectedData, isTrue);
-      expect(keys[_Id.a], const ValueKey('_Id.a:/a/b'));
+      expect(keys[_PathId.a], ValueKey('${_PathId.a}:/a/b'));
     });
 
     testWidgets('dsl buildPageKey receives the current router data', (
@@ -548,14 +549,14 @@ void main() {
       var sawExpectedData = false;
       LocalKey? pageKey;
 
-      final router = WorkingRouter<_Id>(
+      final router = WorkingRouter(
         buildRouteNodes: (_) => [
-          _BuilderLocation<_Id>(
+          _BuilderLocation(
             id: _Id.root,
             build: (builder, location) {
               builder.content = Content.widget(const Text('root'));
               builder.children = [
-                _BuilderLocation<_Id>(
+                _BuilderLocation(
                   id: _Id.a,
                   build: (builder, location) {
                     builder.pathLiteral('a');
@@ -591,17 +592,17 @@ void main() {
     ) async {
       var sawExpectedData = false;
 
-      final router = WorkingRouter<_Id>(
+      final router = WorkingRouter(
         buildRouteNodes: (_) => [
           _PathLocation(
-            id: _Id.root,
+            id: _PathId.root,
             path: '',
             children: [
               _PathLocation(
-                id: _Id.a,
+                id: _PathId.a,
                 path: 'a',
                 children: [
-                  _PathLocation(id: _Id.b, path: 'b', children: []),
+                  _PathLocation(id: _PathId.b, path: 'b', children: []),
                 ],
               ),
             ],
@@ -609,19 +610,19 @@ void main() {
         ],
         buildRootPages: (_, location, _) {
           return [
-            ChildLocationPageSkeleton<_Id>(
+            ChildLocationPageSkeleton(
               child: Text('${location.id}'),
             ),
           ];
         },
         noContentWidget: const SizedBox.shrink(),
         wrapLocationChild: (context, location, data, child) {
-          if (location.id == _Id.b) {
-            final inheritedData = WorkingRouterData.of<_Id>(context);
+          if (location.id == _PathId.b) {
+            final inheritedData = WorkingRouterData.of(context);
             sawExpectedData =
                 identical(inheritedData, data) &&
                 data.uri.path == '/a/b' &&
-                data.leaf?.id == _Id.b;
+                data.leaf?.id == _PathId.b;
           }
           return Column(
             children: [
@@ -637,7 +638,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(sawExpectedData, isTrue);
-      expect(find.text('wrapped _Id.b at /a/b'), findsOneWidget);
+      expect(find.text('wrapped ${_PathId.b} at /a/b'), findsOneWidget);
     });
 
     testWidgets('navigator maybePop syncs router back once', (tester) async {
@@ -661,18 +662,18 @@ void main() {
         tester,
       ) async {
         var includeB = true;
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
             _PathLocation(
-              id: _Id.root,
+              id: _PathId.root,
               path: '',
               children: [
                 _PathLocation(
-                  id: _Id.a,
+                  id: _PathId.a,
                   path: 'a',
                   children: includeB
                       ? [
-                          _PathLocation(id: _Id.b, path: 'b', children: []),
+                          _PathLocation(id: _PathId.b, path: 'b', children: []),
                         ]
                       : const [],
                 ),
@@ -681,7 +682,7 @@ void main() {
           ],
           buildRootPages: (_, location, _) {
             return [
-              ChildLocationPageSkeleton<_Id>(
+              ChildLocationPageSkeleton(
                 child: Text('${location.id}'),
               ),
             ];
@@ -691,7 +692,7 @@ void main() {
 
         router.routeToUri(Uri(path: '/a/b'));
         await tester.pump();
-        expect(router.nullableData!.leaf?.id, _Id.b);
+        expect(router.nullableData!.leaf?.id, _PathId.b);
 
         includeB = false;
         router.refresh();
@@ -705,7 +706,7 @@ void main() {
     testWidgets(
       'supports self-built locations alongside legacy buildRootPages',
       (tester) async {
-        final router = WorkingRouter<_MigratingId>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
             _MigratingRootLocation(
               id: _MigratingId.root,
@@ -715,14 +716,14 @@ void main() {
             ),
           ],
           buildRootPages: (_, location, _) {
-            return switch (location.id) {
-              _MigratingId.root => [
+            if (identical(location.id, _MigratingId.root)) {
+              return [
                 ChildLocationPageSkeleton(
                   child: const Text('legacy-root'),
                 ),
-              ],
-              _ => const [],
-            };
+              ];
+            }
+            return const [];
           },
           noContentWidget: const SizedBox.shrink(),
         );
@@ -741,20 +742,20 @@ void main() {
     testWidgets(
       'scopes share query params with children without building pages',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  Scope<_Id>(
+                  Scope(
                     build: (builder, scope) {
                       final languageCode = builder.stringQueryParam(
                         'languageCode',
                         defaultValue: const Default('en'),
                       );
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.a,
                           build: (builder, location) {
                             builder.pathLiteral('privacy');
@@ -794,9 +795,9 @@ void main() {
     testWidgets('shells share path and query params with children', (
       tester,
     ) async {
-      final router = WorkingRouter<_Id>(
+      final router = WorkingRouter(
         buildRouteNodes: (_) => [
-          _BuilderLocation<_Id>(
+          _BuilderLocation(
             id: _Id.root,
             build: (builder, location) {
               builder.children = [
@@ -809,7 +810,7 @@ void main() {
                       defaultValue: const Default('overview'),
                     );
                     builder.children = [
-                      _BuilderLocation<_Id>(
+                      _BuilderLocation(
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
@@ -846,14 +847,13 @@ void main() {
     testWidgets(
       'shell locations render an outer shell page and an inner location page',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderShellLocation<_Id>(
-                    id: _Id.b,
+                  _BuilderShellLocation(
                     build: (builder, location, _) {
                       builder.pathLiteral('accounts');
                       final accountId = builder.stringPathParam();
@@ -898,9 +898,9 @@ void main() {
     testWidgets('shell without matching child is treated as unresolved', (
       tester,
     ) async {
-      final router = WorkingRouter<_Id>(
+      final router = WorkingRouter(
         buildRouteNodes: (_) => [
-          _BuilderLocation<_Id>(
+          _BuilderLocation(
             id: _Id.root,
             build: (builder, location) {
               builder.children = [
@@ -909,7 +909,7 @@ void main() {
                     builder.pathLiteral('accounts');
                     builder.stringPathParam();
                     builder.children = [
-                      _BuilderLocation<_Id>(
+                      _BuilderLocation(
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
@@ -940,9 +940,9 @@ void main() {
     testWidgets(
       'shell renders default content when matched descendants use the parent navigator',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (rootRouterKey) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
@@ -957,7 +957,7 @@ void main() {
                         return Text('default:${data.param(accountId)}');
                       });
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: rootRouterKey,
                           build: (builder, location) {
@@ -995,9 +995,9 @@ void main() {
     );
 
     testWidgets('routeToId can write shell path parameters', (tester) async {
-      final router = WorkingRouter<_Id>(
+      final router = WorkingRouter(
         buildRouteNodes: (_) => [
-          _BuilderLocation<_Id>(
+          _BuilderLocation(
             id: _Id.root,
             build: (builder, location) {
               builder.children = [
@@ -1006,7 +1006,7 @@ void main() {
                     builder.pathLiteral('accounts');
                     final accountId = builder.stringPathParam();
                     builder.children = [
-                      _BuilderLocation<_Id>(
+                      _BuilderLocation(
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('dashboard');
@@ -1029,7 +1029,7 @@ void main() {
       router.routeToId(
         _Id.b,
         writePathParameters: (location, path) {
-          if (location is Shell<_Id>) {
+          if (location is Shell) {
             path(location.pathParameters.single as PathParam<String>, '42');
           }
         },
@@ -1044,19 +1044,19 @@ void main() {
       'bindParam supports reusable unbound params with nullable outer access',
       (tester) async {
         const accountId = UnboundPathParam<String>(StringRouteParamCodec());
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderLocation<_Id>(
+                  _BuilderLocation(
                     id: _Id.a,
                     build: (builder, location) {
                       builder.pathLiteral('accounts');
                       final boundAccountId = builder.bindParam(accountId);
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           build: (builder, location) {
                             builder.pathLiteral('dashboard');
@@ -1088,9 +1088,9 @@ void main() {
     testWidgets('enabled shell throws when matched children are routed to root', (
       tester,
     ) async {
-      final router = WorkingRouter<_Id>(
+      final router = WorkingRouter(
         buildRouteNodes: (rootRouterKey) => [
-          _BuilderLocation<_Id>(
+          _BuilderLocation(
             id: _Id.root,
             build: (builder, location) {
               builder.children = [
@@ -1099,7 +1099,7 @@ void main() {
                     builder.pathLiteral('accounts');
                     final accountId = builder.stringPathParam();
                     builder.children = [
-                      _BuilderLocation<_Id>(
+                      _BuilderLocation(
                         id: _Id.b,
                         parentRouterKey: rootRouterKey,
                         build: (builder, location) {
@@ -1128,9 +1128,12 @@ void main() {
         isA<StateError>().having(
           (it) => it.message,
           'message',
-          contains(
-            'Enabled shell Shell<_Id> has matched descendants, but none are assigned to its routerKey.',
-          ),
+          allOf([
+            contains('Enabled shell Shell'),
+            contains(
+              'has matched descendants, but none are assigned to its routerKey.',
+            ),
+          ]),
         ),
       );
     });
@@ -1138,9 +1141,9 @@ void main() {
     testWidgets(
       'disabled shell routes implicit and explicit shell children to parent navigator',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
@@ -1150,7 +1153,7 @@ void main() {
                       builder.pathLiteral('accounts');
                       final accountId = builder.stringPathParam();
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           build: (builder, location) {
                             builder.pathLiteral('dashboard');
@@ -1161,7 +1164,7 @@ void main() {
                             });
                           },
                         ),
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.c,
                           parentRouterKey: routerKey,
                           build: (builder, location) {
@@ -1198,14 +1201,13 @@ void main() {
     testWidgets(
       'disabled shell location renders on parent navigator and aliases its router key',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderShellLocation<_Id>(
-                    id: _Id.b,
+                  _BuilderShellLocation(
                     navigatorEnabled: false,
                     build: (builder, location, routerKey) {
                       builder.pathLiteral('accounts');
@@ -1214,7 +1216,7 @@ void main() {
                         return Text('settings:${data.param(accountId)}');
                       });
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.c,
                           parentRouterKey: routerKey,
                           build: (builder, location) {
@@ -1260,14 +1262,13 @@ void main() {
     testWidgets(
       'shell location supports Content.none when default content is configured',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderShellLocation<_Id>(
-                    id: _Id.b,
+                  _BuilderShellLocation(
                     build: (builder, location, routerKey) {
                       builder.pathLiteral('accounts');
                       final accountId = builder.stringPathParam();
@@ -1292,7 +1293,7 @@ void main() {
                       });
                       builder.content = const Content.none();
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.c,
                           parentRouterKey: routerKey,
                           build: (builder, location) {
@@ -1330,14 +1331,13 @@ void main() {
     testWidgets(
       'multi shell location renders sibling slot and content navigators',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShellLocation<_Id>(
-                    id: _Id.a,
+                  _BuilderMultiShellLocation(
                     build: (builder, location, contentSlot) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(debugLabel: 'left');
@@ -1362,7 +1362,7 @@ void main() {
                       });
                       builder.content = Content.widget(const Text('empty'));
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: leftSlot.routerKey,
                           build: (builder, location) {
@@ -1371,7 +1371,7 @@ void main() {
                               const Text('search'),
                             );
                             builder.children = [
-                              _BuilderLocation<_Id>(
+                              _BuilderLocation(
                                 id: _Id.c,
                                 parentRouterKey: contentSlot.routerKey,
                                 build: (builder, location) {
@@ -1410,13 +1410,13 @@ void main() {
     testWidgets(
       'multi shell renders sibling slots',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShell<_Id>(
+                  _BuilderMultiShell(
                     build: (builder, shell) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(debugLabel: 'left');
@@ -1441,7 +1441,7 @@ void main() {
                         );
                       });
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: leftSlot.routerKey,
                           build: (builder, location) {
@@ -1450,7 +1450,7 @@ void main() {
                               const Text('search'),
                             );
                             builder.children = [
-                              _BuilderLocation<_Id>(
+                              _BuilderLocation(
                                 id: _Id.c,
                                 parentRouterKey: detailSlot.routerKey,
                                 build: (builder, location) {
@@ -1489,14 +1489,13 @@ void main() {
     testWidgets(
       'disabled multi shell location aliases content and slot navigators to the parent navigator',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShellLocation<_Id>(
-                    id: _Id.a,
+                  _BuilderMultiShellLocation(
                     navigatorEnabled: false,
                     build: (builder, location, contentSlot) {
                       builder.pathLiteral('chat');
@@ -1515,7 +1514,7 @@ void main() {
                       });
                       builder.content = Content.widget(const Text('empty'));
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: leftSlot.routerKey,
                           build: (builder, location) {
@@ -1524,7 +1523,7 @@ void main() {
                               const Text('search'),
                             );
                             builder.children = [
-                              _BuilderLocation<_Id>(
+                              _BuilderLocation(
                                 id: _Id.c,
                                 parentRouterKey: contentSlot.routerKey,
                                 build: (builder, location) {
@@ -1562,13 +1561,13 @@ void main() {
     testWidgets(
       'disabled multi shell aliases slot navigators to the parent navigator',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShell<_Id>(
+                  _BuilderMultiShell(
                     navigatorEnabled: false,
                     build: (builder, shell) {
                       builder.pathLiteral('chat');
@@ -1587,7 +1586,7 @@ void main() {
                         );
                       });
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: leftSlot.routerKey,
                           build: (builder, location) {
@@ -1596,7 +1595,7 @@ void main() {
                               const Text('search'),
                             );
                             builder.children = [
-                              _BuilderLocation<_Id>(
+                              _BuilderLocation(
                                 id: _Id.c,
                                 parentRouterKey: detailSlot.routerKey,
                                 build: (builder, location) {
@@ -1634,13 +1633,13 @@ void main() {
     testWidgets(
       'multi shell renders default content for enabled slot without routed content',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShell<_Id>(
+                  _BuilderMultiShell(
                     build: (builder, shell) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
@@ -1670,7 +1669,7 @@ void main() {
                         );
                       });
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: detailSlot.routerKey,
                           build: (builder, location) {
@@ -1706,14 +1705,13 @@ void main() {
     testWidgets(
       'multi shell location renders default content for enabled extra slot without routed content',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShellLocation<_Id>(
-                    id: _Id.a,
+                  _BuilderMultiShellLocation(
                     build: (builder, location, contentSlot) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
@@ -1767,14 +1765,13 @@ void main() {
     testWidgets(
       'multi shell location supports Content.none with default content for the content slot',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShellLocation<_Id>(
-                    id: _Id.a,
+                  _BuilderMultiShellLocation(
                     build: (builder, location, contentSlot) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
@@ -1831,14 +1828,13 @@ void main() {
     testWidgets(
       'multi shell slot keeps the same navigator between default and routed pages',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShellLocation<_Id>(
-                    id: _Id.a,
+                  _BuilderMultiShellLocation(
                     build: (builder, location, contentSlot) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
@@ -1863,7 +1859,7 @@ void main() {
                         const Text('detail-root'),
                       );
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: leftSlot.routerKey,
                           build: (builder, location) {
@@ -1913,13 +1909,13 @@ void main() {
     testWidgets(
       'multi shell throws when enabled slot has neither routed content nor default',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShell<_Id>(
+                  _BuilderMultiShell(
                     build: (builder, shell) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(debugLabel: 'left');
@@ -1944,7 +1940,7 @@ void main() {
                         );
                       });
                       builder.children = [
-                        _BuilderLocation<_Id>(
+                        _BuilderLocation(
                           id: _Id.b,
                           parentRouterKey: detailSlot.routerKey,
                           build: (builder, location) {
@@ -1984,14 +1980,13 @@ void main() {
     testWidgets(
       'childOrNull returns null for disabled slot',
       (tester) async {
-        final router = WorkingRouter<_Id>(
+        final router = WorkingRouter(
           buildRouteNodes: (_) => [
-            _BuilderLocation<_Id>(
+            _BuilderLocation(
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  _BuilderMultiShellLocation<_Id>(
-                    id: _Id.a,
+                  _BuilderMultiShellLocation(
                     build: (builder, location, contentSlot) {
                       builder.pathLiteral('chat');
                       final leftSlot = builder.slot(
@@ -2032,60 +2027,61 @@ void main() {
   });
 }
 
-Future<void> _pumpApp(WidgetTester tester, WorkingRouter<_Id> router) async {
+Future<void> _pumpApp(WidgetTester tester, WorkingRouter router) async {
   await _pumpRouterApp(tester, router);
 }
 
-Future<void> _pumpRouterApp<ID extends Enum>(
+Future<void> _pumpRouterApp(
   WidgetTester tester,
-  WorkingRouter<ID> router,
+  WorkingRouter router,
 ) async {
   await tester.pumpWidget(MaterialApp.router(routerConfig: router));
   await tester.pump();
 }
 
-WorkingRouter<_Id> _buildRouter({
-  TransitionDecider<_Id>? decideTransition,
+WorkingRouter _buildRouter({
+  TransitionDecider? decideTransition,
   Future<bool> Function()? beforeLeave,
   int redirectLimit = 5,
 }) {
-  final bPage = ChildLocationPageSkeleton<_Id>(
+  final bPage = ChildLocationPageSkeleton(
     child: LocationObserver(
       beforeLeave: beforeLeave,
       child: const Text('b'),
     ),
   );
 
-  return WorkingRouter<_Id>(
+  return WorkingRouter(
     buildRouteNodes: (_) => [
       _PathLocation(
-        id: _Id.root,
+        id: _PathId.root,
         path: '',
         children: [
           _PathLocation(
-            id: _Id.a,
+            id: _PathId.a,
             path: 'a',
             children: [
-              _PathLocation(id: _Id.b, path: 'b', children: []),
+              _PathLocation(id: _PathId.b, path: 'b', children: []),
             ],
           ),
-          _PathLocation(id: _Id.c, path: 'c', children: []),
+          _PathLocation(id: _PathId.c, path: 'c', children: []),
         ],
       ),
     ],
     buildRootPages: (_, location, _) {
-      switch (location.id) {
-        case _Id.root:
-          return [ChildLocationPageSkeleton(child: const Text('root'))];
-        case _Id.a:
-          return [ChildLocationPageSkeleton(child: const Text('a'))];
-        case _Id.b:
-          return [bPage];
-        case _Id.c:
-          return [ChildLocationPageSkeleton(child: const Text('c'))];
-        case null:
-          return [];
+      if (identical(location.id, _PathId.root)) {
+        return [ChildLocationPageSkeleton(child: const Text('root'))];
       }
+      if (identical(location.id, _PathId.a)) {
+        return [ChildLocationPageSkeleton(child: const Text('a'))];
+      }
+      if (identical(location.id, _PathId.b)) {
+        return [bPage];
+      }
+      if (identical(location.id, _PathId.c)) {
+        return [ChildLocationPageSkeleton(child: const Text('c'))];
+      }
+      return [];
     },
     noContentWidget: const SizedBox.shrink(),
     decideTransition: decideTransition,
@@ -2093,61 +2089,62 @@ WorkingRouter<_Id> _buildRouter({
   );
 }
 
-WorkingRouter<_Id> _buildOrderRouter({
+WorkingRouter _buildOrderRouter({
   Future<bool> Function()? beforeLeaveA,
   Future<bool> Function()? beforeLeaveB,
 }) {
-  return WorkingRouter<_Id>(
+  return WorkingRouter(
     buildRouteNodes: (_) => [
       _PathLocation(
-        id: _Id.root,
+        id: _PathId.root,
         path: '',
         children: [
           _PathLocation(
-            id: _Id.a,
+            id: _PathId.a,
             path: 'a',
             children: [
-              _PathLocation(id: _Id.b, path: 'b', children: []),
+              _PathLocation(id: _PathId.b, path: 'b', children: []),
             ],
           ),
-          _PathLocation(id: _Id.c, path: 'c', children: []),
+          _PathLocation(id: _PathId.c, path: 'c', children: []),
         ],
       ),
     ],
     buildRootPages: (_, location, _) {
-      switch (location.id) {
-        case _Id.root:
-          return [ChildLocationPageSkeleton(child: const Text('root'))];
-        case _Id.a:
-          return [
-            ChildLocationPageSkeleton(
-              child: LocationObserver(
-                beforeLeave: beforeLeaveA,
-                child: const Text('a'),
-              ),
-            ),
-          ];
-        case _Id.b:
-          return [
-            ChildLocationPageSkeleton(
-              child: LocationObserver(
-                beforeLeave: beforeLeaveB,
-                child: const Text('b'),
-              ),
-            ),
-          ];
-        case _Id.c:
-          return [ChildLocationPageSkeleton(child: const Text('c'))];
-        case null:
-          return [];
+      if (identical(location.id, _PathId.root)) {
+        return [ChildLocationPageSkeleton(child: const Text('root'))];
       }
+      if (identical(location.id, _PathId.a)) {
+        return [
+          ChildLocationPageSkeleton(
+            child: LocationObserver(
+              beforeLeave: beforeLeaveA,
+              child: const Text('a'),
+            ),
+          ),
+        ];
+      }
+      if (identical(location.id, _PathId.b)) {
+        return [
+          ChildLocationPageSkeleton(
+            child: LocationObserver(
+              beforeLeave: beforeLeaveB,
+              child: const Text('b'),
+            ),
+          ),
+        ];
+      }
+      if (identical(location.id, _PathId.c)) {
+        return [ChildLocationPageSkeleton(child: const Text('c'))];
+      }
+      return [];
     },
     noContentWidget: const SizedBox.shrink(),
   );
 }
 
-WorkingRouter<_ParamId> _buildParamRouter() {
-  return WorkingRouter<_ParamId>(
+WorkingRouter _buildParamRouter() {
+  return WorkingRouter(
     buildRouteNodes: (_) => [
       _ParamRootLocation(
         id: _ParamId.root,
@@ -2172,26 +2169,45 @@ WorkingRouter<_ParamId> _buildParamRouter() {
   );
 }
 
-enum _Id { root, a, b, c }
+abstract final class _Id {
+  static final root = NodeId<_BuilderLocation>();
+  static final a = NodeId<_BuilderLocation>();
+  static final b = NodeId<_BuilderLocation>();
+  static final c = NodeId<_BuilderLocation>();
+}
 
-enum _ParamId { root, item, details }
+abstract final class _PathId {
+  static final root = NodeId<_PathLocation>();
+  static final a = NodeId<_PathLocation>();
+  static final b = NodeId<_PathLocation>();
+  static final c = NodeId<_PathLocation>();
+}
 
-enum _MigratingId { root, account }
+abstract final class _ParamId {
+  static final root = NodeId<_ParamRootLocation>();
+  static final item = NodeId<_ItemLocation>();
+  static final details = NodeId<_DetailLocation>();
+}
 
-class _PathLocation extends AbstractLocation<_Id, _PathLocation> {
+abstract final class _MigratingId {
+  static final root = NodeId<_MigratingRootLocation>();
+  static final account = NodeId<_SelfBuiltAccountLocation>();
+}
+
+class _PathLocation extends AbstractLocation<_PathLocation> {
   final List<PathSegment> _segments;
-  final List<RouteNode<_Id>> _childNodes;
+  final List<RouteNode> _childNodes;
 
   _PathLocation({
-    required _Id id,
+    required NodeId<_PathLocation> id,
     required String path,
-    List<RouteNode<_Id>> children = const [],
+    List<RouteNode> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
        super(id: id);
 
   @override
-  void build(LocationBuilder<_Id> builder) {
+  void build(LocationBuilder builder) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
@@ -2199,27 +2215,27 @@ class _PathLocation extends AbstractLocation<_Id, _PathLocation> {
   }
 }
 
-class _ParamPathLocation
-    extends AbstractLocation<_ParamId, _ParamPathLocation> {
+abstract class _ParamPathLocation<Self extends _ParamPathLocation<Self>>
+    extends AbstractLocation<Self> {
   final List<PathSegment> _segments;
-  final List<RouteNode<_ParamId>> _childNodes;
+  final List<RouteNode> _childNodes;
 
   _ParamPathLocation({
-    required _ParamId id,
+    required NodeId<Self> id,
     required String path,
-    List<RouteNode<_ParamId>> children = const [],
+    List<RouteNode> children = const [],
   }) : _segments = _pathSegments(path),
        _childNodes = children,
        super(id: id);
 
   @override
-  void build(LocationBuilder<_ParamId> builder) {
+  void build(LocationBuilder builder) {
     final children = register(builder);
     builder.children = children;
   }
 
-  List<RouteNode<_ParamId>> register(
-    LocationBuilder<_ParamId> builder,
+  List<RouteNode> register(
+    LocationBuilder builder,
   ) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
@@ -2228,14 +2244,14 @@ class _ParamPathLocation
   }
 }
 
-class _ParamRootLocation extends _ParamPathLocation {
+class _ParamRootLocation extends _ParamPathLocation<_ParamRootLocation> {
   _ParamRootLocation({
     required super.id,
     super.children = const [],
   }) : super(path: '');
 }
 
-class _ItemLocation extends _ParamPathLocation {
+class _ItemLocation extends _ParamPathLocation<_ItemLocation> {
   final idParameter = const UnboundPathParam(StringRouteParamCodec());
   final keep = const UnboundQueryParam('keep', StringRouteParamCodec());
   late final PathParam<String> boundIdParameter =
@@ -2249,8 +2265,8 @@ class _ItemLocation extends _ParamPathLocation {
   }) : super(path: 'item');
 
   @override
-  List<RouteNode<_ParamId>> register(
-    LocationBuilder<_ParamId> builder,
+  List<RouteNode> register(
+    LocationBuilder builder,
   ) {
     final children = super.register(builder);
     builder.bindParam(idParameter);
@@ -2259,15 +2275,15 @@ class _ItemLocation extends _ParamPathLocation {
   }
 }
 
-class _DetailLocation extends _ParamPathLocation {
+class _DetailLocation extends _ParamPathLocation<_DetailLocation> {
   _DetailLocation({
     required super.id,
     required super.path,
   });
 
   @override
-  List<RouteNode<_ParamId>> register(
-    LocationBuilder<_ParamId> builder,
+  List<RouteNode> register(
+    LocationBuilder builder,
   ) {
     final children = super.register(builder);
     builder.stringQueryParam('detail');
@@ -2276,29 +2292,29 @@ class _DetailLocation extends _ParamPathLocation {
 }
 
 class _MigratingRootLocation
-    extends AbstractLocation<_MigratingId, _MigratingRootLocation> {
-  final List<RouteNode<_MigratingId>> _childNodes;
+    extends AbstractLocation<_MigratingRootLocation> {
+  final List<RouteNode> _childNodes;
 
   _MigratingRootLocation({
-    required _MigratingId id,
-    List<RouteNode<_MigratingId>> children = const [],
+    required NodeId<_MigratingRootLocation> id,
+    List<RouteNode> children = const [],
   }) : _childNodes = children,
        super(id: id);
 
   @override
-  void build(LocationBuilder<_MigratingId> builder) {
+  void build(LocationBuilder builder) {
     builder.children = _childNodes;
   }
 }
 
 class _SelfBuiltAccountLocation
-    extends AbstractLocation<_MigratingId, _SelfBuiltAccountLocation> {
+    extends AbstractLocation<_SelfBuiltAccountLocation> {
   _SelfBuiltAccountLocation({
-    required _MigratingId id,
+    required NodeId<_SelfBuiltAccountLocation> id,
   }) : super(id: id);
 
   @override
-  void build(LocationBuilder<_MigratingId> builder) {
+  void build(LocationBuilder builder) {
     builder.pathLiteral('accounts');
     final accountId = builder.stringPathParam();
     final tab = builder.stringQueryParam('tab');
@@ -2310,8 +2326,8 @@ class _SelfBuiltAccountLocation
   }
 }
 
-class _BuilderLocation<ID extends Enum>
-    extends Location<ID, _BuilderLocation<ID>> {
+class _BuilderLocation
+    extends Location<_BuilderLocation> {
   _BuilderLocation({
     required super.id,
     super.parentRouterKey,
@@ -2319,29 +2335,24 @@ class _BuilderLocation<ID extends Enum>
   });
 }
 
-class _BuilderShellLocation<ID extends Enum>
-    extends ShellLocation<ID, _BuilderShellLocation<ID>> {
+class _BuilderShellLocation
+    extends ShellLocation<_BuilderShellLocation> {
   _BuilderShellLocation({
-    required super.id,
-    super.parentRouterKey,
     super.navigatorEnabled,
     required super.build,
   });
 }
 
-class _BuilderMultiShellLocation<ID extends Enum>
-    extends MultiShellLocation<ID, _BuilderMultiShellLocation<ID>> {
+class _BuilderMultiShellLocation
+    extends MultiShellLocation<_BuilderMultiShellLocation> {
   _BuilderMultiShellLocation({
-    required super.id,
-    super.parentRouterKey,
     super.navigatorEnabled,
     required super.build,
   });
 }
 
-class _BuilderMultiShell<ID extends Enum> extends MultiShell<ID> {
+class _BuilderMultiShell extends MultiShell {
   _BuilderMultiShell({
-    super.parentRouterKey,
     super.navigatorEnabled,
     required super.build,
   });

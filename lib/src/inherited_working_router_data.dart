@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/working_router_data.dart';
 
-typedef WorkingRouterFunction = dynamic Function(WorkingRouterData<dynamic>);
+typedef WorkingRouterFunction = dynamic Function(WorkingRouterData);
 
-class InheritedWorkingRouterData<ID extends Enum>
+class InheritedWorkingRouterData
     extends InheritedModel<WorkingRouterFunction> {
-  final WorkingRouterData<ID> data;
+  final WorkingRouterData data;
 
   const InheritedWorkingRouterData({
     required super.child,
@@ -14,14 +14,14 @@ class InheritedWorkingRouterData<ID extends Enum>
   });
 
   @override
-  bool updateShouldNotify(covariant InheritedWorkingRouterData<ID> oldWidget) {
+  bool updateShouldNotify(covariant InheritedWorkingRouterData oldWidget) {
     return oldWidget.data != data;
   }
 
   @override
   bool updateShouldNotifyDependent(
-    covariant InheritedWorkingRouterData<ID> oldWidget,
-    Set<dynamic Function(WorkingRouterData<ID>)> dependencies,
+    covariant InheritedWorkingRouterData oldWidget,
+    Set<dynamic Function(WorkingRouterData)> dependencies,
   ) {
     return dependencies.any(
       (element) => element(data) != element(oldWidget.data),

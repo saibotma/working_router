@@ -6,22 +6,22 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildMultiShellLocation<ID extends Enum, Self extends AnyLocation<ID>> =
+typedef BuildMultiShellLocation<Self extends AnyLocation<Self>> =
     void Function(
-      MultiShellLocationBuilder<ID> builder,
+      MultiShellLocationBuilder builder,
       Self node,
       MultiShellSlot contentSlot,
     );
 
-final class MultiShellLocationBuildResult<ID extends Enum>
-    extends LocationBuildResult<ID> {
-  final LocationWidgetBuilder<ID>? buildWidget;
+final class MultiShellLocationBuildResult
+    extends LocationBuildResult {
+  final LocationWidgetBuilder? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
   final MultiShellSlot contentSlot;
-  final LocationWidgetBuilder<ID>? buildContentDefaultWidget;
+  final LocationWidgetBuilder? buildContentDefaultWidget;
   final SelfBuiltLocationPageBuilder? buildContentDefaultPage;
-  final List<MultiShellSlotDefinition<ID>> slots;
-  final MultiShellContentBuilder<ID> buildShellContent;
+  final List<MultiShellSlotDefinition> slots;
+  final MultiShellContentBuilder buildShellContent;
   final ShellPageBuilder? buildShellPage;
 
   const MultiShellLocationBuildResult({
@@ -36,20 +36,20 @@ final class MultiShellLocationBuildResult<ID extends Enum>
   });
 
   @override
-  LocationWidgetBuilder<ID>? get buildWidgetOrNull => buildWidget;
+  LocationWidgetBuilder? get buildWidgetOrNull => buildWidget;
 
   @override
   SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
-class MultiShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
+class MultiShellLocationBuilder extends LocationBuilder {
   final MultiShellSlot _contentSlot = MultiShellSlot.internal(
     debugLabel: 'content',
   );
-  final List<MultiShellSlotDefinition<ID>> _slots = [];
-  MultiShellContent<ID>? _shellContent;
+  final List<MultiShellSlotDefinition> _slots = [];
+  MultiShellContent? _shellContent;
   ShellPageBuilder? _buildShellPage;
-  DefaultContent<ID>? _defaultContent;
+  DefaultContent? _defaultContent;
   SelfBuiltLocationPageBuilder? _buildDefaultPage;
 
   MultiShellLocationBuilder();
@@ -64,7 +64,7 @@ class MultiShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
   MultiShellSlot slot({
     String? debugLabel,
     bool navigatorEnabled = true,
-    DefaultContent<ID>? defaultContent,
+    DefaultContent? defaultContent,
     SelfBuiltLocationPageBuilder? defaultPage,
   }) {
     final slot = MultiShellSlot.internal(debugLabel: debugLabel);
@@ -82,7 +82,7 @@ class MultiShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
     return slot;
   }
 
-  set shellContent(MultiShellContent<ID> shellContent) {
+  set shellContent(MultiShellContent shellContent) {
     if (_shellContent != null) {
       throw StateError(
         'MultiShellLocationBuilder shellContent was already configured. '
@@ -107,7 +107,7 @@ class MultiShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
   /// This is most useful when `content = const Content.none()` should suppress
   /// the location-owned page while the content slot still keeps a default page
   /// beneath deeper routed pages.
-  set defaultContent(DefaultContent<ID> content) {
+  set defaultContent(DefaultContent content) {
     if (_defaultContent != null) {
       throw StateError(
         'MultiShellLocationBuilder defaultContent was already configured. '
@@ -128,7 +128,7 @@ class MultiShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
   }
 
   @override
-  LocationBuildResult<ID>? resolveRender() {
+  LocationBuildResult? resolveRender() {
     final locationRender = super.resolveRender();
     if (locationRender == null) {
       throw StateError(
@@ -184,12 +184,9 @@ class MultiShellLocationBuilder<ID extends Enum> extends LocationBuilder<ID> {
 /// pages. Extra slots must be created via [MultiShellLocationBuilder.slot] and
 /// may define their own default content/page. Children without an explicit
 /// `parentRouterKey` inherit the [contentSlot].
-abstract class AbstractMultiShellLocation<
-  ID extends Enum,
-  Self extends AnyLocation<ID>
->
-    extends AnyLocation<ID>
-    implements BuildsWithMultiShellLocationBuilder<ID> {
+abstract class AbstractMultiShellLocation<Self extends AnyLocation<Self>>
+    extends AnyLocation<Self>
+    implements BuildsWithMultiShellLocationBuilder {
   final MultiShellSlot contentSlot;
   final bool navigatorEnabled;
 
@@ -213,11 +210,11 @@ abstract class AbstractMultiShellLocation<
   Self get node => this as Self;
 
   @override
-  MultiShellLocationBuilder<ID> createBuilder() => MultiShellLocationBuilder();
+  MultiShellLocationBuilder createBuilder() => MultiShellLocationBuilder();
 
-  MultiShellLocationBuildResult<ID> get _multiShellRender {
+  MultiShellLocationBuildResult get _multiShellRender {
     final render = definition.render;
-    if (render is! MultiShellLocationBuildResult<ID>) {
+    if (render is! MultiShellLocationBuildResult) {
       throw StateError(
         'MultiShellLocation $runtimeType did not resolve a multi shell render. '
         'This indicates a framework bug.',
@@ -233,10 +230,10 @@ abstract class AbstractMultiShellLocation<
   List<MultiShellSlot> get slots =>
       _multiShellRender.slots.map((it) => it.slot).toList(growable: false);
 
-  List<MultiShellSlotDefinition<ID>> get slotDefinitions =>
+  List<MultiShellSlotDefinition> get slotDefinitions =>
       _multiShellRender.slots;
 
-  MultiShellSlotDefinition<ID> get contentSlotDefinition =>
+  MultiShellSlotDefinition get contentSlotDefinition =>
       MultiShellSlotDefinition(
         slot: contentSlot,
         navigatorEnabled: true,
@@ -246,8 +243,8 @@ abstract class AbstractMultiShellLocation<
 
   Widget buildShellContent(
     BuildContext context,
-    WorkingRouterData<ID> data,
-    MultiShellSlotChildren<ID> slots,
+    WorkingRouterData data,
+    MultiShellSlotChildren slots,
   ) {
     return _multiShellRender.buildShellContent(context, data, slots);
   }
@@ -263,9 +260,9 @@ abstract class AbstractMultiShellLocation<
 /// Use this when defining a multi shell location inline instead of subclassing
 /// [AbstractMultiShellLocation]. The `build` callback receives the built-in
 /// `contentSlot` explicitly.
-class MultiShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
-    extends AbstractMultiShellLocation<ID, Self> {
-  final BuildMultiShellLocation<ID, Self> _build;
+class MultiShellLocation<Self extends AnyLocation<Self>>
+    extends AbstractMultiShellLocation<Self> {
+  final BuildMultiShellLocation<Self> _build;
 
   MultiShellLocation({
     super.id,
@@ -274,23 +271,23 @@ class MultiShellLocation<ID extends Enum, Self extends AnyLocation<ID>>
     super.tags,
     super.contentRouterKey,
     super.navigatorEnabled,
-    required BuildMultiShellLocation<ID, Self> build,
+    required BuildMultiShellLocation<Self> build,
   }) : _build = build;
 
   @override
-  void build(MultiShellLocationBuilder<ID> builder) {
+  void build(MultiShellLocationBuilder builder) {
     _build(builder, this as Self, contentSlot);
   }
 }
 
-LocationWidgetBuilder<ID>? _resolveDefaultWidgetBuilder<ID extends Enum>(
-  DefaultContent<ID>? defaultContent,
+LocationWidgetBuilder? _resolveDefaultWidgetBuilder(
+  DefaultContent? defaultContent,
 ) {
   return defaultContent?.resolveWidgetBuilder();
 }
 
-SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder<ID extends Enum>({
-  required DefaultContent<ID>? defaultContent,
+SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder({
+  required DefaultContent? defaultContent,
   required SelfBuiltLocationPageBuilder? defaultPage,
 }) {
   if (defaultPage != null && defaultContent == null) {

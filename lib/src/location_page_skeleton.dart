@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/working_router.dart';
 
-typedef LocationChildBuilder<ID extends Enum> =
-    Widget Function(BuildContext, WorkingRouterData<ID> data);
+typedef LocationChildBuilder =
+    Widget Function(BuildContext, WorkingRouterData data);
 typedef LocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
-typedef LocationPageKeyBuilder<ID extends Enum> =
-    LocalKey Function(AnyLocation<ID> location, WorkingRouterData<ID> data);
-typedef LocationChildWrapper<ID extends Enum> =
+typedef LocationPageKeyBuilder =
+    LocalKey Function(AnyLocation location, WorkingRouterData data);
+typedef LocationChildWrapper =
     Widget Function(
       BuildContext context,
-      AnyLocation<ID> location,
-      WorkingRouterData<ID> data,
+      AnyLocation location,
+      WorkingRouterData data,
       Widget child,
     );
 
-abstract interface class LocationPageSkeleton<ID extends Enum> {
+abstract interface class LocationPageSkeleton {
   LocationPage inflate({
-    required WorkingRouter<ID> router,
-    required WorkingRouterData<ID> data,
-    required RouteNode<ID> node,
+    required WorkingRouter router,
+    required WorkingRouterData data,
+    required RouteNode node,
   });
 }
 
@@ -31,11 +31,11 @@ abstract interface class LocationPageSkeleton<ID extends Enum> {
 /// gets passed to [buildPage].
 ///
 /// Does not hold state and thus can be reused.
-class BuilderLocationPageSkeleton<ID extends Enum>
-    implements LocationPageSkeleton<ID> {
-  final LocationChildBuilder<ID> buildChild;
+class BuilderLocationPageSkeleton
+    implements LocationPageSkeleton {
+  final LocationChildBuilder buildChild;
   final LocationPageBuilder? buildPage;
-  final LocationPageKeyBuilder<ID>? buildPageKey;
+  final LocationPageKeyBuilder? buildPageKey;
 
   BuilderLocationPageSkeleton({
     required this.buildChild,
@@ -45,9 +45,9 @@ class BuilderLocationPageSkeleton<ID extends Enum>
 
   @override
   LocationPage inflate({
-    required WorkingRouter<ID> router,
-    required WorkingRouterData<ID> data,
-    required RouteNode<ID> node,
+    required WorkingRouter router,
+    required WorkingRouterData data,
+    required RouteNode node,
   }) {
     // Keep the widget subtree keyed by the fully hydrated matched path.
     // This lets inner widget state reset when a path parameter changes, while
@@ -57,7 +57,7 @@ class BuilderLocationPageSkeleton<ID extends Enum>
       key: childKey,
       builder: (context) {
         final child = buildChild(context, data);
-        if (node case final AnyLocation<ID> location) {
+        if (node case final AnyLocation location) {
           final wrapChild = router.wrapLocationChild;
           if (wrapChild != null) {
             return wrapChild(context, location, data, child);
@@ -72,7 +72,7 @@ class BuilderLocationPageSkeleton<ID extends Enum>
       // it animates out of view because of a routing event.
       data: data,
       child: switch (node) {
-        final AnyLocation<ID> location => NearestLocation<ID>(
+        final AnyLocation location => NearestLocation(
           location: location,
           child: NotificationListener(
             onNotification: (notification) {
@@ -93,7 +93,7 @@ class BuilderLocationPageSkeleton<ID extends Enum>
       },
     );
     final pageKey = node.buildPageKey(data);
-    final key = node is AnyLocation<ID>
+    final key = node is AnyLocation
         ? (buildPageKey?.call(node, data) ?? pageKey)
         : pageKey;
     return LocationPage(
@@ -103,8 +103,8 @@ class BuilderLocationPageSkeleton<ID extends Enum>
   }
 }
 
-class ChildLocationPageSkeleton<ID extends Enum>
-    extends BuilderLocationPageSkeleton<ID> {
+class ChildLocationPageSkeleton
+    extends BuilderLocationPageSkeleton {
   ChildLocationPageSkeleton({
     required Widget child,
     super.buildPage,

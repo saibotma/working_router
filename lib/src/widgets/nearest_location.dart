@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
 
-class NearestLocation<ID extends Enum> extends InheritedWidget {
-  final AnyLocation<ID> location;
+class NearestLocation extends InheritedWidget {
+  final AnyLocation location;
 
   const NearestLocation({
     required this.location,
@@ -10,14 +10,14 @@ class NearestLocation<ID extends Enum> extends InheritedWidget {
     super.key,
   });
 
-  static AnyLocation<ID> of<ID extends Enum>(BuildContext context) {
-    final NearestLocation<ID>? nearestLocation = context
-        .dependOnInheritedWidgetOfExactType<NearestLocation<ID>>();
+  static AnyLocation of(BuildContext context) {
+    final NearestLocation? nearestLocation = context
+        .dependOnInheritedWidgetOfExactType<NearestLocation>();
     return nearestLocation!.location;
   }
 
   @override
-  bool updateShouldNotify(covariant NearestLocation<ID> oldWidget) {
+  bool updateShouldNotify(covariant NearestLocation oldWidget) {
     return oldWidget.location != location;
   }
 }

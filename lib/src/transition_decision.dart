@@ -15,9 +15,9 @@ enum RouteTransitionReason {
 }
 
 /// Immutable transition context passed to transition callbacks.
-class RouteTransition<ID extends Enum> {
-  final WorkingRouterData<ID>? from;
-  final WorkingRouterData<ID> to;
+class RouteTransition {
+  final WorkingRouterData? from;
+  final WorkingRouterData to;
   final RouteTransitionReason reason;
 
   const RouteTransition({
@@ -28,15 +28,15 @@ class RouteTransition<ID extends Enum> {
 }
 
 /// The result of a transition callback.
-sealed class TransitionDecision<ID extends Enum> {
+sealed class TransitionDecision {
   const TransitionDecision();
 }
 
-final class AllowTransition<ID extends Enum> extends TransitionDecision<ID> {
+final class AllowTransition extends TransitionDecision {
   const AllowTransition();
 }
 
-final class BlockTransition<ID extends Enum> extends TransitionDecision<ID> {
+final class BlockTransition extends TransitionDecision {
   const BlockTransition();
 }
 
@@ -46,8 +46,8 @@ final class BlockTransition<ID extends Enum> extends TransitionDecision<ID> {
 /// resolves the redirected target and runs the transition decider again with
 /// [RouteTransition.reason] set to [RouteTransitionReason.redirect]. That
 /// second pass is required for chained redirects.
-final class RedirectTransition<ID extends Enum> extends TransitionDecision<ID> {
-  final RouteTarget<ID> to;
+final class RedirectTransition extends TransitionDecision {
+  final RouteTarget to;
 
   const RedirectTransition(this.to);
 
@@ -56,13 +56,13 @@ final class RedirectTransition<ID extends Enum> extends TransitionDecision<ID> {
   }
 
   factory RedirectTransition.toUri(Uri uri) {
-    return RedirectTransition(UriRouteTarget<ID>(uri));
+    return RedirectTransition(UriRouteTarget(uri));
   }
 
   factory RedirectTransition.toId(
-    ID id, {
+    AnyNodeId id, {
     Map<String, String> queryParameters = const {},
-    WritePathParameters<ID>? writePathParameters,
+    WritePathParameters? writePathParameters,
   }) {
     return RedirectTransition(
       IdRouteTarget(

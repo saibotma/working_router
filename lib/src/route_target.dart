@@ -2,20 +2,20 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/route_node.dart';
 
-sealed class RouteTarget<ID extends Enum> {
+sealed class RouteTarget {
   const RouteTarget();
 }
 
-final class UriRouteTarget<ID extends Enum> extends RouteTarget<ID> {
+final class UriRouteTarget extends RouteTarget {
   final Uri uri;
 
   const UriRouteTarget(this.uri);
 }
 
-base class IdRouteTarget<ID extends Enum> extends RouteTarget<ID> {
-  final ID id;
+base class IdRouteTarget extends RouteTarget {
+  final AnyNodeId id;
   final Map<String, String> queryParameters;
-  final WritePathParameters<ID>? writePathParameters;
+  final WritePathParameters? writePathParameters;
 
   const IdRouteTarget(
     this.id, {
@@ -34,18 +34,18 @@ base class IdRouteTarget<ID extends Enum> extends RouteTarget<ID> {
 /// This is intentionally stronger than a leaf predicate. It avoids ambiguous
 /// first-match routing when multiple descendants under the same subtree could
 /// satisfy the same type, `id`, or `localId`-based match.
-base class ChildRouteTarget<ID extends Enum> extends RouteTarget<ID> {
+base class ChildRouteTarget extends RouteTarget {
   /// The concrete location instance that child routing starts from.
-  final AnyLocation<ID> start;
+  final AnyLocation start;
 
   /// Resolves the exact live descendant route-node chain below [start].
   ///
   /// Generated `childXTarget(...)` helpers typically set this to a callback
   /// that walks `start.children` layer by layer and returns the intended child
   /// path for the current runtime tree shape.
-  final IList<RouteNode<ID>>? Function() resolveChildPathNodes;
+  final IList<RouteNode>? Function() resolveChildPathNodes;
   final Map<String, String> queryParameters;
-  final WritePathParameters<ID>? writePathParameters;
+  final WritePathParameters? writePathParameters;
 
   const ChildRouteTarget(
     {
@@ -61,10 +61,10 @@ base class ChildRouteTarget<ID extends Enum> extends RouteTarget<ID> {
 /// This starts from the current active leaf and walks descendants depth-first
 /// until [predicate] matches. It is less precise than [ChildRouteTarget], but
 /// useful when first-match semantics are intentional.
-base class FirstChildRouteTarget<ID extends Enum> extends RouteTarget<ID> {
-  final bool Function(AnyLocation<ID> location) predicate;
+base class FirstChildRouteTarget extends RouteTarget {
+  final bool Function(AnyLocation location) predicate;
   final Map<String, String> queryParameters;
-  final WritePathParameters<ID>? writePathParameters;
+  final WritePathParameters? writePathParameters;
 
   const FirstChildRouteTarget(
     this.predicate, {

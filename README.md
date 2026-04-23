@@ -5,9 +5,9 @@ definition API.
 
 ## Core Ideas
 
-- `Location<ID, Self>` is a semantic route node.
-- `Shell<ID>` is a directly constructible structural route node that inserts a nested navigator.
-- `MultiShell<ID>` is the parallel-shell variant for layouts with multiple sibling nested navigators.
+- `Location<Self>` is a semantic route node.
+- `Shell` is a directly constructible structural route node that inserts a nested navigator.
+- `MultiShell` is the parallel-shell variant for layouts with multiple sibling nested navigators.
 - Routes are defined in `build(...)` with ordered builder calls:
   - `pathLiteral(...)`
   - `pathParam(...)`
@@ -49,7 +49,10 @@ The route API is centered around lightweight route-node subclasses that forward 
 typed `build:` callback.
 
 ```dart
-class ExampleNode extends Location<MyRouteId, ExampleNode> {
+final exampleId = NodeId<ExampleNode>();
+final detailId = NodeId<DetailNode>();
+
+class ExampleNode extends Location<ExampleNode> {
   ExampleNode({
     super.id,
     super.build,
@@ -57,7 +60,7 @@ class ExampleNode extends Location<MyRouteId, ExampleNode> {
 }
 
 final example = ExampleNode(
-  id: MyRouteId.example,
+  id: exampleId,
   build: (builder, location) {
     builder.pathLiteral('items');
     final itemId = builder.stringPathParam();
@@ -73,7 +76,7 @@ final example = ExampleNode(
     });
 
     builder.children = [
-      DetailNode(id: MyRouteId.detail),
+      DetailNode(id: detailId),
     ];
   },
 );
@@ -117,8 +120,10 @@ Important details:
   read the reusable unbound definition with `data.paramOrNull(...)`.
 - `WorkingRouterData` exposes the full matched chain as `data.routeNodes`.
   Use `data.lastMatched<T>()` when you need the most specific matched node of a
-  type, and `data.leaf` when you specifically need the terminal semantic
-  location.
+  type, use `data.lastMatchedWithId(someNodeId)` when you want that lookup to
+  also return the node as a concrete type from a typed id token, and use
+  `data.leaf` / `data.leafWithId(someNodeId)` when you specifically need the
+  terminal semantic location.
 - `content` and `defaultContent` may depend on `context` and `data`, but they
   should not switch semantic page role based on other external mutable state.
 - If `content` is left entirely unset, the location is treated as legacy and
@@ -130,7 +135,7 @@ to a route param without owning the location that declares it:
 ```dart
 final accountId = UnboundPathParam<AccountId>(const AccountIdCodec());
 
-Location<RouteId, AccountsNode>(
+Location<AccountsNode>(
   build: (builder, location) {
     builder.pathLiteral('accounts');
     final boundAccountId = builder.bindParam(accountId);
@@ -154,11 +159,11 @@ If a route node itself should keep access to a bound param after `build(...)`,
 store the returned `Param<T>` on the node instance:
 
 ```dart
-class AccountNode extends AbstractShell<RouteId> {
+class AccountNode extends AbstractShell {
   late final Param<AccountId> accountId;
 
   @override
-  void build(ShellBuilder<RouteId> builder) {
+  void build(ShellBuilder builder) {
     accountId = builder.pathParam(const AccountIdCodec());
     builder.children = [
       DashboardNode(id: RouteId.dashboard, accountId: accountId),
@@ -293,7 +298,7 @@ MultiShell(
   },
 );
 
-ShellLocation<RouteId, SettingsNode>(
+ShellLocation<SettingsNode>(
   id: RouteId.settings,
   build: (builder, location, routerKey) {
     builder.shellPage = (key, child) =>
@@ -310,9 +315,9 @@ Use the abstract base classes when you want a reusable named subtree by
 overriding `build(...)`:
 
 ```dart
-class LegalNode extends AbstractScope<RouteId> {
+class LegalNode extends AbstractScope {
   @override
-  void build(ScopeBuilder<RouteId> builder) {
+  void build(ScopeBuilder builder) {
     builder.children = [
       PrivacyNode(id: RouteId.privacy, build: ...),
       TermsNode(id: RouteId.terms, build: ...),
@@ -320,9 +325,9 @@ class LegalNode extends AbstractScope<RouteId> {
   }
 }
 
-class AccountNode extends AbstractShell<RouteId> {
+class AccountNode extends AbstractShell {
   @override
-  void build(ShellBuilder<RouteId> builder) {
+  void build(ShellBuilder builder) {
     builder.content = ShellContent.builder(
       (context, data, child) => Scaffold(body: child),
     );
@@ -332,9 +337,9 @@ class AccountNode extends AbstractShell<RouteId> {
   }
 }
 
-class ChatSplitNode extends AbstractMultiShell<RouteId> {
+class ChatSplitNode extends AbstractMultiShell {
   @override
-  void build(MultiShellBuilder<RouteId> builder) {
+  void build(MultiShellBuilder builder) {
     final listSlot = builder.slot();
     final detailSlot = builder.slot();
     builder.content = MultiShellContent.builder(
@@ -356,11 +361,11 @@ class ChatSplitNode extends AbstractMultiShell<RouteId> {
   }
 }
 
-class SettingsNode extends AbstractShellLocation<RouteId, SettingsNode> {
+class SettingsNode extends AbstractShellLocation<SettingsNode> {
   SettingsNode({required super.id});
 
   @override
-  void build(ShellLocationBuilder<RouteId> builder) {
+  void build(ShellLocationBuilder builder) {
     builder.content = Content.widget(const SettingsScreen());
     builder.children = [
       ThemeModeNode(id: RouteId.themeMode, build: ...),
@@ -464,7 +469,7 @@ This is shown in the package example in
 shape:
 
 ```dart
-ShellLocation<RouteId, SettingsNode>(
+ShellLocation<SettingsNode>(
   id: RouteId.settings,
   navigatorEnabled: screenSize != ScreenSize.small,
   build: (builder, location, routerKey) {
@@ -504,7 +509,7 @@ sibling slot navigators plus one built-in `contentSlot` for the location's own
 page, such as a desktop split view with independent left and right stacks.
 
 ```dart
-MultiShellLocation<RouteId, ChatLocation>(
+MultiShellLocation<ChatLocation>(
   id: RouteId.chat,
   navigatorEnabled: screenSize != ScreenSize.small,
   build: (builder, location, contentSlot) {
@@ -573,9 +578,15 @@ From `@RouteNodes()`, the generator emits:
 
 For start-anchored child targets:
 
-- global route ids are enum values
-- child routing can use local enum `localId` values, which are preferred over
-  route type names for generated `childXTarget(...)` names and matching
+- global route ids are usually top-level `final NodeId<T>()` values
+- child routing can use top-level `final LocalNodeId<T>()` values via
+  `localId`, which are preferred over route type names for generated
+  `childXTarget(...)` names and matching
+- both token types are intentionally non-const: ids are modeled as identity
+  tokens, and repeated occurrences of the same route-node type may need
+  distinct ids
+- generated helper names derive from the referenced id variable name and strip
+  common trailing suffixes like `Id`, `NodeId`, and `LocalId`
 - if the same start node could reach multiple descendants that would generate the
   same `childXTarget(...)` helper, the generator suppresses that safe ancestor
   helper and generates `routeToFirstChildX(...)` instead

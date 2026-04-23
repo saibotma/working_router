@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
 import 'route_nodes.dart';
-import 'route_node_id.dart';
 
 class AlphabetSidebar extends StatelessWidget {
   final bool showInnerShellBypassRoute;
@@ -14,7 +13,7 @@ class AlphabetSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final router = WorkingRouter.of<RouteNodeId>(context);
+    final router = WorkingRouter.of(context);
 
     return ColoredBox(
       color: Colors.yellow,

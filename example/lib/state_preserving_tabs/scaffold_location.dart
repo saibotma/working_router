@@ -1,12 +1,12 @@
 import 'package:working_router/working_router.dart';
 
-class ScaffoldNode extends AbstractLocation<String, ScaffoldNode> {
-  final List<RouteNode<String>> childNodes;
+class ScaffoldNode extends AbstractLocation<ScaffoldNode> {
+  final List<RouteNode> childNodes;
 
   ScaffoldNode({required this.childNodes});
 
   @override
-  void build(LocationBuilder<String> builder) {
+  void build(LocationBuilder builder) {
     builder.children = childNodes;
   }
 }

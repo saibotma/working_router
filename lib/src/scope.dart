@@ -1,11 +1,11 @@
 import 'package:working_router/src/path_route_node.dart';
 
-class ScopeBuilder<ID extends Enum> extends PathRouteNodeBuilder<ID> {
+class ScopeBuilder extends PathRouteNodeBuilder {
   ScopeBuilder();
 }
 
-typedef BuildScope<ID extends Enum> =
-    void Function(ScopeBuilder<ID> builder, Scope<ID> node);
+typedef BuildScope =
+    void Function(ScopeBuilder builder, Scope node);
 
 /// A non-rendering route scope that shares path, query, and child definitions.
 ///
@@ -19,8 +19,9 @@ typedef BuildScope<ID extends Enum> =
 ///
 /// Use this when a scope is implemented by subclassing and overriding
 /// [build], for example to package a shared subtree into a named type.
-abstract class AbstractScope<ID extends Enum> extends PathRouteNode<ID>
-    implements BuildsWithScopeBuilder<ID> {
+abstract class AbstractScope<Self extends AbstractScope<Self>>
+    extends PathRouteNode<Self>
+    implements BuildsWithScopeBuilder {
   AbstractScope({
     super.id,
     super.localId,
@@ -28,24 +29,24 @@ abstract class AbstractScope<ID extends Enum> extends PathRouteNode<ID>
   });
 
   @override
-  ScopeBuilder<ID> createBuilder() => ScopeBuilder<ID>();
+  ScopeBuilder createBuilder() => ScopeBuilder();
 }
 
 /// Callback-based convenience scope.
 ///
 /// Use this when the scope is defined inline with a `build:` callback.
-class Scope<ID extends Enum> extends AbstractScope<ID> {
-  final BuildScope<ID> _build;
+class Scope extends AbstractScope<Scope> {
+  final BuildScope _build;
 
   Scope({
     super.id,
     super.localId,
-    required BuildScope<ID> build,
+    required BuildScope build,
     super.parentRouterKey,
   }) : _build = build;
 
   @override
-  void build(ScopeBuilder<ID> builder) {
+  void build(ScopeBuilder builder) {
     _build(builder, this);
   }
 }

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-class NestedLocationPageSkeleton<ID extends Enum>
-    extends BuilderLocationPageSkeleton<ID> {
+class NestedLocationPageSkeleton
+    extends BuilderLocationPageSkeleton {
   NestedLocationPageSkeleton({
-    required WorkingRouter<ID> router,
-    required BuildPages<ID> buildPages,
-    List<Page<dynamic>> Function(WorkingRouterData<ID> data)? buildDefaultPages,
+    required WorkingRouter router,
+    required BuildPages buildPages,
+    List<Page<dynamic>> Function(WorkingRouterData data)? buildDefaultPages,
     required WorkingRouterKey routerKey,
     Widget Function(
       BuildContext context,
-      WorkingRouterData<ID> data,
+      WorkingRouterData data,
       Widget child,
     )?
     buildChild,

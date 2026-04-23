@@ -7,12 +7,20 @@ import 'empty_alphabet_screen.dart';
 import 'filled_alphabet_screen.dart';
 import 'inner_shell_root_screen.dart';
 import 'inner_shell_screen.dart';
-import 'route_node_id.dart';
 import 'platform_modal/platform_modal_page.dart';
 import 'pop_until_target.dart';
 import 'shell_bypass_screen.dart';
 
-class SplashNode extends Location<RouteNodeId, SplashNode> {
+final splashId = NodeId<SplashNode>();
+final aId = NodeId<ANode>();
+final abId = NodeId<ABNode>();
+final abcId = NodeId<ABCNode>();
+final adId = NodeId<ADNode>();
+final adcId = NodeId<ADCNode>();
+final adShellId = NodeId<ADNestedNode>();
+final adeId = NodeId<ADENode>();
+
+class SplashNode extends Location<SplashNode> {
   SplashNode({
     super.id,
     super.parentRouterKey,
@@ -20,7 +28,7 @@ class SplashNode extends Location<RouteNodeId, SplashNode> {
   });
 }
 
-class ABNode extends Location<RouteNodeId, ABNode> {
+class ABNode extends Location<ABNode> {
   ABNode({
     super.id,
     super.parentRouterKey,
@@ -28,7 +36,7 @@ class ABNode extends Location<RouteNodeId, ABNode> {
   });
 }
 
-class ABCNode extends Location<RouteNodeId, ABCNode> {
+class ABCNode extends Location<ABCNode> {
   ABCNode({
     super.id,
     required super.parentRouterKey,
@@ -36,7 +44,7 @@ class ABCNode extends Location<RouteNodeId, ABCNode> {
   });
 }
 
-class ADNode extends Location<RouteNodeId, ADNode> {
+class ADNode extends Location<ADNode> {
   ADNode({
     super.id,
     super.parentRouterKey,
@@ -44,7 +52,7 @@ class ADNode extends Location<RouteNodeId, ADNode> {
   });
 }
 
-class ADNestedNode extends ShellLocation<RouteNodeId, ADNestedNode> {
+class ADNestedNode extends ShellLocation<ADNestedNode> {
   ADNestedNode({
     super.id,
     super.parentRouterKey,
@@ -52,7 +60,7 @@ class ADNestedNode extends ShellLocation<RouteNodeId, ADNestedNode> {
   });
 }
 
-class ADCNode extends Location<RouteNodeId, ADCNode> {
+class ADCNode extends Location<ADCNode> {
   ADCNode({
     super.id,
     super.parentRouterKey,
@@ -60,7 +68,7 @@ class ADCNode extends Location<RouteNodeId, ADCNode> {
   });
 }
 
-class ADENode extends Location<RouteNodeId, ADENode> {
+class ADENode extends Location<ADENode> {
   ADENode({
     super.id,
     super.parentRouterKey,
@@ -68,7 +76,7 @@ class ADENode extends Location<RouteNodeId, ADENode> {
   });
 }
 
-class ANode extends AbstractLocation<RouteNodeId, ANode> {
+class ANode extends AbstractLocation<ANode> {
   final bool rendersStandaloneSidebar;
   final WorkingRouterKey rootRouterKey;
   final WorkingRouterKey? outerShellRouterKey;
@@ -84,7 +92,7 @@ class ANode extends AbstractLocation<RouteNodeId, ANode> {
         );
 
   @override
-  void build(LocationBuilder<RouteNodeId> builder) {
+  void build(LocationBuilder builder) {
     builder.pathLiteral('a');
     builder.content = Content.widget(
       rendersStandaloneSidebar
@@ -94,14 +102,14 @@ class ANode extends AbstractLocation<RouteNodeId, ANode> {
 
     builder.children = [
       ABNode(
-        id: RouteNodeId.ab,
+        id: abId,
         build: (builder, location) {
           builder.pathLiteral('b');
           builder.content = Content.widget(const FilledAlphabetScreen());
 
           builder.children = [
             ABCNode(
-              id: RouteNodeId.abc,
+              id: abcId,
               parentRouterKey: rootRouterKey,
               build: (builder, location) {
                 builder.pathLiteral('c');
@@ -125,14 +133,14 @@ class ANode extends AbstractLocation<RouteNodeId, ANode> {
         },
       ),
       ADNode(
-        id: RouteNodeId.ad,
+        id: adId,
         build: (builder, location) {
           builder.pathLiteral('d');
           builder.content = Content.widget(const FilledAlphabetScreen());
 
           builder.children = [
             ADCNode(
-              id: RouteNodeId.adc,
+              id: adcId,
               parentRouterKey: rootRouterKey,
               build: (builder, location) {
                 builder.pathLiteral('c');
@@ -144,7 +152,7 @@ class ANode extends AbstractLocation<RouteNodeId, ANode> {
             ),
             if (outerShellRouterKey != null)
               ADNestedNode(
-                id: RouteNodeId.adShell,
+                id: adShellId,
                 build: (builder, location, routerKey) {
                   builder.shellContent = ShellContent.builder(
                     (context, data, child) => InnerShellScreen(child: child),
@@ -155,7 +163,7 @@ class ANode extends AbstractLocation<RouteNodeId, ANode> {
 
                   builder.children = [
                     ADENode(
-                      id: RouteNodeId.ade,
+                      id: adeId,
                       parentRouterKey: outerShellRouterKey ?? routerKey,
                       build: (builder, location) {
                         builder.pathLiteral('e');

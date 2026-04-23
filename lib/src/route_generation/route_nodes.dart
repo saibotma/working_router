@@ -2,21 +2,21 @@
 /// generation.
 ///
 /// The annotation target must be a top-level field, getter, or function
-/// returning an `Iterable<RouteNode<ID>>`.
+/// returning an `Iterable<RouteNode>`.
 ///
 /// Example:
 /// ```dart
 /// part 'route_nodes.g.dart';
 ///
 /// @RouteNodes()
-/// List<RouteNode<AppRouteId>> buildRouteNodes({
+/// List<RouteNode> buildRouteNodes({
 ///   required WorkingRouterKey rootRouterKey,
 /// }) => [_appRouteTree];
 /// ```
 ///
 /// Running `build_runner` generates `routeToX(...)` extension methods on
-/// `WorkingRouterSailor<ID>` for every location in the route-node tree that has
-/// a non-null enum `id`.
+/// `WorkingRouterSailor` for every location in the route-node tree that has
+/// a non-null `id`.
 ///
 /// For start-anchored child routing it also generates:
 /// - `childXTarget(...)` helpers on the owning location type
@@ -45,9 +45,15 @@
 /// which matching descendant is chosen at runtime, but it is not ambiguous
 /// about which path/query parameters are required or how they are encoded.
 ///
-/// Global route ids and local child ids are both enum-based. The generated
-/// helper name is derived from the enum case in the `id` or `localId`, and its
-/// required parameters are the union of:
+/// Global route ids are commonly declared as top-level
+/// `final NodeId<T>()` values, and local child ids as
+/// `final LocalNodeId<T>()` values. The
+/// tokens are intentionally non-const because ids are identity-based and the
+/// same route-node type may need multiple distinct ids across repeated
+/// occurrences in one tree. The
+/// generated helper name is derived from the referenced identifier and strips
+/// common trailing suffixes like `Id`, `NodeId`, and `LocalId`. Its required
+/// parameters are the union of:
 /// - all path parameters from the full ancestor chain
 /// - all query parameter keys from the full ancestor chain
 ///
@@ -60,8 +66,8 @@
 /// for the full route vocabulary.
 ///
 /// Supported composition includes:
-/// - named `Location<ID, Self>` subclasses
-/// - named `ShellLocation<ID, Self>` subclasses
+/// - named `Location<Self>` subclasses
+/// - named `ShellLocation<Self>` subclasses
 /// - direct `Shell(...)` nodes
 /// - direct `ShellLocation(...)` nodes
 /// - top-level or static helper fields and getters
@@ -78,7 +84,7 @@
 /// - annotating instance members or static class members directly
 /// - loops or other arbitrary collection-building constructs
 ///
-/// The generated extension targets `WorkingRouterSailor<ID>`.
+/// The generated extension targets `WorkingRouterSailor`.
 class RouteNodes {
   const RouteNodes();
 }

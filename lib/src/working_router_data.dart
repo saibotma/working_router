@@ -4,9 +4,9 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/working_router.dart';
 
-class WorkingRouterData<ID extends Enum> {
+class WorkingRouterData {
   final Uri uri;
-  final IList<RouteNode<ID>> routeNodes;
+  final IList<RouteNode> routeNodes;
 
   // Keep matched path params in their encoded URI form keyed by reusable
   // unbound path definitions. The router core is still URI-first, so URI
@@ -26,29 +26,37 @@ class WorkingRouterData<ID extends Enum> {
     required this.queryParameters,
   }) : _pathParameters = pathParameters;
 
-  static WorkingRouterData<ID> of<ID extends Enum>(BuildContext context) {
-    final data = InheritedModel.inheritFrom<InheritedWorkingRouterData<ID>>(
+  static WorkingRouterData of(BuildContext context) {
+    final data = InheritedModel.inheritFrom<InheritedWorkingRouterData>(
       context,
     );
     return data!.data;
   }
 
-  static Slice ofSliced<ID extends Enum, Slice>(
+  static Slice ofSliced<Slice>(
     BuildContext context,
-    Slice Function(WorkingRouterData<ID>) slice,
+    Slice Function(WorkingRouterData) slice,
   ) {
-    final data = InheritedModel.inheritFrom<InheritedWorkingRouterData<ID>>(
+    final data = InheritedModel.inheritFrom<InheritedWorkingRouterData>(
       context,
-      aspect: (dynamic data) => slice(data as WorkingRouterData<ID>),
+      aspect: (dynamic data) => slice(data as WorkingRouterData),
     );
     return slice(data!.data);
   }
 
-  late final IList<AnyLocation<ID>> _locations = routeNodes.locations;
-  late final IList<PathRouteNode<ID>> _pathRouteNodes =
+  late final IList<AnyLocation> _locations = routeNodes.locations;
+  late final IList<PathRouteNode> _pathRouteNodes =
       routeNodes.pathRouteNodes;
 
-  AnyLocation<ID>? get leaf => _locations.lastOrNull;
+  AnyLocation? get leaf => _locations.lastOrNull;
+
+  T? leafWithId<T extends AnyLocation<T>>(NodeId<T> id) {
+    final currentLeaf = leaf;
+    if (currentLeaf is! T || currentLeaf.id != id) {
+      return null;
+    }
+    return currentLeaf;
+  }
 
   T param<T>(Param<T> parameter) {
     return switch (parameter) {
@@ -142,7 +150,7 @@ class WorkingRouterData<ID extends Enum> {
     return false;
   }
 
-  String pathUpToLocation(AnyLocation<ID> location) {
+  String pathUpToLocation(AnyLocation location) {
     final locationIndex = _indexOfIdenticalNode(location);
     if (locationIndex == -1) {
       return uri.path;
@@ -153,7 +161,7 @@ class WorkingRouterData<ID extends Enum> {
     return pathRouteNodesUpToLocation.buildPath(_pathParameters);
   }
 
-  String pathUpToNode(RouteNode<ID> node) {
+  String pathUpToNode(RouteNode node) {
     final nodeIndex = _indexOfIdenticalNode(node);
     if (nodeIndex == -1) {
       return uri.path;
@@ -165,7 +173,7 @@ class WorkingRouterData<ID extends Enum> {
     return pathRouteNodesUpToNode.buildPath(_pathParameters);
   }
 
-  String pathTemplateUpToNode(RouteNode<ID> node) {
+  String pathTemplateUpToNode(RouteNode node) {
     final nodeIndex = _indexOfIdenticalNode(node);
     if (nodeIndex == -1) {
       return uri.path;
@@ -177,7 +185,7 @@ class WorkingRouterData<ID extends Enum> {
     return pathRouteNodesUpToNode.buildPathTemplate();
   }
 
-  int _indexOfIdenticalNode(RouteNode<ID> node) {
+  int _indexOfIdenticalNode(RouteNode node) {
     for (var i = 0; i < routeNodes.length; i++) {
       if (identical(routeNodes[i], node)) {
         return i;
@@ -187,8 +195,8 @@ class WorkingRouterData<ID extends Enum> {
   }
 
   bool isChildOf(
-    bool Function(RouteNode<ID> node) parent,
-    AnyLocation<ID> child,
+    bool Function(RouteNode node) parent,
+    AnyLocation child,
   ) {
     var sawParent = false;
 
@@ -203,37 +211,37 @@ class WorkingRouterData<ID extends Enum> {
     return false;
   }
 
-  bool isIdMatched(ID id) {
-    return isMatched<RouteNode<ID>>((node) => node.id == id);
+  bool isIdMatched(AnyNodeId id) {
+    return routeNodes.any((node) => node.id == id);
   }
 
-  bool isAnyIdMatched(Iterable<ID> ids) {
-    return isMatched<RouteNode<ID>>((node) => ids.contains(node.id));
+  bool isAnyIdMatched(Iterable<AnyNodeId> ids) {
+    return routeNodes.any((node) => ids.contains(node.id));
   }
 
-  ID? matchingId(Iterable<ID> ids) {
+  AnyNodeId? matchingId(Iterable<AnyNodeId> ids) {
     for (final node in routeNodes) {
       if (ids.contains(node.id)) {
-        return node.id;
+        return node.id! as AnyNodeId;
       }
     }
     return null;
   }
 
-  bool isTypeMatched<T extends RouteNode<ID>>() {
+  bool isTypeMatched<T extends RouteNode<T>>() {
     return isMatched<T>();
   }
 
-  bool isAnyTypeMatched2<T1 extends RouteNode<ID>, T2 extends RouteNode<ID>>() {
-    return isMatched<RouteNode<ID>>((node) => node is T1 || node is T2);
+  bool isAnyTypeMatched2<T1 extends RouteNode<T1>, T2 extends RouteNode<T2>>() {
+    return routeNodes.any((node) => node is T1 || node is T2);
   }
 
   bool isAnyTypeMatched3<
-    T1 extends RouteNode<ID>,
-    T2 extends RouteNode<ID>,
-    T3 extends RouteNode<ID>
+    T1 extends RouteNode<T1>,
+    T2 extends RouteNode<T2>,
+    T3 extends RouteNode<T3>
   >() {
-    return isMatched<RouteNode<ID>>((node) {
+    return routeNodes.any((node) {
       return node is T1 || node is T2 || node is T3;
     });
   }
@@ -242,7 +250,7 @@ class WorkingRouterData<ID extends Enum> {
   ///
   /// Structural nodes such as scopes and shells participate here as well.
   /// Use [leaf] for terminal semantic activity checks.
-  bool isMatched<T extends RouteNode<ID>>([bool Function(T node)? match]) {
+  bool isMatched<T extends RouteNode<T>>([bool Function(T node)? match]) {
     final typedNodes = routeNodes.whereType<T>();
     if (match == null) {
       return typedNodes.isNotEmpty;
@@ -250,7 +258,7 @@ class WorkingRouterData<ID extends Enum> {
     return typedNodes.any(match);
   }
 
-  T? lastMatched<T extends RouteNode<ID>>([bool Function(T node)? match]) {
+  T? lastMatched<T extends RouteNode<T>>([bool Function(T node)? match]) {
     for (var i = routeNodes.length - 1; i >= 0; i--) {
       final node = routeNodes[i];
       if (node is! T) {
@@ -263,9 +271,21 @@ class WorkingRouterData<ID extends Enum> {
     return null;
   }
 
-  WorkingRouterData<ID> copyWith({
+  T? lastMatchedWithId<T extends RouteNode<T>>(
+    NodeId<T> id, [
+    bool Function(T node)? match,
+  ]) {
+    return lastMatched<T>((node) {
+      if (node.id != id) {
+        return false;
+      }
+      return match == null || match(node);
+    });
+  }
+
+  WorkingRouterData copyWith({
     Uri? uri,
-    IList<RouteNode<ID>>? routeNodes,
+    IList<RouteNode>? routeNodes,
     IMap<UnboundPathParam<dynamic>, String>? pathParameters,
     IMap<String, String>? queryParameters,
   }) {

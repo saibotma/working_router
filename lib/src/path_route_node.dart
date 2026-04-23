@@ -9,47 +9,47 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/shell_location.dart';
 import 'package:working_router/src/working_router_data.dart';
 
-abstract interface class BuildsWithLocationBuilder<ID extends Enum> {
-  void build(LocationBuilder<ID> builder);
+abstract interface class BuildsWithLocationBuilder {
+  void build(LocationBuilder builder);
 }
 
-abstract interface class BuildsWithScopeBuilder<ID extends Enum> {
-  void build(ScopeBuilder<ID> builder);
+abstract interface class BuildsWithScopeBuilder {
+  void build(ScopeBuilder builder);
 }
 
-abstract interface class BuildsWithShellBuilder<ID extends Enum> {
-  void build(ShellBuilder<ID> builder);
+abstract interface class BuildsWithShellBuilder {
+  void build(ShellBuilder builder);
 }
 
-abstract interface class BuildsWithShellLocationBuilder<ID extends Enum> {
-  void build(ShellLocationBuilder<ID> builder);
+abstract interface class BuildsWithShellLocationBuilder {
+  void build(ShellLocationBuilder builder);
 }
 
-abstract interface class BuildsWithMultiShellBuilder<ID extends Enum> {
-  void build(MultiShellBuilder<ID> builder);
+abstract interface class BuildsWithMultiShellBuilder {
+  void build(MultiShellBuilder builder);
 }
 
-abstract interface class BuildsWithMultiShellLocationBuilder<ID extends Enum> {
-  void build(MultiShellLocationBuilder<ID> builder);
+abstract interface class BuildsWithMultiShellLocationBuilder {
+  void build(MultiShellLocationBuilder builder);
 }
 
-abstract class PathRouteNodeRenderResult<ID extends Enum> {
+abstract class PathRouteNodeRenderResult {
   const PathRouteNodeRenderResult();
 }
 
-abstract class PathRouteNodeBuilder<ID extends Enum> {
+abstract class PathRouteNodeBuilder {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
-  List<RouteNode<ID>> _children = const [];
+  List<RouteNode> _children = const [];
   bool _childrenAssigned = false;
-  PageKey<ID>? _pageKey;
+  PageKey? _pageKey;
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
-  List<RouteNode<ID>> get children => _children;
-  PageKey<ID>? get configuredPageKey => _pageKey;
+  List<RouteNode> get children => _children;
+  PageKey? get configuredPageKey => _pageKey;
 
   PathRouteNodeBuilder();
 
@@ -271,7 +271,7 @@ abstract class PathRouteNodeBuilder<ID extends Enum> {
     );
   }
 
-  set children(List<RouteNode<ID>> children) {
+  set children(List<RouteNode> children) {
     if (_childrenAssigned) {
       throw StateError(
         'PathRouteNodeBuilder children were already configured. '
@@ -282,12 +282,13 @@ abstract class PathRouteNodeBuilder<ID extends Enum> {
     _childrenAssigned = true;
   }
 
-  set pageKey(PageKey<ID> pageKey) {
+  set pageKey(PageKey pageKey) {
     _pageKey = pageKey;
   }
 }
 
-abstract class PathRouteNode<ID extends Enum> extends RouteNode<ID> {
+abstract class PathRouteNode<Self extends PathRouteNode<Self>>
+    extends RouteNode<Self> {
   PathRouteNode({
     super.id,
     super.localId,
@@ -295,59 +296,59 @@ abstract class PathRouteNode<ID extends Enum> extends RouteNode<ID> {
   });
 
   @protected
-  PathRouteNodeBuilder<ID> createBuilder();
+  PathRouteNodeBuilder createBuilder();
 
-  late final BuiltLocationDefinition<ID> _definition = _buildDefinition();
+  late final BuiltLocationDefinition _definition = _buildDefinition();
 
   @protected
-  BuiltLocationDefinition<ID> get definition => _definition;
+  BuiltLocationDefinition get definition => _definition;
 
-  BuiltLocationDefinition<ID> _buildDefinition() {
+  BuiltLocationDefinition _buildDefinition() {
     final builder = createBuilder();
     final render = switch ((this, builder)) {
       (
-        final BuildsWithLocationBuilder<ID> element,
-        final LocationBuilder<ID> locationBuilder,
+        final BuildsWithLocationBuilder element,
+        final LocationBuilder locationBuilder,
       ) =>
         () {
           element.build(locationBuilder);
           return locationBuilder.resolveRender();
         }(),
       (
-        final BuildsWithScopeBuilder<ID> element,
-        final ScopeBuilder<ID> scopeBuilder,
+        final BuildsWithScopeBuilder element,
+        final ScopeBuilder scopeBuilder,
       ) =>
         () {
           element.build(scopeBuilder);
           return null;
         }(),
       (
-        final BuildsWithShellBuilder<ID> element,
-        final ShellBuilder<ID> shellBuilder,
+        final BuildsWithShellBuilder element,
+        final ShellBuilder shellBuilder,
       ) =>
         () {
           element.build(shellBuilder);
           return shellBuilder.resolveRender();
         }(),
       (
-        final BuildsWithShellLocationBuilder<ID> element,
-        final ShellLocationBuilder<ID> shellLocationBuilder,
+        final BuildsWithShellLocationBuilder element,
+        final ShellLocationBuilder shellLocationBuilder,
       ) =>
         () {
           element.build(shellLocationBuilder);
           return shellLocationBuilder.resolveRender();
         }(),
       (
-        final BuildsWithMultiShellBuilder<ID> element,
-        final MultiShellBuilder<ID> multiShellBuilder,
+        final BuildsWithMultiShellBuilder element,
+        final MultiShellBuilder multiShellBuilder,
       ) =>
         () {
           element.build(multiShellBuilder);
           return multiShellBuilder.resolveRender();
         }(),
       (
-        final BuildsWithMultiShellLocationBuilder<ID> element,
-        final MultiShellLocationBuilder<ID> multiShellLocationBuilder,
+        final BuildsWithMultiShellLocationBuilder element,
+        final MultiShellLocationBuilder multiShellLocationBuilder,
       ) =>
         () {
           element.build(multiShellLocationBuilder);
@@ -375,10 +376,10 @@ abstract class PathRouteNode<ID extends Enum> extends RouteNode<ID> {
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   @override
-  List<RouteNode<ID>> get children => _definition.children;
+  List<RouteNode> get children => _definition.children;
 
   @override
-  LocalKey buildPageKey(WorkingRouterData<ID> data) {
+  LocalKey buildPageKey(WorkingRouterData data) {
     return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
   }
 }

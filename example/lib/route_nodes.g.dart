@@ -6,53 +6,41 @@ part of 'route_nodes.dart';
 // RouteHelpersGenerator
 // **************************************************************************
 
-final class SplashRouteTarget extends IdRouteTarget<RouteNodeId> {
-  const SplashRouteTarget()
+// ignore_for_file: type=lint
+
+final class SplashRouteTarget extends IdRouteTarget {
+  SplashRouteTarget()
       : super(
-          RouteNodeId.splash,
+          splashId,
         );
 }
 
-final class ARouteTarget extends IdRouteTarget<RouteNodeId> {
-  const ARouteTarget()
+final class ARouteTarget extends IdRouteTarget {
+  ARouteTarget()
       : super(
-          RouteNodeId.a,
+          aId,
         );
 }
 
-final class ChildAnodeRouteTarget extends ChildRouteTarget<RouteNodeId> {
-  ChildAnodeRouteTarget()
+final class AbRouteTarget extends IdRouteTarget {
+  AbRouteTarget()
       : super(
-          (location) => location is ANode,
+          abId,
         );
 }
 
-final class AbRouteTarget extends IdRouteTarget<RouteNodeId> {
-  const AbRouteTarget()
-      : super(
-          RouteNodeId.ab,
-        );
-}
-
-final class ChildAbnodeRouteTarget extends ChildRouteTarget<RouteNodeId> {
-  ChildAbnodeRouteTarget()
-      : super(
-          (location) => location is ABNode,
-        );
-}
-
-final class AbcRouteTarget extends IdRouteTarget<RouteNodeId> {
+final class AbcRouteTarget extends IdRouteTarget {
   AbcRouteTarget({
     required String id,
     required String b,
     required String c,
   }) : super(
-          RouteNodeId.abc,
+          abcId,
           writePathParameters: (() {
-            var abcnodeMatchIndex = 0;
+            var abcIdMatchIndex = 0;
             return (location, path) {
-              if (location is ABCNode) {
-                switch (abcnodeMatchIndex++) {
+              if (location.id == abcId) {
+                switch (abcIdMatchIndex++) {
                   case 0:
                     path(location.pathParameters[0] as PathParam<String>, id);
                     break;
@@ -67,89 +55,35 @@ final class AbcRouteTarget extends IdRouteTarget<RouteNodeId> {
         );
 }
 
-final class ChildAbcnodeRouteTarget extends ChildRouteTarget<RouteNodeId> {
-  ChildAbcnodeRouteTarget({
-    required String id,
-    required String b,
-    required String c,
-  }) : super(
-          (location) => location is ABCNode,
-          writePathParameters: (() {
-            var abcnodeMatchIndex = 0;
-            return (location, path) {
-              if (location is ABCNode) {
-                switch (abcnodeMatchIndex++) {
-                  case 0:
-                    path(location.pathParameters[0] as PathParam<String>, id);
-                    break;
-                }
-              }
-            };
-          })(),
-          queryParameters: {
-            'b': const StringRouteParamCodec().encode(b),
-            'c': const StringRouteParamCodec().encode(c),
-          },
-        );
-}
-
-final class AdRouteTarget extends IdRouteTarget<RouteNodeId> {
-  const AdRouteTarget()
+final class AdRouteTarget extends IdRouteTarget {
+  AdRouteTarget()
       : super(
-          RouteNodeId.ad,
+          adId,
         );
 }
 
-final class ChildAdnodeRouteTarget extends ChildRouteTarget<RouteNodeId> {
-  ChildAdnodeRouteTarget()
+final class AdcRouteTarget extends IdRouteTarget {
+  AdcRouteTarget()
       : super(
-          (location) => location is ADNode,
+          adcId,
         );
 }
 
-final class AdcRouteTarget extends IdRouteTarget<RouteNodeId> {
-  const AdcRouteTarget()
+final class AdShellRouteTarget extends IdRouteTarget {
+  AdShellRouteTarget()
       : super(
-          RouteNodeId.adc,
+          adShellId,
         );
 }
 
-final class ChildAdcnodeRouteTarget extends ChildRouteTarget<RouteNodeId> {
-  ChildAdcnodeRouteTarget()
+final class AdeRouteTarget extends IdRouteTarget {
+  AdeRouteTarget()
       : super(
-          (location) => location is ADCNode,
+          adeId,
         );
 }
 
-final class AdShellRouteTarget extends IdRouteTarget<RouteNodeId> {
-  const AdShellRouteTarget()
-      : super(
-          RouteNodeId.adShell,
-        );
-}
-
-final class ChildAdnestedNodeRouteTarget extends ChildRouteTarget<RouteNodeId> {
-  ChildAdnestedNodeRouteTarget()
-      : super(
-          (location) => location is ADNestedNode,
-        );
-}
-
-final class AdeRouteTarget extends IdRouteTarget<RouteNodeId> {
-  const AdeRouteTarget()
-      : super(
-          RouteNodeId.ade,
-        );
-}
-
-final class ChildAdenodeRouteTarget extends ChildRouteTarget<RouteNodeId> {
-  ChildAdenodeRouteTarget()
-      : super(
-          (location) => location is ADENode,
-        );
-}
-
-extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor<RouteNodeId> {
+extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor {
   void routeToSplash() {
     routeTo(SplashRouteTarget());
   }
@@ -158,16 +92,8 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor<RouteNodeId> {
     routeTo(ARouteTarget());
   }
 
-  void routeToChildAnode() {
-    routeTo(ChildAnodeRouteTarget());
-  }
-
   void routeToAb() {
     routeTo(AbRouteTarget());
-  }
-
-  void routeToChildAbnode() {
-    routeTo(ChildAbnodeRouteTarget());
   }
 
   void routeToAbc({
@@ -184,13 +110,192 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor<RouteNodeId> {
     );
   }
 
-  void routeToChildAbcnode({
+  void routeToAd() {
+    routeTo(AdRouteTarget());
+  }
+
+  void routeToAdc() {
+    routeTo(AdcRouteTarget());
+  }
+
+  void routeToAdShell() {
+    routeTo(AdShellRouteTarget());
+  }
+
+  void routeToAde() {
+    routeTo(AdeRouteTarget());
+  }
+}
+
+extension ABNodeGeneratedChildTargets on ABNode {
+  ChildRouteTarget childAbcTarget({
     required String id,
     required String b,
     required String c,
   }) {
-    routeTo(
-      ChildAbcnodeRouteTarget(
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == abcId,
+        ]);
+      },
+      writePathParameters: (() {
+        var abcIdMatchIndex = 0;
+        return (location, path) {
+          if (location.id == abcId) {
+            switch (abcIdMatchIndex++) {
+              case 0:
+                path(location.pathParameters[0] as PathParam<String>, id);
+                break;
+            }
+          }
+        };
+      })(),
+      queryParameters: {
+        'b': const StringRouteParamCodec().encode(b),
+        'c': const StringRouteParamCodec().encode(c),
+      },
+    );
+  }
+
+  void routeToChildAbc(
+    BuildContext context, {
+    required String id,
+    required String b,
+    required String c,
+  }) {
+    WorkingRouter.of(context).routeTo(
+      childAbcTarget(
+        id: id,
+        b: b,
+        c: c,
+      ),
+    );
+  }
+}
+
+extension ADNestedNodeGeneratedChildTargets on ADNestedNode {
+  ChildRouteTarget get childAdeTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adeId,
+        ]);
+      },
+    );
+  }
+
+  void routeToChildAde(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdeTarget);
+  }
+}
+
+extension ADNodeGeneratedChildTargets on ADNode {
+  ChildRouteTarget get childAdcTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adcId,
+        ]);
+      },
+    );
+  }
+
+  void routeToChildAdc(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdcTarget);
+  }
+
+  ChildRouteTarget get childAdnestedTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adShellId,
+        ]);
+      },
+    );
+  }
+
+  void routeToChildAdnested(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdnestedTarget);
+  }
+
+  ChildRouteTarget get childAdeTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adShellId,
+          (node) => node.id == adeId,
+        ]);
+      },
+    );
+  }
+
+  void routeToChildAde(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdeTarget);
+  }
+}
+
+extension ANodeGeneratedChildTargets on ANode {
+  ChildRouteTarget get childAbTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == abId,
+        ]);
+      },
+    );
+  }
+
+  void routeToChildAb(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAbTarget);
+  }
+
+  ChildRouteTarget childAbcTarget({
+    required String id,
+    required String b,
+    required String c,
+  }) {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == abId,
+          (node) => node.id == abcId,
+        ]);
+      },
+      writePathParameters: (() {
+        var abcIdMatchIndex = 0;
+        return (location, path) {
+          if (location.id == abcId) {
+            switch (abcIdMatchIndex++) {
+              case 0:
+                path(location.pathParameters[0] as PathParam<String>, id);
+                break;
+            }
+          }
+        };
+      })(),
+      queryParameters: {
+        'b': const StringRouteParamCodec().encode(b),
+        'c': const StringRouteParamCodec().encode(c),
+      },
+    );
+  }
+
+  void routeToChildAbc(
+    BuildContext context, {
+    required String id,
+    required String b,
+    required String c,
+  }) {
+    WorkingRouter.of(context).routeTo(
+      childAbcTarget(
         id: id,
         b: b,
         c: c,
@@ -198,64 +303,125 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor<RouteNodeId> {
     );
   }
 
-  void routeToAd() {
-    routeTo(AdRouteTarget());
+  ChildRouteTarget get childAdTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adId,
+        ]);
+      },
+    );
   }
 
-  void routeToChildAdnode() {
-    routeTo(ChildAdnodeRouteTarget());
+  void routeToChildAd(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdTarget);
   }
 
-  void routeToAdc() {
-    routeTo(AdcRouteTarget());
+  ChildRouteTarget get childAdcTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adId,
+          (node) => node.id == adcId,
+        ]);
+      },
+    );
   }
 
-  void routeToChildAdcnode() {
-    routeTo(ChildAdcnodeRouteTarget());
+  void routeToChildAdc(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdcTarget);
   }
 
-  void routeToAdShell() {
-    routeTo(AdShellRouteTarget());
+  ChildRouteTarget get childAdnestedTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adId,
+          (node) => node.id == adShellId,
+        ]);
+      },
+    );
   }
 
-  void routeToChildAdnestedNode() {
-    routeTo(ChildAdnestedNodeRouteTarget());
+  void routeToChildAdnested(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdnestedTarget);
   }
 
-  void routeToAde() {
-    routeTo(AdeRouteTarget());
+  ChildRouteTarget get childAdeTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node.id == adId,
+          (node) => node.id == adShellId,
+          (node) => node.id == adeId,
+        ]);
+      },
+    );
   }
 
-  void routeToChildAdenode() {
-    routeTo(ChildAdenodeRouteTarget());
+  void routeToChildAde(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdeTarget);
   }
 }
 
 extension SplashNodeGeneratedChildTargets on SplashNode {
-  ChildRouteTarget<RouteNodeId> childAnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ANode,
+  ChildRouteTarget get childATarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node is Shell,
+          (node) => node.id == aId,
+        ]);
+      },
     );
   }
 
-  ChildRouteTarget<RouteNodeId> childAbnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ABNode,
+  void routeToChildA(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childATarget);
+  }
+
+  ChildRouteTarget get childAbTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node is Shell,
+          (node) => node.id == aId,
+          (node) => node.id == abId,
+        ]);
+      },
     );
   }
 
-  ChildRouteTarget<RouteNodeId> childAbcnodeTarget({
+  void routeToChildAb(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAbTarget);
+  }
+
+  ChildRouteTarget childAbcTarget({
     required String id,
     required String b,
     required String c,
   }) {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ABCNode,
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node is Shell,
+          (node) => node.id == aId,
+          (node) => node.id == abId,
+          (node) => node.id == abcId,
+        ]);
+      },
       writePathParameters: (() {
-        var abcnodeMatchIndex = 0;
+        var abcIdMatchIndex = 0;
         return (location, path) {
-          if (location is ABCNode) {
-            switch (abcnodeMatchIndex++) {
+          if (location.id == abcId) {
+            switch (abcIdMatchIndex++) {
               case 0:
                 path(location.pathParameters[0] as PathParam<String>, id);
                 break;
@@ -270,141 +436,90 @@ extension SplashNodeGeneratedChildTargets on SplashNode {
     );
   }
 
-  ChildRouteTarget<RouteNodeId> childAdnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADNode,
-    );
-  }
-
-  ChildRouteTarget<RouteNodeId> childAdcnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADCNode,
-    );
-  }
-
-  ChildRouteTarget<RouteNodeId> childAdnestedNodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADNestedNode,
-    );
-  }
-
-  ChildRouteTarget<RouteNodeId> childAdenodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADENode,
-    );
-  }
-}
-
-extension ANodeGeneratedChildTargets on ANode {
-  ChildRouteTarget<RouteNodeId> childAbnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ABNode,
-    );
-  }
-
-  ChildRouteTarget<RouteNodeId> childAbcnodeTarget({
+  void routeToChildAbc(
+    BuildContext context, {
     required String id,
     required String b,
     required String c,
   }) {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ABCNode,
-      writePathParameters: (() {
-        var abcnodeMatchIndex = 0;
-        return (location, path) {
-          if (location is ABCNode) {
-            switch (abcnodeMatchIndex++) {
-              case 0:
-                path(location.pathParameters[0] as PathParam<String>, id);
-                break;
-            }
-          }
-        };
-      })(),
-      queryParameters: {
-        'b': const StringRouteParamCodec().encode(b),
-        'c': const StringRouteParamCodec().encode(c),
+    WorkingRouter.of(context).routeTo(
+      childAbcTarget(
+        id: id,
+        b: b,
+        c: c,
+      ),
+    );
+  }
+
+  ChildRouteTarget get childAdTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node is Shell,
+          (node) => node.id == aId,
+          (node) => node.id == adId,
+        ]);
       },
     );
   }
 
-  ChildRouteTarget<RouteNodeId> childAdnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADNode,
-    );
+  void routeToChildAd(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdTarget);
   }
 
-  ChildRouteTarget<RouteNodeId> childAdcnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADCNode,
-    );
-  }
-
-  ChildRouteTarget<RouteNodeId> childAdnestedNodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADNestedNode,
-    );
-  }
-
-  ChildRouteTarget<RouteNodeId> childAdenodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADENode,
-    );
-  }
-}
-
-extension ABNodeGeneratedChildTargets on ABNode {
-  ChildRouteTarget<RouteNodeId> childAbcnodeTarget({
-    required String id,
-    required String b,
-    required String c,
-  }) {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ABCNode,
-      writePathParameters: (() {
-        var abcnodeMatchIndex = 0;
-        return (location, path) {
-          if (location is ABCNode) {
-            switch (abcnodeMatchIndex++) {
-              case 0:
-                path(location.pathParameters[0] as PathParam<String>, id);
-                break;
-            }
-          }
-        };
-      })(),
-      queryParameters: {
-        'b': const StringRouteParamCodec().encode(b),
-        'c': const StringRouteParamCodec().encode(c),
+  ChildRouteTarget get childAdcTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node is Shell,
+          (node) => node.id == aId,
+          (node) => node.id == adId,
+          (node) => node.id == adcId,
+        ]);
       },
     );
   }
-}
 
-extension ADNodeGeneratedChildTargets on ADNode {
-  ChildRouteTarget<RouteNodeId> childAdcnodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADCNode,
+  void routeToChildAdc(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdcTarget);
+  }
+
+  ChildRouteTarget get childAdnestedTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node is Shell,
+          (node) => node.id == aId,
+          (node) => node.id == adId,
+          (node) => node.id == adShellId,
+        ]);
+      },
     );
   }
 
-  ChildRouteTarget<RouteNodeId> childAdnestedNodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADNestedNode,
+  void routeToChildAdnested(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdnestedTarget);
+  }
+
+  ChildRouteTarget get childAdeTarget {
+    return ChildRouteTarget(
+      start: this,
+      resolveChildPathNodes: () {
+        return resolveExactChildRouteNodes(this, [
+          (node) => node is Shell,
+          (node) => node.id == aId,
+          (node) => node.id == adId,
+          (node) => node.id == adShellId,
+          (node) => node.id == adeId,
+        ]);
+      },
     );
   }
 
-  ChildRouteTarget<RouteNodeId> childAdenodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADENode,
-    );
-  }
-}
-
-extension ADNestedNodeGeneratedChildTargets on ADNestedNode {
-  ChildRouteTarget<RouteNodeId> childAdenodeTarget() {
-    return ChildRouteTarget<RouteNodeId>(
-      (location) => location is ADENode,
-    );
+  void routeToChildAde(BuildContext context) {
+    WorkingRouter.of(context).routeTo(childAdeTarget);
   }
 }

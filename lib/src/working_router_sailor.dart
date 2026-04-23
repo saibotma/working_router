@@ -1,7 +1,7 @@
 import 'package:working_router/working_router.dart';
 
-abstract class WorkingRouterSailor<ID extends Enum> {
-  void routeTo(RouteTarget<ID> target);
+abstract class WorkingRouterSailor {
+  void routeTo(RouteTarget target);
 
   void routeToUriString(String uriString);
 
@@ -13,12 +13,12 @@ abstract class WorkingRouterSailor<ID extends Enum> {
   /// intentionally stays location-only. Passing the id of a structural node
   /// throws.
   void routeToId(
-    ID id, {
+    AnyNodeId id, {
     Map<String, String> queryParameters = const {},
-    WritePathParameters<ID>? writePathParameters,
+    WritePathParameters? writePathParameters,
   });
 
-  void slideIn(ID id);
+  void slideIn(AnyNodeId id);
 
   /// Routes to the first child for which [predicate] returns
   /// true.
@@ -29,14 +29,14 @@ abstract class WorkingRouterSailor<ID extends Enum> {
   /// is both in the parent parameters and in the passed in parameters
   /// the passed in parameter overrides the parent parameter.
   void routeToChildWhere(
-    bool Function(AnyLocation<ID> location) predicate, {
+    bool Function(AnyLocation location) predicate, {
     Map<String, String> queryParameters = const {},
-    WritePathParameters<ID>? writePathParameters,
+    WritePathParameters? writePathParameters,
   });
 
   void routeToChild<T>({
     Map<String, String> queryParameters = const {},
-    WritePathParameters<ID>? writePathParameters,
+    WritePathParameters? writePathParameters,
   });
 
   // Routes back one to the previous location.
@@ -49,10 +49,10 @@ abstract class WorkingRouterSailor<ID extends Enum> {
   /// dismissing a modal location that hosts its own nested navigator.
   ///
   /// Pass the matched ancestor location from the current router data.
-  void routeBackFrom(AnyLocation<ID> fromLocation);
+  void routeBackFrom(AnyLocation fromLocation);
 
   /// Routes back until [match] returns true.
   /// Retains path parameters required by the remaining route chain and
   /// query parameters declared by the remaining locations.
-  void routeBackUntil(bool Function(AnyLocation<ID> location) match);
+  void routeBackUntil(bool Function(AnyLocation location) match);
 }

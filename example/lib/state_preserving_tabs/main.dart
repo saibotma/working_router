@@ -15,7 +15,7 @@ void main() {
   runApp(const StatePreservingTabs());
 }
 
-List<RouteNode<String>> buildRouteNodes(WorkingRouterKey _) => [
+List<RouteNode> buildRouteNodes(WorkingRouterKey _) => [
       ScaffoldNode(
         childNodes: [
           Tab1Node(),
@@ -35,7 +35,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
   final tab1RouterKey = WorkingRouterKey();
   final tab2RouterKey = WorkingRouterKey();
 
-  late final WorkingRouter<String> router = WorkingRouter<String>(
+  late final WorkingRouter router = WorkingRouter(
     noContentWidget: const Text("No content"),
     buildRouteNodes: buildRouteNodes,
     buildRootPages: (_, location, data) {
@@ -70,8 +70,8 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
     },
   );
 
-  LocationPageSkeleton<String> buildScaffoldPage({required int index}) {
-    return NestedLocationPageSkeleton<String>(
+  LocationPageSkeleton buildScaffoldPage({required int index}) {
+    return NestedLocationPageSkeleton(
       router: router,
       routerKey: index == 0 ? tab1RouterKey : tab2RouterKey,
       buildChild: (context, _, child) {
@@ -94,16 +94,16 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
   }
 
   final emptyPage =
-      ChildLocationPageSkeleton<String>(child: const Placeholder());
+      ChildLocationPageSkeleton(child: const Placeholder());
   // Give each tab page a unique key, so that it does not get rebuilt
   // (and thus looses state) when switching between tabs. This is required,
   // because tab1Page will also be returned (above) when Tab2Node is active
   // and vice versa.
-  final tab1Page = ChildLocationPageSkeleton<String>(
+  final tab1Page = ChildLocationPageSkeleton(
     buildPageKey: (_, __) => const ValueKey("tab1"),
     child: const ScreenWithState(color: Colors.red),
   );
-  final tab2Page = ChildLocationPageSkeleton<String>(
+  final tab2Page = ChildLocationPageSkeleton(
     buildPageKey: (_, __) => const ValueKey("tab2"),
     child: const ScreenWithState(color: Colors.blue),
   );
@@ -164,7 +164,7 @@ class _StatePreservingScaffoldState extends State<StatePreservingScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    final router = WorkingRouter.of<String>(context);
+    final router = WorkingRouter.of(context);
 
     // Got the tab logic from:
     // https://github.com/lulupointu/vrouter/issues/32#issuecomment-884901775
