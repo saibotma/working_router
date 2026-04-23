@@ -105,11 +105,11 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
-- Use `AnonymousLocation(...)`, `Scope(...)`, `Shell(...)`,
+- Use `AnonymousLocation(...)`, `AnonymousScope(...)`, `Shell(...)`,
   `AnonymousShellLocation(...)`, `MultiShell(...)`, and
   `AnonymousMultiShellLocation(...)` for anonymous callback-based route
-  definitions, or use `Location<Self>`, `ShellLocation<Self>`, and
-  `MultiShellLocation<Self>` for named callback-based nodes, or subclass
+  definitions, or use `Location<Self>`, `Scope<Self>`, `ShellLocation<Self>`,
+  and `MultiShellLocation<Self>` for named callback-based nodes, or subclass
   `AbstractLocation`, `AbstractScope`,
   `AbstractShell`, `AbstractShellLocation`, `AbstractMultiShell`, and
   `AbstractMultiShellLocation` to override `build(...)` directly.
@@ -191,8 +191,8 @@ See:
 
 ## Scope Vs Shell Vs ShellLocation
 
-Use a `Scope` when you want a shared route scope without rendering anything.
-A scope:
+Use an `AnonymousScope` when you want a shared route scope without rendering
+anything inline, or `Scope<Self>` for a named callback-based scope. A scope:
 - can define shared path and query parameters
 - can hold child locations
 - does not build a page
@@ -260,7 +260,7 @@ slot's root page beneath deeper routed pages.
 Use the callback-based types when defining a tree inline:
 
 ```dart
-Scope(
+AnonymousScope(
   build: (builder, scope) {
     builder.children = [
       PrivacyNode(id: RouteId.privacy, build: ...),
@@ -318,11 +318,13 @@ AnonymousShellLocation(
 );
 ```
 
-Use the abstract base classes when you want a reusable named subtree by
-overriding `build(...)`:
+Use `Scope<Self>`, `Location<Self>`, `ShellLocation<Self>`, and
+`MultiShellLocation<Self>` when you want a reusable named callback-based
+subtree. Use the abstract base classes when you want to package that subtree
+by overriding `build(...)` directly:
 
 ```dart
-class LegalNode extends AbstractScope {
+class LegalNode extends AbstractScope<LegalNode> {
   @override
   void build(ScopeBuilder builder) {
     builder.children = [

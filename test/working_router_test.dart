@@ -748,7 +748,7 @@ void main() {
               id: _Id.root,
               build: (builder, location) {
                 builder.children = [
-                  Scope(
+                  _BuilderScope(
                     build: (builder, scope) {
                       final languageCode = builder.stringQueryParam(
                         'languageCode',
@@ -2331,6 +2331,12 @@ class _BuilderLocation
   _BuilderLocation({
     required super.id,
     super.parentRouterKey,
+    required super.build,
+  });
+}
+
+class _BuilderScope extends Scope<_BuilderScope> {
+  _BuilderScope({
     required super.build,
   });
 }

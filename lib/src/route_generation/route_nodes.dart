@@ -67,12 +67,15 @@
 ///
 /// Supported composition includes:
 /// - named `Location<Self>` subclasses
+/// - named `Scope<Self>` subclasses
 /// - named `ShellLocation<Self>` / `MultiShellLocation<Self>` subclasses
-/// - named `AbstractLocation<Self>` / `AbstractShellLocation<Self>`
+/// - named `AbstractLocation<Self>`, `AbstractScope<Self>`, and
+///   `AbstractShellLocation<Self>`
 ///   subclasses when you prefer overriding `build(...)`
 /// - direct `Shell(...)` nodes
-/// - direct `AnonymousLocation(...)`, `AnonymousShellLocation(...)`, and
-///   `AnonymousMultiShellLocation(...)` nodes
+/// - direct `AnonymousLocation(...)`, `AnonymousScope(...)`,
+///   `AnonymousShellLocation(...)`, and `AnonymousMultiShellLocation(...)`
+///   nodes
 /// - top-level or static helper fields and getters
 /// - top-level, static, or local helper functions
 /// - helper function arguments when the tree-relevant expressions remain

@@ -4,8 +4,10 @@ class ScopeBuilder extends PathRouteNodeBuilder {
   ScopeBuilder();
 }
 
-typedef BuildScope =
-    void Function(ScopeBuilder builder, Scope node);
+typedef BuildScope<Self extends AbstractScope<Self>> =
+    void Function(ScopeBuilder builder, Self node);
+typedef BuildAnonymousScope =
+    void Function(ScopeBuilder builder, AnonymousScope node);
 
 /// A non-rendering route scope that shares path, query, and child definitions.
 ///
@@ -28,20 +30,47 @@ abstract class AbstractScope<Self extends AbstractScope<Self>>
     super.parentRouterKey,
   });
 
+  /// Mirrors the `node` callback parameter used by callback-based scopes.
+  ///
+  /// This makes override-based scopes easier to keep in sync with callback-
+  /// based scopes when moving builder code between the two forms.
+  Self get node => this as Self;
+
   @override
   ScopeBuilder createBuilder() => ScopeBuilder();
 }
 
-/// Callback-based convenience scope.
+/// Main typed callback-based scope API.
 ///
-/// Use this when the scope is defined inline with a `build:` callback.
-class Scope extends AbstractScope<Scope> {
-  final BuildScope _build;
+/// Use this for lightweight named scope subclasses that simply forward a
+/// `build:` callback.
+class Scope<Self extends AbstractScope<Self>> extends AbstractScope<Self> {
+  final BuildScope<Self> _build;
 
   Scope({
     super.id,
     super.localId,
-    required BuildScope build,
+    required BuildScope<Self> build,
+    super.parentRouterKey,
+  }) : _build = build;
+
+  @override
+  void build(ScopeBuilder builder) {
+    _build(builder, this as Self);
+  }
+}
+
+/// Callback-based convenience scope for anonymous inline route nodes.
+///
+/// This intentionally does not expose a self generic parameter. Use [Scope]
+/// for the main typed callback-based API.
+class AnonymousScope extends AbstractScope<AnonymousScope> {
+  final BuildAnonymousScope _build;
+
+  AnonymousScope({
+    super.id,
+    super.localId,
+    required BuildAnonymousScope build,
     super.parentRouterKey,
   }) : _build = build;
 

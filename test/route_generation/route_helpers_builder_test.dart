@@ -931,7 +931,7 @@ class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
 
 @RouteNodes()
 List<RouteNode> buildRouteNodes() => [
-  Scope(
+  AnonymousScope(
     build: (builder, scope) {
       final languageCode = builder.stringQueryParam(
         'languageCode',
