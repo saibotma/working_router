@@ -1112,6 +1112,89 @@ final RouteNode appLocationTree = ChatChannelNode(
   );
 
   test(
+    'reports unresolved inherited members with the originating class name',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'appella_app');
+      await readerWriter.testing.loadIsolateSources();
+      final logMessages = <String>[];
+
+      await testBuilder(
+        builder,
+        {
+          'appella_app|lib/inherited_getter_path_routes.dart': '''
+library inherited_getter_path_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'inherited_getter_path_routes.g.dart';
+
+final rootId = NodeId<RootLocation>();
+final childId = NodeId<ChildLocation>();
+
+abstract class BaseLocation<Self extends BaseLocation<Self>>
+    extends AbstractLocation<Self> {
+  BaseLocation({required super.id});
+
+  NodeId<Self>? get maybeOwnId => id;
+}
+
+class RootLocation extends BaseLocation<RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.children = [
+      ChildLocation(
+        id: maybeOwnId != null ? childId : null,
+      ),
+    ];
+  }
+}
+
+class ChildLocation extends AbstractLocation<ChildLocation> {
+  ChildLocation({super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('child');
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree => RootLocation(id: rootId);
+''',
+        },
+        outputs: const {},
+        onLog: (log) => logMessages.add(log.message),
+        readerWriter: readerWriter,
+      );
+
+      final combinedLogs = logMessages.join('\n');
+      expect(
+        combinedLogs,
+        contains(
+          'Unable to resolve inherited member `maybeOwnId`',
+        ),
+      );
+      expect(
+        combinedLogs,
+        contains(
+          'RootLocation -> BaseLocation -> AbstractLocation -> AnyLocation '
+          '-> PathRouteNode '
+          '-> RouteNode -> Object',
+        ),
+      );
+      expect(
+        combinedLogs,
+        isNot(contains('Unable to read the constructor source for `Object`')),
+      );
+    },
+  );
+
+  test(
     'supports child ids derived from boolean aliases of whether the parent id is null',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

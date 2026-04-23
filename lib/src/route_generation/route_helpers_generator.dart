@@ -4038,6 +4038,7 @@ class _DslStatementContext implements _ExpressionContext {
 class _InstanceStringContext implements _ExpressionContext {
   final BuildStep buildStep;
   final Element rootElement;
+  final InterfaceElement resolutionStartClassElement;
   final InterfaceElement classElement;
   final ConstructorElement constructor;
   final ConstructorDeclaration? constructorNode;
@@ -4047,6 +4048,7 @@ class _InstanceStringContext implements _ExpressionContext {
   _InstanceStringContext({
     required this.buildStep,
     required this.rootElement,
+    required this.resolutionStartClassElement,
     required this.classElement,
     required this.constructor,
     required this.constructorNode,
@@ -4087,6 +4089,7 @@ class _InstanceStringContext implements _ExpressionContext {
     final context = _InstanceStringContext(
       buildStep: buildStep,
       rootElement: rootElement,
+      resolutionStartClassElement: classElement,
       classElement: classElement,
       constructor: constructor,
       constructorNode: constructorNode,
@@ -4410,9 +4413,15 @@ class _InstanceStringContext implements _ExpressionContext {
     return bindings;
   }
 
-  Future<_InstanceStringContext?> _superContext() async {
+  Future<_InstanceStringContext?> _superContext({
+    String? memberName,
+    required String resolutionKind,
+  }) async {
     final supertype = classElement.supertype;
     if (supertype == null) {
+      return null;
+    }
+    if (supertype.isDartCoreObject) {
       return null;
     }
 
@@ -4435,7 +4444,11 @@ class _InstanceStringContext implements _ExpressionContext {
       if (!superConstructor.isSynthetic ||
           (superInvocation?.argumentList.arguments.isNotEmpty ?? false)) {
         throw InvalidGenerationSourceError(
-          'Unable to read the constructor source for `${supertype.element.name}`.',
+          _unreadableSuperConstructorMessage(
+            _interfaceElementName(supertype.element),
+            memberName: memberName,
+            resolutionKind: resolutionKind,
+          ),
           element: superConstructor,
         );
       }
@@ -4444,6 +4457,7 @@ class _InstanceStringContext implements _ExpressionContext {
     final context = _InstanceStringContext(
       buildStep: buildStep,
       rootElement: rootElement,
+      resolutionStartClassElement: resolutionStartClassElement,
       classElement: supertype.element,
       constructor: superConstructor,
       constructorNode: superConstructorNode,
@@ -4613,13 +4627,19 @@ class _InstanceStringContext implements _ExpressionContext {
       }
     }
 
-    final superContext = await _superContext();
+    final superContext = await _superContext(
+      memberName: name,
+      resolutionKind: 'resolving its value',
+    );
     if (superContext != null) {
       return superContext._evaluateField(name);
     }
 
     throw InvalidGenerationSourceError(
-      'Unable to resolve the field `$name` in `${classElement.name}`.',
+      _unresolvedMemberMessage(
+        name,
+        resolutionKind: 'resolving its value',
+      ),
       element: classElement,
     );
   }
@@ -4761,15 +4781,68 @@ class _InstanceStringContext implements _ExpressionContext {
       }
     }
 
-    final superContext = await _superContext();
+    final superContext = await _superContext(
+      memberName: name,
+      resolutionKind: 'evaluating whether it is null',
+    );
     if (superContext != null) {
       return superContext._evaluateNamedValueIsNull(name);
     }
 
     throw InvalidGenerationSourceError(
-      'Unable to resolve the field `$name` in `${classElement.name}`.',
+      _unresolvedMemberMessage(
+        name,
+        resolutionKind: 'evaluating whether it is null',
+      ),
       element: classElement,
     );
+  }
+
+  String _unresolvedMemberMessage(
+    String name, {
+    required String resolutionKind,
+  }) {
+    return 'Unable to resolve inherited member `$name` while '
+        '$resolutionKind from `${_interfaceElementName(resolutionStartClassElement)}`. The '
+        'generator walked '
+        'the superclass chain `${_inheritanceChainLabel()}` and could not '
+        'find a statically readable field, getter, or forwarded constructor '
+        'parameter. If this value comes from an inherited alias, inline the '
+        'expression instead. For route ids, prefer direct `id != null` checks '
+        'or a local alias like `final hasIds = id != null` in the same build '
+        'method.';
+  }
+
+  String _unreadableSuperConstructorMessage(
+    String superTypeName, {
+    String? memberName,
+    required String resolutionKind,
+  }) {
+    final memberClause =
+        memberName == null ? '' : ' for inherited member `$memberName`';
+    return 'Unable to read the constructor source for `$superTypeName` while '
+        '$resolutionKind$memberClause from '
+        '`${_interfaceElementName(resolutionStartClassElement)}`. The '
+        'generator was walking the superclass chain '
+        '`${_inheritanceChainLabel()}`. If this value comes from an inherited '
+        'alias, inline the expression instead. For route ids, prefer direct '
+        '`id != null` checks or a local alias like '
+        '`final hasIds = id != null` in the same build method.';
+  }
+
+  String _inheritanceChainLabel() {
+    final names = <String>[
+      _interfaceElementName(resolutionStartClassElement),
+    ];
+    var current = resolutionStartClassElement.supertype;
+    while (current != null) {
+      names.add(_interfaceElementName(current.element));
+      if (current.isDartCoreObject) {
+        break;
+      }
+      current = current.element.supertype;
+    }
+    return names.join(' -> ');
   }
 
   Expression _bodyExpression(FunctionBody body, Element element) {
@@ -5167,6 +5240,10 @@ class _FunctionExpressionContext implements _ExpressionContext {
 }
 
 Fragment _fragmentFor(Element element) => element.firstFragment;
+
+String _interfaceElementName(InterfaceElement element) {
+  return element.name ?? element.displayName;
+}
 
 FormalParameter _unwrapFormalParameter(FormalParameter parameter) {
   var current = parameter;
