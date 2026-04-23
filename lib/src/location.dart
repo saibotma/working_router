@@ -17,6 +17,8 @@ import 'package:working_router/src/working_router_key.dart';
 
 typedef BuildLocation<Self extends AnyLocation<Self>> =
     void Function(LocationBuilder builder, Self node);
+typedef BuildAnonymousLocation =
+    void Function(LocationBuilder builder, AnonymousLocation node);
 typedef LocationWidgetBuilder =
     Widget Function(BuildContext context, WorkingRouterData data);
 typedef SelfBuiltLocationPageBuilder =
@@ -202,7 +204,7 @@ class BuiltLocationDefinition {
 
 /// Erased router-facing base type for all locations.
 ///
-/// [`Location`] is the callback-based convenience type, while
+/// [`Location`] is the main typed callback-based convenience type, while
 /// [`AbstractLocation`] is the override-based base for custom subclasses:
 ///
 /// ```dart
@@ -316,7 +318,7 @@ abstract class AbstractLocation<Self extends AnyLocation<Self>>
     super.tags,
   });
 
-  /// Mirrors the `node` callback parameter used by [Location].
+  /// Mirrors the `node` callback parameter used by callback-based locations.
   ///
   /// This makes override-based locations easier to keep in sync with inline
   /// callback-based locations when moving builder code between the two forms.
@@ -330,9 +332,10 @@ class Location<Self extends AnyLocation<Self>>
     extends AbstractLocation<Self> {
   final BuildLocation<Self> _build;
 
-  /// Callback-based convenience location.
+  /// Main typed callback-based location API.
   ///
-  /// Use this when the location is defined inline with a `build:` callback.
+  /// Use this for lightweight named route-node subclasses that simply forward a
+  /// `build:` callback.
   Location({
     super.id,
     super.localId,
@@ -344,6 +347,27 @@ class Location<Self extends AnyLocation<Self>>
   @override
   void build(LocationBuilder builder) {
     _build(builder, this as Self);
+  }
+}
+
+/// Callback-based convenience location for anonymous inline route nodes.
+///
+/// This intentionally does not expose a self generic parameter. Use
+/// [Location] for the main typed callback-based API.
+class AnonymousLocation extends AbstractLocation<AnonymousLocation> {
+  final BuildAnonymousLocation _build;
+
+  AnonymousLocation({
+    super.id,
+    super.localId,
+    super.parentRouterKey,
+    super.tags,
+    required BuildAnonymousLocation build,
+  }) : _build = build;
+
+  @override
+  void build(LocationBuilder builder) {
+    _build(builder, this);
   }
 }
 

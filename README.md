@@ -5,7 +5,9 @@ definition API.
 
 ## Core Ideas
 
-- `Location<Self>` is a semantic route node.
+- `Location<Self>` is the main typed semantic route node API.
+- `AbstractLocation<Self>` is the override-based base for named classes.
+- `AnonymousLocation(...)` is the anonymous callback-based semantic route node.
 - `Shell` is a directly constructible structural route node that inserts a nested navigator.
 - `MultiShell` is the parallel-shell variant for layouts with multiple sibling nested navigators.
 - Routes are defined in `build(...)` with ordered builder calls:
@@ -45,8 +47,10 @@ See:
 
 ## Defining Nodes
 
-The route API is centered around lightweight route-node subclasses that forward a
-typed `build:` callback.
+The route API is centered around lightweight route-node classes. Use
+`Location<Self>` for named callback-based subclasses, `AbstractLocation<Self>`
+for override-based subclasses, and `AnonymousLocation(...)` for anonymous
+callback-based nodes.
 
 ```dart
 final exampleId = NodeId<ExampleNode>();
@@ -55,7 +59,7 @@ final detailId = NodeId<DetailNode>();
 class ExampleNode extends Location<ExampleNode> {
   ExampleNode({
     super.id,
-    super.build,
+    required super.build,
   });
 }
 
@@ -101,9 +105,12 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
-- Use `Location(...)`, `Scope(...)`, `Shell(...)`, `ShellLocation(...)`,
-  `MultiShell(...)`, and `MultiShellLocation(...)` for callback-based route
-  definitions, or subclass `AbstractLocation`, `AbstractScope`,
+- Use `AnonymousLocation(...)`, `Scope(...)`, `Shell(...)`,
+  `AnonymousShellLocation(...)`, `MultiShell(...)`, and
+  `AnonymousMultiShellLocation(...)` for anonymous callback-based route
+  definitions, or use `Location<Self>`, `ShellLocation<Self>`, and
+  `MultiShellLocation<Self>` for named callback-based nodes, or subclass
+  `AbstractLocation`, `AbstractScope`,
   `AbstractShell`, `AbstractShellLocation`, `AbstractMultiShell`, and
   `AbstractMultiShellLocation` to override `build(...)` directly.
 - Page keys can be configured with `builder.pageKey = ...`, using
@@ -135,7 +142,7 @@ to a route param without owning the location that declares it:
 ```dart
 final accountId = UnboundPathParam<AccountId>(const AccountIdCodec());
 
-Location<AccountsNode>(
+AnonymousLocation(
   build: (builder, location) {
     builder.pathLiteral('accounts');
     final boundAccountId = builder.bindParam(accountId);
@@ -298,7 +305,7 @@ MultiShell(
   },
 );
 
-ShellLocation<SettingsNode>(
+AnonymousShellLocation(
   id: RouteId.settings,
   build: (builder, location, routerKey) {
     builder.shellPage = (key, child) =>
@@ -465,11 +472,12 @@ This is shown in the package example in
 
 ## Defining Shell Locations
 
-`ShellLocation` is the shorthand for the common `Shell + one child Location`
+`AnonymousShellLocation` is the shorthand for the common
+`Shell + one child Location`
 shape:
 
 ```dart
-ShellLocation<SettingsNode>(
+AnonymousShellLocation(
   id: RouteId.settings,
   navigatorEnabled: screenSize != ScreenSize.small,
   build: (builder, location, routerKey) {
@@ -504,12 +512,13 @@ Use:
 
 ## Defining Multi Shell Locations
 
-`MultiShellLocation` is the parallel-shell variant for layouts with multiple
+`AnonymousMultiShellLocation` is the parallel-shell variant for layouts with
+multiple
 sibling slot navigators plus one built-in `contentSlot` for the location's own
 page, such as a desktop split view with independent left and right stacks.
 
 ```dart
-MultiShellLocation<ChatLocation>(
+AnonymousMultiShellLocation(
   id: RouteId.chat,
   navigatorEnabled: screenSize != ScreenSize.small,
   build: (builder, location, contentSlot) {
@@ -675,12 +684,13 @@ The package example demonstrates:
 - the splash -> a -> ab/abc and ad/adc flow
 - a responsive route tree where small screens stack on top of `/a` while
   medium/large screens keep the alphabet sidebar visible in a shell
-- a `ShellLocation` that removes one nesting level from a `Shell + Location`
+- an `AnonymousShellLocation` that removes one nesting level from a
+  `Shell + Location`
   pattern
-- lightweight callback-based `Location` wrappers plus an override-based
-  `AbstractLocation` example
-- direct `Shell(...)` and `ShellLocation(...)` usage with optional
-  `AbstractShell` / `AbstractShellLocation` subclassing support
+- lightweight named callback-based `Location<Self>` nodes plus an
+  override-based `AbstractLocation` example
+- direct `Shell(...)` and `AnonymousShellLocation(...)` usage with optional
+  `ShellLocation<Self>` / `AbstractShellLocation` subclassing support
 - typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes

@@ -11,6 +11,12 @@ typedef BuildShellLocation<Self extends AnyLocation<Self>> =
       Self node,
       WorkingRouterKey routerKey,
     );
+typedef BuildAnonymousShellLocation =
+    void Function(
+      ShellLocationBuilder builder,
+      AnonymousShellLocation node,
+      WorkingRouterKey routerKey,
+    );
 
 final class ShellLocationBuildResult
     extends LocationBuildResult {
@@ -163,7 +169,8 @@ abstract class AbstractShellLocation<Self extends AnyLocation<Self>>
     this.navigatorEnabled = true,
   }) : routerKey = routerKey ?? WorkingRouterKey();
 
-  /// Mirrors the `node` callback parameter used by [ShellLocation].
+  /// Mirrors the `node` callback parameter used by callback-based shell
+  /// locations.
   ///
   /// This makes override-based shell locations easier to keep in sync with
   /// inline callback-based shell locations when moving builder code between the
@@ -209,13 +216,18 @@ abstract class AbstractShellLocation<Self extends AnyLocation<Self>>
   }
 }
 
-/// Callback-based convenience shell location.
+/// Typed callback-based shell location.
 ///
-/// Use this when the shell location is defined inline with a `build:` callback.
+/// Use this when you want callback-based composition but still need a named
+/// concrete self type, for example when subclassing this wrapper directly.
 class ShellLocation<Self extends AnyLocation<Self>>
     extends AbstractShellLocation<Self> {
   final BuildShellLocation<Self> _build;
 
+  /// Main typed callback-based shell location API.
+  ///
+  /// Use this for lightweight named shell location subclasses that simply
+  /// forward a `build:` callback.
   ShellLocation({
     super.id,
     super.localId,
@@ -232,6 +244,30 @@ class ShellLocation<Self extends AnyLocation<Self>>
   }
 }
 
+/// Callback-based convenience shell location for anonymous inline route nodes.
+///
+/// This intentionally does not expose a self generic parameter. Use
+/// [ShellLocation] for the main typed callback-based API.
+class AnonymousShellLocation
+    extends AbstractShellLocation<AnonymousShellLocation> {
+  final BuildAnonymousShellLocation _build;
+
+  AnonymousShellLocation({
+    super.id,
+    super.localId,
+    super.parentRouterKey,
+    super.tags,
+    super.routerKey,
+    super.navigatorEnabled,
+    required BuildAnonymousShellLocation build,
+  }) : _build = build;
+
+  @override
+  void build(ShellLocationBuilder builder) {
+    _build(builder, this, routerKey);
+  }
+}
+
 LocationWidgetBuilder? _resolveDefaultWidgetBuilder(
   DefaultContent? defaultContent,
 ) {
@@ -244,7 +280,8 @@ SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder({
 }) {
   if (defaultPage != null && defaultContent == null) {
     throw StateError(
-      'ShellLocation defaultPage was configured without defaultContent.',
+      'AnonymousShellLocation defaultPage was configured without '
+      'defaultContent.',
     );
   }
   return defaultPage;

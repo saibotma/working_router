@@ -12,6 +12,12 @@ typedef BuildMultiShellLocation<Self extends AnyLocation<Self>> =
       Self node,
       MultiShellSlot contentSlot,
     );
+typedef BuildAnonymousMultiShellLocation =
+    void Function(
+      MultiShellLocationBuilder builder,
+      AnonymousMultiShellLocation node,
+      MultiShellSlot contentSlot,
+    );
 
 final class MultiShellLocationBuildResult
     extends LocationBuildResult {
@@ -202,7 +208,8 @@ abstract class AbstractMultiShellLocation<Self extends AnyLocation<Self>>
          debugLabel: 'content',
        );
 
-  /// Mirrors the `node` callback parameter used by [MultiShellLocation].
+  /// Mirrors the `node` callback parameter used by callback-based multi shell
+  /// locations.
   ///
   /// This makes override-based multi shell locations easier to keep in sync
   /// with inline callback-based multi shell locations when moving builder code
@@ -255,15 +262,18 @@ abstract class AbstractMultiShellLocation<Self extends AnyLocation<Self>>
   }
 }
 
-/// Callback-based [AbstractMultiShellLocation].
+/// Typed callback-based [AbstractMultiShellLocation].
 ///
-/// Use this when defining a multi shell location inline instead of subclassing
-/// [AbstractMultiShellLocation]. The `build` callback receives the built-in
-/// `contentSlot` explicitly.
+/// Use this when you want callback-based composition but still need a named
+/// concrete self type, for example when subclassing this wrapper directly.
 class MultiShellLocation<Self extends AnyLocation<Self>>
     extends AbstractMultiShellLocation<Self> {
   final BuildMultiShellLocation<Self> _build;
 
+  /// Main typed callback-based multi shell location API.
+  ///
+  /// Use this for lightweight named multi shell location subclasses that
+  /// simply forward a `build:` callback.
   MultiShellLocation({
     super.id,
     super.localId,
@@ -277,6 +287,30 @@ class MultiShellLocation<Self extends AnyLocation<Self>>
   @override
   void build(MultiShellLocationBuilder builder) {
     _build(builder, this as Self, contentSlot);
+  }
+}
+
+/// Callback-based multi shell location for anonymous inline route nodes.
+///
+/// This intentionally does not expose a self generic parameter. Use
+/// [MultiShellLocation] for the main typed callback-based API.
+class AnonymousMultiShellLocation
+    extends AbstractMultiShellLocation<AnonymousMultiShellLocation> {
+  final BuildAnonymousMultiShellLocation _build;
+
+  AnonymousMultiShellLocation({
+    super.id,
+    super.localId,
+    super.parentRouterKey,
+    super.tags,
+    super.contentRouterKey,
+    super.navigatorEnabled,
+    required BuildAnonymousMultiShellLocation build,
+  }) : _build = build;
+
+  @override
+  void build(MultiShellLocationBuilder builder) {
+    _build(builder, this, contentSlot);
   }
 }
 
