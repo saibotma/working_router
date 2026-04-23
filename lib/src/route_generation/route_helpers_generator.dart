@@ -4346,6 +4346,22 @@ class _InstanceStringContext implements _ExpressionContext {
     });
   }
 
+  FormalParameter? _forwardingConstructorParameter(String name) {
+    final parameter = _constructorParameters.firstWhereOrNull((parameter) {
+      return _formalParameterName(parameter) == name;
+    });
+    if (parameter == null) {
+      return null;
+    }
+
+    final unwrapped = _unwrapFormalParameter(parameter);
+    if (unwrapped is FieldFormalParameter ||
+        unwrapped is SuperFormalParameter) {
+      return parameter;
+    }
+    return null;
+  }
+
   Map<String, _BoundStringExpression> _bindArguments({
     required FormalParameterList parameters,
     required List<Expression> arguments,
@@ -4565,6 +4581,18 @@ class _InstanceStringContext implements _ExpressionContext {
   }
 
   Future<String> _evaluateField(String name) async {
+    final forwardingParameter = _forwardingConstructorParameter(name);
+    if (forwardingParameter != null) {
+      final binding = parameterBindings[name];
+      if (binding != null) {
+        return binding.evaluate();
+      }
+      if (forwardingParameter is DefaultFormalParameter &&
+          forwardingParameter.defaultValue != null) {
+        return _evaluateStringExpression(forwardingParameter.defaultValue!);
+      }
+    }
+
     final field = classElement.getField(name);
     if (field != null) {
       final fieldInitializer = _constructorInitializers
@@ -4597,6 +4625,19 @@ class _InstanceStringContext implements _ExpressionContext {
   }
 
   Future<Expression?> _fieldExpression(String name) async {
+    final forwardingParameter = _forwardingConstructorParameter(name);
+    if (forwardingParameter != null) {
+      final binding = parameterBindings[name];
+      if (binding != null) {
+        return binding.expression;
+      }
+      if (forwardingParameter is DefaultFormalParameter &&
+          forwardingParameter.defaultValue != null) {
+        return forwardingParameter.defaultValue;
+      }
+      return null;
+    }
+
     final field = classElement.getField(name);
     if (field != null) {
       final fieldFormalParameter = _constructorParameters.firstWhereOrNull(
@@ -4684,6 +4725,22 @@ class _InstanceStringContext implements _ExpressionContext {
   }
 
   Future<bool> _evaluateFieldIsNull(String name) async {
+    final forwardingParameter = _forwardingConstructorParameter(name);
+    if (forwardingParameter != null) {
+      final binding = parameterBindings[name];
+      if (binding != null) {
+        return binding.isNull();
+      }
+      if (forwardingParameter is DefaultFormalParameter) {
+        final defaultValue = forwardingParameter.defaultValue;
+        if (defaultValue == null) {
+          return true;
+        }
+        return _evaluateIsNull(defaultValue);
+      }
+      return false;
+    }
+
     final field = classElement.getField(name);
     if (field != null) {
       final fieldInitializer = _constructorInitializers
@@ -5152,10 +5209,18 @@ Future<ConstructorDeclaration?> _constructorDeclaration({
   required InterfaceElement classElement,
   required ConstructorElement constructor,
 }) async {
-  final classNode = await buildStep.resolver.astNodeFor(
-    classElement.firstFragment,
-    resolve: true,
-  );
+  AstNode? classNode;
+  try {
+    classNode = await buildStep.resolver.astNodeFor(
+      classElement.firstFragment,
+      resolve: true,
+    );
+  } on TypeError { // ignore: avoid_catching_errors
+    // `build_runner` may fail to materialize AST nodes for dependency sources.
+    // Treat those constructors as unavailable so the caller can either fall
+    // back or raise a normal generation error instead of crashing.
+    return null;
+  }
   if (classNode is! ClassDeclaration) {
     return null;
   }

@@ -1039,6 +1039,79 @@ final RouteNode appLocationTree =
   );
 
   test(
+    'supports child ids derived from forwarded super.id in a consuming package',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'appella_app');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'appella_app|lib/forwarded_super_id_routes.dart': '''
+library forwarded_super_id_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'forwarded_super_id_routes.g.dart';
+
+enum ForwardedSuperIdRouteId { chatChannel, chatChannelSend }
+
+class ChatChannelNode extends AbstractLocation<
+    ForwardedSuperIdRouteId,
+    ChatChannelNode> {
+  ChatChannelNode({super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('channels');
+    final channelId = builder.stringPathParam();
+    builder.children = [
+      ChatChannelSendLocation(
+        id: id != null ? ForwardedSuperIdRouteId.chatChannelSend : null,
+      ),
+    ];
+  }
+}
+
+class ChatChannelSendLocation extends AbstractLocation<
+    ForwardedSuperIdRouteId,
+    ChatChannelSendLocation> {
+  ChatChannelSendLocation({super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('send');
+  }
+}
+
+@RouteNodes()
+final RouteNode appLocationTree = ChatChannelNode(
+  id: ForwardedSuperIdRouteId.chatChannel,
+);
+''',
+        },
+        outputs: {
+          'appella_app|lib/forwarded_super_id_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'void routeToChatChannel({required String channelId}) {',
+                  ),
+                  contains(
+                    'void routeToChatChannelSend({required String channelId}) {',
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'supports child ids derived from boolean aliases of whether the parent id is null',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
