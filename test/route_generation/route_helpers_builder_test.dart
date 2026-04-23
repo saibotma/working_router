@@ -1112,6 +1112,78 @@ final RouteNode appLocationTree = ChatChannelNode(
   );
 
   test(
+    'supports child ids derived from top-level NodeId arguments in a consuming package',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'appella_app');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'appella_app|lib/top_level_node_id_routes.dart': '''
+library top_level_node_id_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'top_level_node_id_routes.g.dart';
+
+final chatChannelId = NodeId<ChatChannelNode>();
+final chatChannelSendId = NodeId<ChatChannelSendLocation>();
+
+class ChatChannelNode extends AbstractLocation<ChatChannelNode> {
+  ChatChannelNode({super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('channels');
+    final channelId = builder.stringPathParam();
+    final hasIds = id != null;
+    builder.children = [
+      ChatChannelSendLocation(
+        id: hasIds ? chatChannelSendId : null,
+      ),
+    ];
+  }
+}
+
+class ChatChannelSendLocation extends AbstractLocation<
+    ChatChannelSendLocation> {
+  ChatChannelSendLocation({super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('send');
+  }
+}
+
+@RouteNodes()
+final RouteNode appLocationTree = ChatChannelNode(
+  id: chatChannelId,
+);
+''',
+        },
+        outputs: {
+          'appella_app|lib/top_level_node_id_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'void routeToChatChannel({required String channelId}) {',
+                  ),
+                  contains(
+                    'void routeToChatChannelSend({required String channelId}) {',
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'reports unresolved inherited members with the originating class name',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

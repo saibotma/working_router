@@ -2733,6 +2733,21 @@ class _StaticRouteTreeExtractor {
       return value.isNull;
     }
 
+    final referencedElement = _topLevelOrStaticDeclarationElement(
+      normalizedExpression,
+    );
+    if (referencedElement != null) {
+      final declarationExpression = await _declarationExpression(
+        referencedElement,
+      );
+      if (declarationExpression.toSource() != normalizedExpression.toSource()) {
+        return _evaluateIdConditionValueIsNull(
+          declarationExpression,
+          evaluationContext,
+        );
+      }
+    }
+
     if (normalizedExpression is SimpleIdentifier) {
       final namedResult = await _evaluateNamedValueIsNullInContext(
         normalizedExpression.name,
@@ -4803,14 +4818,15 @@ class _InstanceStringContext implements _ExpressionContext {
     required String resolutionKind,
   }) {
     return 'Unable to resolve inherited member `$name` while '
-        '$resolutionKind from `${_interfaceElementName(resolutionStartClassElement)}`. The '
-        'generator walked '
-        'the superclass chain `${_inheritanceChainLabel()}` and could not '
-        'find a statically readable field, getter, or forwarded constructor '
-        'parameter. If this value comes from an inherited alias, inline the '
-        'expression instead. For route ids, prefer direct `id != null` checks '
-        'or a local alias like `final hasIds = id != null` in the same build '
-        'method.';
+        '$resolutionKind from '
+        '`${_interfaceElementName(resolutionStartClassElement)}`. '
+        'This usually means the generator hit an inherited alias or getter '
+        'that hides the real route value. The generator supports direct '
+        '`id`/`localId` checks and local aliases in the same `build(...)` '
+        'method, but it does not reliably follow inherited aliases across '
+        'base classes. Inline the expression instead, for example '
+        '`id != null` or `final hasIds = id != null` inside `build(...)`. '
+        'Superclass chain: `${_inheritanceChainLabel()}`.';
   }
 
   String _unreadableSuperConstructorMessage(
@@ -4822,12 +4838,13 @@ class _InstanceStringContext implements _ExpressionContext {
         memberName == null ? '' : ' for inherited member `$memberName`';
     return 'Unable to read the constructor source for `$superTypeName` while '
         '$resolutionKind$memberClause from '
-        '`${_interfaceElementName(resolutionStartClassElement)}`. The '
-        'generator was walking the superclass chain '
-        '`${_inheritanceChainLabel()}`. If this value comes from an inherited '
-        'alias, inline the expression instead. For route ids, prefer direct '
-        '`id != null` checks or a local alias like '
-        '`final hasIds = id != null` in the same build method.';
+        '`${_interfaceElementName(resolutionStartClassElement)}`. '
+        'This usually means the generator had to walk into an inherited alias '
+        'or getter and ran out of readable source while following the '
+        'superclass chain `${_inheritanceChainLabel()}`. Inline the '
+        'expression instead. For route ids, prefer direct `id != null` checks '
+        'or a local alias like `final hasIds = id != null` in the same '
+        '`build(...)` method.';
   }
 
   String _inheritanceChainLabel() {
@@ -5243,6 +5260,37 @@ Fragment _fragmentFor(Element element) => element.firstFragment;
 
 String _interfaceElementName(InterfaceElement element) {
   return element.name ?? element.displayName;
+}
+
+Element? _topLevelOrStaticDeclarationElement(Expression expression) {
+  Element? element = switch (expression) {
+    SimpleIdentifier() => expression.element,
+    PrefixedIdentifier() => expression.identifier.element,
+    PropertyAccess() => expression.propertyName.element,
+    _ => null,
+  };
+
+  if (element is PropertyAccessorElement && element.isSynthetic) {
+    element = element.variable;
+  }
+
+  final enclosingElement = element?.enclosingElement;
+  final isTopLevel = enclosingElement is LibraryElement;
+  final isStatic = switch (element) {
+    PropertyInducingElement(:final isStatic) => isStatic,
+    ExecutableElement(:final isStatic) => isStatic,
+    _ => false,
+  };
+
+  if (!isTopLevel && !isStatic) {
+    return null;
+  }
+
+  return switch (element) {
+    PropertyInducingElement() => element,
+    ExecutableElement() => element,
+    _ => null,
+  };
 }
 
 FormalParameter _unwrapFormalParameter(FormalParameter parameter) {
