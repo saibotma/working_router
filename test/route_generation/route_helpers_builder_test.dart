@@ -350,6 +350,76 @@ RouteNode get appLocationTree => RootLocation();
     );
   });
 
+  test(
+    'reports query parameter declarations hidden behind fallback expressions',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/fallback_query_param_routes.dart': '''
+library fallback_query_param_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'fallback_query_param_routes.g.dart';
+
+enum FallbackRouteId { note }
+
+class StudentNoteLocation
+    extends Location<FallbackRouteId, StudentNoteLocation> {
+  final QueryParam<String>? coursePeriodId;
+
+  StudentNoteLocation({
+    required super.id,
+    this.coursePeriodId,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('notes');
+    final effectiveCoursePeriodId =
+        this.coursePeriodId ?? builder.stringQueryParam('coursePeriodId');
+    builder.content = Content.builder((context, data) {
+      data.param(effectiveCoursePeriodId);
+      return const SizedBox.shrink();
+    });
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree =>
+    StudentNoteLocation(id: FallbackRouteId.note);
+''',
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final severeMessages = logs
+          .where((log) => log.level == 'SEVERE')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        severeMessages,
+        allOf(
+          contains('Builder route declarations must be direct statements'),
+          contains("builder.stringQueryParam('coursePeriodId')"),
+          contains('fallback declarations such as'),
+        ),
+      );
+    },
+  );
+
   test('supports static helper declarations inside tree composition', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,

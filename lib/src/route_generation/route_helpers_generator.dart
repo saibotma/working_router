@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
@@ -1053,6 +1054,89 @@ String _unsupportedConditionalIdMessage(Expression expression) {
       'supported, but got condition `${expression.toSource()}`.';
 }
 
+class _NestedBuilderDeclarationFinder extends RecursiveAstVisitor<void> {
+  final String builderParameterName;
+  MethodInvocation? invocation;
+
+  _NestedBuilderDeclarationFinder({
+    required this.builderParameterName,
+  });
+
+  static MethodInvocation? find(
+    Expression expression, {
+    required String builderParameterName,
+  }) {
+    final visitor = _NestedBuilderDeclarationFinder(
+      builderParameterName: builderParameterName,
+    );
+    expression.accept(visitor);
+    return visitor.invocation;
+  }
+
+  @override
+  void visitFunctionExpression(FunctionExpression node) {
+    // Nested callbacks belong to widget/content builders, not the route DSL
+    // body currently being analyzed.
+  }
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    if (invocation != null) {
+      return;
+    }
+    if (_isBuilderRouteDeclaration(node)) {
+      invocation = node;
+      return;
+    }
+    super.visitMethodInvocation(node);
+  }
+
+  bool _isBuilderRouteDeclaration(MethodInvocation invocation) {
+    if (invocation.realTarget case final SimpleIdentifier target
+        when target.name == builderParameterName) {
+      return _builderRouteDeclarationMethods.contains(
+        invocation.methodName.name,
+      );
+    }
+    return false;
+  }
+}
+
+const _builderRouteDeclarationMethods = {
+  'pathSegment',
+  'pathLiteral',
+  'pathParam',
+  'stringPathParam',
+  'intPathParam',
+  'doublePathParam',
+  'boolPathParam',
+  'dateTimePathParam',
+  'uriPathParam',
+  'enumPathParam',
+  'query',
+  'queryParam',
+  'stringQueryParam',
+  'nullableStringQueryParam',
+  'intQueryParam',
+  'nullableIntQueryParam',
+  'doubleQueryParam',
+  'nullableDoubleQueryParam',
+  'boolQueryParam',
+  'nullableBoolQueryParam',
+  'dateTimeQueryParam',
+  'nullableDateTimeQueryParam',
+  'uriQueryParam',
+  'nullableUriQueryParam',
+  'enumQueryParam',
+  'nullableEnumQueryParam',
+  'bindParam',
+  'id',
+  'localId',
+  'child',
+  'location',
+  'shell',
+};
+
 class _StaticRouteTreeExtractor {
   final BuildStep buildStep;
   final Element rootElement;
@@ -1832,6 +1916,10 @@ class _StaticRouteTreeExtractor {
     final normalizedExpression = _unwrapExpression(expression);
     if (normalizedExpression is! MethodInvocation ||
         !_isBuilderInvocation(normalizedExpression, builderParameterName)) {
+      _throwIfNestedBuilderDeclaration(
+        normalizedExpression,
+        builderParameterName: builderParameterName,
+      );
       return;
     }
 
@@ -2191,6 +2279,30 @@ class _StaticRouteTreeExtractor {
         identifier.name == builderParameterName,
       _ => false,
     };
+  }
+
+  void _throwIfNestedBuilderDeclaration(
+    Expression expression, {
+    required String builderParameterName,
+  }) {
+    final invocation = _NestedBuilderDeclarationFinder.find(
+      expression,
+      builderParameterName: builderParameterName,
+    );
+    if (invocation == null) {
+      return;
+    }
+
+    throw InvalidGenerationSourceError(
+      'Builder route declarations must be direct statements or local '
+      'initializers in build(...). Found nested '
+      '`${invocation.toSource()}` inside an unsupported expression. '
+      'Declare each location parameter unconditionally in the location that '
+      'reads it; fallback declarations such as '
+      '`existingParam ?? ${invocation.toSource()}` are not supported by '
+      'generated route helpers.',
+      node: invocation,
+    );
   }
 
   _DslCodecMetadata? _dslPathParamCodecMetadata(

@@ -90,6 +90,11 @@ Important details:
 
 - Path order is defined by call order inside `build(...)`.
 - Query parameter names are explicit strings on `queryParam(...)`.
+- Each location should declare the path and query parameters it reads. Do not
+  hide parameter declarations behind fallback expressions like
+  `existingParam ?? builder.stringQueryParam('filter')`; generated helpers
+  require builder route declarations to be direct statements or local
+  initializers in `build(...)`.
 - The builder also exposes typed shortcuts like `stringPathParam()`,
   `intQueryParam('page')`, `intQueryParam('page', defaultValue: Default(1))`,
   `uriPathParam()`, `uriQueryParam('next')`,
