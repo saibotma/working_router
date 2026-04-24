@@ -12,10 +12,15 @@ abstract class WorkingRouterSailor {
   /// Route-node ids may exist on structural nodes as well, but `routeToId`
   /// intentionally stays location-only. Passing the id of a structural node
   /// throws.
+  ///
+  /// Prefer generated `routeTo...` helpers in application code. The
+  /// [writePathParameters] and [writeQueryParameters] callbacks are low-level
+  /// hooks for those generated helpers and are discouraged for handwritten
+  /// routing code. Use [routeToUri] when navigating to an already-encoded URI.
   void routeToId(
     AnyNodeId id, {
-    Map<String, String> queryParameters = const {},
     WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
   });
 
   void slideIn(AnyNodeId id);
@@ -23,20 +28,32 @@ abstract class WorkingRouterSailor {
   /// Routes to the first child for which [predicate] returns
   /// true.
   ///
-  /// Reuses the path parameters and query parameters
-  /// from the parent and extends them with [writePathParameters]
-  /// and [queryParameters], respectively. In case the same parameter
-  /// is both in the parent parameters and in the passed in parameters
-  /// the passed in parameter overrides the parent parameter.
+  /// Reuses the path parameters and query parameters from the parent and extends
+  /// them with [writePathParameters] and [writeQueryParameters]. In case the
+  /// same parameter is both in the parent parameters and in the written
+  /// parameters, the written parameter overrides the parent parameter.
+  ///
+  /// Query values written through [writeQueryParameters] are encoded and omitted
+  /// when they equal the query parameter's non-null default value.
+  ///
+  /// Prefer generated child target helpers in application code. The
+  /// [writePathParameters] and [writeQueryParameters] callbacks are low-level
+  /// hooks for those generated helpers and are discouraged for handwritten
+  /// routing code.
   void routeToChildWhere(
     bool Function(AnyLocation location) predicate, {
-    Map<String, String> queryParameters = const {},
     WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
   });
 
+  /// Routes to the first child of type [T].
+  ///
+  /// Prefer generated child target helpers in application code. See
+  /// [routeToChildWhere] for how [writePathParameters] and
+  /// [writeQueryParameters] are applied by those helpers.
   void routeToChild<T>({
-    Map<String, String> queryParameters = const {},
     WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
   });
 
   // Routes back one to the previous location.

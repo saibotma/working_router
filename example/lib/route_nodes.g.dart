@@ -38,20 +38,35 @@ final class AbcRouteTarget extends IdRouteTarget {
           abcId,
           writePathParameters: (() {
             var abcIdMatchIndex = 0;
-            return (location, path) {
-              if (location.id == abcId) {
+            return (node, path) {
+              if (node.id == abcId) {
                 switch (abcIdMatchIndex++) {
                   case 0:
-                    path(location.pathParameters[0] as PathParam<String>, id);
+                    path(node.pathParameters[0] as PathParam<String>, id);
                     break;
                 }
               }
             };
           })(),
-          queryParameters: {
-            'b': const StringRouteParamCodec().encode(b),
-            'c': const StringRouteParamCodec().encode(c),
-          },
+          writeQueryParameters: (() {
+            var abcIdMatchIndex = 0;
+            return (node, query) {
+              if (node.id == abcId) {
+                switch (abcIdMatchIndex++) {
+                  case 0:
+                    query(
+                        node.queryParameters.firstWhere((it) => it.name == 'b')
+                            as QueryParam<String>,
+                        b);
+                    query(
+                        node.queryParameters.firstWhere((it) => it.name == 'c')
+                            as QueryParam<String>,
+                        c);
+                    break;
+                }
+              }
+            };
+          })(),
         );
 }
 
@@ -142,20 +157,35 @@ extension ABNodeGeneratedChildTargets on ABNode {
       },
       writePathParameters: (() {
         var abcIdMatchIndex = 0;
-        return (location, path) {
-          if (location.id == abcId) {
+        return (node, path) {
+          if (node.id == abcId) {
             switch (abcIdMatchIndex++) {
               case 0:
-                path(location.pathParameters[0] as PathParam<String>, id);
+                path(node.pathParameters[0] as PathParam<String>, id);
                 break;
             }
           }
         };
       })(),
-      queryParameters: {
-        'b': const StringRouteParamCodec().encode(b),
-        'c': const StringRouteParamCodec().encode(c),
-      },
+      writeQueryParameters: (() {
+        var abcIdMatchIndex = 0;
+        return (node, query) {
+          if (node.id == abcId) {
+            switch (abcIdMatchIndex++) {
+              case 0:
+                query(
+                    node.queryParameters.firstWhere((it) => it.name == 'b')
+                        as QueryParam<String>,
+                    b);
+                query(
+                    node.queryParameters.firstWhere((it) => it.name == 'c')
+                        as QueryParam<String>,
+                    c);
+                break;
+            }
+          }
+        };
+      })(),
     );
   }
 
@@ -271,20 +301,35 @@ extension ANodeGeneratedChildTargets on ANode {
       },
       writePathParameters: (() {
         var abcIdMatchIndex = 0;
-        return (location, path) {
-          if (location.id == abcId) {
+        return (node, path) {
+          if (node.id == abcId) {
             switch (abcIdMatchIndex++) {
               case 0:
-                path(location.pathParameters[0] as PathParam<String>, id);
+                path(node.pathParameters[0] as PathParam<String>, id);
                 break;
             }
           }
         };
       })(),
-      queryParameters: {
-        'b': const StringRouteParamCodec().encode(b),
-        'c': const StringRouteParamCodec().encode(c),
-      },
+      writeQueryParameters: (() {
+        var abcIdMatchIndex = 0;
+        return (node, query) {
+          if (node.id == abcId) {
+            switch (abcIdMatchIndex++) {
+              case 0:
+                query(
+                    node.queryParameters.firstWhere((it) => it.name == 'b')
+                        as QueryParam<String>,
+                    b);
+                query(
+                    node.queryParameters.firstWhere((it) => it.name == 'c')
+                        as QueryParam<String>,
+                    c);
+                break;
+            }
+          }
+        };
+      })(),
     );
   }
 
@@ -419,20 +464,35 @@ extension SplashNodeGeneratedChildTargets on SplashNode {
       },
       writePathParameters: (() {
         var abcIdMatchIndex = 0;
-        return (location, path) {
-          if (location.id == abcId) {
+        return (node, path) {
+          if (node.id == abcId) {
             switch (abcIdMatchIndex++) {
               case 0:
-                path(location.pathParameters[0] as PathParam<String>, id);
+                path(node.pathParameters[0] as PathParam<String>, id);
                 break;
             }
           }
         };
       })(),
-      queryParameters: {
-        'b': const StringRouteParamCodec().encode(b),
-        'c': const StringRouteParamCodec().encode(c),
-      },
+      writeQueryParameters: (() {
+        var abcIdMatchIndex = 0;
+        return (node, query) {
+          if (node.id == abcId) {
+            switch (abcIdMatchIndex++) {
+              case 0:
+                query(
+                    node.queryParameters.firstWhere((it) => it.name == 'b')
+                        as QueryParam<String>,
+                    b);
+                query(
+                    node.queryParameters.firstWhere((it) => it.name == 'c')
+                        as QueryParam<String>,
+                    c);
+                break;
+            }
+          }
+        };
+      })(),
     );
   }
 

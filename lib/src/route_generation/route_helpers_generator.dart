@@ -66,8 +66,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     final ownerTypes = <String>{
       ...childMethodsByOwner.keys,
       ...firstChildMethodsByOwner.keys,
-    }.toList()
-      ..sort();
+    }.toList()..sort();
     for (final ownerType in ownerTypes) {
       buffer.writeln(
         'extension ${ownerType}GeneratedChildTargets on $ownerType {',
@@ -259,10 +258,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             previousForSameOwner.any(
               (previous) =>
                   _compareLocationChildTargetVariantPrecedence(
-                    previous,
-                    variant,
-                  ) ==
-                  0 &&
+                        previous,
+                        variant,
+                      ) ==
+                      0 &&
                   !previous.hasTargetIdentity,
             )) {
           deduplicatedVariants.removeWhere(
@@ -437,7 +436,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
               variant.identityAwareNameSegments,
               length: segmentLength,
             );
-            identityGroups.putIfAbsent(identityCandidate, () => []).add(variant);
+            identityGroups
+                .putIfAbsent(identityCandidate, () => [])
+                .add(variant);
           }
 
           for (final entry in identityGroups.entries) {
@@ -536,12 +537,17 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       element: element,
       errorContext: idExpression,
     );
+    final queryWrites = _collectQueryWrites(
+      chain,
+      queryParameters,
+    );
 
     return _GeneratedRouteMethod.toId(
       name: methodName,
       targetClassName: targetClassName,
       idExpression: idExpression,
       pathWrites: pathWrites,
+      queryWrites: queryWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
     );
@@ -567,6 +573,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       errorContext:
           '${owner.locationTypeSource} -> ${target.idExpression ?? target.locationTypeSource}',
     );
+    final queryWrites = _collectQueryWrites(
+      relativeChain,
+      queryParameters,
+    );
 
     return _GeneratedLocationChildTargetMethodVariant(
       ownerNode: owner,
@@ -591,6 +601,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       ],
       exclusiveBranchSelections: target.exclusiveBranchSelections,
       pathWrites: pathWrites,
+      queryWrites: queryWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
     );
@@ -665,7 +676,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       (variant) =>
           variant.ownerTypeSource != first.ownerTypeSource ||
           variant.name != first.name ||
-          !_parametersEquivalent(variant.pathParameters, first.pathParameters) ||
+          !_parametersEquivalent(
+            variant.pathParameters,
+            first.pathParameters,
+          ) ||
           !_parametersEquivalent(
             variant.queryParameters,
             first.queryParameters,
@@ -678,10 +692,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         .where((variant) => variant.ownerSelectorExpression == null)
         .toList(growable: false);
     if (defaultVariants.length > 1 &&
-        defaultVariants
-                .map((variant) => variant.ownerNode)
-                .toSet()
-                .length >
+        defaultVariants.map((variant) => variant.ownerNode).toSet().length >
             1) {
       return null;
     }
@@ -699,9 +710,11 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     final orderedVariants = [
-      ...firstVariantByOwnerSelector.entries.sortedBy((entry) => entry.key).map(
-        (entry) => entry.value,
-      ),
+      ...firstVariantByOwnerSelector.entries
+          .sortedBy((entry) => entry.key)
+          .map(
+            (entry) => entry.value,
+          ),
       if (defaultVariants.isNotEmpty) defaultVariants.first,
     ];
     return _GeneratedFirstLocationChildRouteMethod(variants: orderedVariants);
@@ -887,9 +900,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           segment.memberName,
           segment.pathParameterIndex,
         )) {
-          (final String memberName?, _) => 'location.$memberName',
+          (final String memberName?, _) => 'node.$memberName',
           (_, final int pathParameterIndex?) =>
-            'location.pathParameters[$pathParameterIndex] '
+            'node.pathParameters[$pathParameterIndex] '
                 'as PathParam<${segment.dartTypeSource}>',
           _ => throw InvalidGenerationSourceError(
             'The generated helper for `$errorContext` could not resolve how '
@@ -901,9 +914,46 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         writes.add(
           _GeneratedPathWrite(
             locationMatchDiscriminator: matchDiscriminator,
-            locationMatchSource: _routeNodeMatchSource(node),
+            locationMatchSource: _routeNodeMatchSourceOn('node', node),
             occurrenceIndex: occurrenceIndex,
             parameterAccessorSource: parameterAccessorSource,
+            parameterIsOptional: false,
+            parameterName: generatedParameter.parameterName,
+          ),
+        );
+      }
+      locationOccurrences[matchDiscriminator] = occurrenceIndex + 1;
+    }
+
+    return writes;
+  }
+
+  List<_GeneratedPathWrite> _collectQueryWrites(
+    Iterable<_RouteNode> nodes,
+    Map<String, _GeneratedRouteParameter> queryParameters,
+  ) {
+    final writes = <_GeneratedPathWrite>[];
+    final locationOccurrences = <String, int>{};
+
+    for (final node in nodes) {
+      final matchDiscriminator = _routeNodeMatchDiscriminator(node);
+      final occurrenceIndex = locationOccurrences[matchDiscriminator] ?? 0;
+      for (final queryParameter in node.queryParameters.values) {
+        final generatedParameter = queryParameters[queryParameter.key];
+        if (generatedParameter == null) {
+          continue;
+        }
+
+        writes.add(
+          _GeneratedPathWrite(
+            locationMatchDiscriminator: matchDiscriminator,
+            locationMatchSource: _routeNodeMatchSourceOn('node', node),
+            occurrenceIndex: occurrenceIndex,
+            parameterAccessorSource:
+                'node.queryParameters.firstWhere((it) => '
+                'it.name == ${_quotedDartString(queryParameter.key)}) '
+                'as QueryParam<${queryParameter.dartTypeSource}>',
+            parameterIsOptional: generatedParameter.optional,
             parameterName: generatedParameter.parameterName,
           ),
         );
@@ -2226,14 +2276,19 @@ class _StaticRouteTreeExtractor {
         if (arguments.length < 2) {
           return null;
         }
+        final defaultValueExpression = namedArguments['defaultValue'];
+        final codecValueTypeSource = _codecValueTypeSourceForExpression(
+          arguments[1],
+          elementForErrors,
+        );
         return _RouteQueryParameterMetadata(
           key: _stringLiteral(arguments[0], elementForErrors),
-          dartTypeSource: _codecValueTypeSourceForExpression(
-            arguments[1],
-            elementForErrors,
+          dartTypeSource: _queryParameterTypeSource(
+            codecValueTypeSource,
+            defaultValueExpression,
           ),
           codecExpressionSource: _expressionSource(arguments[1]),
-          optional: namedArguments.containsKey('defaultValue'),
+          optional: defaultValueExpression != null,
           sourceNode: invocation,
           sourceElement: elementForErrors,
         );
@@ -2339,12 +2394,16 @@ class _StaticRouteTreeExtractor {
         if (codecMetadata == null) {
           return null;
         }
+        final defaultValueExpression = namedArguments['defaultValue'];
         return _RouteQueryParameterMetadata(
           key: _stringLiteral(nameExpression, elementForErrors),
-          dartTypeSource: codecMetadata.dartTypeSource,
+          dartTypeSource: _queryParameterTypeSource(
+            codecMetadata.dartTypeSource,
+            defaultValueExpression,
+          ),
           codecExpressionSource: codecMetadata.codecExpressionSource,
           optional:
-              namedArguments.containsKey('defaultValue') ||
+              defaultValueExpression != null ||
               methodName.startsWith('nullable'),
           sourceNode: invocation,
           sourceElement: elementForErrors,
@@ -2456,9 +2515,12 @@ class _StaticRouteTreeExtractor {
         return _DslBoundParamMetadata(
           isPath: false,
           queryKey: _stringLiteral(keyExpression, element),
-          dartTypeSource: _codecValueTypeSourceForExpression(
-            codecExpression,
-            element,
+          dartTypeSource: _queryParameterTypeSource(
+            _codecValueTypeSourceForExpression(
+              codecExpression,
+              element,
+            ),
+            defaultValueExpression,
           ),
           codecExpressionSource: _expressionSource(codecExpression),
           optional: defaultValueExpression != null,
@@ -2468,6 +2530,56 @@ class _StaticRouteTreeExtractor {
       default:
         return null;
     }
+  }
+
+  String _queryParameterTypeSource(
+    String codecValueTypeSource,
+    Expression? defaultValueExpression,
+  ) {
+    if (_defaultValueExpressionIsNull(defaultValueExpression)) {
+      return _nullableTypeSource(codecValueTypeSource);
+    }
+    return codecValueTypeSource;
+  }
+
+  bool _defaultValueExpressionIsNull(Expression? expression) {
+    if (expression == null) {
+      return false;
+    }
+
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is NullLiteral) {
+      return true;
+    }
+
+    if (normalizedExpression is InstanceCreationExpression &&
+        normalizedExpression.constructorName.type.toSource().split('<').first ==
+            'Default') {
+      final defaultValueArgument = normalizedExpression.argumentList.arguments
+          .whereType<Expression>()
+          .firstOrNull;
+      if (defaultValueArgument == null) {
+        return false;
+      }
+      return _expressionIsNull(defaultValueArgument);
+    }
+
+    return _expressionIsNull(normalizedExpression);
+  }
+
+  bool _expressionIsNull(Expression expression) {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is NullLiteral) {
+      return true;
+    }
+
+    final constantValue = normalizedExpression.computeConstantValue();
+    final value = constantValue?.value;
+    if (value != null) {
+      return value.isNull;
+    }
+
+    return false;
   }
 
   String _stripParamSuffix(String value) {
@@ -3514,9 +3626,12 @@ class _StaticRouteTreeExtractor {
 
     return _RouteQueryParameterMetadata(
       key: _stringLiteral(resolvedKeyExpression, element),
-      dartTypeSource: _codecValueTypeSourceForExpression(
-        resolvedCodecExpression,
-        element,
+      dartTypeSource: _queryParameterTypeSource(
+        _codecValueTypeSourceForExpression(
+          resolvedCodecExpression,
+          element,
+        ),
+        defaultValueExpression,
       ),
       codecExpressionSource: _expressionSource(resolvedCodecExpression),
       optional: defaultValueExpression != null,
@@ -4834,8 +4949,9 @@ class _InstanceStringContext implements _ExpressionContext {
     String? memberName,
     required String resolutionKind,
   }) {
-    final memberClause =
-        memberName == null ? '' : ' for inherited member `$memberName`';
+    final memberClause = memberName == null
+        ? ''
+        : ' for inherited member `$memberName`';
     return 'Unable to read the constructor source for `$superTypeName` while '
         '$resolutionKind$memberClause from '
         '`${_interfaceElementName(resolutionStartClassElement)}`. '
@@ -5340,7 +5456,8 @@ Future<ConstructorDeclaration?> _constructorDeclaration({
       classElement.firstFragment,
       resolve: true,
     );
-  } on TypeError { // ignore: avoid_catching_errors
+  } on TypeError {
+    // ignore: avoid_catching_errors
     // `build_runner` may fail to materialize AST nodes for dependency sources.
     // Treat those constructors as unavailable so the caller can either fall
     // back or raise a normal generation error instead of crashing.
@@ -5426,6 +5543,7 @@ class _GeneratedRouteMethod {
   final String? idExpression;
   final String? childLocationMatchSource;
   final List<_GeneratedPathWrite> pathWrites;
+  final List<_GeneratedPathWrite> queryWrites;
   final Map<String, _GeneratedRouteParameter> pathParameters;
   final Map<String, _GeneratedRouteParameter> queryParameters;
 
@@ -5435,6 +5553,7 @@ class _GeneratedRouteMethod {
     required this.idExpression,
     required this.childLocationMatchSource,
     required this.pathWrites,
+    required this.queryWrites,
     required this.pathParameters,
     required this.queryParameters,
   });
@@ -5444,6 +5563,7 @@ class _GeneratedRouteMethod {
     required String targetClassName,
     required String idExpression,
     required List<_GeneratedPathWrite> pathWrites,
+    required List<_GeneratedPathWrite> queryWrites,
     required Map<String, _GeneratedRouteParameter> pathParameters,
     required Map<String, _GeneratedRouteParameter> queryParameters,
   }) {
@@ -5453,6 +5573,7 @@ class _GeneratedRouteMethod {
       idExpression: idExpression,
       childLocationMatchSource: null,
       pathWrites: pathWrites,
+      queryWrites: queryWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
     );
@@ -5465,6 +5586,7 @@ class _GeneratedRouteMethod {
       idExpression: idExpression,
       childLocationMatchSource: childLocationMatchSource,
       pathWrites: pathWrites,
+      queryWrites: queryWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
       otherName: other.name,
@@ -5472,6 +5594,7 @@ class _GeneratedRouteMethod {
       otherIdExpression: other.idExpression,
       otherChildLocationMatchSource: other.childLocationMatchSource,
       otherPathWrites: other.pathWrites,
+      otherQueryWrites: other.queryWrites,
       otherPathParameters: other.pathParameters,
       otherQueryParameters: other.queryParameters,
     );
@@ -5584,7 +5707,7 @@ class _GeneratedRouteMethod {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln('            var $counterName = 0;');
       }
-      buffer.writeln('            return (location, path) {');
+      buffer.writeln('            return (node, path) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
@@ -5610,26 +5733,7 @@ class _GeneratedRouteMethod {
       buffer.writeln('          })(),');
     }
 
-    if (queryParameters.isNotEmpty) {
-      buffer.writeln('          queryParameters: {');
-      for (final parameter in queryParameters.entries) {
-        final generatedParameter = parameter.value;
-        if (generatedParameter.optional) {
-          buffer.writeln(
-            "            if (${generatedParameter.parameterName} case final value?) "
-            "'${parameter.key}': "
-            "${generatedParameter.codecExpressionSource}.encode(value),",
-          );
-        } else {
-          buffer.writeln(
-            "            '${parameter.key}': "
-            "${generatedParameter.codecExpressionSource}.encode("
-            "${generatedParameter.parameterName}),",
-          );
-        }
-      }
-      buffer.writeln('          },');
-    }
+    _writeQueryWrites(buffer, '          ', queryWrites);
 
     buffer.writeln('        );');
   }
@@ -5859,6 +5963,7 @@ class _GeneratedLocationChildTargetMethodVariant {
   final List<String> relativeNodeMatchSources;
   final Map<int, int> exclusiveBranchSelections;
   final List<_GeneratedPathWrite> pathWrites;
+  final List<_GeneratedPathWrite> queryWrites;
   final Map<String, _GeneratedRouteParameter> pathParameters;
   final Map<String, _GeneratedRouteParameter> queryParameters;
 
@@ -5877,6 +5982,7 @@ class _GeneratedLocationChildTargetMethodVariant {
     required this.relativeNodeMatchSources,
     required this.exclusiveBranchSelections,
     required this.pathWrites,
+    required this.queryWrites,
     required this.pathParameters,
     required this.queryParameters,
   });
@@ -5894,6 +6000,7 @@ class _GeneratedLocationChildTargetMethodVariant {
           idExpression: null,
           childLocationMatchSource: childLocationMatchSource,
           pathWrites: pathWrites,
+          queryWrites: queryWrites,
           pathParameters: pathParameters,
           queryParameters: queryParameters,
           otherName: other.name,
@@ -5901,6 +6008,7 @@ class _GeneratedLocationChildTargetMethodVariant {
           otherIdExpression: null,
           otherChildLocationMatchSource: other.childLocationMatchSource,
           otherPathWrites: other.pathWrites,
+          otherQueryWrites: other.queryWrites,
           otherPathParameters: other.pathParameters,
           otherQueryParameters: other.queryParameters,
         );
@@ -5924,6 +6032,7 @@ class _GeneratedLocationChildTargetMethodVariant {
       relativeNodeMatchSources: relativeNodeMatchSources,
       exclusiveBranchSelections: exclusiveBranchSelections,
       pathWrites: pathWrites,
+      queryWrites: queryWrites,
       pathParameters: pathParameters,
       queryParameters: queryParameters,
     );
@@ -6059,7 +6168,7 @@ class _GeneratedLocationChildTargetMethodVariant {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln('$indent   var $counterName = 0;');
       }
-      buffer.writeln('$indent   return (location, path) {');
+      buffer.writeln('$indent   return (node, path) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
@@ -6086,27 +6195,7 @@ class _GeneratedLocationChildTargetMethodVariant {
       buffer.writeln('$indent })(),');
     }
 
-    if (queryParameters.isNotEmpty) {
-      buffer.writeln('$indent queryParameters: {');
-      for (final parameter in queryParameters.entries) {
-        final generatedParameter = parameter.value;
-        if (generatedParameter.optional) {
-          buffer.writeln(
-            "$indent   if (${generatedParameter.parameterName} case final "
-            'value?) '
-            "'${parameter.key}': "
-            "${generatedParameter.codecExpressionSource}.encode(value),",
-          );
-        } else {
-          buffer.writeln(
-            "$indent   '${parameter.key}': "
-            "${generatedParameter.codecExpressionSource}.encode("
-            "${generatedParameter.parameterName}),",
-          );
-        }
-      }
-      buffer.writeln('$indent },');
-    }
+    _writeQueryWrites(buffer, indent, queryWrites);
   }
 }
 
@@ -6120,12 +6209,75 @@ class _GeneratedLocationChildTargetMethodsResult {
   });
 }
 
+void _writeQueryWrites(
+  StringBuffer buffer,
+  String indent,
+  List<_GeneratedPathWrite> queryWrites,
+) {
+  if (queryWrites.isEmpty) {
+    return;
+  }
+
+  final queryWritesByLocationType =
+      <String, Map<int, List<_GeneratedPathWrite>>>{};
+  for (final queryWrite in queryWrites) {
+    final byOccurrence = queryWritesByLocationType.putIfAbsent(
+      queryWrite.locationMatchDiscriminator,
+      () => <int, List<_GeneratedPathWrite>>{},
+    );
+    byOccurrence
+        .putIfAbsent(queryWrite.occurrenceIndex, () => [])
+        .add(queryWrite);
+  }
+
+  buffer.writeln('${indent}writeQueryParameters: (() {');
+  for (final entry in queryWritesByLocationType.entries) {
+    final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
+    buffer.writeln('$indent  var $counterName = 0;');
+  }
+  buffer.writeln('$indent  return (node, query) {');
+  for (final entry in queryWritesByLocationType.entries) {
+    final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
+    buffer.writeln(
+      '$indent    if (${entry.value.values.first.first.locationMatchSource}) {',
+    );
+    buffer.writeln('$indent      switch ($counterName++) {');
+    final occurrences = entry.value.entries.toList()
+      ..sort((left, right) => left.key.compareTo(right.key));
+    for (final occurrence in occurrences) {
+      buffer.writeln('$indent        case ${occurrence.key}:');
+      for (final queryWrite in occurrence.value) {
+        if (queryWrite.parameterIsOptional) {
+          buffer.writeln(
+            '$indent          if (${queryWrite.parameterName} case final value?) {',
+          );
+          buffer.writeln(
+            '$indent            query(${queryWrite.parameterAccessorSource}, value);',
+          );
+          buffer.writeln('$indent          }');
+        } else {
+          buffer.writeln(
+            '$indent          query(${queryWrite.parameterAccessorSource}, '
+            '${queryWrite.parameterName});',
+          );
+        }
+      }
+      buffer.writeln('$indent          break;');
+    }
+    buffer.writeln('$indent      }');
+    buffer.writeln('$indent    }');
+  }
+  buffer.writeln('$indent  };');
+  buffer.writeln('$indent})(),');
+}
+
 bool _generatedTargetDefinitionEquivalent({
   required String name,
   required String targetClassName,
   required String? idExpression,
   required String? childLocationMatchSource,
   required List<_GeneratedPathWrite> pathWrites,
+  required List<_GeneratedPathWrite> queryWrites,
   required Map<String, _GeneratedRouteParameter> pathParameters,
   required Map<String, _GeneratedRouteParameter> queryParameters,
   required String otherName,
@@ -6133,6 +6285,7 @@ bool _generatedTargetDefinitionEquivalent({
   required String? otherIdExpression,
   required String? otherChildLocationMatchSource,
   required List<_GeneratedPathWrite> otherPathWrites,
+  required List<_GeneratedPathWrite> otherQueryWrites,
   required Map<String, _GeneratedRouteParameter> otherPathParameters,
   required Map<String, _GeneratedRouteParameter> otherQueryParameters,
 }) {
@@ -6141,6 +6294,7 @@ bool _generatedTargetDefinitionEquivalent({
       idExpression == otherIdExpression &&
       childLocationMatchSource == otherChildLocationMatchSource &&
       _pathWritesEquivalent(pathWrites, otherPathWrites) &&
+      _pathWritesEquivalent(queryWrites, otherQueryWrites) &&
       _parametersEquivalent(pathParameters, otherPathParameters) &&
       _parametersEquivalent(queryParameters, otherQueryParameters);
 }
@@ -6159,6 +6313,7 @@ bool _pathWritesEquivalent(
     if (left.locationMatchDiscriminator != right.locationMatchDiscriminator ||
         left.locationMatchSource != right.locationMatchSource ||
         left.parameterAccessorSource != right.parameterAccessorSource ||
+        left.parameterIsOptional != right.parameterIsOptional ||
         left.parameterName != right.parameterName) {
       return false;
     }
@@ -6304,6 +6459,7 @@ class _GeneratedPathWrite {
   final String locationMatchSource;
   final int occurrenceIndex;
   final String parameterAccessorSource;
+  final bool parameterIsOptional;
   final String parameterName;
 
   const _GeneratedPathWrite({
@@ -6311,6 +6467,7 @@ class _GeneratedPathWrite {
     required this.locationMatchSource,
     required this.occurrenceIndex,
     required this.parameterAccessorSource,
+    required this.parameterIsOptional,
     required this.parameterName,
   });
 }
@@ -6364,6 +6521,10 @@ String _nonNullableTypeSource(String typeSource) {
   return typeSource.endsWith('?')
       ? typeSource.substring(0, typeSource.length - 1)
       : typeSource;
+}
+
+String _quotedDartString(String value) {
+  return "'${value.replaceAll(r'\', r'\\').replaceAll("'", r"\'")}'";
 }
 
 String _toUpperCamelCase(String value) {

@@ -14,13 +14,25 @@ final class UriRouteTarget extends RouteTarget {
 
 base class IdRouteTarget extends RouteTarget {
   final AnyNodeId id;
-  final Map<String, String> queryParameters;
+
+  /// Writes typed path parameter values for the matched target route chain.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand.
   final WritePathParameters? writePathParameters;
+
+  /// Writes typed query parameter values for the matched target route chain.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand. Values written here are encoded
+  /// by the router and omitted when they equal the parameter's non-null default
+  /// value.
+  final WriteQueryParameters? writeQueryParameters;
 
   const IdRouteTarget(
     this.id, {
-    this.queryParameters = const {},
     this.writePathParameters,
+    this.writeQueryParameters,
   });
 }
 
@@ -44,15 +56,26 @@ base class ChildRouteTarget extends RouteTarget {
   /// that walks `start.children` layer by layer and returns the intended child
   /// path for the current runtime tree shape.
   final IList<RouteNode>? Function() resolveChildPathNodes;
-  final Map<String, String> queryParameters;
+
+  /// Writes typed path parameter values for the matched target route chain.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand.
   final WritePathParameters? writePathParameters;
 
-  const ChildRouteTarget(
-    {
+  /// Writes typed query parameter values for the matched target route chain.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand. Values written here are encoded
+  /// by the router and omitted when they equal the parameter's non-null default
+  /// value.
+  final WriteQueryParameters? writeQueryParameters;
+
+  const ChildRouteTarget({
     required this.start,
     required this.resolveChildPathNodes,
-    this.queryParameters = const {},
     this.writePathParameters,
+    this.writeQueryParameters,
   });
 }
 
@@ -63,12 +86,24 @@ base class ChildRouteTarget extends RouteTarget {
 /// useful when first-match semantics are intentional.
 base class FirstChildRouteTarget extends RouteTarget {
   final bool Function(AnyLocation location) predicate;
-  final Map<String, String> queryParameters;
+
+  /// Writes typed path parameter values for the matched target route chain.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand.
   final WritePathParameters? writePathParameters;
+
+  /// Writes typed query parameter values for the matched target route chain.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand. Values written here are encoded
+  /// by the router and omitted when they equal the parameter's non-null default
+  /// value.
+  final WriteQueryParameters? writeQueryParameters;
 
   const FirstChildRouteTarget(
     this.predicate, {
-    this.queryParameters = const {},
     this.writePathParameters,
+    this.writeQueryParameters,
   });
 }

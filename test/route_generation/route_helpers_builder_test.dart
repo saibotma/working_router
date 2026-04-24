@@ -93,7 +93,7 @@ RouteNode get appLocationTree => _appLocationTree;
                 isNot(contains('routeTo(ChildItemRouteTarget(')),
                 contains('writePathParameters: (() {'),
                 contains(
-                  'path(location.pathParameters[0] as PathParam<String>, itemId);',
+                  'path(node.pathParameters[0] as PathParam<String>, itemId);',
                 ),
               ),
             ),
@@ -110,11 +110,9 @@ RouteNode get appLocationTree => _appLocationTree;
                 isNot(contains('routeTo(ChildItemDetailsRouteTarget(')),
               ),
               allOf(
-                contains('queryParameters: {'),
-                contains("'keep': const StringRouteParamCodec().encode(keep),"),
-                contains(
-                  "'detail': const StringRouteParamCodec().encode(detail),",
-                ),
+                contains('writeQueryParameters: (() {'),
+                contains("it.name == 'keep'"),
+                contains("it.name == 'detail'"),
               ),
               allOf(
                 contains(
@@ -259,22 +257,23 @@ RouteNode get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
-        'working_router|lib/param_suffix_routes.working_router.g.part': decodedMatches(
-          allOf(
-            contains(
-              'void routeToDetail({required String id, required String slug}) {',
+        'working_router|lib/param_suffix_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains(
+                  'void routeToDetail({required String id, required String slug}) {',
+                ),
+                contains(
+                  'DetailRouteTarget({required String id, required String slug})',
+                ),
+                contains(
+                  'path(node.pathParameters[0] as PathParam<String>, id);',
+                ),
+                contains(
+                  'path(node.pathParameters[1] as PathParam<String>, slug);',
+                ),
+              ),
             ),
-            contains(
-              'DetailRouteTarget({required String id, required String slug})',
-            ),
-            contains(
-              'path(location.pathParameters[0] as PathParam<String>, id);',
-            ),
-            contains(
-              'path(location.pathParameters[1] as PathParam<String>, slug);',
-            ),
-          ),
-        ),
       },
       readerWriter: readerWriter,
     );
@@ -328,22 +327,24 @@ RouteNode get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
-        'working_router|lib/dsl_field_params_routes.working_router.g.part': decodedMatches(
-          allOf(
-            contains(
-              'void routeToItem({required String itemId, required String keep}) {',
+        'working_router|lib/dsl_field_params_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains(
+                  'void routeToItem({required String itemId, required String keep}) {',
+                ),
+                contains(
+                  'ItemRouteTarget({required String itemId, required String keep})',
+                ),
+                contains(
+                  'path(node.pathParameters[0] as PathParam<String>, itemId);',
+                ),
+                contains(
+                  'writeQueryParameters: (() {',
+                ),
+                contains("it.name == 'keep'"),
+              ),
             ),
-            contains(
-              'ItemRouteTarget({required String itemId, required String keep})',
-            ),
-            contains(
-              'path(location.pathParameters[0] as PathParam<String>, itemId);',
-            ),
-            contains(
-              "queryParameters: {'keep': const StringRouteParamCodec().encode(keep)}",
-            ),
-          ),
-        ),
       },
       readerWriter: readerWriter,
     );
@@ -479,13 +480,9 @@ final RouteNode appLocationTree = RootLocation();
               decodedMatches(
                 allOf(
                   contains('void routeToLesson({'),
-                  contains('queryParameters: {'),
-                  contains(
-                    "'coursePeriodId': const StringRouteParamCodec().encode(coursePeriodId),",
-                  ),
-                  contains(
-                    "'sourceDateTime': const StringRouteParamCodec().encode(sourceDateTime),",
-                  ),
+                  contains('writeQueryParameters: (() {'),
+                  contains("it.name == 'coursePeriodId'"),
+                  contains("it.name == 'sourceDateTime'"),
                   contains('void routeToLessonEdit({'),
                 ),
               ),
@@ -587,32 +584,29 @@ final RouteNode appLocationTree =
 ''',
         },
         outputs: {
-          'working_router|lib/typed_route_params_routes.working_router.g.part': decodedMatches(
-            allOf(
-              allOf(
-                contains('required int itemId,'),
-                contains('required ItemFilter filter,'),
-                contains('int? page,'),
+          'working_router|lib/typed_route_params_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  allOf(
+                    contains('required int itemId,'),
+                    contains('required ItemFilter filter,'),
+                    contains('int? page,'),
+                  ),
+                  allOf(
+                    contains(
+                      'final class ItemRouteTarget extends IdRouteTarget {',
+                    ),
+                    contains('writePathParameters: (() {'),
+                    contains(
+                      'path(node.pathParameters[0] as PathParam<int>, itemId);',
+                    ),
+                    contains('writeQueryParameters: (() {'),
+                    contains("it.name == 'filter'"),
+                    contains("it.name == 'page'"),
+                    contains('if (page case final value?)'),
+                  ),
+                ),
               ),
-              allOf(
-                contains(
-                  'final class ItemRouteTarget extends IdRouteTarget {',
-                ),
-                contains('writePathParameters: (() {'),
-                contains(
-                  'path(location.pathParameters[0] as PathParam<int>, itemId);',
-                ),
-                contains('queryParameters: {'),
-                contains(
-                  "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
-                ),
-                contains(
-                  "if (page case final value?)\n"
-                  "            'page': const IntRouteParamCodec().encode(value),",
-                ),
-              ),
-            ),
-          ),
         },
         readerWriter: readerWriter,
       );
@@ -658,6 +652,11 @@ class ItemLocation
       IntRouteParamCodec(),
       defaultValue: Default(1),
     );
+    final startDateTimeParam = builder.queryParam(
+      'startDateTime',
+      const DateTimeIsoRouteParamCodec(),
+      defaultValue: Default(null),
+    );
   }
 }
 
@@ -674,6 +673,8 @@ final RouteNode appLocationTree =
                   contains('required int itemId,'),
                   contains('required ItemFilter filter,'),
                   contains('int? page,'),
+                  contains('DateTime? startDateTime,'),
+                  contains('as QueryParam<DateTime?>'),
                   isNot(contains('ItemLocationGenerated')),
                 ),
               ),
@@ -732,24 +733,25 @@ List<RouteNode> buildRouteNodes() => [
 ''',
         },
         outputs: {
-          'working_router|lib/shortcut_param_routes.working_router.g.part': decodedMatches(
-            allOf(
-              contains('void routeToItem({'),
-              contains('required Uri itemUri,'),
-              contains('required ItemFilter filter,'),
-              contains('Uri? from,'),
-              contains(
-                "'filter': EnumRouteParamCodec(ItemFilter.values).encode(filter),",
+          'working_router|lib/shortcut_param_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToItem({'),
+                  contains('required Uri itemUri,'),
+                  contains('required ItemFilter filter,'),
+                  contains('Uri? from,'),
+                  allOf(
+                    contains("it.name == 'filter'"),
+                    contains("it.name == 'from'"),
+                    contains('if (from case final value?)'),
+                  ),
+                  allOf(
+                    contains(
+                      'path(node.pathParameters[0] as PathParam<Uri>, itemUri);',
+                    ),
+                  ),
+                ),
               ),
-              contains(
-                "if (from case final value?)\n"
-                "            'from': const UriRouteParamCodec().encode(value),",
-              ),
-              contains(
-                'path(location.pathParameters[0] as PathParam<Uri>, itemUri);',
-              ),
-            ),
-          ),
         },
         readerWriter: readerWriter,
       );
@@ -813,16 +815,14 @@ List<RouteNode> buildRouteNodes() => [
                 allOf(
                   contains('ItemRouteTarget({String? filter, Uri? from})'),
                   contains('void routeToItem({String? filter, Uri? from})'),
-                  contains(
-                    "if (filter case final value?)\n"
-                    "            'filter': const StringRouteParamCodec().encode(value),",
+                  contains('if (filter case final value?)'),
+                  contains("it.name == 'filter'"),
+                  contains('if (from case final value?)'),
+                  contains("it.name == 'from'"),
+                  allOf(
+                    isNot(contains('String??')),
+                    isNot(contains('Uri??')),
                   ),
-                  contains(
-                    "if (from case final value?)\n"
-                    "            'from': const UriRouteParamCodec().encode(value),",
-                  ),
-                  isNot(contains('String??')),
-                  isNot(contains('Uri??')),
                 ),
               ),
         },
@@ -884,14 +884,10 @@ List<RouteNode> buildRouteNodes() => [
                   contains(
                     'void routeToItem({bool? enabled, DateTime? endDateTime})',
                   ),
-                  contains(
-                    "if (enabled case final value?)\n"
-                    "            'enabled': const BoolRouteParamCodec().encode(value),",
-                  ),
-                  contains(
-                    "if (endDateTime case final value?)\n"
-                    "            'endDateTime': const DateTimeIsoRouteParamCodec().encode(value),",
-                  ),
+                  contains('if (enabled case final value?)'),
+                  contains("it.name == 'enabled'"),
+                  contains('if (endDateTime case final value?)'),
+                  contains("it.name == 'endDateTime'"),
                 ),
               ),
         },
@@ -956,10 +952,8 @@ List<RouteNode> buildRouteNodes() => [
               decodedMatches(
                 allOf(
                   contains('void routeToPrivacy({String? languageCode})'),
-                  contains(
-                    "if (languageCode case final value?)\n"
-                    "            'languageCode': const StringRouteParamCodec().encode(value),",
-                  ),
+                  contains('if (languageCode case final value?)'),
+                  contains("it.name == 'languageCode'"),
                 ),
               ),
         },
@@ -1663,10 +1657,10 @@ RouteNode get appLocationTree => RootLocation();
               'void routeToSend({required String channelId, required String keep}) {',
             ),
             contains(
-              "'keep': StringRouteParamCodec().encode(keep)",
+              "it.name == 'keep'",
             ),
             contains(
-              'location.pathParameters[0] as PathParam<String>',
+              'node.pathParameters[0] as PathParam<String>',
             ),
           ),
         ),
@@ -1984,10 +1978,7 @@ RouteNode get appLocationTree => AccountShell();
                     'DashboardRouteTarget({required String accountId})',
                   ),
                   contains(
-                    'location.pathParameters[0] as PathParam<String>,',
-                  ),
-                  contains(
-                    'accountId,',
+                    'path(node.pathParameters[0] as PathParam<String>, accountId);',
                   ),
                 ),
               ),
@@ -2490,53 +2481,54 @@ List<RouteNode> buildRouteNodes() => [
 ''',
         },
         outputs: {
-          'working_router|lib/idless_child_targets_routes.working_router.g.part': decodedMatches(
-            allOf(
-              allOf(
-                contains(
-                  'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
-                ),
-                contains(
-                  'ChildRouteTarget childPrivacyTarget({',
-                ),
-                contains(
-                  'ChildRouteTarget childTermsOfUseTarget({',
-                ),
-                contains(
-                  'return ChildRouteTarget(',
-                ),
-                contains(
-                  'return resolveExactChildRouteNodes(this, [',
-                ),
-                contains(
-                  '(node) => node is LegalNode,',
+          'working_router|lib/idless_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  allOf(
+                    contains(
+                      'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+                    ),
+                    contains(
+                      'ChildRouteTarget childPrivacyTarget({',
+                    ),
+                    contains(
+                      'ChildRouteTarget childTermsOfUseTarget({',
+                    ),
+                    contains(
+                      'return ChildRouteTarget(',
+                    ),
+                    contains(
+                      'return resolveExactChildRouteNodes(this, [',
+                    ),
+                    contains(
+                      '(node) => node is LegalNode,',
+                    ),
+                  ),
+                  allOf(
+                    contains(
+                      '(node) => node is PrivacyLocation,',
+                    ),
+                    contains(
+                      'void routeToChildPrivacy(BuildContext context, {',
+                    ),
+                  ),
+                  allOf(
+                    contains(
+                      'WorkingRouter.of(',
+                    ),
+                    contains('context,'),
+                    contains(
+                      'childPrivacyTarget(',
+                    ),
+                    contains(
+                      "it.name == 'languageCode'",
+                    ),
+                    isNot(contains('childLegalNodeTarget')),
+                    isNot(contains('void routeToPrivacy(')),
+                    isNot(contains('void routeToTermsOfUse(')),
+                  ),
                 ),
               ),
-              allOf(
-                contains(
-                  '(node) => node is PrivacyLocation,',
-                ),
-                contains(
-                  'void routeToChildPrivacy(BuildContext context, {',
-                ),
-              ),
-              allOf(
-                contains(
-                  'WorkingRouter.of(',
-                ),
-                contains('context,'),
-                contains(
-                  'childPrivacyTarget(',
-                ),
-                contains(
-                  "'languageCode': const StringRouteParamCodec().encode(value),",
-                ),
-                isNot(contains('childLegalNodeTarget')),
-                isNot(contains('void routeToPrivacy(')),
-                isNot(contains('void routeToTermsOfUse(')),
-              ),
-            ),
-          ),
         },
         readerWriter: readerWriter,
       );
@@ -2606,20 +2598,21 @@ List<RouteNode> buildRouteNodes() => [
 ''',
         },
         outputs: {
-          'working_router|lib/child_id_child_targets_routes.working_router.g.part': decodedMatches(
-            allOf(
-              contains(
-                'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+          'working_router|lib/child_id_child_targets_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains(
+                    'extension AddAccountNodeGeneratedChildTargets on AddAccountNode {',
+                  ),
+                  contains(
+                    'ChildRouteTarget get childLegalLeafTarget',
+                  ),
+                  contains(
+                    '(node) => node.localId == LegalChildId.privacy,',
+                  ),
+                  isNot(contains('childPrivacyTarget')),
+                ),
               ),
-              contains(
-                'ChildRouteTarget get childLegalLeafTarget',
-              ),
-              contains(
-                '(node) => node.localId == LegalChildId.privacy,',
-              ),
-              isNot(contains('childPrivacyTarget')),
-            ),
-          ),
         },
         readerWriter: readerWriter,
       );
@@ -2693,52 +2686,53 @@ List<RouteNode> buildRouteNodes() => [
 ''',
         },
         outputs: {
-          'working_router|lib/direct_child_precedence_routes.working_router.g.part': decodedMatches(
-            allOf(
-              allOf(
-                contains(
-                  'extension RootLocationGeneratedChildTargets on RootLocation {',
+          'working_router|lib/direct_child_precedence_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  allOf(
+                    contains(
+                      'extension RootLocationGeneratedChildTargets on RootLocation {',
+                    ),
+                    contains(
+                      'ChildRouteTarget get childAccountMemberTarget {',
+                    ),
+                    contains(
+                      'childLessonAccountMemberTarget({required String lessonId})',
+                    ),
+                    contains(
+                      'return ChildRouteTarget(',
+                    ),
+                    contains(
+                      'return resolveExactChildRouteNodes(this, [',
+                    ),
+                    contains(
+                      '(node) => node is AccountMemberLocation,',
+                    ),
+                  ),
+                  allOf(
+                    contains(
+                      'required String lessonId,',
+                    ),
+                    contains(
+                      'void routeToChildLessonAccountMember(',
+                    ),
+                    contains(
+                      '(node) => node is LessonLocation,',
+                    ),
+                  ),
+                  isNot(
+                    contains(
+                      'extension RootLocationGeneratedChildTargets on RootLocation {\n'
+                      '  ChildRouteTarget get childAccountMemberTarget {\n'
+                      '    return ChildRouteTarget(\n'
+                      '      start: this,\n'
+                      '      resolveChildPathNodes: () {\n'
+                      '        return resolveExactChildRouteNodes(this, [\n'
+                      '          (node) => node is LessonLocation,\n',
+                    ),
+                  ),
                 ),
-                contains(
-                  'ChildRouteTarget get childAccountMemberTarget {',
-                ),
-              contains(
-                'childLessonAccountMemberTarget({required String lessonId})',
               ),
-                contains(
-                  'return ChildRouteTarget(',
-                ),
-                contains(
-                  'return resolveExactChildRouteNodes(this, [',
-                ),
-                contains(
-                  '(node) => node is AccountMemberLocation,',
-                ),
-              ),
-              allOf(
-                contains(
-                  'required String lessonId,',
-                ),
-                contains(
-                  'void routeToChildLessonAccountMember(',
-                ),
-                contains(
-                  '(node) => node is LessonLocation,',
-                ),
-              ),
-              isNot(
-                contains(
-                  'extension RootLocationGeneratedChildTargets on RootLocation {\n'
-                  '  ChildRouteTarget get childAccountMemberTarget {\n'
-                  '    return ChildRouteTarget(\n'
-                  '      start: this,\n'
-                  '      resolveChildPathNodes: () {\n'
-                  '        return resolveExactChildRouteNodes(this, [\n'
-                  '          (node) => node is LessonLocation,\n',
-                ),
-              ),
-            ),
-          ),
         },
         readerWriter: readerWriter,
       );
@@ -3816,14 +3810,15 @@ RouteNode get appLocationTree => Shell(
               'DashboardRouteTarget({required String accountId, required String tab})',
             ),
             contains(
-              'location.pathParameters[0] as PathParam<String>,',
+              'node.pathParameters[0] as PathParam<String>,',
             ),
             contains(
               'accountId,',
             ),
             contains(
-              "queryParameters: {'tab': const StringRouteParamCodec().encode(tab)}",
+              'writeQueryParameters: (() {',
             ),
+            contains("it.name == 'tab'"),
           ),
         ),
       },

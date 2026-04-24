@@ -30,8 +30,7 @@ final class NodeId<T extends RouteNode<T>> implements AnyNodeId {
 /// This is intentionally non-const for the same reason as [NodeId]: local ids
 /// are identity tokens and must remain distinct across repeated occurrences of
 /// the same route-node type.
-final class LocalNodeId<T extends RouteNode<T>>
-    implements AnyLocalNodeId {
+final class LocalNodeId<T extends RouteNode<T>> implements AnyLocalNodeId {
   LocalNodeId();
 }
 
@@ -39,10 +38,48 @@ sealed class PathSegment {
   const PathSegment();
 }
 
+/// Writes typed path parameter values for programmatic routing.
+///
+/// This is a low-level API for generated route helpers. Prefer the generated
+/// `routeTo...` and `...Target` helpers in application code; writing this
+/// callback by hand is discouraged because it requires manually finding the
+/// route node that owns each parameter.
+///
+/// The router calls this once for each matched [PathRouteNode] in the target
+/// route chain. Check [node] to decide whether it is the node that owns the
+/// parameter you want to write, then call [path] with that node's [PathParam]
+/// and the typed value. The router verifies that the parameter is declared by
+/// [node] and encodes the value with the parameter's codec.
+///
+/// The callback receives the actual matched route node during navigation, so a
+/// route target can be created without holding a concrete location instance.
 typedef WritePathParameters =
     void Function(
-      PathRouteNode location,
+      PathRouteNode node,
       void Function<T>(PathParam<T> parameter, T value) path,
+    );
+
+/// Writes typed query parameter values for programmatic routing.
+///
+/// This is a low-level API for generated route helpers. Prefer the generated
+/// `routeTo...` and `...Target` helpers in application code; writing this
+/// callback by hand is discouraged because it requires manually finding the
+/// route node that owns each parameter.
+///
+/// Like [WritePathParameters], the router calls this once for each matched
+/// [PathRouteNode] in the target route chain. Check [node] to decide whether
+/// it is the node that owns the query parameter, then call [query] with that
+/// node's [QueryParam] and the typed value.
+///
+/// The router verifies that the parameter is declared by [node], encodes the
+/// value with the parameter's codec, and omits the URL query entry when the value
+/// equals the parameter's non-null default value. A `Default(null)` therefore
+/// still behaves as "omit when no value is written"; writing `null` is not
+/// supported because the writer receives a typed value, not absence.
+typedef WriteQueryParameters =
+    void Function(
+      PathRouteNode node,
+      void Function<T>(QueryParam<T> parameter, T value) query,
     );
 
 class LiteralPathSegment extends PathSegment {
@@ -114,8 +151,7 @@ class QueryParam<T> implements Param<T> {
   QueryParam(this.unboundParam);
 }
 
-typedef CustomPageKeyBuilder =
-    LocalKey Function(WorkingRouterData data);
+typedef CustomPageKeyBuilder = LocalKey Function(WorkingRouterData data);
 
 /// Describes how a [RouteNode] builds its [Page] key.
 ///
@@ -151,8 +187,7 @@ sealed class PageKey {
   const factory PageKey.path() = _PathPageKey;
 
   /// Builds the page key from custom router data.
-  const factory PageKey.custom(CustomPageKeyBuilder build) =
-      _CustomPageKey;
+  const factory PageKey.custom(CustomPageKeyBuilder build) = _CustomPageKey;
 
   LocalKey build(RouteNode node, WorkingRouterData data);
 }
@@ -188,6 +223,7 @@ final class _CustomPageKey extends PageKey {
 
 abstract class RouteNode<Self extends RouteNode<Self>> {
   final NodeId<Self>? id;
+
   /// Optional subtree-local identity used only for start-anchored child routing.
   ///
   /// Unlike [id], a [localId] only needs to be meaningful within the current
@@ -243,8 +279,7 @@ extension RouteMatchX on RouteMatch {
 }
 
 extension TreeElementsX on Iterable<RouteNode> {
-  IList<AnyLocation> get locations =>
-      whereType<AnyLocation>().toIList();
+  IList<AnyLocation> get locations => whereType<AnyLocation>().toIList();
 
   IList<PathRouteNode> get pathRouteNodes =>
       whereType<PathRouteNode>().toIList();
@@ -413,8 +448,7 @@ Map<UnboundPathParam<dynamic>, String>? startsWith(
   return pathParameters;
 }
 
-extension RouteNodePathBuilder
-    on Iterable<PathRouteNode> {
+extension RouteNodePathBuilder on Iterable<PathRouteNode> {
   String buildPath(IMap<UnboundPathParam<dynamic>, String> pathParameters) {
     final uriPathSegments = <String>[];
     for (final location in this) {

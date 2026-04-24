@@ -184,14 +184,14 @@ class WorkingRouter extends ChangeNotifier
   @override
   void routeToId(
     AnyNodeId id, {
-    Map<String, String> queryParameters = const {},
     WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
   }) {
     routeTo(
       IdRouteTarget(
         id,
-        queryParameters: queryParameters,
         writePathParameters: writePathParameters,
+        writeQueryParameters: writeQueryParameters,
       ),
     );
   }
@@ -223,27 +223,27 @@ class WorkingRouter extends ChangeNotifier
   @override
   void routeToChildWhere(
     bool Function(AnyLocation location) predicate, {
-    Map<String, String> queryParameters = const {},
     WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
   }) {
     routeTo(
       FirstChildRouteTarget(
         predicate,
-        queryParameters: queryParameters,
         writePathParameters: writePathParameters,
+        writeQueryParameters: writeQueryParameters,
       ),
     );
   }
 
   @override
   void routeToChild<T>({
-    Map<String, String> queryParameters = const {},
     WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
   }) {
     routeToChildWhere(
       (it) => it is T,
-      queryParameters: queryParameters,
       writePathParameters: writePathParameters,
+      writeQueryParameters: writeQueryParameters,
     );
   }
 
@@ -506,8 +506,8 @@ class WorkingRouter extends ChangeNotifier
         return _buildDataForUri(uri);
       case IdRouteTarget(
         :final id,
-        :final queryParameters,
         :final writePathParameters,
+        :final writeQueryParameters,
       ):
         final matchedNodes = _routeNodeTree.matchId(id);
         final targetLocation = matchedNodes.locations.lastOrNull;
@@ -518,7 +518,7 @@ class WorkingRouter extends ChangeNotifier
           );
         }
         final matchedPathRouteNodes = matchedNodes.pathRouteNodes;
-        final keptQueryParameterKeys =
+        final sharedQueryParameterKeys =
             !retainSharedQueryParameters || currentData == null
             ? <String>{}
             : currentData.routeNodes.pathRouteNodes
@@ -534,28 +534,30 @@ class WorkingRouter extends ChangeNotifier
                         )
                         .toSet(),
                   );
+        final retainedQueryParameters = retainSharedQueryParameters
+            ? currentData?.queryParameters.keepKeys(
+                sharedQueryParameterKeys,
+              )
+            : null;
 
         return _buildData(
           routeNodes: matchedNodes,
           fallback: null,
           pathParameters: _resolvePathParameterWrites(
-            matchedPathRouteNodes,
-            writePathParameters,
+            nodes: matchedPathRouteNodes,
+            writePathParameters: writePathParameters,
           ).toIMap(),
-          queryParameters:
-              ((retainSharedQueryParameters
-                          ? currentData?.queryParameters.keepKeys(
-                              keptQueryParameterKeys,
-                            )
-                          : null) ??
-                      IMap<String, String>())
-                  .addAll(queryParameters.toIMap()),
+          queryParameters: _mergeQueryParameterWrites(
+            initialQueryParameters: retainedQueryParameters,
+            nodes: matchedPathRouteNodes,
+            writeQueryParameters: writeQueryParameters,
+          ),
         );
       case ChildRouteTarget(
         :final start,
         :final resolveChildPathNodes,
-        :final queryParameters,
         :final writePathParameters,
+        :final writeQueryParameters,
       ):
         final data = currentData!;
         final startIndex = data.routeNodes.indexWhere(
@@ -569,27 +571,32 @@ class WorkingRouter extends ChangeNotifier
         if (matchedNodes == null || matchedNodes.isEmpty) {
           return data;
         }
-        final routeNodes = data.routeNodes.take(startIndex + 1).toIList().addAll(
-          matchedNodes,
-        );
+        final routeNodes = data.routeNodes
+            .take(startIndex + 1)
+            .toIList()
+            .addAll(
+              matchedNodes,
+            );
 
         return _buildData(
           routeNodes: routeNodes,
           fallback: null,
           pathParameters: data.pathParametersForRouter.addAll(
             _resolvePathParameterWrites(
-              routeNodes.pathRouteNodes,
-              writePathParameters,
+              nodes: routeNodes.pathRouteNodes,
+              writePathParameters: writePathParameters,
             ).toIMap(),
           ),
-          queryParameters: data.queryParameters.addAll(
-            queryParameters.toIMap(),
+          queryParameters: _mergeQueryParameterWrites(
+            initialQueryParameters: data.queryParameters,
+            nodes: routeNodes.pathRouteNodes,
+            writeQueryParameters: writeQueryParameters,
           ),
         );
       case FirstChildRouteTarget(
         :final predicate,
-        :final queryParameters,
         :final writePathParameters,
+        :final writeQueryParameters,
       ):
         final data = currentData!;
         final currentLocation = data.leaf;
@@ -609,12 +616,14 @@ class WorkingRouter extends ChangeNotifier
           fallback: null,
           pathParameters: data.pathParametersForRouter.addAll(
             _resolvePathParameterWrites(
-              routeNodes.pathRouteNodes,
-              writePathParameters,
+              nodes: routeNodes.pathRouteNodes,
+              writePathParameters: writePathParameters,
             ).toIMap(),
           ),
-          queryParameters: data.queryParameters.addAll(
-            queryParameters.toIMap(),
+          queryParameters: _mergeQueryParameterWrites(
+            initialQueryParameters: data.queryParameters,
+            nodes: routeNodes.pathRouteNodes,
+            writeQueryParameters: writeQueryParameters,
           ),
         );
     }
@@ -679,20 +688,20 @@ class WorkingRouter extends ChangeNotifier
     return data.routeNodes.take(lastRemainingNodeIndex + 1).toIList();
   }
 
-  Map<UnboundPathParam<dynamic>, String> _resolvePathParameterWrites(
-    Iterable<PathRouteNode> locations,
-    WritePathParameters? writePathParameters,
-  ) {
+  Map<UnboundPathParam<dynamic>, String> _resolvePathParameterWrites({
+    required Iterable<PathRouteNode> nodes,
+    required WritePathParameters? writePathParameters,
+  }) {
     if (writePathParameters == null) {
       return const {};
     }
 
     final resolved = <UnboundPathParam<dynamic>, String>{};
-    for (final location in locations) {
+    for (final node in nodes) {
       writePathParameters(
-        location,
+        node,
         <T>(PathParam<T> parameter, T value) {
-          final isDeclared = location.path.any(
+          final isDeclared = node.path.any(
             (segment) {
               if (segment is! PathParam<dynamic>) {
                 return false;
@@ -703,7 +712,7 @@ class WorkingRouter extends ChangeNotifier
           if (!isDeclared) {
             throw StateError(
               'The path parameter `$parameter` is not declared by '
-              '${location.runtimeType}.',
+              '${node.runtimeType}.',
             );
           }
           resolved[parameter.unboundParam] = parameter.codec.encode(value);
@@ -711,6 +720,70 @@ class WorkingRouter extends ChangeNotifier
       );
     }
     return resolved;
+  }
+
+  IMap<String, String> _mergeQueryParameterWrites({
+    required IMap<String, String>? initialQueryParameters,
+    required Iterable<PathRouteNode> nodes,
+    required WriteQueryParameters? writeQueryParameters,
+  }) {
+    final currentQueryParameters =
+        initialQueryParameters ?? IMap<String, String>();
+    final resolved = _resolveQueryParameterWrites(
+      nodes,
+      writeQueryParameters,
+    );
+    final withoutDefaultValueWrites = resolved.defaultValueKeys.isEmpty
+        ? currentQueryParameters
+        : currentQueryParameters.keepKeys(
+            currentQueryParameters.keys.toSet().difference(
+              resolved.defaultValueKeys,
+            ),
+          );
+    return withoutDefaultValueWrites.addAll(resolved.values.toIMap());
+  }
+
+  ({Map<String, String> values, Set<String> defaultValueKeys})
+  _resolveQueryParameterWrites(
+    Iterable<PathRouteNode> locations,
+    WriteQueryParameters? writeQueryParameters,
+  ) {
+    if (writeQueryParameters == null) {
+      return (values: const {}, defaultValueKeys: const <String>{});
+    }
+
+    final values = <String, String>{};
+    final defaultValueKeys = <String>{};
+    for (final node in locations) {
+      writeQueryParameters(
+        node,
+        <T>(QueryParam<T> parameter, T value) {
+          final isDeclared = node.queryParameters.any(
+            (declaredParameter) => identical(
+              declaredParameter.unboundParam,
+              parameter.unboundParam,
+            ),
+          );
+          if (!isDeclared) {
+            throw StateError(
+              'The query parameter `$parameter` is not declared by '
+              '${node.runtimeType}.',
+            );
+          }
+
+          if (parameter.defaultValue case final defaultValue?
+              when defaultValue.value == value) {
+            values.remove(parameter.name);
+            defaultValueKeys.add(parameter.name);
+            return;
+          }
+
+          defaultValueKeys.remove(parameter.name);
+          values[parameter.name] = parameter.codec.encode(value);
+        },
+      );
+    }
+    return (values: values, defaultValueKeys: defaultValueKeys);
   }
 
   /// Notifies all location observers after a route change.

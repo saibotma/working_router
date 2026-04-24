@@ -373,9 +373,9 @@ void main() {
 
         router.routeToId(
           _ParamId.item,
-          writePathParameters: (location, path) {
-            if (location is _ItemLocation) {
-              path(location.boundIdParameter, '42');
+          writePathParameters: (node, path) {
+            if (node is _ItemLocation) {
+              path(node.boundIdParameter, '42');
             }
           },
         );
@@ -386,25 +386,29 @@ void main() {
       },
     );
 
-    testWidgets('routeToId throws for structural route node ids', (tester) async {
+    testWidgets('routeToId throws for structural route node ids', (
+      tester,
+    ) async {
       final shellId = NodeId<Shell>();
       final router = WorkingRouter(
         buildRouteNodes: (_) => [
           _BuilderLocation(
             id: _Id.root,
             build: (builder, location) {
-                builder.content = Content.widget(const Text('root'));
-                builder.children = [
-                  Shell(
-                    id: shellId,
-                    build: (builder, shell, routerKey) {
+              builder.content = Content.widget(const Text('root'));
+              builder.children = [
+                Shell(
+                  id: shellId,
+                  build: (builder, shell, routerKey) {
                     builder.pathLiteral('shell');
                     builder.children = [
                       _BuilderLocation(
                         id: _Id.b,
                         build: (builder, location) {
                           builder.pathLiteral('detail');
-                          builder.content = Content.widget(const Text('detail'));
+                          builder.content = Content.widget(
+                            const Text('detail'),
+                          );
                         },
                       ),
                     ];
@@ -562,8 +566,7 @@ void main() {
                     builder.pathLiteral('a');
                     builder.pageKey = PageKey.custom((data) {
                       sawExpectedData =
-                          data.uri.path == '/a' &&
-                          data.leaf?.id == _Id.a;
+                          data.uri.path == '/a' && data.leaf?.id == _Id.a;
                       return ValueKey('dsl:${data.uri.path}');
                     });
                     builder.content = Content.widget(const Text('a'));
@@ -791,6 +794,95 @@ void main() {
         expect(find.text('en'), findsOneWidget);
       },
     );
+
+    testWidgets('typed query writes omit default values', (tester) async {
+      late QueryParam<String> languageCode;
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderScope(
+                  build: (builder, scope) {
+                    languageCode = builder.stringQueryParam(
+                      'languageCode',
+                      defaultValue: const Default('en'),
+                    );
+                    builder.children = [
+                      _BuilderLocation(
+                        id: _Id.a,
+                        build: (builder, location) {
+                          builder.pathLiteral('privacy');
+                          builder.content = Content.builder((context, data) {
+                            return Text(data.param(languageCode));
+                          });
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToId(
+        _Id.a,
+        writeQueryParameters: (node, query) {
+          if (node.queryParameters.any(
+            (it) => identical(it, languageCode),
+          )) {
+            query(languageCode, 'en');
+          }
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('en'), findsOneWidget);
+      expect(router.nullableData!.uri, Uri(path: '/privacy'));
+      expect(router.nullableData!.queryParameters.isEmpty, true);
+
+      router.routeToId(
+        _Id.a,
+        writeQueryParameters: (node, query) {
+          if (node.queryParameters.any(
+            (it) => identical(it, languageCode),
+          )) {
+            query(languageCode, 'de');
+          }
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('de'), findsOneWidget);
+      expect(
+        router.nullableData!.uri,
+        Uri(path: '/privacy', queryParameters: {'languageCode': 'de'}),
+      );
+      expect(router.nullableData!.queryParameters.unlock, {
+        'languageCode': 'de',
+      });
+
+      router.routeToId(
+        _Id.a,
+        writeQueryParameters: (node, query) {
+          if (node.queryParameters.any(
+            (it) => identical(it, languageCode),
+          )) {
+            query(languageCode, 'en');
+          }
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('en'), findsOneWidget);
+      expect(router.nullableData!.uri, Uri(path: '/privacy'));
+      expect(router.nullableData!.queryParameters.isEmpty, true);
+    });
 
     testWidgets('shells share path and query params with children', (
       tester,
@@ -1028,9 +1120,9 @@ void main() {
       await _pumpRouterApp(tester, router);
       router.routeToId(
         _Id.b,
-        writePathParameters: (location, path) {
-          if (location is Shell) {
-            path(location.pathParameters.single as PathParam<String>, '42');
+        writePathParameters: (node, path) {
+          if (node is Shell) {
+            path(node.pathParameters.single as PathParam<String>, '42');
           }
         },
       );
@@ -2291,8 +2383,7 @@ class _DetailLocation extends _ParamPathLocation<_DetailLocation> {
   }
 }
 
-class _MigratingRootLocation
-    extends AbstractLocation<_MigratingRootLocation> {
+class _MigratingRootLocation extends AbstractLocation<_MigratingRootLocation> {
   final List<RouteNode> _childNodes;
 
   _MigratingRootLocation({
@@ -2326,8 +2417,7 @@ class _SelfBuiltAccountLocation
   }
 }
 
-class _BuilderLocation
-    extends Location<_BuilderLocation> {
+class _BuilderLocation extends Location<_BuilderLocation> {
   _BuilderLocation({
     required super.id,
     super.parentRouterKey,
@@ -2341,8 +2431,7 @@ class _BuilderScope extends Scope<_BuilderScope> {
   });
 }
 
-class _BuilderShellLocation
-    extends ShellLocation<_BuilderShellLocation> {
+class _BuilderShellLocation extends ShellLocation<_BuilderShellLocation> {
   _BuilderShellLocation({
     super.navigatorEnabled,
     required super.build,
