@@ -24,7 +24,10 @@ void main() {
     test('pathTemplateUpToNode ignores hydrated path parameter values', () {
       const itemId = UnboundPathParam(StringRouteParamCodec());
       final list = _TestLocation(id: _TestId.list, path: '/items');
-      final detail = _ParamOnlyLocation(id: _TestId.paramOnly, parameter: itemId);
+      final detail = _ParamOnlyLocation(
+        id: _TestId.paramOnly,
+        parameter: itemId,
+      );
       final boundItemId = detail.boundParameter;
       final data = WorkingRouterData(
         uri: Uri(path: '/items/123'),
@@ -75,6 +78,79 @@ void main() {
       );
 
       expect(data.param(boundTab), 'all');
+    });
+
+    test('queryParam error includes query key and current data', () {
+      const tab = UnboundQueryParam('tab', StringRouteParamCodec());
+      final location = _QueryLocation(id: _TestId.query, parameter: tab);
+      final boundTab = location.boundParameter;
+      final data = WorkingRouterData(
+        uri: Uri(path: '/query', queryParameters: {'filter': 'active'}),
+        routeNodes: [location].toIList(),
+        pathParameters: IMap(),
+        queryParameters: {'filter': 'active'}.lock,
+      );
+
+      expect(
+        () => data.param(boundTab),
+        throwsA(
+          isA<StateError>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains('`tab`'),
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('/query?filter=active'),
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Available query values: `filter`'),
+              ),
+        ),
+      );
+    });
+
+    test('queryParam inactive error includes query key and active keys', () {
+      const tab = UnboundQueryParam('tab', StringRouteParamCodec());
+      const filter = UnboundQueryParam('filter', StringRouteParamCodec());
+      final location = _QueryLocation(id: _TestId.query, parameter: filter);
+      final inactiveLocation = _QueryLocation(
+        id: _TestId.query,
+        parameter: tab,
+      );
+      final inactiveTab = inactiveLocation.boundParameter;
+      final data = WorkingRouterData(
+        uri: Uri(path: '/query', queryParameters: {'tab': 'all'}),
+        routeNodes: [location].toIList(),
+        pathParameters: IMap(),
+        queryParameters: {'tab': 'all'}.lock,
+      );
+
+      expect(
+        () => data.param(inactiveTab),
+        throwsA(
+          isA<StateError>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains('`tab`'),
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('/query?tab=all'),
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Active query params: `filter`'),
+              ),
+        ),
+      );
     });
 
     test(
@@ -259,7 +335,9 @@ void main() {
 
       expect(data.lastMatched<_TestLocation>(), same(child));
       expect(
-        data.lastMatched<_TestLocation>((location) => location.id != _TestId.child),
+        data.lastMatched<_TestLocation>(
+          (location) => location.id != _TestId.child,
+        ),
         same(parent),
       );
       expect(data.lastMatched<_AccountsNode>(), isNull);
@@ -298,8 +376,7 @@ class _TestLocation extends AbstractLocation<_TestLocation> {
   }
 }
 
-class _ParamOnlyLocation
-    extends AbstractLocation<_ParamOnlyLocation> {
+class _ParamOnlyLocation extends AbstractLocation<_ParamOnlyLocation> {
   final UnboundPathParam<String> parameter;
   late final PathParam<String> boundParameter =
       definition.pathParameters.single as PathParam<String>;
@@ -307,8 +384,7 @@ class _ParamOnlyLocation
   _ParamOnlyLocation({
     required NodeId<_ParamOnlyLocation> id,
     required this.parameter,
-  })
-    : super(id: id);
+  }) : super(id: id);
 
   @override
   void build(LocationBuilder builder) {
@@ -330,8 +406,7 @@ class _QueryLocation extends AbstractLocation<_QueryLocation> {
   }
 }
 
-class _NullableQueryLocation
-    extends AbstractLocation<_NullableQueryLocation> {
+class _NullableQueryLocation extends AbstractLocation<_NullableQueryLocation> {
   final UnboundQueryParam<DateTime?> parameter;
   late final QueryParam<DateTime?> boundParameter =
       definition.queryParameters.single as QueryParam<DateTime?>;
@@ -339,8 +414,7 @@ class _NullableQueryLocation
   _NullableQueryLocation({
     required NodeId<_NullableQueryLocation> id,
     required this.parameter,
-  })
-    : super(id: id);
+  }) : super(id: id);
 
   @override
   void build(LocationBuilder builder) {
@@ -348,8 +422,7 @@ class _NullableQueryLocation
   }
 }
 
-class _NoIdSegmentLocation
-    extends AbstractLocation<_NoIdSegmentLocation> {
+class _NoIdSegmentLocation extends AbstractLocation<_NoIdSegmentLocation> {
   final List<PathSegment> _segments;
 
   _NoIdSegmentLocation({required String path})
@@ -363,8 +436,7 @@ class _NoIdSegmentLocation
   }
 }
 
-class _BoundParamLocation
-    extends AbstractLocation<_BoundParamLocation> {
+class _BoundParamLocation extends AbstractLocation<_BoundParamLocation> {
   final UnboundPathParam<String> pathParameter;
   final UnboundQueryParam<String> queryParameter;
 
@@ -390,17 +462,15 @@ class _AccountsNode extends AbstractShell<_AccountsNode> {
   }
 }
 
-class _TypedRootLocation
-    extends AbstractLocation<_TypedRootLocation> {
+class _TypedRootLocation extends AbstractLocation<_TypedRootLocation> {
   _TypedRootLocation() : super(id: _typedRootId);
 
   @override
   void build(LocationBuilder builder) {}
 }
 
-class _TypedAddAccountLocation extends AbstractLocation<
-  _TypedAddAccountLocation
-> {
+class _TypedAddAccountLocation
+    extends AbstractLocation<_TypedAddAccountLocation> {
   _TypedAddAccountLocation() : super(id: _typedAddAccountId);
 
   @override

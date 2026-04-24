@@ -45,8 +45,7 @@ class WorkingRouterData {
   }
 
   late final IList<AnyLocation> _locations = routeNodes.locations;
-  late final IList<PathRouteNode> _pathRouteNodes =
-      routeNodes.pathRouteNodes;
+  late final IList<PathRouteNode> _pathRouteNodes = routeNodes.pathRouteNodes;
 
   AnyLocation? get leaf => _locations.lastOrNull;
 
@@ -104,7 +103,9 @@ class WorkingRouterData {
   T _queryParam<T>(QueryParam<T> parameter) {
     if (!_hasDeclaredQueryParam(parameter.unboundParam)) {
       throw StateError(
-        'The requested QueryParam is not part of the current matched route chain.',
+        'The requested QueryParam `${parameter.name}` is not part of the '
+        'current matched route chain for `$uri`. Active query params: '
+        '${_activeQueryParamNamesDescription()}.',
       );
     }
 
@@ -120,7 +121,9 @@ class WorkingRouterData {
     }
 
     throw StateError(
-      'The requested QueryParam is not present in the current router data.',
+      'The requested QueryParam `${parameter.name}` is not present in the '
+      'current router data for `$uri` and it has no default value. Available '
+      'query values: ${_availableQueryValueNamesDescription()}.',
     );
   }
 
@@ -148,6 +151,27 @@ class WorkingRouterData {
       }
     }
     return false;
+  }
+
+  String _activeQueryParamNamesDescription() {
+    final names =
+        _pathRouteNodes
+            .expand((node) => node.queryParameters.map((it) => it.name))
+            .toSet()
+            .toList()
+          ..sort();
+    if (names.isEmpty) {
+      return 'none';
+    }
+    return names.map((name) => '`$name`').join(', ');
+  }
+
+  String _availableQueryValueNamesDescription() {
+    final names = queryParameters.keys.toList()..sort();
+    if (names.isEmpty) {
+      return 'none';
+    }
+    return names.map((name) => '`$name`').join(', ');
   }
 
   String pathUpToLocation(AnyLocation location) {
