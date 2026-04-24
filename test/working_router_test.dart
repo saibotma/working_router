@@ -1895,6 +1895,12 @@ void main() {
                         const Text('placeholder'),
                       );
                       builder.content = const Content.none();
+                      builder.page = (key, child) {
+                        return MaterialPage<dynamic>(
+                          key: key,
+                          child: child,
+                        );
+                      };
                     },
                   ),
                 ];
@@ -1913,6 +1919,59 @@ void main() {
         expect(
           tester.widgetList<Navigator>(find.byType(Navigator)),
           hasLength(3),
+        );
+      },
+    );
+
+    test(
+      'page without content reports route context and assignment stack',
+      () {
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.pathLiteral('chat');
+                builder.page = (key, child) {
+                  return MaterialPage<dynamic>(
+                    key: key,
+                    child: child,
+                  );
+                };
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        Object? thrownError;
+        StackTrace? thrownStackTrace;
+        try {
+          router.routeToUri(Uri(path: '/chat'));
+        } catch (error, stackTrace) {
+          thrownError = error;
+          thrownStackTrace = stackTrace;
+        }
+
+        expect(
+          thrownError,
+          isA<StateError>().having(
+            (it) => it.message,
+            'message',
+            allOf([
+              contains(
+                'LocationBuilder page was configured without content.',
+              ),
+              contains('node: _BuilderLocation'),
+              contains('builder: LocationBuilder'),
+              contains('node-local path: /chat'),
+              contains('Content.none'),
+            ]),
+          ),
+        );
+        expect(
+          thrownStackTrace.toString().split('\n').first,
+          contains('LocationBuilder.page='),
         );
       },
     );

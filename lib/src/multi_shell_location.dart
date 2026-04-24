@@ -134,8 +134,8 @@ class MultiShellLocationBuilder extends LocationBuilder {
   }
 
   @override
-  LocationBuildResult? resolveRender() {
-    final locationRender = super.resolveRender();
+  LocationBuildResult? resolveRender({String? debugContext}) {
+    final locationRender = super.resolveRender(debugContext: debugContext);
     if (locationRender == null) {
       throw StateError(
         'MultiShellLocationBuilder requires content. '

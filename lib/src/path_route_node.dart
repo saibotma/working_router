@@ -312,7 +312,9 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       ) =>
         () {
           element.build(locationBuilder);
-          return locationBuilder.resolveRender();
+          return locationBuilder.resolveRender(
+            debugContext: _debugConfigurationContext(locationBuilder),
+          );
         }(),
       (
         final BuildsWithScopeBuilder element,
@@ -336,7 +338,9 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       ) =>
         () {
           element.build(shellLocationBuilder);
-          return shellLocationBuilder.resolveRender();
+          return shellLocationBuilder.resolveRender(
+            debugContext: _debugConfigurationContext(shellLocationBuilder),
+          );
         }(),
       (
         final BuildsWithMultiShellBuilder element,
@@ -352,7 +356,11 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       ) =>
         () {
           element.build(multiShellLocationBuilder);
-          return multiShellLocationBuilder.resolveRender();
+          return multiShellLocationBuilder.resolveRender(
+            debugContext: _debugConfigurationContext(
+              multiShellLocationBuilder,
+            ),
+          );
         }(),
       _ => throw StateError(
         'Unsupported PathRouteNode/Builder combination: '
@@ -382,4 +390,48 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
   LocalKey buildPageKey(WorkingRouterData data) {
     return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
   }
+
+  String _debugConfigurationContext(PathRouteNodeBuilder builder) {
+    final buffer = StringBuffer()
+      ..writeln('  node: $runtimeType')
+      ..writeln('  builder: ${builder.runtimeType}')
+      ..writeln('  node-local path: ${_debugPathTemplate(builder.path)}');
+
+    if (builder.queryParameters.isNotEmpty) {
+      buffer.writeln(
+        '  query parameters: '
+        '${builder.queryParameters.map((it) => it.name).join(', ')}',
+      );
+    }
+    if (id != null) {
+      buffer.writeln('  id: ${id.runtimeType}#${identityHashCode(id)}');
+    }
+    if (localId != null) {
+      buffer.writeln(
+        '  localId: ${localId.runtimeType}#${identityHashCode(localId)}',
+      );
+    }
+    if (builder.children.isNotEmpty) {
+      buffer.writeln(
+        '  children: ${builder.children.map((it) => it.runtimeType).join(', ')}',
+      );
+    }
+
+    return buffer.toString().trimRight();
+  }
+}
+
+String _debugPathTemplate(List<PathSegment> path) {
+  if (path.isEmpty) {
+    return '/';
+  }
+
+  final segments = path.map((segment) {
+    return switch (segment) {
+      final LiteralPathSegment literal => literal.value,
+      PathParam() => '*',
+    };
+  });
+
+  return '/${segments.join('/')}';
 }

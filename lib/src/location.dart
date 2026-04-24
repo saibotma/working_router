@@ -128,6 +128,7 @@ final class NonRenderingLocationBuildResult
 class LocationBuilder extends PathRouteNodeBuilder {
   Content? _content;
   SelfBuiltLocationPageBuilder? _buildPage;
+  StackTrace? _buildPageConfiguredStackTrace;
 
   LocationBuilder();
 
@@ -149,14 +150,16 @@ class LocationBuilder extends PathRouteNodeBuilder {
       );
     }
     _buildPage = page;
+    _buildPageConfiguredStackTrace = StackTrace.current;
   }
 
-  LocationBuildResult? resolveRender() {
+  LocationBuildResult? resolveRender({String? debugContext}) {
     if (_content == null) {
       if (_buildPage != null) {
-        throw StateError(
+        _throwPageConfigurationError(
           'LocationBuilder page was configured without content. '
           'Configure content before setting page.',
+          debugContext: debugContext,
         );
       }
       return null;
@@ -171,16 +174,31 @@ class LocationBuilder extends PathRouteNodeBuilder {
         buildWidget: builderContent.builder,
         buildPage: _buildPage,
       ),
-      _NoContent() => () {
-        if (_buildPage != null) {
-          throw StateError(
-            'LocationBuilder page was configured for Content.none(). '
-            'Non-rendering locations may not configure page.',
-          );
-        }
-        return const NonRenderingLocationBuildResult();
-      }(),
+      _NoContent() => const NonRenderingLocationBuildResult(),
     };
+  }
+
+  Never _throwPageConfigurationError(
+    String message, {
+    required String? debugContext,
+  }) {
+    final contextMessage = debugContext == null
+        ? ''
+        : '\n\nRoute configuration:\n$debugContext';
+    final fullMessage =
+        '$message'
+        '$contextMessage'
+        '\n\nThe stack trace points to the `builder.page = ...` assignment '
+        'that made this configuration invalid. Use rendering content with '
+        '`builder.content = Content.widget(...)` or '
+        '`builder.content = Content.builder(...)`, explicitly use '
+        '`builder.content = const Content.none()`, or remove `builder.page`.';
+
+    final stackTrace = _buildPageConfiguredStackTrace;
+    if (stackTrace == null) {
+      throw StateError(fullMessage);
+    }
+    Error.throwWithStackTrace(StateError(fullMessage), stackTrace);
   }
 }
 
