@@ -619,9 +619,12 @@ back/forward history.
 
 ## Query Filters
 
-`queryFilter(...)` makes a normal route node match only when a typed default
-query parameter has a specific value. This is useful for pane state such as a
-chat search view that should appear beside the currently selected channel.
+`builder.queryFilters = [...]` makes a normal route node match only when all
+typed default query parameters have their configured values. Create each filter
+from the typed query parameter with `someDefaultQueryParam.matches(value)` so
+Dart checks that the filter value has the exact query parameter type. This is
+useful for pane state such as a chat search view that should appear beside the
+currently selected channel.
 
 ```dart
 AnonymousMultiShellLocation(
@@ -672,7 +675,9 @@ class SearchNode extends AbstractLocation<SearchNode> {
 
   @override
   void build(LocationBuilder builder) {
-    builder.queryFilter(chatDisplay, ChatDisplay.search);
+    builder.queryFilters = [
+      chatDisplay.matches(ChatDisplay.search),
+    ];
     builder.content = Content.widget(const SearchScreen());
   }
 }

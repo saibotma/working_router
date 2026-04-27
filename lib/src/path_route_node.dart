@@ -68,7 +68,8 @@ abstract class PathRouteNodeBuilder {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
-  final List<QueryFilter<dynamic>> _queryFilters = [];
+  List<QueryFilter<dynamic>> _queryFilters = const [];
+  bool _queryFiltersAssigned = false;
   List<RouteNode> _children = const [];
   bool _childrenAssigned = false;
   PageKey? _pageKey;
@@ -200,8 +201,15 @@ abstract class PathRouteNodeBuilder {
     );
   }
 
-  void queryFilter<T>(DefaultQueryParam<T> parameter, T value) {
-    _queryFilters.add(QueryFilter<T>(parameter: parameter, value: value));
+  set queryFilters(List<QueryFilter<dynamic>> filters) {
+    if (_queryFiltersAssigned) {
+      throw StateError(
+        'PathRouteNodeBuilder queryFilters were already configured. '
+        'queryFilters may only be assigned once.',
+      );
+    }
+    _queryFilters = List.unmodifiable(filters);
+    _queryFiltersAssigned = true;
   }
 
   RequiredQueryParam<String> stringQueryParam(String name) {

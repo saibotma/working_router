@@ -86,7 +86,7 @@ final class QueryFilter<T> {
   final DefaultQueryParam<T> parameter;
   final T value;
 
-  const QueryFilter({
+  const QueryFilter._({
     required this.parameter,
     required this.value,
   });
@@ -189,6 +189,10 @@ class DefaultQueryParam<T> extends QueryParam<T> {
   @internal
   DefaultQueryParam(super.unboundParam)
     : assert(unboundParam.defaultValue != null);
+
+  QueryFilter<T> matches(T value) {
+    return QueryFilter<T>._(parameter: this, value: value);
+  }
 }
 
 typedef CustomPageKeyBuilder = LocalKey Function(WorkingRouterData data);

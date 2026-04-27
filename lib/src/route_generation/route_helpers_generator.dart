@@ -1115,7 +1115,6 @@ const _builderRouteDeclarationMethods = {
   'enumPathParam',
   'queryParam',
   'defaultQueryParam',
-  'queryFilter',
   'stringQueryParam',
   'defaultStringQueryParam',
   'nullableStringQueryParam',
@@ -2070,8 +2069,6 @@ class _StaticRouteTreeExtractor {
           result.queryParameters,
           element: elementForErrors,
         );
-      case 'queryFilter':
-        return;
       case 'bindParam':
       case 'bindQueryParam':
       case 'bindDefaultQueryParam':

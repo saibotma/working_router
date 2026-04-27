@@ -2263,6 +2263,10 @@ void main() {
                       'chatDisplay',
                       defaultValue: const Default('list'),
                     );
+                    final searchScope = builder.defaultStringQueryParam(
+                      'searchScope',
+                      defaultValue: const Default('local'),
+                    );
                     final leftSlot = builder.slot(
                       debugLabel: 'left',
                       defaultContent: DefaultContent.widget(
@@ -2290,7 +2294,10 @@ void main() {
                       id: _querySearchId,
                       parentRouterKey: leftSlot.routerKey,
                       build: (builder, location) {
-                        builder.queryFilter(chatDisplay, 'search');
+                        builder.queryFilters = [
+                          chatDisplay.matches('search'),
+                          searchScope.matches('global'),
+                        ];
                         builder.content = Content.builder((context, data) {
                           return TextButton(
                             onPressed: () {
@@ -2337,7 +2344,10 @@ void main() {
         router.nullableData!.uri,
         Uri(
           path: '/chat/channel/42',
-          queryParameters: {'chatDisplay': 'search'},
+          queryParameters: {
+            'chatDisplay': 'search',
+            'searchScope': 'global',
+          },
         ),
       );
       final searchUri = router.nullableConfiguration!;
@@ -2359,7 +2369,10 @@ void main() {
         router.nullableData!.uri,
         Uri(
           path: '/chat/channel/42',
-          queryParameters: {'chatDisplay': 'search'},
+          queryParameters: {
+            'chatDisplay': 'search',
+            'searchScope': 'global',
+          },
         ),
       );
 
@@ -2381,7 +2394,10 @@ void main() {
         router.nullableData!.uri,
         Uri(
           path: '/chat',
-          queryParameters: {'chatDisplay': 'search'},
+          queryParameters: {
+            'chatDisplay': 'search',
+            'searchScope': 'global',
+          },
         ),
       );
 

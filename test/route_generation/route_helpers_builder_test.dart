@@ -199,7 +199,9 @@ class SearchLocation extends Location<FilterRouteId, SearchLocation> {
 
   @override
   void build(LocationBuilder builder) {
-    builder.queryFilter(chatDisplay, 'search');
+    builder.queryFilters = [
+      chatDisplay.matches('search'),
+    ];
   }
 }
 
