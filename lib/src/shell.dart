@@ -132,6 +132,8 @@ class BuiltShellDefinition {
   final List<QueryFilter<dynamic>> queryFilters;
   final List<RouteNode> children;
   final PageKey? pageKey;
+  final RoutePathVisibility pathVisibility;
+  final RouteBrowserHistory browserHistory;
   final ShellBuildResult render;
 
   const BuiltShellDefinition({
@@ -141,6 +143,8 @@ class BuiltShellDefinition {
     required this.queryFilters,
     required this.children,
     required this.pageKey,
+    required this.pathVisibility,
+    required this.browserHistory,
     required this.render,
   });
 }
@@ -202,6 +206,8 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
       queryFilters: List.unmodifiable(builder.queryFilters),
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
+      pathVisibility: builder.pathVisibility,
+      browserHistory: builder.browserHistory,
       render: render,
     );
   }
@@ -217,6 +223,12 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
 
   @override
   List<QueryFilter<dynamic>> get queryFilters => _definition.queryFilters;
+
+  @override
+  RoutePathVisibility get pathVisibility => _definition.pathVisibility;
+
+  @override
+  RouteBrowserHistory get browserHistory => _definition.browserHistory;
 
   @override
   List<RouteNode> get children => _definition.children;

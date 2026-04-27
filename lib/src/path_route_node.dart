@@ -52,6 +52,18 @@ enum RoutePathVisibility {
   hidden,
 }
 
+/// Controls whether a matched route node creates a browser history entry when
+/// the router reports its URI.
+///
+/// [remember] is the normal browser behavior: the URL update can create a new
+/// history entry. [replace] keeps the URL in sync but reports the route update
+/// as `Router.neglect`, so the browser replaces the current entry instead of
+/// creating a forward-routable one.
+enum RouteBrowserHistory {
+  remember,
+  replace,
+}
+
 abstract class PathRouteNodeBuilder {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
@@ -61,6 +73,7 @@ abstract class PathRouteNodeBuilder {
   bool _childrenAssigned = false;
   PageKey? _pageKey;
   RoutePathVisibility pathVisibility = RoutePathVisibility.inherit;
+  RouteBrowserHistory browserHistory = RouteBrowserHistory.remember;
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
@@ -484,6 +497,7 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
       pathVisibility: builder.pathVisibility,
+      browserHistory: builder.browserHistory,
       render: render,
     );
   }
@@ -497,6 +511,8 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
   List<QueryFilter<dynamic>> get queryFilters => _definition.queryFilters;
 
   RoutePathVisibility get pathVisibility => _definition.pathVisibility;
+
+  RouteBrowserHistory get browserHistory => _definition.browserHistory;
 
   @override
   List<RouteNode> get children => _definition.children;

@@ -207,6 +207,7 @@ class BuiltLocationDefinition {
   final List<RouteNode> children;
   final PageKey? pageKey;
   final RoutePathVisibility pathVisibility;
+  final RouteBrowserHistory browserHistory;
   final PathRouteNodeRenderResult? render;
 
   const BuiltLocationDefinition({
@@ -217,6 +218,7 @@ class BuiltLocationDefinition {
     required this.children,
     required this.pageKey,
     required this.pathVisibility,
+    required this.browserHistory,
     required this.render,
   });
 }

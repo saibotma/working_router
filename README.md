@@ -604,6 +604,19 @@ security or product issue later, the router can move to a typed route-state
 model that distinguishes visible URL segments from hidden state during
 matching.
 
+## Browser History
+
+`builder.browserHistory = RouteBrowserHistory.replace` keeps the browser URL in
+sync without creating a new forward-routable history entry. When the active
+route transition enters or leaves a `replace` node, working_router reports the
+URI update as `RouteInformationReportingType.neglect`, so the browser replaces
+the current history entry instead of pushing a new one.
+
+The default is `RouteBrowserHistory.remember`, which uses normal browser
+history behavior. Use `replace` for transient routed UI such as dialog-like
+locations or panes that should be reflected in the URL but skipped by browser
+back/forward history.
+
 ## Query Filters
 
 `queryFilter(...)` makes a normal route node match only when a typed default

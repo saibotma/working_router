@@ -129,6 +129,72 @@ void main() {
 
       expect(() => router.routeToUri(Uri(path: '/a')), throwsStateError);
     });
+
+    testWidgets('replace browser history routes report as neglect', (
+      tester,
+    ) async {
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('remembered');
+                    builder.content = Content.widget(
+                      const Text('remembered'),
+                    );
+                  },
+                ),
+                _BuilderLocation(
+                  id: _Id.b,
+                  build: (builder, location) {
+                    builder.browserHistory = RouteBrowserHistory.replace;
+                    builder.pathLiteral('replaced');
+                    builder.content = Content.widget(
+                      const Text('replaced'),
+                    );
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      final informationProvider =
+          router.routeInformationProvider! as WorkingRouteInformationProvider;
+
+      await _pumpRouterApp(tester, router);
+      informationProvider.debugReportedTypes.clear();
+
+      router.routeToUri(Uri(path: '/remembered'));
+      await tester.pumpAndSettle();
+      expect(
+        informationProvider.debugReportedTypes.last,
+        isNot(
+          RouteInformationReportingType.neglect,
+        ),
+      );
+
+      informationProvider.debugReportedTypes.clear();
+      router.routeToUri(Uri(path: '/replaced'));
+      await tester.pumpAndSettle();
+      expect(
+        informationProvider.debugReportedTypes.last,
+        RouteInformationReportingType.neglect,
+      );
+
+      informationProvider.debugReportedTypes.clear();
+      router.routeToUri(Uri(path: '/remembered'));
+      await tester.pumpAndSettle();
+      expect(
+        informationProvider.debugReportedTypes.last,
+        RouteInformationReportingType.neglect,
+      );
+    });
   });
 
   group('WorkingRouter beforeLeave', () {

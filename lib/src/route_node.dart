@@ -677,6 +677,14 @@ extension RouteNodePathVisibilityX on Iterable<RouteNode> {
   }
 }
 
+extension RouteNodeBrowserHistoryX on Iterable<RouteNode> {
+  bool get replacesBrowserHistory {
+    return whereType<PathRouteNode>().any(
+      (node) => node.browserHistory == RouteBrowserHistory.replace,
+    );
+  }
+}
+
 IList<RouteNode>? resolveExactChildRouteNodes(
   RouteNode owner,
   List<bool Function(RouteNode node)> relativeMatchers,

@@ -278,6 +278,7 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
       pathVisibility: builder.pathVisibility,
+      browserHistory: builder.browserHistory,
       render: render,
     );
   }
@@ -296,6 +297,9 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
 
   @override
   RoutePathVisibility get pathVisibility => _definition.pathVisibility;
+
+  @override
+  RouteBrowserHistory get browserHistory => _definition.browserHistory;
 
   @override
   List<RouteNode> get children => _definition.children;

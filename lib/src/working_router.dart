@@ -30,14 +30,15 @@ class WorkingRouter extends ChangeNotifier
   late final WorkingRouterDelegate _rootDelegate;
   final WorkingRouteInformationParser _informationParser =
       WorkingRouteInformationParser();
-  final RouteInformationProvider _informationProvider =
-      PlatformRouteInformationProvider(
+  late final WorkingRouteInformationProvider _informationProvider =
+      WorkingRouteInformationProvider(
         initialRouteInformation: RouteInformation(
           // ignore: deprecated_member_use
           uri: Uri.parse(
             WidgetsBinding.instance.platformDispatcher.defaultRouteName,
           ),
         ),
+        consumeReplaceBrowserHistory: _consumeReplaceBrowserHistoryReport,
       );
   final GlobalKey<NavigatorState> _rootNavigatorKey;
   final WorkingRouterKey _rootRouterKey = WorkingRouterKey();
@@ -51,6 +52,7 @@ class WorkingRouter extends ChangeNotifier
   /// starts before async `beforeLeave` checks complete, older requests
   /// are discarded.
   int _routingVersion = 0;
+  bool _replaceNextBrowserHistoryReport = false;
 
   @Deprecated(
     "Don't use this property directly. "
@@ -430,6 +432,10 @@ class WorkingRouter extends ChangeNotifier
         newLocations: resolvedData.routeNodes.locations,
         onAllowed: () {
           final oldLocations = oldData?.routeNodes.locations;
+          _replaceNextBrowserHistoryReport = _shouldReplaceBrowserHistoryReport(
+            oldData,
+            resolvedData,
+          );
           _updateData(resolvedData);
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -452,6 +458,20 @@ class WorkingRouter extends ChangeNotifier
         );
       }),
     );
+  }
+
+  bool _shouldReplaceBrowserHistoryReport(
+    WorkingRouterData? oldData,
+    WorkingRouterData newData,
+  ) {
+    return (oldData?.routeNodes.replacesBrowserHistory ?? false) ||
+        newData.routeNodes.replacesBrowserHistory;
+  }
+
+  bool _consumeReplaceBrowserHistoryReport() {
+    final replace = _replaceNextBrowserHistoryReport;
+    _replaceNextBrowserHistoryReport = false;
+    return replace;
   }
 
   Future<void> _guardBeforeLeave({
