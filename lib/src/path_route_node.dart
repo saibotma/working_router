@@ -115,10 +115,11 @@ abstract class PathRouteNodeBuilder {
       final UnboundPathParam<T> pathParameter => pathSegment<PathParam<T>>(
         PathParam<T>(pathParameter),
       ),
-      final UnboundQueryParam<T> queryParameter =>
-        queryParameter.defaultValue == null
-            ? _bindQueryParam(queryParameter)
-            : _bindDefaultQueryParam(queryParameter),
+      final RequiredUnboundQueryParam<T> queryParameter => _bindQueryParam(
+        queryParameter,
+      ),
+      final DefaultUnboundQueryParam<T> queryParameter =>
+        _bindDefaultQueryParam(queryParameter),
     };
   }
 
@@ -128,7 +129,9 @@ abstract class PathRouteNodeBuilder {
     return _bindQueryParam(parameter);
   }
 
-  RequiredQueryParam<T> _bindQueryParam<T>(UnboundQueryParam<T> parameter) {
+  RequiredQueryParam<T> _bindQueryParam<T>(
+    RequiredUnboundQueryParam<T> parameter,
+  ) {
     final queryParameter = RequiredQueryParam<T>(parameter);
     _queryParameters.add(queryParameter);
     return queryParameter;
@@ -169,7 +172,7 @@ abstract class PathRouteNodeBuilder {
   }
 
   DefaultQueryParam<T> _bindDefaultQueryParam<T>(
-    UnboundQueryParam<T> parameter,
+    DefaultUnboundQueryParam<T> parameter,
   ) {
     final queryParameter = DefaultQueryParam<T>(parameter);
     _queryParameters.add(queryParameter);
@@ -190,7 +193,7 @@ abstract class PathRouteNodeBuilder {
   DefaultQueryParam<T> defaultQueryParam<T>(
     String name,
     RouteParamCodec<T> codec, {
-    required Default<T> defaultValue,
+    required T defaultValue,
   }) {
     return _bindDefaultQueryParam(
       DefaultUnboundQueryParam<T>(
@@ -221,7 +224,7 @@ abstract class PathRouteNodeBuilder {
 
   DefaultQueryParam<String> defaultStringQueryParam(
     String name, {
-    required Default<String> defaultValue,
+    required String defaultValue,
   }) {
     return defaultQueryParam(
       name,
@@ -234,7 +237,7 @@ abstract class PathRouteNodeBuilder {
     return defaultQueryParam<String?>(
       name,
       const StringRouteParamCodec(),
-      defaultValue: const Default<String?>(null),
+      defaultValue: null,
     );
   }
 
@@ -247,7 +250,7 @@ abstract class PathRouteNodeBuilder {
 
   DefaultQueryParam<int> defaultIntQueryParam(
     String name, {
-    required Default<int> defaultValue,
+    required int defaultValue,
   }) {
     return defaultQueryParam(
       name,
@@ -260,7 +263,7 @@ abstract class PathRouteNodeBuilder {
     return defaultQueryParam<int?>(
       name,
       const IntRouteParamCodec(),
-      defaultValue: const Default<int?>(null),
+      defaultValue: null,
     );
   }
 
@@ -273,7 +276,7 @@ abstract class PathRouteNodeBuilder {
 
   DefaultQueryParam<double> defaultDoubleQueryParam(
     String name, {
-    required Default<double> defaultValue,
+    required double defaultValue,
   }) {
     return defaultQueryParam(
       name,
@@ -286,7 +289,7 @@ abstract class PathRouteNodeBuilder {
     return defaultQueryParam<double?>(
       name,
       const DoubleRouteParamCodec(),
-      defaultValue: const Default<double?>(null),
+      defaultValue: null,
     );
   }
 
@@ -299,7 +302,7 @@ abstract class PathRouteNodeBuilder {
 
   DefaultQueryParam<bool> defaultBoolQueryParam(
     String name, {
-    required Default<bool> defaultValue,
+    required bool defaultValue,
   }) {
     return defaultQueryParam(
       name,
@@ -312,7 +315,7 @@ abstract class PathRouteNodeBuilder {
     return defaultQueryParam<bool?>(
       name,
       const BoolRouteParamCodec(),
-      defaultValue: const Default<bool?>(null),
+      defaultValue: null,
     );
   }
 
@@ -325,7 +328,7 @@ abstract class PathRouteNodeBuilder {
 
   DefaultQueryParam<DateTime> defaultDateTimeQueryParam(
     String name, {
-    required Default<DateTime> defaultValue,
+    required DateTime defaultValue,
   }) {
     return defaultQueryParam(
       name,
@@ -338,7 +341,7 @@ abstract class PathRouteNodeBuilder {
     return defaultQueryParam<DateTime?>(
       name,
       const DateTimeIsoRouteParamCodec(),
-      defaultValue: const Default<DateTime?>(null),
+      defaultValue: null,
     );
   }
 
@@ -351,7 +354,7 @@ abstract class PathRouteNodeBuilder {
 
   DefaultQueryParam<Uri> defaultUriQueryParam(
     String name, {
-    required Default<Uri> defaultValue,
+    required Uri defaultValue,
   }) {
     return defaultQueryParam(
       name,
@@ -364,7 +367,7 @@ abstract class PathRouteNodeBuilder {
     return defaultQueryParam<Uri?>(
       name,
       const UriRouteParamCodec(),
-      defaultValue: const Default<Uri?>(null),
+      defaultValue: null,
     );
   }
 
@@ -381,7 +384,7 @@ abstract class PathRouteNodeBuilder {
   DefaultQueryParam<T> defaultEnumQueryParam<T extends Enum>(
     String name,
     List<T> values, {
-    required Default<T> defaultValue,
+    required T defaultValue,
   }) {
     return defaultQueryParam(
       name,
@@ -397,7 +400,7 @@ abstract class PathRouteNodeBuilder {
     return defaultQueryParam<T?>(
       name,
       EnumRouteParamCodec(values),
-      defaultValue: Default<T?>(null),
+      defaultValue: null,
     );
   }
 

@@ -72,10 +72,10 @@ typedef WritePathParameters =
 /// node's [QueryParam] and the typed value.
 ///
 /// The router verifies that the parameter is declared by [node], encodes the
-/// value with the parameter's codec, and omits the URL query entry when the value
-/// equals the parameter's non-null default value. A `Default(null)` therefore
-/// still behaves as "omit when no value is written"; writing `null` is not
-/// supported because the writer receives a typed value, not absence.
+/// value with the parameter's codec, and omits the URL query entry when the
+/// value equals the parameter's default value. A `null` default therefore still
+/// behaves as "omit when no value is written"; writing `null` is not supported
+/// because the writer receives a typed value, not absence.
 typedef WriteQueryParameters =
     void Function(
       PathRouteNode node,
@@ -135,19 +135,12 @@ class PathParam<T> extends PathSegment implements Param<T> {
   PathParam(this.unboundParam);
 }
 
-class Default<T> {
-  final T value;
-
-  const Default(this.value);
-}
-
-class UnboundQueryParam<T> extends UnboundParam<T> {
+sealed class UnboundQueryParam<T> extends UnboundParam<T> {
   final String name;
   @override
   final RouteParamCodec<T> codec;
-  final Default<T>? defaultValue;
 
-  const UnboundQueryParam(this.name, this.codec, {this.defaultValue});
+  const UnboundQueryParam(this.name, this.codec);
 }
 
 final class RequiredUnboundQueryParam<T> extends UnboundQueryParam<T> {
@@ -155,40 +148,40 @@ final class RequiredUnboundQueryParam<T> extends UnboundQueryParam<T> {
 }
 
 final class DefaultUnboundQueryParam<T> extends UnboundQueryParam<T> {
-  @override
-  Default<T> get defaultValue => super.defaultValue!;
+  final T defaultValue;
 
   const DefaultUnboundQueryParam(
     super.name,
     super.codec, {
-    required Default<T> defaultValue,
-  }) : super(defaultValue: defaultValue);
+    required this.defaultValue,
+  });
 }
 
-class QueryParam<T> implements Param<T> {
-  final UnboundQueryParam<T> unboundParam;
+sealed class QueryParam<T> implements Param<T> {
+  final UnboundQueryParam<T> _unboundParam;
+  UnboundQueryParam<T> get unboundParam => _unboundParam;
   @override
   RouteParamCodec<T> get codec => unboundParam.codec;
   String get name => unboundParam.name;
-  Default<T>? get defaultValue => unboundParam.defaultValue;
 
   @internal
-  QueryParam(this.unboundParam);
+  QueryParam(this._unboundParam);
 }
 
 class RequiredQueryParam<T> extends QueryParam<T> {
   @internal
-  RequiredQueryParam(super.unboundParam)
-    : assert(unboundParam.defaultValue == null);
+  RequiredQueryParam(RequiredUnboundQueryParam<T> super.unboundParam);
 }
 
 class DefaultQueryParam<T> extends QueryParam<T> {
   @override
-  Default<T> get defaultValue => super.defaultValue!;
+  DefaultUnboundQueryParam<T> get unboundParam =>
+      super.unboundParam as DefaultUnboundQueryParam<T>;
+
+  T get defaultValue => unboundParam.defaultValue;
 
   @internal
-  DefaultQueryParam(super.unboundParam)
-    : assert(unboundParam.defaultValue != null);
+  DefaultQueryParam(DefaultUnboundQueryParam<T> super.unboundParam);
 
   QueryFilter<T> matches(T value) {
     return QueryFilter<T>._(parameter: this, value: value);
@@ -492,7 +485,7 @@ bool _queryFiltersMatch(
   for (final filter in filters) {
     final rawValue = queryParameters[filter.parameter.name];
     final value = rawValue == null
-        ? filter.parameter.defaultValue.value
+        ? filter.parameter.defaultValue
         : filter.parameter.codec.decode(rawValue);
     if (value != filter.value) {
       return false;

@@ -115,9 +115,8 @@ class WorkingRouterData {
       return value;
     }
 
-    final defaultValue = parameter.defaultValue;
-    if (defaultValue != null) {
-      return defaultValue.value;
+    if (parameter case final DefaultQueryParam<T> defaultParameter) {
+      return defaultParameter.defaultValue;
     }
 
     throw StateError(
@@ -138,7 +137,11 @@ class WorkingRouterData {
       return value;
     }
 
-    return parameter.defaultValue?.value;
+    if (parameter case final DefaultUnboundQueryParam<T> defaultParameter) {
+      return defaultParameter.defaultValue;
+    }
+
+    return null;
   }
 
   bool _hasDeclaredQueryParam<T>(UnboundQueryParam<T> parameter) {

@@ -70,7 +70,7 @@ final example = ExampleNode(
     final itemId = builder.stringPathParam();
     final filter = builder.defaultStringQueryParam(
       'filter',
-      defaultValue: Default('all'),
+      defaultValue: 'all',
     );
 
     builder.content = Content.builder((context, data) {
@@ -97,11 +97,11 @@ Important details:
   initializers in `build(...)`.
 - The builder also exposes typed shortcuts like `stringPathParam()`,
   `intQueryParam('page')`, `defaultIntQueryParam('page',
-  defaultValue: Default(1))`,
+  defaultValue: 1)`,
   `uriPathParam()`, `uriQueryParam('next')`,
   `enumPathParam(MyEnum.values)`, and
   `defaultEnumQueryParam('filter', MyEnum.values,
-  defaultValue: Default(MyEnum.all))`.
+  defaultValue: MyEnum.all)`.
 - Required query parameters are represented as `RequiredQueryParam<T>`.
   Default-bearing query parameters are represented as `DefaultQueryParam<T>`;
   use `defaultQueryParam(...)` or a typed `default...QueryParam(...)` shortcut
@@ -635,7 +635,7 @@ AnonymousMultiShellLocation(
     final chatDisplay = builder.defaultEnumQueryParam(
       'chatDisplay',
       ChatDisplay.values,
-      defaultValue: const Default(ChatDisplay.list),
+      defaultValue: ChatDisplay.list,
     );
 
     final listSlot = builder.slot(

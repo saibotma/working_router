@@ -66,10 +66,10 @@ void main() {
 
   group('WorkingRouterData query param helpers', () {
     test('queryParam returns the configured default for missing values', () {
-      const tab = UnboundQueryParam(
+      const tab = DefaultUnboundQueryParam(
         'tab',
         StringRouteParamCodec(),
-        defaultValue: Default('all'),
+        defaultValue: 'all',
       );
       final location = _QueryLocation(id: _TestId.query, parameter: tab);
       final boundTab = location.boundParameter;
@@ -87,7 +87,7 @@ void main() {
       const unboundTab = DefaultUnboundQueryParam(
         'tab',
         StringRouteParamCodec(),
-        defaultValue: Default('all'),
+        defaultValue: 'all',
       );
       final requiredLocation = _BuilderRequiredQueryLocation(
         id: _TestId.queryRequired,
@@ -121,7 +121,7 @@ void main() {
     });
 
     test('queryParam error includes query key and current data', () {
-      const tab = UnboundQueryParam('tab', StringRouteParamCodec());
+      const tab = RequiredUnboundQueryParam('tab', StringRouteParamCodec());
       final location = _QueryLocation(id: _TestId.query, parameter: tab);
       final boundTab = location.boundParameter;
       final data = WorkingRouterData(
@@ -155,8 +155,11 @@ void main() {
     });
 
     test('queryParam inactive error includes query key and active keys', () {
-      const tab = UnboundQueryParam('tab', StringRouteParamCodec());
-      const filter = UnboundQueryParam('filter', StringRouteParamCodec());
+      const tab = RequiredUnboundQueryParam('tab', StringRouteParamCodec());
+      const filter = RequiredUnboundQueryParam(
+        'filter',
+        StringRouteParamCodec(),
+      );
       final location = _QueryLocation(id: _TestId.query, parameter: filter);
       final inactiveLocation = _QueryLocation(
         id: _TestId.query,
@@ -194,12 +197,12 @@ void main() {
     });
 
     test(
-      'queryParam supports Default(null) with a non-null codec for query params',
+      'queryParam supports a null default with a non-null codec',
       () {
-        const endDateTime = UnboundQueryParam<DateTime?>(
+        const endDateTime = DefaultUnboundQueryParam<DateTime?>(
           'endDateTime',
           DateTimeIsoRouteParamCodec(),
-          defaultValue: Default<DateTime?>(null),
+          defaultValue: null,
         );
         final location = _NullableQueryLocation(
           id: _TestId.queryNullable,
@@ -219,10 +222,10 @@ void main() {
 
     test('paramOrNull returns active values for unbound params only', () {
       const itemId = UnboundPathParam(StringRouteParamCodec());
-      const tab = UnboundQueryParam(
+      const tab = DefaultUnboundQueryParam(
         'tab',
         StringRouteParamCodec(),
-        defaultValue: Default('all'),
+        defaultValue: 'all',
       );
       final list = _TestLocation(id: _TestId.list, path: '/items');
       final detail = _BoundParamLocation(
@@ -491,7 +494,7 @@ class _BuilderDefaultQueryLocation
   void build(LocationBuilder builder) {
     builder.defaultStringQueryParam(
       'display',
-      defaultValue: const Default('list'),
+      defaultValue: 'list',
     );
   }
 }

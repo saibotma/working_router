@@ -177,7 +177,7 @@ class ChatLocation extends Location<FilterRouteId, ChatLocation> {
     builder.pathLiteral('chat');
     final chatDisplay = builder.defaultStringQueryParam(
       'chatDisplay',
-      defaultValue: const Default('list'),
+      defaultValue: 'list',
     );
     builder.children = [
       SearchLocation(
@@ -742,7 +742,7 @@ class ItemLocation extends Location<TypedRouteId, ItemLocation> {
     final filter = builder.enumQueryParam('filter', ItemFilter.values);
     final page = builder.defaultIntQueryParam(
       'page',
-      defaultValue: Default(1),
+      defaultValue: 1,
     );
   }
 }
@@ -819,12 +819,12 @@ class ItemLocation
     final pageParam = builder.defaultQueryParam(
       'page',
       IntRouteParamCodec(),
-      defaultValue: Default(1),
+      defaultValue: 1,
     );
     final startDateTimeParam = builder.defaultQueryParam(
       'startDateTime',
       const DateTimeIsoRouteParamCodec(),
-      defaultValue: Default(null),
+      defaultValue: null,
     );
   }
 }
@@ -892,7 +892,7 @@ List<RouteNode> buildRouteNodes() => [
       final filter = builder.enumQueryParam('filter', ItemFilter.values);
       final from = builder.defaultUriQueryParam(
         'from',
-        defaultValue: Default(Uri.parse('/home')),
+        defaultValue: Uri.parse('/home'),
       );
 
       builder.content = Content.widget(const SizedBox.shrink());
@@ -964,12 +964,12 @@ List<RouteNode> buildRouteNodes() => [
       final filter = builder.defaultQueryParam<String?>(
         'filter',
         const StringRouteParamCodec(),
-        defaultValue: Default<String?>(null),
+        defaultValue: null,
       );
       final from = builder.defaultQueryParam<Uri?>(
         'from',
         const UriRouteParamCodec(),
-        defaultValue: Default<Uri?>(null),
+        defaultValue: null,
       );
 
       builder.content = Content.widget(const SizedBox.shrink());
@@ -1100,7 +1100,7 @@ List<RouteNode> buildRouteNodes() => [
     build: (builder, scope) {
       final languageCode = builder.defaultStringQueryParam(
         'languageCode',
-        defaultValue: Default('en'),
+        defaultValue: 'en',
       );
       builder.children = [
         PrivacyLocation(
@@ -1773,7 +1773,7 @@ part 'bind_param_routes.g.dart';
 enum BindParamRouteId { root, channel, send }
 
 const channelIdParam = UnboundPathParam<String>(StringRouteParamCodec());
-const keepParam = UnboundQueryParam<String>('keep', StringRouteParamCodec());
+const keepParam = RequiredUnboundQueryParam<String>('keep', StringRouteParamCodec());
 
 class RootLocation extends Location<BindParamRouteId, RootLocation> {
   RootLocation();
@@ -2603,7 +2603,7 @@ class LegalNode extends AbstractScope<IdlessChildTargetRouteId> {
   void build(ScopeBuilder builder) {
     final languageCode = builder.defaultStringQueryParam(
       'languageCode',
-      defaultValue: const Default('de'),
+      defaultValue: 'de',
     );
     builder.children = [
       PrivacyLocation(

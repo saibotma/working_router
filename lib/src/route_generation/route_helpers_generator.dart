@@ -2736,18 +2736,6 @@ class _StaticRouteTreeExtractor {
       return true;
     }
 
-    if (normalizedExpression is InstanceCreationExpression &&
-        normalizedExpression.constructorName.type.toSource().split('<').first ==
-            'Default') {
-      final defaultValueArgument = normalizedExpression.argumentList.arguments
-          .whereType<Expression>()
-          .firstOrNull;
-      if (defaultValueArgument == null) {
-        return false;
-      }
-      return _expressionIsNull(defaultValueArgument);
-    }
-
     return _expressionIsNull(normalizedExpression);
   }
 

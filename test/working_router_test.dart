@@ -822,7 +822,7 @@ void main() {
                     build: (builder, scope) {
                       final languageCode = builder.defaultStringQueryParam(
                         'languageCode',
-                        defaultValue: const Default('en'),
+                        defaultValue: 'en',
                       );
                       builder.children = [
                         _BuilderLocation(
@@ -874,7 +874,7 @@ void main() {
                   build: (builder, scope) {
                     languageCode = builder.defaultStringQueryParam(
                       'languageCode',
-                      defaultValue: const Default('en'),
+                      defaultValue: 'en',
                     );
                     builder.children = [
                       _BuilderLocation(
@@ -966,7 +966,7 @@ void main() {
                     final accountId = builder.stringPathParam();
                     final tab = builder.defaultStringQueryParam(
                       'tab',
-                      defaultValue: const Default('overview'),
+                      defaultValue: 'overview',
                     );
                     builder.children = [
                       _BuilderLocation(
@@ -2261,11 +2261,11 @@ void main() {
                     builder.pathLiteral('chat');
                     final chatDisplay = builder.defaultStringQueryParam(
                       'chatDisplay',
-                      defaultValue: const Default('list'),
+                      defaultValue: 'list',
                     );
                     final searchScope = builder.defaultStringQueryParam(
                       'searchScope',
-                      defaultValue: const Default('local'),
+                      defaultValue: 'local',
                     );
                     final leftSlot = builder.slot(
                       debugLabel: 'left',
@@ -2783,7 +2783,7 @@ class _ParamRootLocation extends _ParamPathLocation<_ParamRootLocation> {
 
 class _ItemLocation extends _ParamPathLocation<_ItemLocation> {
   final idParameter = const UnboundPathParam(StringRouteParamCodec());
-  final keep = const UnboundQueryParam('keep', StringRouteParamCodec());
+  final keep = const RequiredUnboundQueryParam('keep', StringRouteParamCodec());
   late final PathParam<String> boundIdParameter =
       definition.pathParameters.single as PathParam<String>;
   late final QueryParam<String> boundKeep =

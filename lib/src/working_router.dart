@@ -821,7 +821,7 @@ class WorkingRouter extends ChangeNotifier
       result = _writeQueryValue(
         result,
         removedFilter.parameter,
-        removedFilter.parameter.defaultValue.value,
+        removedFilter.parameter.defaultValue,
       );
     }
     return result;
@@ -832,9 +832,10 @@ class WorkingRouter extends ChangeNotifier
     QueryParam<T> parameter,
     T value,
   ) {
-    if (parameter.defaultValue case final defaultValue?
-        when defaultValue.value == value) {
-      return queryParameters.remove(parameter.name);
+    if (parameter case final DefaultQueryParam<T> defaultParameter) {
+      if (defaultParameter.defaultValue == value) {
+        return queryParameters.remove(parameter.name);
+      }
     }
     return queryParameters.add(parameter.name, parameter.codec.encode(value));
   }
@@ -951,11 +952,12 @@ class WorkingRouter extends ChangeNotifier
             );
           }
 
-          if (parameter.defaultValue case final defaultValue?
-              when defaultValue.value == value) {
-            values.remove(parameter.name);
-            defaultValueKeys.add(parameter.name);
-            return;
+          if (parameter case final DefaultQueryParam<T> defaultParameter) {
+            if (defaultParameter.defaultValue == value) {
+              values.remove(parameter.name);
+              defaultValueKeys.add(parameter.name);
+              return;
+            }
           }
 
           defaultValueKeys.remove(parameter.name);
