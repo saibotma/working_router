@@ -537,19 +537,6 @@ void main() {
       expect(router.nullableData!.uri.path, '/does-not-exist');
     });
 
-    testWidgets('slideIn is a no-op for unknown path', (tester) async {
-      final router = _buildRouter();
-
-      router.routeToUri(Uri(path: '/does-not-exist'));
-      await tester.pump();
-
-      expect(() => router.slideIn(_PathId.a), returnsNormally);
-      await tester.pump();
-
-      expect(router.nullableData!.routeNodes, isEmpty);
-      expect(router.nullableData!.uri.path, '/does-not-exist');
-    });
-
     testWidgets('routeToChildWhere appends matching child stack', (
       tester,
     ) async {

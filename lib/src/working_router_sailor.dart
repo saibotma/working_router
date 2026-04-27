@@ -23,8 +23,6 @@ abstract class WorkingRouterSailor {
     WriteQueryParameters? writeQueryParameters,
   });
 
-  void slideIn(AnyNodeId id);
-
   /// Routes to the first child for which [predicate] returns
   /// true.
   ///

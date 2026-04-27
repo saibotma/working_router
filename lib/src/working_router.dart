@@ -198,30 +198,6 @@ class WorkingRouter extends ChangeNotifier
   }
 
   @override
-  void slideIn(AnyNodeId id) {
-    final idMatches = _routeNodeTree.matchId(id);
-    final targetLocation = idMatches.locations.lastOrNull;
-    final currentLocation = nullableData?.leaf;
-    if (targetLocation == null || currentLocation == null) {
-      return;
-    }
-
-    final relativeMatchNodes = targetLocation.matchRelative(
-      (location) => location.runtimeType == currentLocation.runtimeType,
-    );
-
-    _routeTo(
-      targetData: _buildData(
-        routeNodes: idMatches.addAll(relativeMatchNodes),
-        fallback: null,
-        pathParameters: nullableData!.pathParametersForRouter,
-        queryParameters: nullableData!.queryParameters,
-      ),
-      reason: RouteTransitionReason.programmatic,
-    );
-  }
-
-  @override
   void routeToChildWhere(
     bool Function(AnyLocation location) predicate, {
     WritePathParameters? writePathParameters,
@@ -1056,11 +1032,6 @@ class NestedWorkingRouterSailor extends ChangeNotifier
       writePathParameters: writePathParameters,
       writeQueryParameters: writeQueryParameters,
     );
-  }
-
-  @override
-  void slideIn(AnyNodeId id) {
-    router.slideIn(id);
   }
 
   @override
