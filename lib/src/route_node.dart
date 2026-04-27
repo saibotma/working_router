@@ -82,6 +82,16 @@ typedef WriteQueryParameters =
       void Function<T>(QueryParam<T> parameter, T value) query,
     );
 
+final class QueryFilter<T> {
+  final DefaultQueryParam<T> parameter;
+  final T value;
+
+  const QueryFilter({
+    required this.parameter,
+    required this.value,
+  });
+}
+
 class LiteralPathSegment extends PathSegment {
   final String value;
 
@@ -131,13 +141,28 @@ class Default<T> {
   const Default(this.value);
 }
 
-final class UnboundQueryParam<T> extends UnboundParam<T> {
+class UnboundQueryParam<T> extends UnboundParam<T> {
   final String name;
   @override
   final RouteParamCodec<T> codec;
   final Default<T>? defaultValue;
 
   const UnboundQueryParam(this.name, this.codec, {this.defaultValue});
+}
+
+final class RequiredUnboundQueryParam<T> extends UnboundQueryParam<T> {
+  const RequiredUnboundQueryParam(super.name, super.codec);
+}
+
+final class DefaultUnboundQueryParam<T> extends UnboundQueryParam<T> {
+  @override
+  Default<T> get defaultValue => super.defaultValue!;
+
+  const DefaultUnboundQueryParam(
+    super.name,
+    super.codec, {
+    required Default<T> defaultValue,
+  }) : super(defaultValue: defaultValue);
 }
 
 class QueryParam<T> implements Param<T> {
@@ -149,6 +174,21 @@ class QueryParam<T> implements Param<T> {
 
   @internal
   QueryParam(this.unboundParam);
+}
+
+class RequiredQueryParam<T> extends QueryParam<T> {
+  @internal
+  RequiredQueryParam(super.unboundParam)
+    : assert(unboundParam.defaultValue == null);
+}
+
+class DefaultQueryParam<T> extends QueryParam<T> {
+  @override
+  Default<T> get defaultValue => super.defaultValue!;
+
+  @internal
+  DefaultQueryParam(super.unboundParam)
+    : assert(unboundParam.defaultValue != null);
 }
 
 typedef CustomPageKeyBuilder = LocalKey Function(WorkingRouterData data);
@@ -255,12 +295,31 @@ abstract class RouteNode<Self extends RouteNode<Self>> {
     return const PageKey.templatePath().build(this, data);
   }
 
-  RouteMatch match(IList<String> uriPathSegments) {
-    return _matchNode(this, uriPathSegments);
+  RouteMatch match(
+    IList<String> uriPathSegments, {
+    IMap<String, String> queryParameters = const IMapConst({}),
+  }) {
+    return _matchNode(
+      this,
+      uriPathSegments,
+      queryParameters: queryParameters,
+    );
   }
 
   IList<RouteNode> matchId(AnyNodeId id) {
     return _matchNodeById(this, id);
+  }
+
+  bool containsNode(RouteNode node) {
+    if (identical(this, node)) {
+      return true;
+    }
+    for (final child in children) {
+      if (child.containsNode(node)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
@@ -284,9 +343,15 @@ extension TreeElementsX on Iterable<RouteNode> {
   IList<PathRouteNode> get pathRouteNodes =>
       whereType<PathRouteNode>().toIList();
 
-  RouteMatch match(IList<String> uriPathSegments) {
+  RouteMatch match(
+    IList<String> uriPathSegments, {
+    IMap<String, String> queryParameters = const IMapConst({}),
+  }) {
     for (final node in this) {
-      final match = node.match(uriPathSegments);
+      final match = node.match(
+        uriPathSegments,
+        queryParameters: queryParameters,
+      );
       if (!match.isEmpty) {
         return match;
       }
@@ -309,9 +374,13 @@ IList<RouteNode> emptyNodeMatch() => const IListConst([]);
 
 RouteMatch _matchNode(
   RouteNode node,
-  IList<String> uriPathSegments,
-) {
+  IList<String> uriPathSegments, {
+  required IMap<String, String> queryParameters,
+}) {
   if (node is! PathRouteNode) {
+    return emptyRouteMatch();
+  }
+  if (!_queryFiltersMatch(node.queryFilters, queryParameters)) {
     return emptyRouteMatch();
   }
 
@@ -330,13 +399,14 @@ RouteMatch _matchNode(
   final nextPathSegments = node.path.isEmpty
       ? uriPathSegments
       : uriPathSegments.sublist(node.path.length);
-  for (final child in node.children) {
-    final childMatch = _matchNode(child, nextPathSegments);
-    if (!childMatch.isEmpty) {
-      matches.addAll(childMatch.routeNodes);
-      _mergePathParameters(pathParameters, childMatch.pathParameters.unlock);
-      break;
-    }
+  final childMatch = _matchChildren(
+    node.children,
+    nextPathSegments,
+    queryParameters: queryParameters,
+  );
+  if (!childMatch.isEmpty) {
+    matches.addAll(childMatch.routeNodes);
+    _mergePathParameters(pathParameters, childMatch.pathParameters.unlock);
   }
 
   if (matches.length == 1 &&
@@ -350,11 +420,97 @@ RouteMatch _matchNode(
   );
 }
 
+RouteMatch _matchChildren(
+  List<RouteNode> children,
+  IList<String> uriPathSegments, {
+  required IMap<String, String> queryParameters,
+}) {
+  for (var i = 0; i < children.length; i++) {
+    final child = children[i];
+    final queryFilterPrefix = _matchPathlessQueryFilterPrefix(
+      child,
+      queryParameters: queryParameters,
+    );
+    if (!queryFilterPrefix.isEmpty) {
+      final suffixMatch = _matchChildren(
+        children.sublist(i + 1),
+        uriPathSegments,
+        queryParameters: queryParameters,
+      );
+      if (!suffixMatch.isEmpty) {
+        return (
+          routeNodes: [
+            ...queryFilterPrefix.routeNodes,
+            ...suffixMatch.routeNodes,
+          ].toIList(),
+          pathParameters: suffixMatch.pathParameters,
+        );
+      }
+      if (uriPathSegments.isEmpty) {
+        return queryFilterPrefix;
+      }
+    }
+
+    final childMatch = _matchNode(
+      child,
+      uriPathSegments,
+      queryParameters: queryParameters,
+    );
+    if (!childMatch.isEmpty) {
+      return childMatch;
+    }
+  }
+  return emptyRouteMatch();
+}
+
+RouteMatch _matchPathlessQueryFilterPrefix(
+  RouteNode node, {
+  required IMap<String, String> queryParameters,
+}) {
+  if (node is! PathRouteNode ||
+      node.path.isNotEmpty ||
+      node.queryFilters.isEmpty) {
+    return emptyRouteMatch();
+  }
+  if (!_queryFiltersMatch(node.queryFilters, queryParameters)) {
+    return emptyRouteMatch();
+  }
+  return (
+    routeNodes: [node].toIList(),
+    pathParameters: const IMapConst({}),
+  );
+}
+
+bool _queryFiltersMatch(
+  List<QueryFilter<dynamic>> filters,
+  IMap<String, String> queryParameters,
+) {
+  for (final filter in filters) {
+    final rawValue = queryParameters[filter.parameter.name];
+    final value = rawValue == null
+        ? filter.parameter.defaultValue.value
+        : filter.parameter.codec.decode(rawValue);
+    if (value != filter.value) {
+      return false;
+    }
+  }
+  return true;
+}
+
 IList<RouteNode> _matchNodeById(
   RouteNode node,
   AnyNodeId id,
 ) {
   if (node is! PathRouteNode) {
+    if (node.id == id) {
+      return [node].toIList();
+    }
+    for (final child in node.children) {
+      final childMatch = _matchNodeById(child, id);
+      if (childMatch.isNotEmpty) {
+        return [node, ...childMatch].toIList();
+      }
+    }
     return emptyNodeMatch();
   }
 
@@ -377,6 +533,12 @@ IList<RouteNode> matchRelativeNode(
   bool Function(AnyLocation location) predicate,
 ) {
   if (node is! PathRouteNode) {
+    for (final child in node.children) {
+      final childMatch = matchRelativeNode(child, predicate);
+      if (childMatch.isNotEmpty) {
+        return [node, ...childMatch].toIList();
+      }
+    }
     return emptyNodeMatch();
   }
 
@@ -486,6 +648,32 @@ extension RouteNodePathBuilder on Iterable<PathRouteNode> {
     }
 
     return '/${uriPathSegments.join('/')}';
+  }
+}
+
+extension RouteNodePathVisibilityX on Iterable<RouteNode> {
+  Iterable<PathRouteNode> visiblePathRouteNodes() sync* {
+    PathRouteNode? hiddenAncestor;
+
+    for (final node in this) {
+      if (node is! PathRouteNode) {
+        continue;
+      }
+
+      if (hiddenAncestor case final ancestor?
+          when !ancestor.containsNode(node)) {
+        hiddenAncestor = null;
+      }
+
+      final inheritedHidden = hiddenAncestor != null;
+      final hidesOwnSubtree = node.pathVisibility == RoutePathVisibility.hidden;
+      if (!inheritedHidden && hidesOwnSubtree) {
+        hiddenAncestor = node;
+      }
+      if (!inheritedHidden && !hidesOwnSubtree) {
+        yield node;
+      }
+    }
   }
 }
 

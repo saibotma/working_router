@@ -1113,23 +1113,33 @@ const _builderRouteDeclarationMethods = {
   'dateTimePathParam',
   'uriPathParam',
   'enumPathParam',
-  'query',
   'queryParam',
+  'defaultQueryParam',
+  'queryFilter',
   'stringQueryParam',
+  'defaultStringQueryParam',
   'nullableStringQueryParam',
   'intQueryParam',
+  'defaultIntQueryParam',
   'nullableIntQueryParam',
   'doubleQueryParam',
+  'defaultDoubleQueryParam',
   'nullableDoubleQueryParam',
   'boolQueryParam',
+  'defaultBoolQueryParam',
   'nullableBoolQueryParam',
   'dateTimeQueryParam',
+  'defaultDateTimeQueryParam',
   'nullableDateTimeQueryParam',
   'uriQueryParam',
+  'defaultUriQueryParam',
   'nullableUriQueryParam',
   'enumQueryParam',
+  'defaultEnumQueryParam',
   'nullableEnumQueryParam',
   'bindParam',
+  'bindQueryParam',
+  'bindDefaultQueryParam',
   'id',
   'localId',
   'child',
@@ -1960,28 +1970,6 @@ class _StaticRouteTreeExtractor {
         if (segmentMetadata is _RoutePathParameterSegmentMetadata) {
           result.pathParameterCount += 1;
         }
-      case 'query':
-        if (!supportsPathAndQuery) {
-          return;
-        }
-        final queryExpression = normalizedExpression.argumentList.arguments
-            .whereType<Expression>()
-            .firstOrNull;
-        if (queryExpression == null) {
-          throw InvalidGenerationSourceError(
-            'query(...) requires a QueryParam.',
-            element: elementForErrors,
-          );
-        }
-        _registerQueryParameterMetadata(
-          await _queryParameterMetadata(
-            queryExpression,
-            element: elementForErrors,
-            evaluationContext: context,
-          ),
-          result.queryParameters,
-          element: elementForErrors,
-        );
       case 'pathLiteral':
         if (!supportsPathAndQuery) {
           return;
@@ -2041,19 +2029,27 @@ class _StaticRouteTreeExtractor {
         );
         result.pathParameterCount += 1;
       case 'queryParam':
+      case 'defaultQueryParam':
       case 'stringQueryParam':
+      case 'defaultStringQueryParam':
       case 'nullableStringQueryParam':
       case 'intQueryParam':
+      case 'defaultIntQueryParam':
       case 'nullableIntQueryParam':
       case 'doubleQueryParam':
+      case 'defaultDoubleQueryParam':
       case 'nullableDoubleQueryParam':
       case 'boolQueryParam':
+      case 'defaultBoolQueryParam':
       case 'nullableBoolQueryParam':
       case 'dateTimeQueryParam':
+      case 'defaultDateTimeQueryParam':
       case 'nullableDateTimeQueryParam':
       case 'uriQueryParam':
+      case 'defaultUriQueryParam':
       case 'nullableUriQueryParam':
       case 'enumQueryParam':
+      case 'defaultEnumQueryParam':
       case 'nullableEnumQueryParam':
         if (!supportsPathAndQuery) {
           return;
@@ -2074,7 +2070,11 @@ class _StaticRouteTreeExtractor {
           result.queryParameters,
           element: elementForErrors,
         );
+      case 'queryFilter':
+        return;
       case 'bindParam':
+      case 'bindQueryParam':
+      case 'bindDefaultQueryParam':
         if (!supportsPathAndQuery) {
           return;
         }
@@ -2385,10 +2385,21 @@ class _StaticRouteTreeExtractor {
     final methodName = invocation.methodName.name;
     switch (methodName) {
       case 'queryParam':
+      case 'defaultQueryParam':
         if (arguments.length < 2) {
           return null;
         }
-        final defaultValueExpression = namedArguments['defaultValue'];
+        if (methodName == 'queryParam' &&
+            namedArguments.containsKey('defaultValue')) {
+          throw InvalidGenerationSourceError(
+            'queryParam(...) no longer accepts defaultValue. Use '
+            'defaultQueryParam(...) for query parameters with defaults.',
+            element: elementForErrors,
+          );
+        }
+        final defaultValueExpression = methodName == 'defaultQueryParam'
+            ? namedArguments['defaultValue']
+            : null;
         final codecValueTypeSource = _codecValueTypeSourceForExpression(
           arguments[1],
           elementForErrors,
@@ -2400,23 +2411,30 @@ class _StaticRouteTreeExtractor {
             defaultValueExpression,
           ),
           codecExpressionSource: _expressionSource(arguments[1]),
-          optional: defaultValueExpression != null,
+          optional: methodName == 'defaultQueryParam',
           sourceNode: invocation,
           sourceElement: elementForErrors,
         );
       case 'stringQueryParam':
+      case 'defaultStringQueryParam':
       case 'nullableStringQueryParam':
       case 'intQueryParam':
+      case 'defaultIntQueryParam':
       case 'nullableIntQueryParam':
       case 'doubleQueryParam':
+      case 'defaultDoubleQueryParam':
       case 'nullableDoubleQueryParam':
       case 'boolQueryParam':
+      case 'defaultBoolQueryParam':
       case 'nullableBoolQueryParam':
       case 'dateTimeQueryParam':
+      case 'defaultDateTimeQueryParam':
       case 'nullableDateTimeQueryParam':
       case 'uriQueryParam':
+      case 'defaultUriQueryParam':
       case 'nullableUriQueryParam':
       case 'enumQueryParam':
+      case 'defaultEnumQueryParam':
       case 'nullableEnumQueryParam':
         final nameExpression = arguments.firstOrNull;
         if (nameExpression == null) {
@@ -2424,6 +2442,10 @@ class _StaticRouteTreeExtractor {
         }
         final codecMetadata = switch (methodName) {
           'stringQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'String',
+            codecExpressionSource: 'const StringRouteParamCodec()',
+          ),
+          'defaultStringQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'String',
             codecExpressionSource: 'const StringRouteParamCodec()',
           ),
@@ -2435,11 +2457,19 @@ class _StaticRouteTreeExtractor {
             dartTypeSource: 'int',
             codecExpressionSource: 'const IntRouteParamCodec()',
           ),
+          'defaultIntQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'int',
+            codecExpressionSource: 'const IntRouteParamCodec()',
+          ),
           'nullableIntQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'int?',
             codecExpressionSource: 'const IntRouteParamCodec()',
           ),
           'doubleQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'double',
+            codecExpressionSource: 'const DoubleRouteParamCodec()',
+          ),
+          'defaultDoubleQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'double',
             codecExpressionSource: 'const DoubleRouteParamCodec()',
           ),
@@ -2451,11 +2481,19 @@ class _StaticRouteTreeExtractor {
             dartTypeSource: 'bool',
             codecExpressionSource: 'const BoolRouteParamCodec()',
           ),
+          'defaultBoolQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'bool',
+            codecExpressionSource: 'const BoolRouteParamCodec()',
+          ),
           'nullableBoolQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'bool?',
             codecExpressionSource: 'const BoolRouteParamCodec()',
           ),
           'dateTimeQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'DateTime',
+            codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
+          ),
+          'defaultDateTimeQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'DateTime',
             codecExpressionSource: 'const DateTimeIsoRouteParamCodec()',
           ),
@@ -2467,11 +2505,31 @@ class _StaticRouteTreeExtractor {
             dartTypeSource: 'Uri',
             codecExpressionSource: 'const UriRouteParamCodec()',
           ),
+          'defaultUriQueryParam' => const _DslCodecMetadata(
+            dartTypeSource: 'Uri',
+            codecExpressionSource: 'const UriRouteParamCodec()',
+          ),
           'nullableUriQueryParam' => const _DslCodecMetadata(
             dartTypeSource: 'Uri?',
             codecExpressionSource: 'const UriRouteParamCodec()',
           ),
           'enumQueryParam' => (() {
+            final valuesExpression = arguments.length >= 2
+                ? arguments[1]
+                : null;
+            if (valuesExpression == null) {
+              return null;
+            }
+            return _DslCodecMetadata(
+              dartTypeSource: _enumValuesTypeSourceForExpression(
+                valuesExpression,
+                elementForErrors,
+              ),
+              codecExpressionSource:
+                  'EnumRouteParamCodec(${_expressionSource(valuesExpression)})',
+            );
+          })(),
+          'defaultEnumQueryParam' => (() {
             final valuesExpression = arguments.length >= 2
                 ? arguments[1]
                 : null;
@@ -2506,7 +2564,19 @@ class _StaticRouteTreeExtractor {
         if (codecMetadata == null) {
           return null;
         }
-        final defaultValueExpression = namedArguments['defaultValue'];
+        if (!methodName.startsWith('default') &&
+            namedArguments.containsKey('defaultValue')) {
+          throw InvalidGenerationSourceError(
+            '$methodName(...) no longer accepts defaultValue. Use '
+            'default${methodName.substring(0, 1).toUpperCase()}'
+            '${methodName.substring(1)}(...) for query parameters with '
+            'defaults.',
+            element: elementForErrors,
+          );
+        }
+        final defaultValueExpression = methodName.startsWith('default')
+            ? namedArguments['defaultValue']
+            : null;
         return _RouteQueryParameterMetadata(
           key: _stringLiteral(nameExpression, elementForErrors),
           dartTypeSource: _queryParameterTypeSource(
@@ -2516,6 +2586,7 @@ class _StaticRouteTreeExtractor {
           codecExpressionSource: codecMetadata.codecExpressionSource,
           optional:
               defaultValueExpression != null ||
+              methodName.startsWith('default') ||
               methodName.startsWith('nullable'),
           sourceNode: invocation,
           sourceElement: elementForErrors,
@@ -2596,6 +2667,8 @@ class _StaticRouteTreeExtractor {
           sourceElement: element,
         );
       case 'UnboundQueryParam':
+      case 'RequiredUnboundQueryParam':
+      case 'DefaultUnboundQueryParam':
         var keyExpression = positionalArguments.firstOrNull;
         var codecExpression = positionalArguments.skip(1).firstOrNull;
         final defaultValueExpression = _namedArgumentExpression(
@@ -2635,7 +2708,9 @@ class _StaticRouteTreeExtractor {
             defaultValueExpression,
           ),
           codecExpressionSource: _expressionSource(codecExpression),
-          optional: defaultValueExpression != null,
+          optional:
+              defaultValueExpression != null ||
+              typeName == 'DefaultUnboundQueryParam',
           sourceNode: normalizedExpression,
           sourceElement: element,
         );

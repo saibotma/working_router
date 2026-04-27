@@ -8,6 +8,7 @@ import 'package:working_router/src/route_node.dart'
         PageKey,
         PathParam,
         PathSegment,
+        QueryFilter,
         QueryParam,
         RouteNode,
         emptyNodeMatch,
@@ -29,8 +30,7 @@ sealed class Content {
 
   factory Content.widget(Widget widget) = _StaticContent;
 
-  factory Content.builder(LocationWidgetBuilder builder) =
-      _BuilderContent;
+  factory Content.builder(LocationWidgetBuilder builder) = _BuilderContent;
 
   const factory Content.none() = _NoContent;
 
@@ -88,8 +88,7 @@ final class _BuilderDefaultContent extends DefaultContent {
   const _BuilderDefaultContent(this.builder);
 }
 
-abstract class LocationBuildResult
-    extends PathRouteNodeRenderResult {
+abstract class LocationBuildResult extends PathRouteNodeRenderResult {
   const LocationBuildResult();
 
   LocationWidgetBuilder? get buildWidgetOrNull;
@@ -97,8 +96,7 @@ abstract class LocationBuildResult
   SelfBuiltLocationPageBuilder? get buildPageOrNull;
 }
 
-final class SelfBuiltLocationBuildResult
-    extends LocationBuildResult {
+final class SelfBuiltLocationBuildResult extends LocationBuildResult {
   final LocationWidgetBuilder buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
 
@@ -114,8 +112,7 @@ final class SelfBuiltLocationBuildResult
   SelfBuiltLocationPageBuilder? get buildPageOrNull => buildPage;
 }
 
-final class NonRenderingLocationBuildResult
-    extends LocationBuildResult {
+final class NonRenderingLocationBuildResult extends LocationBuildResult {
   const NonRenderingLocationBuildResult();
 
   @override
@@ -206,16 +203,20 @@ class BuiltLocationDefinition {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
+  final List<QueryFilter<dynamic>> queryFilters;
   final List<RouteNode> children;
   final PageKey? pageKey;
+  final RoutePathVisibility pathVisibility;
   final PathRouteNodeRenderResult? render;
 
   const BuiltLocationDefinition({
     required this.path,
     required this.pathParameters,
     required this.queryParameters,
+    required this.queryFilters,
     required this.children,
     required this.pageKey,
+    required this.pathVisibility,
     required this.render,
   });
 }
@@ -346,8 +347,7 @@ abstract class AbstractLocation<Self extends AnyLocation<Self>>
   LocationBuilder createBuilder() => LocationBuilder();
 }
 
-class Location<Self extends AnyLocation<Self>>
-    extends AbstractLocation<Self> {
+class Location<Self extends AnyLocation<Self>> extends AbstractLocation<Self> {
   final BuildLocation<Self> _build;
 
   /// Main typed callback-based location API.

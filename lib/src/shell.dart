@@ -45,8 +45,7 @@ final class _ChildShellContent extends ShellContent {
   const _ChildShellContent();
 }
 
-final class ShellBuildResult
-    extends PathRouteNodeRenderResult {
+final class ShellBuildResult extends PathRouteNodeRenderResult {
   final ShellContentBuilder buildContent;
   final ShellPageBuilder? buildPage;
   final LocationWidgetBuilder? buildDefaultWidget;
@@ -130,6 +129,7 @@ class BuiltShellDefinition {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
+  final List<QueryFilter<dynamic>> queryFilters;
   final List<RouteNode> children;
   final PageKey? pageKey;
   final ShellBuildResult render;
@@ -138,6 +138,7 @@ class BuiltShellDefinition {
     required this.path,
     required this.pathParameters,
     required this.queryParameters,
+    required this.queryFilters,
     required this.children,
     required this.pageKey,
     required this.render,
@@ -198,6 +199,7 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
+      queryFilters: List.unmodifiable(builder.queryFilters),
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
       render: render,
@@ -212,6 +214,9 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
 
   @override
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
+
+  @override
+  List<QueryFilter<dynamic>> get queryFilters => _definition.queryFilters;
 
   @override
   List<RouteNode> get children => _definition.children;

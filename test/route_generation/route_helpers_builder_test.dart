@@ -139,6 +139,100 @@ RouteNode get appLocationTree => _appLocationTree;
     );
   });
 
+  test('generates child targets through query filtered children', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions.empty,
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/query_filter_routes.dart': '''
+library query_filter_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'query_filter_routes.working_router.g.dart';
+
+enum FilterRouteId { root, chat, search, channel }
+
+class RootLocation extends Location<FilterRouteId, RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.children = [
+      ChatLocation(id: FilterRouteId.chat),
+    ];
+  }
+}
+
+class ChatLocation extends Location<FilterRouteId, ChatLocation> {
+  ChatLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('chat');
+    final chatDisplay = builder.defaultStringQueryParam(
+      'chatDisplay',
+      defaultValue: const Default('list'),
+    );
+    builder.children = [
+      SearchLocation(
+        id: FilterRouteId.search,
+        chatDisplay: chatDisplay,
+      ),
+      ChannelLocation(id: FilterRouteId.channel),
+    ];
+  }
+}
+
+class SearchLocation extends Location<FilterRouteId, SearchLocation> {
+  final DefaultQueryParam<String> chatDisplay;
+
+  SearchLocation({
+    required super.id,
+    required this.chatDisplay,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.queryFilter(chatDisplay, 'search');
+  }
+}
+
+class ChannelLocation extends Location<FilterRouteId, ChannelLocation> {
+  ChannelLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('channel');
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree => RootLocation(id: FilterRouteId.root);
+''',
+      },
+      outputs: {
+        'working_router|lib/query_filter_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains(
+                  'extension ChatLocationGeneratedChildTargets on ChatLocation',
+                ),
+                contains('ChildRouteTarget get childSearchTarget'),
+                contains('ChildRouteTarget get childChannelTarget'),
+                contains('node.id == FilterRouteId.search'),
+              ),
+            ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
+
   test('uses top-level node id variable names without the id suffix', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,
@@ -644,7 +738,10 @@ class ItemLocation extends Location<TypedRouteId, ItemLocation> {
     builder.pathLiteral('items');
     final itemId = builder.intPathParam();
     final filter = builder.enumQueryParam('filter', ItemFilter.values);
-    final page = builder.intQueryParam('page', defaultValue: Default(1));
+    final page = builder.defaultIntQueryParam(
+      'page',
+      defaultValue: Default(1),
+    );
   }
 }
 
@@ -717,12 +814,12 @@ class ItemLocation
       'filter',
       EnumRouteParamCodec(ItemFilter.values),
     );
-    final pageParam = builder.queryParam(
+    final pageParam = builder.defaultQueryParam(
       'page',
       IntRouteParamCodec(),
       defaultValue: Default(1),
     );
-    final startDateTimeParam = builder.queryParam(
+    final startDateTimeParam = builder.defaultQueryParam(
       'startDateTime',
       const DateTimeIsoRouteParamCodec(),
       defaultValue: Default(null),
@@ -791,7 +888,7 @@ List<RouteNode> buildRouteNodes() => [
       builder.pathLiteral('items');
       final itemUri = builder.uriPathParam();
       final filter = builder.enumQueryParam('filter', ItemFilter.values);
-      final from = builder.uriQueryParam(
+      final from = builder.defaultUriQueryParam(
         'from',
         defaultValue: Default(Uri.parse('/home')),
       );
@@ -862,12 +959,12 @@ List<RouteNode> buildRouteNodes() => [
     id: NullableQueryRouteId.item,
     build: (builder, location) {
       builder.pathLiteral('items');
-      final filter = builder.queryParam<String?>(
+      final filter = builder.defaultQueryParam<String?>(
         'filter',
         const StringRouteParamCodec(),
         defaultValue: Default<String?>(null),
       );
-      final from = builder.queryParam<Uri?>(
+      final from = builder.defaultQueryParam<Uri?>(
         'from',
         const UriRouteParamCodec(),
         defaultValue: Default<Uri?>(null),
@@ -999,7 +1096,7 @@ class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
 List<RouteNode> buildRouteNodes() => [
   AnonymousScope(
     build: (builder, scope) {
-      final languageCode = builder.stringQueryParam(
+      final languageCode = builder.defaultStringQueryParam(
         'languageCode',
         defaultValue: Default('en'),
       );
@@ -2502,7 +2599,7 @@ class AddAccountNode
 class LegalNode extends AbstractScope<IdlessChildTargetRouteId> {
   @override
   void build(ScopeBuilder builder) {
-    final languageCode = builder.stringQueryParam(
+    final languageCode = builder.defaultStringQueryParam(
       'languageCode',
       defaultValue: const Default('de'),
     );

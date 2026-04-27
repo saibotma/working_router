@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/working_router.dart';
 
 /// Hosts a nested [WorkingRouterDelegate] inside widget state.
@@ -9,11 +10,15 @@ import 'package:working_router/working_router.dart';
 /// [WorkingRouter.refresh] as long as the surrounding shell widget is reused.
 /// This is what lets working_router support dynamic route trees without
 /// immediately discarding nested navigator state on every refresh.
+///
+/// It also installs a navigator-aware [WorkingRouter.of] value. Calling
+/// `WorkingRouter.of(context).routeBack()` from inside this widget routes back
+/// inside this nested navigator first, then falls back to the parent/global
+/// router when this navigator has no active location to remove.
 class NestedRouting extends StatefulWidget {
   final WorkingRouter router;
   final BuildPages buildPages;
-  final List<Page<dynamic>> Function(WorkingRouterData data)?
-  buildDefaultPages;
+  final List<Page<dynamic>> Function(WorkingRouterData data)? buildDefaultPages;
   final WorkingRouterKey routerKey;
   final String? debugLabel;
 
@@ -39,6 +44,10 @@ class _NestedRoutingState extends State<NestedRouting> {
     buildDefaultPages: widget.buildDefaultPages,
     debugLabel: widget.debugLabel,
   );
+  late final NestedWorkingRouterSailor _sailor = NestedWorkingRouterSailor(
+    router: widget.router,
+    routerKey: widget.routerKey,
+  );
 
   @override
   void didUpdateWidget(covariant NestedRouting oldWidget) {
@@ -47,6 +56,7 @@ class _NestedRoutingState extends State<NestedRouting> {
     // a different nested router boundary.
     if (!identical(oldWidget.routerKey, widget.routerKey)) {
       _delegate!.updateRouterKey(widget.routerKey);
+      _sailor.routerKey = widget.routerKey;
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -69,9 +79,12 @@ class _NestedRoutingState extends State<NestedRouting> {
     final childBackButtonDispatcher = parentRouter.backButtonDispatcher!
         .createChildBackButtonDispatcher();
     childBackButtonDispatcher.takePriority();
-    return Router(
-      routerDelegate: _delegate!,
-      backButtonDispatcher: childBackButtonDispatcher,
+    return InheritedWorkingRouter(
+      sailor: _sailor,
+      child: Router(
+        routerDelegate: _delegate!,
+        backButtonDispatcher: childBackButtonDispatcher,
+      ),
     );
   }
 
@@ -79,6 +92,7 @@ class _NestedRoutingState extends State<NestedRouting> {
   void dispose() {
     _delegate!.deregister();
     _delegate = null;
+    _sailor.dispose();
     super.dispose();
   }
 }

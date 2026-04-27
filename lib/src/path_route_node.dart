@@ -37,17 +37,35 @@ abstract class PathRouteNodeRenderResult {
   const PathRouteNodeRenderResult();
 }
 
+/// Controls whether a matched route node contributes its path segments when
+/// the router generates a URI from the active route chain.
+///
+/// This is not a matching or authorization mechanism. Hidden path segments are
+/// still accepted when they are present in an incoming URL; the router simply
+/// omits them again when it writes its canonical URI. Keep protected screens
+/// behind normal permission checks instead of relying on path visibility.
+///
+/// Visibility is inherited by descendants. The only explicit override is
+/// [hidden]; there is intentionally no visible override.
+enum RoutePathVisibility {
+  inherit,
+  hidden,
+}
+
 abstract class PathRouteNodeBuilder {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
+  final List<QueryFilter<dynamic>> _queryFilters = [];
   List<RouteNode> _children = const [];
   bool _childrenAssigned = false;
   PageKey? _pageKey;
+  RoutePathVisibility pathVisibility = RoutePathVisibility.inherit;
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
+  List<QueryFilter<dynamic>> get queryFilters => _queryFilters;
   List<RouteNode> get children => _children;
   PageKey? get configuredPageKey => _pageKey;
 
@@ -83,10 +101,29 @@ abstract class PathRouteNodeBuilder {
       final UnboundPathParam<T> pathParameter => pathSegment<PathParam<T>>(
         PathParam<T>(pathParameter),
       ),
-      final UnboundQueryParam<T> queryParameter => query(
-        QueryParam<T>(queryParameter),
-      ),
+      final UnboundQueryParam<T> queryParameter =>
+        queryParameter.defaultValue == null
+            ? _bindQueryParam(queryParameter)
+            : _bindDefaultQueryParam(queryParameter),
     };
+  }
+
+  RequiredQueryParam<T> bindQueryParam<T>(
+    RequiredUnboundQueryParam<T> parameter,
+  ) {
+    return _bindQueryParam(parameter);
+  }
+
+  RequiredQueryParam<T> _bindQueryParam<T>(UnboundQueryParam<T> parameter) {
+    final queryParameter = RequiredQueryParam<T>(parameter);
+    _queryParameters.add(queryParameter);
+    return queryParameter;
+  }
+
+  DefaultQueryParam<T> bindDefaultQueryParam<T>(
+    DefaultUnboundQueryParam<T> parameter,
+  ) {
+    return _bindDefaultQueryParam(parameter);
   }
 
   PathParam<String> stringPathParam() {
@@ -117,154 +154,226 @@ abstract class PathRouteNodeBuilder {
     return pathParam(EnumRouteParamCodec(values));
   }
 
-  QueryParam<T> query<T>(QueryParam<T> parameter) {
-    _queryParameters.add(parameter);
-    return parameter;
+  DefaultQueryParam<T> _bindDefaultQueryParam<T>(
+    UnboundQueryParam<T> parameter,
+  ) {
+    final queryParameter = DefaultQueryParam<T>(parameter);
+    _queryParameters.add(queryParameter);
+    return queryParameter;
   }
 
-  QueryParam<T> queryParam<T>(
+  RequiredQueryParam<T> queryParam<T>(
+    String name,
+    RouteParamCodec<T> codec,
+  ) {
+    final queryParameter = RequiredQueryParam<T>(
+      RequiredUnboundQueryParam<T>(name, codec),
+    );
+    _queryParameters.add(queryParameter);
+    return queryParameter;
+  }
+
+  DefaultQueryParam<T> defaultQueryParam<T>(
     String name,
     RouteParamCodec<T> codec, {
-    Default<T>? defaultValue,
+    required Default<T> defaultValue,
   }) {
-    return query(
-      QueryParam<T>(
-        UnboundQueryParam<T>(name, codec, defaultValue: defaultValue),
+    return _bindDefaultQueryParam(
+      DefaultUnboundQueryParam<T>(
+        name,
+        codec,
+        defaultValue: defaultValue,
       ),
     );
   }
 
-  QueryParam<String> stringQueryParam(
-    String name, {
-    Default<String>? defaultValue,
-  }) {
+  void queryFilter<T>(DefaultQueryParam<T> parameter, T value) {
+    _queryFilters.add(QueryFilter<T>(parameter: parameter, value: value));
+  }
+
+  RequiredQueryParam<String> stringQueryParam(String name) {
     return queryParam(
+      name,
+      const StringRouteParamCodec(),
+    );
+  }
+
+  DefaultQueryParam<String> defaultStringQueryParam(
+    String name, {
+    required Default<String> defaultValue,
+  }) {
+    return defaultQueryParam(
       name,
       const StringRouteParamCodec(),
       defaultValue: defaultValue,
     );
   }
 
-  QueryParam<String?> nullableStringQueryParam(String name) {
-    return queryParam<String?>(
+  DefaultQueryParam<String?> nullableStringQueryParam(String name) {
+    return defaultQueryParam<String?>(
       name,
       const StringRouteParamCodec(),
       defaultValue: const Default<String?>(null),
     );
   }
 
-  QueryParam<int> intQueryParam(
-    String name, {
-    Default<int>? defaultValue,
-  }) {
+  RequiredQueryParam<int> intQueryParam(String name) {
     return queryParam(
+      name,
+      const IntRouteParamCodec(),
+    );
+  }
+
+  DefaultQueryParam<int> defaultIntQueryParam(
+    String name, {
+    required Default<int> defaultValue,
+  }) {
+    return defaultQueryParam(
       name,
       const IntRouteParamCodec(),
       defaultValue: defaultValue,
     );
   }
 
-  QueryParam<int?> nullableIntQueryParam(String name) {
-    return queryParam<int?>(
+  DefaultQueryParam<int?> nullableIntQueryParam(String name) {
+    return defaultQueryParam<int?>(
       name,
       const IntRouteParamCodec(),
       defaultValue: const Default<int?>(null),
     );
   }
 
-  QueryParam<double> doubleQueryParam(
-    String name, {
-    Default<double>? defaultValue,
-  }) {
+  RequiredQueryParam<double> doubleQueryParam(String name) {
     return queryParam(
+      name,
+      const DoubleRouteParamCodec(),
+    );
+  }
+
+  DefaultQueryParam<double> defaultDoubleQueryParam(
+    String name, {
+    required Default<double> defaultValue,
+  }) {
+    return defaultQueryParam(
       name,
       const DoubleRouteParamCodec(),
       defaultValue: defaultValue,
     );
   }
 
-  QueryParam<double?> nullableDoubleQueryParam(String name) {
-    return queryParam<double?>(
+  DefaultQueryParam<double?> nullableDoubleQueryParam(String name) {
+    return defaultQueryParam<double?>(
       name,
       const DoubleRouteParamCodec(),
       defaultValue: const Default<double?>(null),
     );
   }
 
-  QueryParam<bool> boolQueryParam(
-    String name, {
-    Default<bool>? defaultValue,
-  }) {
+  RequiredQueryParam<bool> boolQueryParam(String name) {
     return queryParam(
+      name,
+      const BoolRouteParamCodec(),
+    );
+  }
+
+  DefaultQueryParam<bool> defaultBoolQueryParam(
+    String name, {
+    required Default<bool> defaultValue,
+  }) {
+    return defaultQueryParam(
       name,
       const BoolRouteParamCodec(),
       defaultValue: defaultValue,
     );
   }
 
-  QueryParam<bool?> nullableBoolQueryParam(String name) {
-    return queryParam<bool?>(
+  DefaultQueryParam<bool?> nullableBoolQueryParam(String name) {
+    return defaultQueryParam<bool?>(
       name,
       const BoolRouteParamCodec(),
       defaultValue: const Default<bool?>(null),
     );
   }
 
-  QueryParam<DateTime> dateTimeQueryParam(
-    String name, {
-    Default<DateTime>? defaultValue,
-  }) {
+  RequiredQueryParam<DateTime> dateTimeQueryParam(String name) {
     return queryParam(
+      name,
+      const DateTimeIsoRouteParamCodec(),
+    );
+  }
+
+  DefaultQueryParam<DateTime> defaultDateTimeQueryParam(
+    String name, {
+    required Default<DateTime> defaultValue,
+  }) {
+    return defaultQueryParam(
       name,
       const DateTimeIsoRouteParamCodec(),
       defaultValue: defaultValue,
     );
   }
 
-  QueryParam<DateTime?> nullableDateTimeQueryParam(String name) {
-    return queryParam<DateTime?>(
+  DefaultQueryParam<DateTime?> nullableDateTimeQueryParam(String name) {
+    return defaultQueryParam<DateTime?>(
       name,
       const DateTimeIsoRouteParamCodec(),
       defaultValue: const Default<DateTime?>(null),
     );
   }
 
-  QueryParam<Uri> uriQueryParam(
-    String name, {
-    Default<Uri>? defaultValue,
-  }) {
+  RequiredQueryParam<Uri> uriQueryParam(String name) {
     return queryParam(
+      name,
+      const UriRouteParamCodec(),
+    );
+  }
+
+  DefaultQueryParam<Uri> defaultUriQueryParam(
+    String name, {
+    required Default<Uri> defaultValue,
+  }) {
+    return defaultQueryParam(
       name,
       const UriRouteParamCodec(),
       defaultValue: defaultValue,
     );
   }
 
-  QueryParam<Uri?> nullableUriQueryParam(String name) {
-    return queryParam<Uri?>(
+  DefaultQueryParam<Uri?> nullableUriQueryParam(String name) {
+    return defaultQueryParam<Uri?>(
       name,
       const UriRouteParamCodec(),
       defaultValue: const Default<Uri?>(null),
     );
   }
 
-  QueryParam<T> enumQueryParam<T extends Enum>(
+  RequiredQueryParam<T> enumQueryParam<T extends Enum>(
+    String name,
+    List<T> values,
+  ) {
+    return queryParam(
+      name,
+      EnumRouteParamCodec(values),
+    );
+  }
+
+  DefaultQueryParam<T> defaultEnumQueryParam<T extends Enum>(
     String name,
     List<T> values, {
-    Default<T>? defaultValue,
+    required Default<T> defaultValue,
   }) {
-    return queryParam(
+    return defaultQueryParam(
       name,
       EnumRouteParamCodec(values),
       defaultValue: defaultValue,
     );
   }
 
-  QueryParam<T?> nullableEnumQueryParam<T extends Enum>(
+  DefaultQueryParam<T?> nullableEnumQueryParam<T extends Enum>(
     String name,
     List<T> values,
   ) {
-    return queryParam<T?>(
+    return defaultQueryParam<T?>(
       name,
       EnumRouteParamCodec(values),
       defaultValue: Default<T?>(null),
@@ -371,8 +480,10 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
+      queryFilters: List.unmodifiable(builder.queryFilters),
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
+      pathVisibility: builder.pathVisibility,
       render: render,
     );
   }
@@ -382,6 +493,10 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
   List<PathParam<dynamic>> get pathParameters => _definition.pathParameters;
 
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
+
+  List<QueryFilter<dynamic>> get queryFilters => _definition.queryFilters;
+
+  RoutePathVisibility get pathVisibility => _definition.pathVisibility;
 
   @override
   List<RouteNode> get children => _definition.children;

@@ -68,7 +68,7 @@ final example = ExampleNode(
   build: (builder, location) {
     builder.pathLiteral('items');
     final itemId = builder.stringPathParam();
-    final filter = builder.stringQueryParam(
+    final filter = builder.defaultStringQueryParam(
       'filter',
       defaultValue: Default('all'),
     );
@@ -96,10 +96,18 @@ Important details:
   require builder route declarations to be direct statements or local
   initializers in `build(...)`.
 - The builder also exposes typed shortcuts like `stringPathParam()`,
-  `intQueryParam('page')`, `intQueryParam('page', defaultValue: Default(1))`,
+  `intQueryParam('page')`, `defaultIntQueryParam('page',
+  defaultValue: Default(1))`,
   `uriPathParam()`, `uriQueryParam('next')`,
   `enumPathParam(MyEnum.values)`, and
-  `enumQueryParam('filter', MyEnum.values, defaultValue: Default(MyEnum.all))`.
+  `defaultEnumQueryParam('filter', MyEnum.values,
+  defaultValue: Default(MyEnum.all))`.
+- Required query parameters are represented as `RequiredQueryParam<T>`.
+  Default-bearing query parameters are represented as `DefaultQueryParam<T>`;
+  use `defaultQueryParam(...)` or a typed `default...QueryParam(...)` shortcut
+  when a query param has a default.
+  Reusable defaults can be declared with `DefaultUnboundQueryParam<T>` and
+  bound with `builder.bindDefaultQueryParam(...)`.
 - For nullable query params with a default `null`, use the nullable shortcuts
   like `nullableStringQueryParam('filter')`,
   `nullableBoolQueryParam('enabled')`, or
@@ -115,8 +123,8 @@ Important details:
   `AnonymousMultiShellLocation(...)` for anonymous callback-based route
   definitions, or use `Location<Self>`, `Scope<Self>`, `ShellLocation<Self>`,
   and `MultiShellLocation<Self>` for named callback-based nodes, or subclass
-  `AbstractLocation`, `AbstractScope`,
-  `AbstractShell`, `AbstractShellLocation`, `AbstractMultiShell`, and
+  `AbstractLocation`, `AbstractScope`, `AbstractShell`,
+  `AbstractShellLocation`, `AbstractMultiShell`, and
   `AbstractMultiShellLocation` to override `build(...)` directly.
 - Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
@@ -578,6 +586,93 @@ Use:
   the layout
 - `navigatorEnabled: false` to collapse the whole multi-shell back onto the
   parent navigator on smaller layouts while keeping the same route tree
+
+## Hidden Paths
+
+`builder.pathVisibility = RoutePathVisibility.hidden` hides a matched node's
+path segments when the router generates its canonical URI. Descendants inherit
+hidden visibility; the default value is `RoutePathVisibility.inherit`, and
+there is no explicit visible override. Hidden paths are still accepted when they
+are present in an incoming URL; after matching, the router omits them again from
+`WorkingRouterData.uri`.
+
+This keeps the current model simple and avoids storing hidden path state in
+browser history or native route-information state. It does mean path visibility
+is not a security boundary. Do not use hidden paths to protect routes or data;
+use normal permission checks and route guards. If this behavior creates a
+security or product issue later, the router can move to a typed route-state
+model that distinguishes visible URL segments from hidden state during
+matching.
+
+## Query Filters
+
+`queryFilter(...)` makes a normal route node match only when a typed default
+query parameter has a specific value. This is useful for pane state such as a
+chat search view that should appear beside the currently selected channel.
+
+```dart
+AnonymousMultiShellLocation(
+  id: RouteId.chat,
+  navigatorEnabled: screenSize != ScreenSize.small,
+  build: (builder, location, contentSlot) {
+    builder.pathLiteral('chat');
+    final chatDisplay = builder.defaultEnumQueryParam(
+      'chatDisplay',
+      ChatDisplay.values,
+      defaultValue: const Default(ChatDisplay.list),
+    );
+
+    final listSlot = builder.slot(
+      defaultContent: DefaultContent.widget(const ChannelListScreen()),
+    );
+
+    builder.shellContent = MultiShellContent.builder(
+      (context, data, slots) => ChatScreen(
+        leftChild: slots.child(listSlot),
+        child: slots.child(contentSlot),
+      ),
+    );
+
+    builder.children = [
+      SearchNode(
+        id: RouteId.search,
+        chatDisplay: chatDisplay,
+        parentRouterKey: listSlot.routerKey,
+      ),
+      ChannelDetailNode(
+        id: RouteId.channelDetail,
+        parentRouterKey: contentSlot.routerKey,
+      ),
+    ];
+  },
+)
+```
+
+```dart
+class SearchNode extends AbstractLocation<SearchNode> {
+  final DefaultQueryParam<ChatDisplay> chatDisplay;
+
+  SearchNode({
+    required this.chatDisplay,
+    super.parentRouterKey,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.queryFilter(chatDisplay, ChatDisplay.search);
+    builder.content = Content.widget(const SearchScreen());
+  }
+}
+```
+
+With that tree, opening search while `/chat/channel/42` is selected routes to
+`/chat/channel/42?chatDisplay=search`. Calling
+`WorkingRouter.of(context).routeBack()` from inside the left nested navigator
+resets `chatDisplay` to its default value without popping the channel detail.
+This works because `WorkingRouter.of(context)` is navigator-aware inside
+nested routing widgets: a `routeBack()` call removes the last active location
+owned by that nested navigator. If that navigator has no active location left,
+the router falls back to the parent/global back behavior.
 
 ## Generated API
 

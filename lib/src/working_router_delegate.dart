@@ -49,8 +49,7 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
   final bool isRootDelegate;
   final WorkingRouter router;
   final BuildPages? buildPages;
-  final List<Page<dynamic>> Function(WorkingRouterData data)?
-  buildDefaultPages;
+  final List<Page<dynamic>> Function(WorkingRouterData data)? buildDefaultPages;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
@@ -86,7 +85,7 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
   }
 
   @override
-  Uri? get currentConfiguration => router.nullableData?.uri;
+  Uri? get currentConfiguration => router.nullableConfiguration;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +121,7 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
               // Schedule a Microtask instead of a Future, because
               // go_router also does it like this.
               scheduleMicrotask(() {
-                router.routeBack();
+                router.routeBackInNavigator(routerKey);
               });
               return false;
             },
@@ -195,6 +194,22 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
         yield entry;
       }
     }
+  }
+
+  AnyLocation? lastLocationForRouterKey(
+    WorkingRouterData data,
+    WorkingRouterKey routerKey,
+  ) {
+    AnyLocation? lastLocation;
+    for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
+      if (!identical(entry.effectiveParentRouterKey, routerKey)) {
+        continue;
+      }
+      if (entry.node case final AnyLocation location) {
+        lastLocation = location;
+      }
+    }
+    return lastLocation;
   }
 
   Iterable<_MatchedNodeEntry> _matchedNodesWithEffectiveParentRouterKeys(

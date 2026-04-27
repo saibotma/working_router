@@ -7,7 +7,10 @@ abstract final class _TestId {
   static final paramOnly = NodeId<_ParamOnlyLocation>();
   static final detail = NodeId<_TestLocation>();
   static final query = NodeId<_QueryLocation>();
+  static final queryRequired = NodeId<_BuilderRequiredQueryLocation>();
   static final queryNullable = NodeId<_NullableQueryLocation>();
+  static final queryDefault = NodeId<_DefaultQueryLocation>();
+  static final queryBuilderDefault = NodeId<_BuilderDefaultQueryLocation>();
   static final root = NodeId<_TestLocation>();
   static final parent = NodeId<_TestLocation>();
   static final child = NodeId<_TestLocation>();
@@ -78,6 +81,43 @@ void main() {
       );
 
       expect(data.param(boundTab), 'all');
+    });
+
+    test('query APIs expose required and default query param types', () {
+      const unboundTab = DefaultUnboundQueryParam(
+        'tab',
+        StringRouteParamCodec(),
+        defaultValue: Default('all'),
+      );
+      final requiredLocation = _BuilderRequiredQueryLocation(
+        id: _TestId.queryRequired,
+      );
+      final boundLocation = _DefaultQueryLocation(
+        id: _TestId.queryDefault,
+        parameter: unboundTab,
+      );
+      final builtLocation = _BuilderDefaultQueryLocation(
+        id: _TestId.queryBuilderDefault,
+      );
+
+      final RequiredQueryParam<String> requiredTab =
+          requiredLocation.boundParameter;
+      final DefaultQueryParam<String> boundTab = boundLocation.boundParameter;
+      final DefaultQueryParam<String> builtTab = builtLocation.boundParameter;
+      final data = WorkingRouterData(
+        uri: Uri(path: '/query'),
+        routeNodes: <RouteNode>[
+          requiredLocation,
+          boundLocation,
+          builtLocation,
+        ].toIList(),
+        pathParameters: IMap(),
+        queryParameters: {'required': 'present'}.lock,
+      );
+
+      expect(data.param(requiredTab), 'present');
+      expect(data.param(boundTab), 'all');
+      expect(data.param(builtTab), 'list');
     });
 
     test('queryParam error includes query key and current data', () {
@@ -419,6 +459,55 @@ class _NullableQueryLocation extends AbstractLocation<_NullableQueryLocation> {
   @override
   void build(LocationBuilder builder) {
     builder.bindParam(parameter);
+  }
+}
+
+class _DefaultQueryLocation extends AbstractLocation<_DefaultQueryLocation> {
+  final DefaultUnboundQueryParam<String> parameter;
+  late final DefaultQueryParam<String> boundParameter =
+      definition.queryParameters.single as DefaultQueryParam<String>;
+
+  _DefaultQueryLocation({
+    required NodeId<_DefaultQueryLocation> id,
+    required this.parameter,
+  }) : super(id: id);
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.bindDefaultQueryParam(parameter);
+  }
+}
+
+class _BuilderDefaultQueryLocation
+    extends AbstractLocation<_BuilderDefaultQueryLocation> {
+  late final DefaultQueryParam<String> boundParameter =
+      definition.queryParameters.single as DefaultQueryParam<String>;
+
+  _BuilderDefaultQueryLocation({
+    required NodeId<_BuilderDefaultQueryLocation> id,
+  }) : super(id: id);
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.defaultStringQueryParam(
+      'display',
+      defaultValue: const Default('list'),
+    );
+  }
+}
+
+class _BuilderRequiredQueryLocation
+    extends AbstractLocation<_BuilderRequiredQueryLocation> {
+  late final RequiredQueryParam<String> boundParameter =
+      definition.queryParameters.single as RequiredQueryParam<String>;
+
+  _BuilderRequiredQueryLocation({
+    required NodeId<_BuilderRequiredQueryLocation> id,
+  }) : super(id: id);
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.stringQueryParam('required');
   }
 }
 

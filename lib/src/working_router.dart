@@ -34,7 +34,9 @@ class WorkingRouter extends ChangeNotifier
       PlatformRouteInformationProvider(
         initialRouteInformation: RouteInformation(
           // ignore: deprecated_member_use
-          location: WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+          uri: Uri.parse(
+            WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+          ),
         ),
       );
   final GlobalKey<NavigatorState> _rootNavigatorKey;
@@ -107,6 +109,8 @@ class WorkingRouter extends ChangeNotifier
   // ignore: deprecated_member_use_from_same_package
   WorkingRouterData? get nullableData => _data;
 
+  Uri? get nullableConfiguration => nullableData?.uri;
+
   @override
   BackButtonDispatcher? get backButtonDispatcher => RootBackButtonDispatcher();
 
@@ -170,14 +174,9 @@ class WorkingRouter extends ChangeNotifier
 
   @internal
   void routeToUriFromRouteInformation(Uri uri) {
-    _routeToUri(uri, reason: RouteTransitionReason.routeInformation);
-  }
-
-  void _routeToUri(Uri uri, {required RouteTransitionReason reason}) {
-    final targetData = _buildDataForUri(uri);
     _routeTo(
-      targetData: targetData,
-      reason: reason,
+      targetData: _buildDataForUri(uri),
+      reason: RouteTransitionReason.routeInformation,
     );
   }
 
@@ -252,6 +251,68 @@ class WorkingRouter extends ChangeNotifier
     _routeBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
   }
 
+  /// Routes back within the navigator identified by [routerKey].
+  ///
+  /// Nested routers expose this through [NestedWorkingRouterSailor.routeBack],
+  /// so `WorkingRouter.of(context).routeBack()` naturally removes the last
+  /// active location owned by the nearest nested navigator. If that navigator
+  /// has no active location, this falls back to the normal global [routeBack].
+  void routeBackInNavigator(WorkingRouterKey routerKey) {
+    final data = nullableData;
+    if (data == null) {
+      return;
+    }
+    final location = _rootDelegate.lastLocationForRouterKey(data, routerKey);
+    if (location == null) {
+      routeBack();
+      return;
+    }
+
+    final locationIndex = data.routeNodes.indexWhere(
+      (node) => identical(node, location),
+    );
+    if (locationIndex == -1) {
+      return;
+    }
+
+    final newNodes = data.routeNodes.removeAt(locationIndex);
+    if (newNodes.locations.length == data.routeNodes.locations.length) {
+      return;
+    }
+    if (newNodes.locations.isEmpty) {
+      routeBack();
+      return;
+    }
+
+    final newPathRouteNodes = newNodes.pathRouteNodes;
+    final newPathParameters = data.pathParametersForRouter.keepKeys({
+      for (final element in newPathRouteNodes)
+        ...element.path.whereType<PathParam<dynamic>>().map(
+          (it) => it.unboundParam,
+        ),
+    });
+    final retainedQueryParameters = data.queryParameters.keepKeys(
+      newPathRouteNodes
+          .expand((element) => element.queryParameters.map((it) => it.name))
+          .toSet(),
+    );
+    final newQueryParameters = _resetRemovedQueryFilters(
+      retainedQueryParameters,
+      oldRouteNodes: data.routeNodes,
+      newRouteNodes: newNodes,
+    );
+
+    _routeTo(
+      targetData: _buildData(
+        routeNodes: newNodes,
+        fallback: null,
+        pathParameters: newPathParameters,
+        queryParameters: newQueryParameters,
+      ),
+      reason: RouteTransitionReason.programmatic,
+    );
+  }
+
   @override
   void routeBackFrom(AnyLocation fromLocation) {
     _routeBackUntil(
@@ -313,10 +374,15 @@ class WorkingRouter extends ChangeNotifier
         ),
     });
 
-    final newQueryParameters = data.queryParameters.keepKeys(
+    final retainedQueryParameters = data.queryParameters.keepKeys(
       newPathRouteNodes
           .expand((element) => element.queryParameters.map((it) => it.name))
           .toSet(),
+    );
+    final newQueryParameters = _resetRemovedQueryFilters(
+      retainedQueryParameters,
+      oldRouteNodes: data.routeNodes,
+      newRouteNodes: newNodes,
     );
 
     _routeTo(
@@ -487,12 +553,16 @@ class WorkingRouter extends ChangeNotifier
   }
 
   WorkingRouterData _buildDataForUri(Uri uri) {
-    final matchResult = _routeNodeTree.match(uri.pathSegments.toIList());
+    final queryParameters = uri.queryParameters.toIMap();
+    final matchResult = _routeNodeTree.match(
+      uri.pathSegments.toIList(),
+      queryParameters: queryParameters,
+    );
     return _buildData(
       routeNodes: matchResult.routeNodes,
-      fallback: uri,
+      fallback: matchResult.isEmpty ? uri : null,
       pathParameters: matchResult.pathParameters,
-      queryParameters: uri.queryParameters.toIMap(),
+      queryParameters: queryParameters,
     );
   }
 
@@ -571,12 +641,11 @@ class WorkingRouter extends ChangeNotifier
         if (matchedNodes == null || matchedNodes.isEmpty) {
           return data;
         }
-        final routeNodes = data.routeNodes
-            .take(startIndex + 1)
-            .toIList()
-            .addAll(
-              matchedNodes,
-            );
+        final routeNodes = _mergeQueryFilterChildTarget(
+          currentRouteNodes: data.routeNodes,
+          startIndex: startIndex,
+          matchedNodes: matchedNodes,
+        );
 
         return _buildData(
           routeNodes: routeNodes,
@@ -629,6 +698,31 @@ class WorkingRouter extends ChangeNotifier
     }
   }
 
+  IList<RouteNode> _mergeQueryFilterChildTarget({
+    required IList<RouteNode> currentRouteNodes,
+    required int startIndex,
+    required IList<RouteNode> matchedNodes,
+  }) {
+    final targetRouteNodes = currentRouteNodes
+        .take(startIndex + 1)
+        .toIList()
+        .addAll(matchedNodes);
+    if (!matchedNodes.every(_isPathlessQueryFilterNode)) {
+      return targetRouteNodes;
+    }
+    final retainedDescendants = currentRouteNodes
+        .skip(startIndex + 1)
+        .where((node) => !matchedNodes.any((target) => identical(target, node)))
+        .toIList();
+    return targetRouteNodes.addAll(retainedDescendants);
+  }
+
+  bool _isPathlessQueryFilterNode(RouteNode node) {
+    return node is PathRouteNode &&
+        node.path.isEmpty &&
+        node.queryFilters.isNotEmpty;
+  }
+
   WorkingRouterData _buildData({
     required IList<RouteNode> routeNodes,
     required Uri? fallback,
@@ -641,22 +735,88 @@ class WorkingRouter extends ChangeNotifier
       'Fallback must not be null when locations are empty.',
     );
 
+    final filteredQueryParameters = _applyQueryFilters(
+      queryParameters,
+      routeNodes,
+    );
+    final uri =
+        fallback ??
+        _uriFromRouteNodes(
+          routeNodes: routeNodes,
+          queryParameters: filteredQueryParameters,
+          pathParameters: pathParameters,
+        );
+
     return WorkingRouterData(
-      uri:
-          fallback ??
-          _uriFromLocations(
-            locations: pathRouteNodes,
-            queryParameters: queryParameters,
-            pathParameters: pathParameters,
-          ),
+      uri: uri,
       routeNodes: routeNodes,
       pathParameters: pathRouteNodes.isEmpty
           ? const IMapConst({})
           : pathParameters,
       queryParameters: pathRouteNodes.isEmpty
           ? fallback!.queryParameters.toIMap()
-          : queryParameters,
+          : filteredQueryParameters,
     );
+  }
+
+  IMap<String, String> _applyQueryFilters(
+    IMap<String, String> queryParameters,
+    IList<RouteNode> routeNodes,
+  ) {
+    var result = queryParameters;
+    for (final filter in routeNodes.pathRouteNodes.expand(
+      (node) => node.queryFilters,
+    )) {
+      result = _writeQueryValue(
+        result,
+        filter.parameter,
+        filter.value,
+      );
+    }
+    return result;
+  }
+
+  IMap<String, String> _resetRemovedQueryFilters(
+    IMap<String, String> queryParameters, {
+    required IList<RouteNode> oldRouteNodes,
+    required IList<RouteNode> newRouteNodes,
+  }) {
+    final activeFilters = newRouteNodes.pathRouteNodes
+        .expand((node) => node.queryFilters)
+        .toList(growable: false);
+    var result = queryParameters;
+    for (final removedFilter
+        in oldRouteNodes.pathRouteNodes
+            .where((node) => !newRouteNodes.any((it) => identical(it, node)))
+            .expand((node) => node.queryFilters)) {
+      final isStillActive = activeFilters.any(
+        (filter) => identical(
+          filter.parameter.unboundParam,
+          removedFilter.parameter.unboundParam,
+        ),
+      );
+      if (isStillActive) {
+        continue;
+      }
+      result = _writeQueryValue(
+        result,
+        removedFilter.parameter,
+        removedFilter.parameter.defaultValue.value,
+      );
+    }
+    return result;
+  }
+
+  IMap<String, String> _writeQueryValue<T>(
+    IMap<String, String> queryParameters,
+    QueryParam<T> parameter,
+    T value,
+  ) {
+    if (parameter.defaultValue case final defaultValue?
+        when defaultValue.value == value) {
+      return queryParameters.remove(parameter.name);
+    }
+    return queryParameters.add(parameter.name, parameter.codec.encode(value));
   }
 
   void addObserver(LocationObserverState observer) {
@@ -667,13 +827,13 @@ class WorkingRouter extends ChangeNotifier
     _observers.remove(observer);
   }
 
-  Uri _uriFromLocations({
-    required IList<PathRouteNode> locations,
+  Uri _uriFromRouteNodes({
+    required IList<RouteNode> routeNodes,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
     return Uri(
-      path: locations.buildPath(pathParameters),
+      path: routeNodes.visiblePathRouteNodes().buildPath(pathParameters),
       queryParameters: queryParameters.isEmpty ? null : queryParameters.unlock,
     );
   }
@@ -830,6 +990,100 @@ class WorkingRouter extends ChangeNotifier
 
   void removeNestedDelegate(WorkingRouterDelegate delegate) {
     _nestedDelegates.remove(delegate);
+  }
+}
+
+class NestedWorkingRouterSailor extends ChangeNotifier
+    implements WorkingRouterDataSailor {
+  final WorkingRouter router;
+  WorkingRouterKey routerKey;
+
+  NestedWorkingRouterSailor({
+    required this.router,
+    required this.routerKey,
+  }) {
+    router.addListener(notifyListeners);
+  }
+
+  @override
+  WorkingRouterData get data => router.data;
+
+  @override
+  void routeTo(RouteTarget target) {
+    router.routeTo(target);
+  }
+
+  @override
+  void routeToUriString(String uriString) {
+    router.routeToUriString(uriString);
+  }
+
+  @override
+  void routeToUri(Uri uri) {
+    router.routeToUri(uri);
+  }
+
+  @override
+  void routeToId(
+    AnyNodeId id, {
+    WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
+  }) {
+    router.routeToId(
+      id,
+      writePathParameters: writePathParameters,
+      writeQueryParameters: writeQueryParameters,
+    );
+  }
+
+  @override
+  void slideIn(AnyNodeId id) {
+    router.slideIn(id);
+  }
+
+  @override
+  void routeToChildWhere(
+    bool Function(AnyLocation location) predicate, {
+    WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
+  }) {
+    router.routeToChildWhere(
+      predicate,
+      writePathParameters: writePathParameters,
+      writeQueryParameters: writeQueryParameters,
+    );
+  }
+
+  @override
+  void routeToChild<T>({
+    WritePathParameters? writePathParameters,
+    WriteQueryParameters? writeQueryParameters,
+  }) {
+    router.routeToChild<T>(
+      writePathParameters: writePathParameters,
+      writeQueryParameters: writeQueryParameters,
+    );
+  }
+
+  @override
+  void routeBack() {
+    router.routeBackInNavigator(routerKey);
+  }
+
+  @override
+  void routeBackFrom(AnyLocation fromLocation) {
+    router.routeBackFrom(fromLocation);
+  }
+
+  @override
+  void routeBackUntil(bool Function(AnyLocation location) match) {
+    router.routeBackUntil(match);
+  }
+
+  @override
+  void dispose() {
+    router.removeListener(notifyListeners);
+    super.dispose();
   }
 }
 

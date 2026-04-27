@@ -27,14 +27,12 @@ sealed class MultiShellContent {
 
   MultiShellContentBuilder resolveBuilder() {
     return switch (this) {
-      final _BuilderMultiShellContent builderContent =>
-        builderContent.builder,
+      final _BuilderMultiShellContent builderContent => builderContent.builder,
     };
   }
 }
 
-final class _BuilderMultiShellContent
-    extends MultiShellContent {
+final class _BuilderMultiShellContent extends MultiShellContent {
   final MultiShellContentBuilder builder;
 
   const _BuilderMultiShellContent(this.builder);
@@ -160,8 +158,7 @@ final class MultiShellSlotChildren {
   }
 }
 
-final class MultiShellBuildResult
-    extends PathRouteNodeRenderResult {
+final class MultiShellBuildResult extends PathRouteNodeRenderResult {
   final List<MultiShellSlotDefinition> slots;
   final MultiShellContentBuilder buildContent;
   final ShellPageBuilder? buildPage;
@@ -277,8 +274,10 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
+      queryFilters: List.unmodifiable(builder.queryFilters),
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
+      pathVisibility: builder.pathVisibility,
       render: render,
     );
   }
@@ -291,6 +290,12 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
 
   @override
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
+
+  @override
+  List<QueryFilter<dynamic>> get queryFilters => _definition.queryFilters;
+
+  @override
+  RoutePathVisibility get pathVisibility => _definition.pathVisibility;
 
   @override
   List<RouteNode> get children => _definition.children;
@@ -314,8 +319,7 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
   List<MultiShellSlot> get slots =>
       _multiShellRender.slots.map((it) => it.slot).toList(growable: false);
 
-  List<MultiShellSlotDefinition> get slotDefinitions =>
-      _multiShellRender.slots;
+  List<MultiShellSlotDefinition> get slotDefinitions => _multiShellRender.slots;
 
   Widget buildContent(
     BuildContext context,

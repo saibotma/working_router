@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:working_router/working_router.dart';
@@ -753,7 +754,7 @@ void main() {
                 builder.children = [
                   _BuilderScope(
                     build: (builder, scope) {
-                      final languageCode = builder.stringQueryParam(
+                      final languageCode = builder.defaultStringQueryParam(
                         'languageCode',
                         defaultValue: const Default('en'),
                       );
@@ -805,7 +806,7 @@ void main() {
               builder.children = [
                 _BuilderScope(
                   build: (builder, scope) {
-                    languageCode = builder.stringQueryParam(
+                    languageCode = builder.defaultStringQueryParam(
                       'languageCode',
                       defaultValue: const Default('en'),
                     );
@@ -897,7 +898,7 @@ void main() {
                   build: (builder, shell, routerKey) {
                     builder.pathLiteral('accounts');
                     final accountId = builder.stringPathParam();
-                    final tab = builder.stringQueryParam(
+                    final tab = builder.defaultStringQueryParam(
                       'tab',
                       defaultValue: const Default('overview'),
                     );
@@ -2175,6 +2176,300 @@ void main() {
         expect(find.byType(Expanded), findsOneWidget);
       },
     );
+
+    testWidgets('query filter route renders in slot and preserves content', (
+      tester,
+    ) async {
+      late _BuilderMultiShellLocation chat;
+      late _BuilderLocation search;
+      late _ChannelLocation channel;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                chat = _BuilderMultiShellLocation(
+                  build: (builder, location, contentSlot) {
+                    builder.pathLiteral('chat');
+                    final chatDisplay = builder.defaultStringQueryParam(
+                      'chatDisplay',
+                      defaultValue: const Default('list'),
+                    );
+                    final leftSlot = builder.slot(
+                      debugLabel: 'left',
+                      defaultContent: DefaultContent.widget(
+                        const Text('list'),
+                      ),
+                    );
+                    builder.shellContent = MultiShellContent.builder((
+                      context,
+                      data,
+                      slots,
+                    ) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(height: 80, child: slots.child(leftSlot)),
+                          SizedBox(
+                            height: 80,
+                            child: slots.child(contentSlot),
+                          ),
+                        ],
+                      );
+                    });
+                    builder.content = Content.widget(const Text('empty'));
+                    search = _BuilderLocation(
+                      id: _querySearchId,
+                      parentRouterKey: leftSlot.routerKey,
+                      build: (builder, location) {
+                        builder.queryFilter(chatDisplay, 'search');
+                        builder.content = Content.builder((context, data) {
+                          return TextButton(
+                            onPressed: () {
+                              WorkingRouter.of(context).routeBack();
+                            },
+                            child: const Text('search'),
+                          );
+                        });
+                      },
+                    );
+                    channel = _ChannelLocation(
+                      parentRouterKey: contentSlot.routerKey,
+                    );
+                    builder.children = [search, channel];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(Uri(path: '/chat/channel/42'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('list'), findsOneWidget);
+      expect(find.text('channel:42'), findsOneWidget);
+      expect(find.text('search'), findsNothing);
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel/42'));
+
+      router.routeTo(
+        ChildRouteTarget(
+          start: chat,
+          resolveChildPathNodes: () => <RouteNode>[search].toIList(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('search'), findsOneWidget);
+      expect(find.text('channel:42'), findsOneWidget);
+      expect(
+        router.nullableData!.uri,
+        Uri(
+          path: '/chat/channel/42',
+          queryParameters: {'chatDisplay': 'search'},
+        ),
+      );
+      final searchUri = router.nullableConfiguration!;
+
+      await tester.tap(find.text('search'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('list'), findsOneWidget);
+      expect(find.text('search'), findsNothing);
+      expect(find.text('channel:42'), findsOneWidget);
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel/42'));
+
+      router.routeToUri(searchUri);
+      await tester.pumpAndSettle();
+
+      expect(find.text('search'), findsOneWidget);
+      expect(find.text('channel:42'), findsOneWidget);
+      expect(
+        router.nullableData!.uri,
+        Uri(
+          path: '/chat/channel/42',
+          queryParameters: {'chatDisplay': 'search'},
+        ),
+      );
+
+      final contentNavigator = tester.state<NavigatorState>(
+        find
+            .ancestor(
+              of: find.text('channel:42'),
+              matching: find.byType(Navigator),
+            )
+            .first,
+      );
+      final didPopContent = await contentNavigator.maybePop();
+      await tester.pumpAndSettle();
+
+      expect(didPopContent, true);
+      expect(find.text('search'), findsOneWidget);
+      expect(find.text('channel:42'), findsNothing);
+      expect(
+        router.nullableData!.uri,
+        Uri(
+          path: '/chat',
+          queryParameters: {'chatDisplay': 'search'},
+        ),
+      );
+
+      router.routeToUri(searchUri);
+      await tester.pumpAndSettle();
+
+      final searchNavigator = tester.state<NavigatorState>(
+        find
+            .ancestor(of: find.text('search'), matching: find.byType(Navigator))
+            .first,
+      );
+      final didPop = await searchNavigator.maybePop();
+      await tester.pumpAndSettle();
+
+      expect(didPop, true);
+      expect(find.text('list'), findsOneWidget);
+      expect(find.text('search'), findsNothing);
+      expect(find.text('channel:42'), findsOneWidget);
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel/42'));
+    });
+
+    testWidgets(
+      'hidden route is matchable from url but omitted from generated uri',
+      (tester) async {
+        late _BuilderLocation chat;
+        late _BuilderLocation dialog;
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  chat = _BuilderLocation(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('chat');
+                      builder.content = Content.widget(const Text('chat'));
+                      builder.children = [
+                        dialog = _BuilderLocation(
+                          id: _Id.b,
+                          build: (builder, location) {
+                            builder.pathVisibility = RoutePathVisibility.hidden;
+                            builder.pathLiteral('dialog');
+                            builder.content = Content.widget(
+                              const Text('dialog'),
+                            );
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat'));
+        await tester.pumpAndSettle();
+
+        router.routeTo(
+          ChildRouteTarget(
+            start: chat,
+            resolveChildPathNodes: () => <RouteNode>[dialog].toIList(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('dialog'), findsOneWidget);
+        expect(router.nullableData!.uri.path, '/chat');
+        router.routeBack();
+        await tester.pumpAndSettle();
+
+        expect(find.text('chat'), findsOneWidget);
+        expect(find.text('dialog'), findsNothing);
+        expect(router.nullableData!.uri.path, '/chat');
+
+        router.routeToUri(Uri(path: '/chat/dialog'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('dialog'), findsOneWidget);
+        expect(router.nullableData!.uri.path, '/chat');
+      },
+    );
+
+    testWidgets('children inherit hidden parent route visibility', (
+      tester,
+    ) async {
+      late _BuilderLocation chat;
+      late _BuilderLocation hiddenParent;
+      late _BuilderLocation child;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                chat = _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('chat');
+                    builder.content = Content.widget(const Text('chat'));
+                    builder.children = [
+                      hiddenParent = _BuilderLocation(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathVisibility = RoutePathVisibility.hidden;
+                          builder.pathLiteral('hidden');
+                          builder.content = Content.widget(
+                            const Text('hidden'),
+                          );
+                          builder.children = [
+                            child = _BuilderLocation(
+                              id: _Id.c,
+                              build: (builder, location) {
+                                builder.pathLiteral('child');
+                                builder.content = Content.widget(
+                                  const Text('child'),
+                                );
+                              },
+                            ),
+                          ];
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(Uri(path: '/chat'));
+      await tester.pumpAndSettle();
+
+      router.routeTo(
+        ChildRouteTarget(
+          start: chat,
+          resolveChildPathNodes: () =>
+              <RouteNode>[hiddenParent, child].toIList(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('child'), findsOneWidget);
+      expect(router.nullableData!.uri.path, '/chat');
+    });
   });
 }
 
@@ -2345,6 +2640,8 @@ abstract final class _MigratingId {
   static final account = NodeId<_SelfBuiltAccountLocation>();
 }
 
+final _querySearchId = NodeId<_BuilderLocation>();
+
 class _PathLocation extends AbstractLocation<_PathLocation> {
   final List<PathSegment> _segments;
   final List<RouteNode> _childNodes;
@@ -2510,6 +2807,23 @@ class _BuilderMultiShell extends MultiShell {
     super.navigatorEnabled,
     required super.build,
   });
+}
+
+class _ChannelLocation extends AbstractLocation<_ChannelLocation> {
+  late final PathParam<String> channelId;
+
+  _ChannelLocation({
+    super.parentRouterKey,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('channel');
+    channelId = builder.stringPathParam();
+    builder.content = Content.builder((context, data) {
+      return Text('channel:${data.param(channelId)}');
+    });
+  }
 }
 
 List<PathSegment> _pathSegments(String path) {
