@@ -30,6 +30,35 @@ void main() {
       expect(router.nullableData!.uri.path, '/c');
     });
 
+    testWidgets('skips TransitionDecider for unmatched targets', (
+      tester,
+    ) async {
+      final calls = <String>[];
+      final router = _buildRouter(
+        noContentWidget: const Text('no-content'),
+        decideTransition: (_, transition) {
+          calls.add(transition.to.uri.path);
+          if (transition.to.uri.path == '/c') {
+            return const AllowTransition();
+          }
+          return const BlockTransition();
+        },
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(Uri(path: '/c'));
+      await tester.pumpAndSettle();
+
+      router.routeToUri(Uri(path: '/does-not-exist'));
+      await tester.pumpAndSettle();
+
+      expect(calls, contains('/c'));
+      expect(calls, isNot(contains('/does-not-exist')));
+      expect(router.nullableData!.uri.path, '/does-not-exist');
+      expect(router.nullableData!.routeNodes, isEmpty);
+      expect(find.text('no-content'), findsOneWidget);
+    });
+
     testWidgets('redirects transitions to URI and id targets', (tester) async {
       final uriRouter = _buildRouter(
         decideTransition: (_, transition) {
@@ -2912,6 +2941,7 @@ WorkingRouter _buildRouter({
   TransitionDecider? decideTransition,
   Future<bool> Function()? beforeLeave,
   int redirectLimit = 5,
+  Widget noContentWidget = const SizedBox.shrink(),
 }) {
   final bPage = ChildLocationPageSkeleton(
     child: LocationObserver(
@@ -2952,7 +2982,7 @@ WorkingRouter _buildRouter({
       }
       return [];
     },
-    noContentWidget: const SizedBox.shrink(),
+    noContentWidget: noContentWidget,
     decideTransition: decideTransition,
     redirectLimit: redirectLimit,
   );

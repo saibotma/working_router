@@ -524,6 +524,10 @@ class WorkingRouter extends ChangeNotifier
     required WorkingRouterData initialData,
     required RouteTransitionReason initialReason,
   }) {
+    if (initialData.routeNodes.isEmpty) {
+      return initialData;
+    }
+
     final decideTransition = _decideTransition;
     if (decideTransition == null) {
       return initialData;
