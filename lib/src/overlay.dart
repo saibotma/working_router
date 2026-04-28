@@ -10,8 +10,24 @@ abstract interface class BuildsWithOverlayBuilder {
   void build(OverlayBuilder builder);
 }
 
+final class OverlayCondition<T> {
+  final DefaultQueryParam<T> parameter;
+  final T value;
+
+  const OverlayCondition._({
+    required this.parameter,
+    required this.value,
+  });
+}
+
+extension OverlayConditionQueryParam<T> on DefaultQueryParam<T> {
+  OverlayCondition<T> matches(T value) {
+    return OverlayCondition<T>._(parameter: this, value: value);
+  }
+}
+
 final class OverlayBuildResult {
-  final List<RouteCondition<dynamic>> conditions;
+  final List<OverlayCondition<dynamic>> conditions;
   final LocationWidgetBuilder? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
 
@@ -26,13 +42,13 @@ final class OverlayBuildResult {
 ///
 /// Overlays are not locations and cannot define path, query parameters,
 /// children, or nested overlays. They only define render content and are
-/// activated by the route conditions configured on this builder.
+/// activated by the overlay conditions configured on this builder.
 class OverlayBuilder {
-  List<RouteCondition<dynamic>>? _conditions;
+  List<OverlayCondition<dynamic>>? _conditions;
   Content? _content;
   SelfBuiltLocationPageBuilder? _buildPage;
 
-  set conditions(List<RouteCondition<dynamic>> conditions) {
+  set conditions(List<OverlayCondition<dynamic>> conditions) {
     if (_conditions != null) {
       throw StateError(
         'OverlayBuilder conditions were already configured. '
@@ -104,7 +120,7 @@ abstract class AnyOverlay<Self extends AnyOverlay<Self>>
 
   late final OverlayBuildResult _definition = _buildDefinition();
 
-  List<RouteCondition<dynamic>> get conditions => _definition.conditions;
+  List<OverlayCondition<dynamic>> get conditions => _definition.conditions;
 
   OverlayBuildResult _buildDefinition() {
     final builder = createBuilder();

@@ -796,7 +796,7 @@ class WorkingRouter extends ChangeNotifier
         _ => const <AnyOverlay>[],
       };
       for (final overlayNode in ownerOverlays) {
-        if (!_routeConditionsMatch(overlayNode.conditions, queryParameters)) {
+        if (!_overlayConditionsMatch(overlayNode.conditions, queryParameters)) {
           continue;
         }
         activeOverlays.add(overlayNode);
@@ -1028,8 +1028,8 @@ class WorkingRouter extends ChangeNotifier
   }
 }
 
-bool _routeConditionsMatch(
-  List<RouteCondition<dynamic>> conditions,
+bool _overlayConditionsMatch(
+  List<OverlayCondition<dynamic>> conditions,
   IMap<String, String> queryParameters,
 ) {
   for (final condition in conditions) {

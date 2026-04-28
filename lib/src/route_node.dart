@@ -82,16 +82,6 @@ typedef WriteQueryParameters =
       void Function<T>(QueryParam<T> parameter, T value) query,
     );
 
-final class RouteCondition<T> {
-  final DefaultQueryParam<T> parameter;
-  final T value;
-
-  const RouteCondition._({
-    required this.parameter,
-    required this.value,
-  });
-}
-
 class LiteralPathSegment extends PathSegment {
   final String value;
 
@@ -182,10 +172,6 @@ class DefaultQueryParam<T> extends QueryParam<T> {
 
   @internal
   DefaultQueryParam(DefaultUnboundQueryParam<T> super.unboundParam);
-
-  RouteCondition<T> matches(T value) {
-    return RouteCondition<T>._(parameter: this, value: value);
-  }
 }
 
 typedef CustomPageKeyBuilder = LocalKey Function(WorkingRouterData data);
