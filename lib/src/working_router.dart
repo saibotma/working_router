@@ -537,11 +537,18 @@ class WorkingRouter extends ChangeNotifier
     var currentReason = initialReason;
     var redirects = 0;
     final visitedUris = <Uri>{currentData.uri};
+    final transitionFrom = oldData != null && oldData.routeNodes.isNotEmpty
+        ? oldData
+        : null;
 
     while (true) {
       final decision = decideTransition(
         this,
-        RouteTransition(from: oldData, to: currentData, reason: currentReason),
+        RouteTransition(
+          from: transitionFrom,
+          to: currentData,
+          reason: currentReason,
+        ),
       );
 
       switch (decision) {

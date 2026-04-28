@@ -59,6 +59,35 @@ void main() {
       expect(find.text('no-content'), findsOneWidget);
     });
 
+    testWidgets(
+      'calls TransitionDecider with null from after unmatched target',
+      (
+        tester,
+      ) async {
+        final fromValues = <WorkingRouterData?>[];
+        final router = _buildRouter(
+          noContentWidget: const Text('no-content'),
+          decideTransition: (_, transition) {
+            if (transition.to.uri.path == '/c') {
+              fromValues.add(transition.from);
+            }
+            return const AllowTransition();
+          },
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/does-not-exist'));
+        await tester.pumpAndSettle();
+
+        router.routeToUri(Uri(path: '/c'));
+        await tester.pumpAndSettle();
+
+        expect(fromValues.last, isNull);
+        expect(router.nullableData!.uri.path, '/c');
+        expect(find.text('c'), findsOneWidget);
+      },
+    );
+
     testWidgets('redirects transitions to URI and id targets', (tester) async {
       final uriRouter = _buildRouter(
         decideTransition: (_, transition) {
