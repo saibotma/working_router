@@ -231,6 +231,7 @@ RouteNode get appLocationTree => RootLocation(id: rootId);
                 contains('OverlayRouteTarget get childChatSearchTarget'),
                 contains('overlay:'),
                 contains('pathRouteOverlays.where((node)'),
+                isNot(contains('as AnyOverlay')),
                 contains('ChildRouteTarget get childChannelTarget'),
               ),
             ),

@@ -6438,7 +6438,7 @@ class _GeneratedLocationChildTargetMethodVariant {
       buffer.writeln('$indent   owner: this,');
       buffer.writeln('$indent   overlay: pathRouteOverlays.where((node) {');
       buffer.writeln('$indent     return ${relativeNodeMatchSources.single};');
-      buffer.writeln('$indent   }).single as AnyOverlay,');
+      buffer.writeln('$indent   }).single,');
       buffer.writeln('$indent);');
       return;
     }
