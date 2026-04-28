@@ -19,8 +19,7 @@ typedef BuildAnonymousMultiShellLocation =
       MultiShellSlot contentSlot,
     );
 
-final class MultiShellLocationBuildResult
-    extends LocationBuildResult {
+final class MultiShellLocationBuildResult extends LocationBuildResult {
   final LocationWidgetBuilder? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
   final MultiShellSlot contentSlot;
@@ -237,8 +236,7 @@ abstract class AbstractMultiShellLocation<Self extends AnyLocation<Self>>
   List<MultiShellSlot> get slots =>
       _multiShellRender.slots.map((it) => it.slot).toList(growable: false);
 
-  List<MultiShellSlotDefinition> get slotDefinitions =>
-      _multiShellRender.slots;
+  List<MultiShellSlotDefinition> get slotDefinitions => _multiShellRender.slots;
 
   MultiShellSlotDefinition get contentSlotDefinition =>
       MultiShellSlotDefinition(

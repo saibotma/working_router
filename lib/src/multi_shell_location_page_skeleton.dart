@@ -7,8 +7,7 @@ import 'package:working_router/src/widgets/nested_routing.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 
-class MultiShellLocationPageSkeleton
-    extends BuilderLocationPageSkeleton {
+class MultiShellLocationPageSkeleton extends BuilderLocationPageSkeleton {
   MultiShellLocationPageSkeleton({
     required WorkingRouter router,
     required List<LocationPageSkeleton> Function(

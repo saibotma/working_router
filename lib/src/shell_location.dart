@@ -18,8 +18,7 @@ typedef BuildAnonymousShellLocation =
       WorkingRouterKey routerKey,
     );
 
-final class ShellLocationBuildResult
-    extends LocationBuildResult {
+final class ShellLocationBuildResult extends LocationBuildResult {
   final LocationWidgetBuilder? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
   final ShellContentBuilder buildShellContent;

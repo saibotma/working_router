@@ -3,8 +3,7 @@ import 'package:working_router/src/working_router_data.dart';
 
 typedef WorkingRouterFunction = dynamic Function(WorkingRouterData);
 
-class InheritedWorkingRouterData
-    extends InheritedModel<WorkingRouterFunction> {
+class InheritedWorkingRouterData extends InheritedModel<WorkingRouterFunction> {
   final WorkingRouterData data;
 
   const InheritedWorkingRouterData({

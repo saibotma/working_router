@@ -240,14 +240,31 @@ class WorkingRouter extends ChangeNotifier
     if (data == null) {
       return;
     }
-    final location = _rootDelegate.lastLocationForRouterKey(data, routerKey);
-    if (location == null) {
+    final node = _rootDelegate.lastNodeForRouterKey(data, routerKey);
+    if (node == null) {
       routeBack();
       return;
     }
 
+    final overlay = _activeOverlayForNode(data, node);
+    if (overlay != null) {
+      _routeTo(
+        targetData: _buildData(
+          routeNodes: data.routeNodes,
+          fallback: null,
+          pathParameters: data.pathParametersForRouter,
+          queryParameters: _resetOverlayFilters(
+            data.queryParameters,
+            overlay: overlay,
+          ),
+        ),
+        reason: RouteTransitionReason.programmatic,
+      );
+      return;
+    }
+
     final locationIndex = data.routeNodes.indexWhere(
-      (node) => identical(node, location),
+      (current) => identical(current, node),
     );
     if (locationIndex == -1) {
       return;
@@ -274,18 +291,12 @@ class WorkingRouter extends ChangeNotifier
           .expand((element) => element.queryParameters.map((it) => it.name))
           .toSet(),
     );
-    final newQueryParameters = _resetRemovedQueryFilters(
-      retainedQueryParameters,
-      oldRouteNodes: data.routeNodes,
-      newRouteNodes: newNodes,
-    );
-
     _routeTo(
       targetData: _buildData(
         routeNodes: newNodes,
         fallback: null,
         pathParameters: newPathParameters,
-        queryParameters: newQueryParameters,
+        queryParameters: retainedQueryParameters,
       ),
       reason: RouteTransitionReason.programmatic,
     );
@@ -357,21 +368,29 @@ class WorkingRouter extends ChangeNotifier
           .expand((element) => element.queryParameters.map((it) => it.name))
           .toSet(),
     );
-    final newQueryParameters = _resetRemovedQueryFilters(
-      retainedQueryParameters,
-      oldRouteNodes: data.routeNodes,
-      newRouteNodes: newNodes,
-    );
-
     _routeTo(
       targetData: _buildData(
         routeNodes: newNodes,
         fallback: null,
         pathParameters: newPathParameters,
-        queryParameters: newQueryParameters,
+        queryParameters: retainedQueryParameters,
       ),
       reason: RouteTransitionReason.programmatic,
     );
+  }
+
+  AnyOverlay? _activeOverlayForNode(
+    WorkingRouterData data,
+    RouteNode node,
+  ) {
+    for (final overlays in data.activeOverlaysByOwner.values) {
+      for (final overlay in overlays) {
+        if (identical(overlay, node)) {
+          return overlay;
+        }
+      }
+    }
+    return null;
   }
 
   int _routeBackStartIndex({
@@ -637,12 +656,16 @@ class WorkingRouter extends ChangeNotifier
         if (matchedNodes == null || matchedNodes.isEmpty) {
           return data;
         }
-        final routeNodes = _mergeQueryFilterChildTarget(
-          currentRouteNodes: data.routeNodes,
-          startIndex: startIndex,
-          matchedNodes: matchedNodes,
-        );
+        final routeNodes = data.routeNodes
+            .take(startIndex + 1)
+            .toIList()
+            .addAll(matchedNodes);
 
+        final queryParameters = _mergeQueryParameterWrites(
+          initialQueryParameters: data.queryParameters,
+          nodes: routeNodes.pathRouteNodes,
+          writeQueryParameters: writeQueryParameters,
+        );
         return _buildData(
           routeNodes: routeNodes,
           fallback: null,
@@ -652,11 +675,37 @@ class WorkingRouter extends ChangeNotifier
               writePathParameters: writePathParameters,
             ).toIMap(),
           ),
-          queryParameters: _mergeQueryParameterWrites(
-            initialQueryParameters: data.queryParameters,
-            nodes: routeNodes.pathRouteNodes,
-            writeQueryParameters: writeQueryParameters,
-          ),
+          queryParameters: queryParameters,
+        );
+      case OverlayRouteTarget(
+        :final owner,
+        :final overlay,
+      ):
+        final data = currentData!;
+        if (!data.routeNodes.any((node) => identical(node, owner))) {
+          return data;
+        }
+        final ownerOverlays = switch (owner) {
+          final PathRouteNode pathOwner => pathOwner.pathRouteOverlays,
+          _ => const <AnyOverlay>[],
+        };
+        if (!ownerOverlays.any((node) => identical(node, overlay))) {
+          return data;
+        }
+
+        var queryParameters = data.queryParameters;
+        for (final condition in overlay.conditions) {
+          queryParameters = _writeQueryValue(
+            queryParameters,
+            condition.parameter,
+            condition.value,
+          );
+        }
+        return _buildData(
+          routeNodes: data.routeNodes,
+          fallback: null,
+          pathParameters: data.pathParametersForRouter,
+          queryParameters: queryParameters,
         );
       case FirstChildRouteTarget(
         :final predicate,
@@ -694,31 +743,6 @@ class WorkingRouter extends ChangeNotifier
     }
   }
 
-  IList<RouteNode> _mergeQueryFilterChildTarget({
-    required IList<RouteNode> currentRouteNodes,
-    required int startIndex,
-    required IList<RouteNode> matchedNodes,
-  }) {
-    final targetRouteNodes = currentRouteNodes
-        .take(startIndex + 1)
-        .toIList()
-        .addAll(matchedNodes);
-    if (!matchedNodes.every(_isPathlessQueryFilterNode)) {
-      return targetRouteNodes;
-    }
-    final retainedDescendants = currentRouteNodes
-        .skip(startIndex + 1)
-        .where((node) => !matchedNodes.any((target) => identical(target, node)))
-        .toIList();
-    return targetRouteNodes.addAll(retainedDescendants);
-  }
-
-  bool _isPathlessQueryFilterNode(RouteNode node) {
-    return node is PathRouteNode &&
-        node.path.isEmpty &&
-        node.queryFilters.isNotEmpty;
-  }
-
   WorkingRouterData _buildData({
     required IList<RouteNode> routeNodes,
     required Uri? fallback,
@@ -731,9 +755,13 @@ class WorkingRouter extends ChangeNotifier
       'Fallback must not be null when locations are empty.',
     );
 
-    final filteredQueryParameters = _applyQueryFilters(
+    final activeOverlaysByOwner = _activeOverlaysByOwner(
+      routeNodes: routeNodes,
+      queryParameters: queryParameters,
+    );
+    final filteredQueryParameters = _applyOverlayFilters(
       queryParameters,
-      routeNodes,
+      activeOverlaysByOwner.values.expand((it) => it),
     );
     final uri =
         fallback ??
@@ -746,6 +774,7 @@ class WorkingRouter extends ChangeNotifier
     return WorkingRouterData(
       uri: uri,
       routeNodes: routeNodes,
+      activeOverlaysByOwner: activeOverlaysByOwner,
       pathParameters: pathRouteNodes.isEmpty
           ? const IMapConst({})
           : pathParameters,
@@ -755,49 +784,57 @@ class WorkingRouter extends ChangeNotifier
     );
   }
 
-  IMap<String, String> _applyQueryFilters(
+  IMap<RouteNode, IList<AnyOverlay>> _activeOverlaysByOwner({
+    required IList<RouteNode> routeNodes,
+    required IMap<String, String> queryParameters,
+  }) {
+    final overlaysByOwner = <RouteNode, IList<AnyOverlay>>{};
+    for (final owner in routeNodes) {
+      final activeOverlays = <AnyOverlay>[];
+      final ownerOverlays = switch (owner) {
+        final PathRouteNode pathOwner => pathOwner.pathRouteOverlays,
+        _ => const <AnyOverlay>[],
+      };
+      for (final overlayNode in ownerOverlays) {
+        if (!_routeConditionsMatch(overlayNode.conditions, queryParameters)) {
+          continue;
+        }
+        activeOverlays.add(overlayNode);
+      }
+      if (activeOverlays.isNotEmpty) {
+        overlaysByOwner[owner] = activeOverlays.toIList();
+      }
+    }
+    return overlaysByOwner.toIMap();
+  }
+
+  IMap<String, String> _applyOverlayFilters(
     IMap<String, String> queryParameters,
-    IList<RouteNode> routeNodes,
+    Iterable<AnyOverlay> overlays,
   ) {
     var result = queryParameters;
-    for (final filter in routeNodes.pathRouteNodes.expand(
-      (node) => node.queryFilters,
-    )) {
-      result = _writeQueryValue(
-        result,
-        filter.parameter,
-        filter.value,
-      );
+    for (final overlay in overlays) {
+      for (final condition in overlay.conditions) {
+        result = _writeQueryValue(
+          result,
+          condition.parameter,
+          condition.value,
+        );
+      }
     }
     return result;
   }
 
-  IMap<String, String> _resetRemovedQueryFilters(
+  IMap<String, String> _resetOverlayFilters(
     IMap<String, String> queryParameters, {
-    required IList<RouteNode> oldRouteNodes,
-    required IList<RouteNode> newRouteNodes,
+    required AnyOverlay overlay,
   }) {
-    final activeFilters = newRouteNodes.pathRouteNodes
-        .expand((node) => node.queryFilters)
-        .toList(growable: false);
     var result = queryParameters;
-    for (final removedFilter
-        in oldRouteNodes.pathRouteNodes
-            .where((node) => !newRouteNodes.any((it) => identical(it, node)))
-            .expand((node) => node.queryFilters)) {
-      final isStillActive = activeFilters.any(
-        (filter) => identical(
-          filter.parameter.unboundParam,
-          removedFilter.parameter.unboundParam,
-        ),
-      );
-      if (isStillActive) {
-        continue;
-      }
+    for (final condition in overlay.conditions) {
       result = _writeQueryValue(
         result,
-        removedFilter.parameter,
-        removedFilter.parameter.defaultValue,
+        condition.parameter,
+        condition.parameter.defaultValue,
       );
     }
     return result;
@@ -989,6 +1026,22 @@ class WorkingRouter extends ChangeNotifier
   void removeNestedDelegate(WorkingRouterDelegate delegate) {
     _nestedDelegates.remove(delegate);
   }
+}
+
+bool _routeConditionsMatch(
+  List<RouteCondition<dynamic>> conditions,
+  IMap<String, String> queryParameters,
+) {
+  for (final condition in conditions) {
+    final rawValue = queryParameters[condition.parameter.name];
+    final value = rawValue == null
+        ? condition.parameter.defaultValue
+        : condition.parameter.codec.decode(rawValue);
+    if (value != condition.value) {
+      return false;
+    }
+  }
+  return true;
 }
 
 class NestedWorkingRouterSailor extends ChangeNotifier

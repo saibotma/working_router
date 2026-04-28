@@ -2230,11 +2230,11 @@ void main() {
       },
     );
 
-    testWidgets('query filter route renders in slot and preserves content', (
+    testWidgets('query overlay renders in slot and preserves primary content', (
       tester,
     ) async {
       late _BuilderMultiShellLocation chat;
-      late _BuilderLocation search;
+      late _BuilderOverlay search;
       late _ChannelLocation channel;
 
       final router = WorkingRouter(
@@ -2277,28 +2277,30 @@ void main() {
                       );
                     });
                     builder.content = Content.widget(const Text('empty'));
-                    search = _BuilderLocation(
-                      id: _querySearchId,
-                      parentRouterKey: leftSlot.routerKey,
-                      build: (builder, location) {
-                        builder.queryFilters = [
-                          chatDisplay.matches('search'),
-                          searchScope.matches('global'),
-                        ];
-                        builder.content = Content.builder((context, data) {
-                          return TextButton(
-                            onPressed: () {
-                              WorkingRouter.of(context).routeBack();
-                            },
-                            child: const Text('search'),
-                          );
-                        });
-                      },
-                    );
+                    builder.overlays = [
+                      search = _BuilderOverlay(
+                        id: _overlaySearchId,
+                        parentRouterKey: leftSlot.routerKey,
+                        build: (builder, location) {
+                          builder.conditions = [
+                            chatDisplay.matches('search'),
+                            searchScope.matches('global'),
+                          ];
+                          builder.content = Content.builder((context, data) {
+                            return TextButton(
+                              onPressed: () {
+                                WorkingRouter.of(context).routeBack();
+                              },
+                              child: const Text('search'),
+                            );
+                          });
+                        },
+                      ),
+                    ];
                     channel = _ChannelLocation(
                       parentRouterKey: contentSlot.routerKey,
                     );
-                    builder.children = [search, channel];
+                    builder.children = [channel];
                   },
                 ),
               ];
@@ -2318,15 +2320,23 @@ void main() {
       expect(router.nullableData!.uri, Uri(path: '/chat/channel/42'));
 
       router.routeTo(
-        ChildRouteTarget(
-          start: chat,
-          resolveChildPathNodes: () => <RouteNode>[search].toIList(),
+        OverlayRouteTarget(
+          owner: chat,
+          overlay: search,
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('search'), findsOneWidget);
       expect(find.text('channel:42'), findsOneWidget);
+      expect(router.nullableData!.leaf, same(channel));
+      expect(
+        router.nullableData!.isMatched<_BuilderOverlay>(
+          (node) => identical(node, search),
+        ),
+        isTrue,
+      );
+      expect(router.nullableData!.leaf, isNot(same(search)));
       expect(
         router.nullableData!.uri,
         Uri(
@@ -2338,6 +2348,22 @@ void main() {
         ),
       );
       final searchUri = router.nullableConfiguration!;
+
+      router.routeTo(
+        ChildRouteTarget(
+          start: chat,
+          resolveChildPathNodes: () => <RouteNode>[channel].toIList(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('list'), findsNothing);
+      expect(find.text('search'), findsOneWidget);
+      expect(find.text('channel:42'), findsOneWidget);
+      expect(router.nullableData!.uri, searchUri);
+
+      router.routeToUri(searchUri);
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('search'));
       await tester.pumpAndSettle();
@@ -2709,7 +2735,7 @@ abstract final class _MigratingId {
   static final account = NodeId<_SelfBuiltAccountLocation>();
 }
 
-final _querySearchId = NodeId<_BuilderLocation>();
+final _overlaySearchId = NodeId<_BuilderOverlay>();
 
 class _PathLocation extends AbstractLocation<_PathLocation> {
   final List<PathSegment> _segments;
@@ -2848,6 +2874,21 @@ class _BuilderLocation extends Location<_BuilderLocation> {
     super.parentRouterKey,
     required super.build,
   });
+}
+
+class _BuilderOverlay extends AbstractOverlay<_BuilderOverlay> {
+  final BuildOverlay<_BuilderOverlay> _build;
+
+  _BuilderOverlay({
+    required super.id,
+    super.parentRouterKey,
+    required BuildOverlay<_BuilderOverlay> build,
+  }) : _build = build;
+
+  @override
+  void build(OverlayBuilder builder) {
+    _build(builder, this);
+  }
 }
 
 class _BuilderScope extends Scope<_BuilderScope> {

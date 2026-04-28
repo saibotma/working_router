@@ -2,13 +2,13 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location_tag.dart';
+import 'package:working_router/src/overlay.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_node.dart'
     show
         PageKey,
         PathParam,
         PathSegment,
-        QueryFilter,
         QueryParam,
         RouteNode,
         emptyNodeMatch,
@@ -203,7 +203,7 @@ class BuiltLocationDefinition {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
-  final List<QueryFilter<dynamic>> queryFilters;
+  final List<AnyOverlay> overlays;
   final List<RouteNode> children;
   final PageKey? pageKey;
   final RoutePathVisibility pathVisibility;
@@ -214,7 +214,7 @@ class BuiltLocationDefinition {
     required this.path,
     required this.pathParameters,
     required this.queryParameters,
-    required this.queryFilters,
+    required this.overlays,
     required this.children,
     required this.pageKey,
     required this.pathVisibility,

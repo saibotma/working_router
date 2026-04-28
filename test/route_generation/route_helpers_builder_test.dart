@@ -139,7 +139,7 @@ RouteNode get appLocationTree => _appLocationTree;
     );
   });
 
-  test('generates child targets through query filtered children', () async {
+  test('generates overlay targets', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,
     );
@@ -149,63 +149,66 @@ RouteNode get appLocationTree => _appLocationTree;
     await testBuilder(
       builder,
       {
-        'working_router|lib/query_filter_routes.dart': '''
-library query_filter_routes;
+        'working_router|lib/overlay_routes.dart': '''
+library overlay_routes;
 
 import 'package:working_router/working_router.dart';
 
-part 'query_filter_routes.working_router.g.dart';
+part 'overlay_routes.working_router.g.dart';
 
-enum FilterRouteId { root, chat, search, channel }
+final rootId = NodeId<RootLocation>();
+final chatId = NodeId<ChatLocation>();
+final chatSearchId = NodeId<ChatSearchOverlay>();
+final channelId = NodeId<ChannelLocation>();
 
-class RootLocation extends Location<FilterRouteId, RootLocation> {
+class RootLocation extends AbstractLocation<RootLocation> {
   RootLocation({required super.id});
 
   @override
   void build(LocationBuilder builder) {
     builder.children = [
-      ChatLocation(id: FilterRouteId.chat),
+      ChatLocation(id: chatId),
     ];
   }
 }
 
-class ChatLocation extends Location<FilterRouteId, ChatLocation> {
+class ChatLocation extends AbstractLocation<ChatLocation> {
   ChatLocation({required super.id});
 
   @override
   void build(LocationBuilder builder) {
     builder.pathLiteral('chat');
-    final chatDisplay = builder.defaultStringQueryParam(
-      'chatDisplay',
-      defaultValue: 'list',
+    final search = builder.defaultBoolQueryParam(
+      'search',
+      defaultValue: false,
     );
-    builder.children = [
-      SearchLocation(
-        id: FilterRouteId.search,
-        chatDisplay: chatDisplay,
+    builder.overlays = [
+      ChatSearchOverlay(
+        id: chatSearchId,
+        search: search,
       ),
-      ChannelLocation(id: FilterRouteId.channel),
+    ];
+    builder.children = [
+      ChannelLocation(id: channelId),
     ];
   }
 }
 
-class SearchLocation extends Location<FilterRouteId, SearchLocation> {
-  final DefaultQueryParam<String> chatDisplay;
+class ChatSearchOverlay extends AbstractOverlay<ChatSearchOverlay> {
+  final DefaultQueryParam<bool> search;
 
-  SearchLocation({
+  ChatSearchOverlay({
     required super.id,
-    required this.chatDisplay,
+    required this.search,
   });
 
   @override
-  void build(LocationBuilder builder) {
-    builder.queryFilters = [
-      chatDisplay.matches('search'),
-    ];
+  void build(OverlayBuilder builder) {
+    builder.conditions = [search.matches(true)];
   }
 }
 
-class ChannelLocation extends Location<FilterRouteId, ChannelLocation> {
+class ChannelLocation extends AbstractLocation<ChannelLocation> {
   ChannelLocation({required super.id});
 
   @override
@@ -215,19 +218,20 @@ class ChannelLocation extends Location<FilterRouteId, ChannelLocation> {
 }
 
 @RouteNodes()
-RouteNode get appLocationTree => RootLocation(id: FilterRouteId.root);
+RouteNode get appLocationTree => RootLocation(id: rootId);
 ''',
       },
       outputs: {
-        'working_router|lib/query_filter_routes.working_router.g.part':
+        'working_router|lib/overlay_routes.working_router.g.part':
             decodedMatches(
               allOf(
                 contains(
                   'extension ChatLocationGeneratedChildTargets on ChatLocation',
                 ),
-                contains('ChildRouteTarget get childSearchTarget'),
+                contains('OverlayRouteTarget get childChatSearchTarget'),
+                contains('overlay:'),
+                contains('pathRouteOverlays.where((node)'),
                 contains('ChildRouteTarget get childChannelTarget'),
-                contains('node.id == FilterRouteId.search'),
               ),
             ),
       },

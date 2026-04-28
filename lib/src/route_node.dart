@@ -82,11 +82,11 @@ typedef WriteQueryParameters =
       void Function<T>(QueryParam<T> parameter, T value) query,
     );
 
-final class QueryFilter<T> {
+final class RouteCondition<T> {
   final DefaultQueryParam<T> parameter;
   final T value;
 
-  const QueryFilter._({
+  const RouteCondition._({
     required this.parameter,
     required this.value,
   });
@@ -183,8 +183,8 @@ class DefaultQueryParam<T> extends QueryParam<T> {
   @internal
   DefaultQueryParam(DefaultUnboundQueryParam<T> super.unboundParam);
 
-  QueryFilter<T> matches(T value) {
-    return QueryFilter<T>._(parameter: this, value: value);
+  RouteCondition<T> matches(T value) {
+    return RouteCondition<T>._(parameter: this, value: value);
   }
 }
 
@@ -377,9 +377,6 @@ RouteMatch _matchNode(
   if (node is! PathRouteNode) {
     return emptyRouteMatch();
   }
-  if (!_queryFiltersMatch(node.queryFilters, queryParameters)) {
-    return emptyRouteMatch();
-  }
 
   final matches = <RouteNode>[];
   final Map<UnboundPathParam<dynamic>, String> pathParameters =
@@ -422,32 +419,7 @@ RouteMatch _matchChildren(
   IList<String> uriPathSegments, {
   required IMap<String, String> queryParameters,
 }) {
-  for (var i = 0; i < children.length; i++) {
-    final child = children[i];
-    final queryFilterPrefix = _matchPathlessQueryFilterPrefix(
-      child,
-      queryParameters: queryParameters,
-    );
-    if (!queryFilterPrefix.isEmpty) {
-      final suffixMatch = _matchChildren(
-        children.sublist(i + 1),
-        uriPathSegments,
-        queryParameters: queryParameters,
-      );
-      if (!suffixMatch.isEmpty) {
-        return (
-          routeNodes: [
-            ...queryFilterPrefix.routeNodes,
-            ...suffixMatch.routeNodes,
-          ].toIList(),
-          pathParameters: suffixMatch.pathParameters,
-        );
-      }
-      if (uriPathSegments.isEmpty) {
-        return queryFilterPrefix;
-      }
-    }
-
+  for (final child in children) {
     final childMatch = _matchNode(
       child,
       uriPathSegments,
@@ -458,40 +430,6 @@ RouteMatch _matchChildren(
     }
   }
   return emptyRouteMatch();
-}
-
-RouteMatch _matchPathlessQueryFilterPrefix(
-  RouteNode node, {
-  required IMap<String, String> queryParameters,
-}) {
-  if (node is! PathRouteNode ||
-      node.path.isNotEmpty ||
-      node.queryFilters.isEmpty) {
-    return emptyRouteMatch();
-  }
-  if (!_queryFiltersMatch(node.queryFilters, queryParameters)) {
-    return emptyRouteMatch();
-  }
-  return (
-    routeNodes: [node].toIList(),
-    pathParameters: const IMapConst({}),
-  );
-}
-
-bool _queryFiltersMatch(
-  List<QueryFilter<dynamic>> filters,
-  IMap<String, String> queryParameters,
-) {
-  for (final filter in filters) {
-    final rawValue = queryParameters[filter.parameter.name];
-    final value = rawValue == null
-        ? filter.parameter.defaultValue
-        : filter.parameter.codec.decode(rawValue);
-    if (value != filter.value) {
-      return false;
-    }
-  }
-  return true;
 }
 
 IList<RouteNode> _matchNodeById(

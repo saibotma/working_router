@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-class NestedLocationPageSkeleton
-    extends BuilderLocationPageSkeleton {
+class NestedLocationPageSkeleton extends BuilderLocationPageSkeleton {
   NestedLocationPageSkeleton({
     required WorkingRouter router,
     required BuildPages buildPages,

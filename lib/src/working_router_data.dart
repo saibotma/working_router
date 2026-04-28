@@ -8,6 +8,9 @@ class WorkingRouterData {
   final Uri uri;
   final IList<RouteNode> routeNodes;
 
+  @internal
+  final IMap<RouteNode, IList<AnyOverlay>> activeOverlaysByOwner;
+
   // Keep matched path params in their encoded URI form keyed by reusable
   // unbound path definitions. The router core is still URI-first, so URI
   // rebuilding, retention, and forwarding should work on raw URI values while
@@ -22,6 +25,7 @@ class WorkingRouterData {
   WorkingRouterData({
     required this.uri,
     required this.routeNodes,
+    required this.activeOverlaysByOwner,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required this.queryParameters,
   }) : _pathParameters = pathParameters;
@@ -49,12 +53,29 @@ class WorkingRouterData {
 
   AnyLocation? get leaf => _locations.lastOrNull;
 
-  T? leafWithId<T extends AnyLocation<T>>(NodeId<T> id) {
-    final currentLeaf = leaf;
-    if (currentLeaf is! T || currentLeaf.id != id) {
-      return null;
+  /// Primary route nodes plus active overlays in deterministic traversal order.
+  ///
+  /// Public leaf/path semantics still use [routeNodes]; matched helpers scan
+  /// this expanded list so active overlays can be observed after their owner.
+  @internal
+  late final IList<RouteNode> routeNodesWithOverlays =
+      _buildRouteNodesWithOverlays();
+
+  IList<RouteNode> _buildRouteNodesWithOverlays() {
+    final result = <RouteNode>[];
+    for (final node in routeNodes) {
+      result.add(node);
+      result.addAll(activeOverlaysByOwner[node] ?? const IListConst([]));
     }
-    return currentLeaf;
+    return result.toIList();
+  }
+
+  T? leafWithId<T extends AnyLocation<T>>(NodeId<T> id) {
+    final leaf = this.leaf;
+    if (leaf is T && leaf.id == id) {
+      return leaf;
+    }
+    return null;
   }
 
   T param<T>(Param<T> parameter) {
@@ -239,15 +260,15 @@ class WorkingRouterData {
   }
 
   bool isIdMatched(AnyNodeId id) {
-    return routeNodes.any((node) => node.id == id);
+    return routeNodesWithOverlays.any((node) => node.id == id);
   }
 
   bool isAnyIdMatched(Iterable<AnyNodeId> ids) {
-    return routeNodes.any((node) => ids.contains(node.id));
+    return routeNodesWithOverlays.any((node) => ids.contains(node.id));
   }
 
   AnyNodeId? matchingId(Iterable<AnyNodeId> ids) {
-    for (final node in routeNodes) {
+    for (final node in routeNodesWithOverlays) {
       if (ids.contains(node.id)) {
         return node.id! as AnyNodeId;
       }
@@ -260,7 +281,7 @@ class WorkingRouterData {
   }
 
   bool isAnyTypeMatched2<T1 extends RouteNode<T1>, T2 extends RouteNode<T2>>() {
-    return routeNodes.any((node) => node is T1 || node is T2);
+    return routeNodesWithOverlays.any((node) => node is T1 || node is T2);
   }
 
   bool isAnyTypeMatched3<
@@ -268,7 +289,7 @@ class WorkingRouterData {
     T2 extends RouteNode<T2>,
     T3 extends RouteNode<T3>
   >() {
-    return routeNodes.any((node) {
+    return routeNodesWithOverlays.any((node) {
       return node is T1 || node is T2 || node is T3;
     });
   }
@@ -276,9 +297,10 @@ class WorkingRouterData {
   /// Returns whether any matched route node of type [T] exists.
   ///
   /// Structural nodes such as scopes and shells participate here as well.
-  /// Use [leaf] for terminal semantic activity checks.
+  /// Query overlays participate here when their conditions match, even though
+  /// overlays are not part of [routeNodes] and can never be [leaf].
   bool isMatched<T extends RouteNode<T>>([bool Function(T node)? match]) {
-    final typedNodes = routeNodes.whereType<T>();
+    final typedNodes = routeNodesWithOverlays.whereType<T>();
     if (match == null) {
       return typedNodes.isNotEmpty;
     }
@@ -286,8 +308,8 @@ class WorkingRouterData {
   }
 
   T? lastMatched<T extends RouteNode<T>>([bool Function(T node)? match]) {
-    for (var i = routeNodes.length - 1; i >= 0; i--) {
-      final node = routeNodes[i];
+    for (var i = routeNodesWithOverlays.length - 1; i >= 0; i--) {
+      final node = routeNodesWithOverlays[i];
       if (node is! T) {
         continue;
       }
@@ -313,12 +335,15 @@ class WorkingRouterData {
   WorkingRouterData copyWith({
     Uri? uri,
     IList<RouteNode>? routeNodes,
+    IMap<RouteNode, IList<AnyOverlay>>? activeOverlaysByOwner,
     IMap<UnboundPathParam<dynamic>, String>? pathParameters,
     IMap<String, String>? queryParameters,
   }) {
     return WorkingRouterData(
       uri: uri ?? this.uri,
       routeNodes: routeNodes ?? this.routeNodes,
+      activeOverlaysByOwner:
+          activeOverlaysByOwner ?? this.activeOverlaysByOwner,
       pathParameters: pathParameters ?? _pathParameters,
       queryParameters: queryParameters ?? this.queryParameters,
     );
@@ -335,6 +360,7 @@ class WorkingRouterData {
             runtimeType == other.runtimeType &&
             uri == other.uri &&
             routeNodes == other.routeNodes &&
+            activeOverlaysByOwner == other.activeOverlaysByOwner &&
             _pathParameters == other._pathParameters &&
             queryParameters == other.queryParameters;
   }
@@ -343,12 +369,13 @@ class WorkingRouterData {
   int get hashCode {
     return uri.hashCode ^
         routeNodes.hashCode ^
+        activeOverlaysByOwner.hashCode ^
         _pathParameters.hashCode ^
         queryParameters.hashCode;
   }
 
   @override
   String toString() {
-    return 'WorkingRouterData{uri: $uri, routeNodes: $routeNodes, pathParameters: $_pathParameters, queryParameters: $queryParameters}';
+    return 'WorkingRouterData{uri: $uri, routeNodes: $routeNodes, activeOverlaysByOwner: $activeOverlaysByOwner, pathParameters: $_pathParameters, queryParameters: $queryParameters}';
   }
 }

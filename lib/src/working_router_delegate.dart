@@ -11,6 +11,7 @@ import 'package:working_router/src/multi_shell.dart';
 import 'package:working_router/src/multi_shell_location.dart';
 import 'package:working_router/src/multi_shell_location_page_skeleton.dart';
 import 'package:working_router/src/nested_location_page_skeleton.dart';
+import 'package:working_router/src/overlay.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/shell.dart';
@@ -196,20 +197,18 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
     }
   }
 
-  AnyLocation? lastLocationForRouterKey(
+  RouteNode? lastNodeForRouterKey(
     WorkingRouterData data,
     WorkingRouterKey routerKey,
   ) {
-    AnyLocation? lastLocation;
+    RouteNode? lastNode;
     for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
       if (!identical(entry.effectiveParentRouterKey, routerKey)) {
         continue;
       }
-      if (entry.node case final AnyLocation location) {
-        lastLocation = location;
-      }
+      lastNode = entry.node;
     }
-    return lastLocation;
+    return lastNode;
   }
 
   Iterable<_MatchedNodeEntry> _matchedNodesWithEffectiveParentRouterKeys(
@@ -222,7 +221,7 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
     // working without forcing responsive tree rewrites.
     final aliasedRouterKeys = <WorkingRouterKey, WorkingRouterKey>{};
 
-    for (final node in data.routeNodes) {
+    for (final node in data.routeNodesWithOverlays) {
       final inheritedParentRouterKey =
           aliasedRouterKeys[node.parentRouterKey] ??
           node.parentRouterKey ??
@@ -313,6 +312,12 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
             renderKind: _MatchedNodeRenderKind.node,
           );
           childRouterKey = effectiveParentRouterKey;
+        case AnyOverlay():
+          yield (
+            node: node,
+            effectiveParentRouterKey: effectiveParentRouterKey,
+            renderKind: _MatchedNodeRenderKind.node,
+          );
       }
     }
   }
@@ -371,6 +376,10 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
           }
         case (_, final AnyLocation location):
           if (_buildPagesForLocation(location, data).isNotEmpty) {
+            return true;
+          }
+        case (_, final AnyOverlay overlay):
+          if (_buildPagesForOverlay(overlay, data).isNotEmpty) {
             return true;
           }
       }
@@ -535,6 +544,8 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
         ];
       case (_, final AnyLocation location):
         return _buildPagesForLocation(location, data);
+      case (_, final AnyOverlay overlay):
+        return _buildPagesForOverlay(overlay, data);
     }
 
     return const [];
@@ -558,12 +569,27 @@ class WorkingRouterDelegate extends RouterDelegate<Uri>
     return const [];
   }
 
+  List<LocationPageSkeleton> _buildPagesForOverlay(
+    AnyOverlay overlay,
+    WorkingRouterData data,
+  ) {
+    if (!overlay.contributesPage) {
+      return const [];
+    }
+    return [
+      BuilderLocationPageSkeleton(
+        buildChild: overlay.buildWidget,
+        buildPage: overlay.buildPage,
+      ),
+    ];
+  }
+
   bool _hasMatchedDescendantAfter(
     RouteNode node,
     WorkingRouterData data,
   ) {
     var foundNode = false;
-    for (final current in data.routeNodes) {
+    for (final current in data.routeNodesWithOverlays) {
       if (foundNode) {
         return true;
       }

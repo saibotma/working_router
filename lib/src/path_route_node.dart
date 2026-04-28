@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/multi_shell.dart';
 import 'package:working_router/src/multi_shell_location.dart';
+import 'package:working_router/src/overlay.dart';
 import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/scope.dart';
@@ -68,8 +69,8 @@ abstract class PathRouteNodeBuilder {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
-  List<QueryFilter<dynamic>> _queryFilters = const [];
-  bool _queryFiltersAssigned = false;
+  List<AnyOverlay> _overlays = const [];
+  bool _overlaysAssigned = false;
   List<RouteNode> _children = const [];
   bool _childrenAssigned = false;
   PageKey? _pageKey;
@@ -79,7 +80,7 @@ abstract class PathRouteNodeBuilder {
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
-  List<QueryFilter<dynamic>> get queryFilters => _queryFilters;
+  List<AnyOverlay> get overlays => _overlays;
   List<RouteNode> get children => _children;
   PageKey? get configuredPageKey => _pageKey;
 
@@ -202,17 +203,6 @@ abstract class PathRouteNodeBuilder {
         defaultValue: defaultValue,
       ),
     );
-  }
-
-  set queryFilters(List<QueryFilter<dynamic>> filters) {
-    if (_queryFiltersAssigned) {
-      throw StateError(
-        'PathRouteNodeBuilder queryFilters were already configured. '
-        'queryFilters may only be assigned once.',
-      );
-    }
-    _queryFilters = List.unmodifiable(filters);
-    _queryFiltersAssigned = true;
   }
 
   RequiredQueryParam<String> stringQueryParam(String name) {
@@ -415,6 +405,17 @@ abstract class PathRouteNodeBuilder {
     _childrenAssigned = true;
   }
 
+  set overlays(List<AnyOverlay> overlays) {
+    if (_overlaysAssigned) {
+      throw StateError(
+        'PathRouteNodeBuilder overlays were already configured. '
+        'overlays may only be assigned once.',
+      );
+    }
+    _overlays = List.unmodifiable(overlays);
+    _overlaysAssigned = true;
+  }
+
   set pageKey(PageKey pageKey) {
     _pageKey = pageKey;
   }
@@ -504,7 +505,7 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
-      queryFilters: List.unmodifiable(builder.queryFilters),
+      overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
       pathVisibility: builder.pathVisibility,
@@ -519,7 +520,7 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
 
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
-  List<QueryFilter<dynamic>> get queryFilters => _definition.queryFilters;
+  List<AnyOverlay> get pathRouteOverlays => _definition.overlays;
 
   RoutePathVisibility get pathVisibility => _definition.pathVisibility;
 
@@ -556,6 +557,11 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
     if (builder.children.isNotEmpty) {
       buffer.writeln(
         '  children: ${builder.children.map((it) => it.runtimeType).join(', ')}',
+      );
+    }
+    if (builder.overlays.isNotEmpty) {
+      buffer.writeln(
+        '  overlays: ${builder.overlays.map((it) => it.runtimeType).join(', ')}',
       );
     }
 

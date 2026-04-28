@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/src/location.dart';
+import 'package:working_router/src/overlay.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/working_router_data.dart';
@@ -129,7 +130,7 @@ class BuiltShellDefinition {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
-  final List<QueryFilter<dynamic>> queryFilters;
+  final List<AnyOverlay> overlays;
   final List<RouteNode> children;
   final PageKey? pageKey;
   final RoutePathVisibility pathVisibility;
@@ -140,7 +141,7 @@ class BuiltShellDefinition {
     required this.path,
     required this.pathParameters,
     required this.queryParameters,
-    required this.queryFilters,
+    required this.overlays,
     required this.children,
     required this.pageKey,
     required this.pathVisibility,
@@ -203,7 +204,7 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
-      queryFilters: List.unmodifiable(builder.queryFilters),
+      overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
       pageKey: builder.configuredPageKey,
       pathVisibility: builder.pathVisibility,
@@ -222,7 +223,7 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   @override
-  List<QueryFilter<dynamic>> get queryFilters => _definition.queryFilters;
+  List<AnyOverlay> get pathRouteOverlays => _definition.overlays;
 
   @override
   RoutePathVisibility get pathVisibility => _definition.pathVisibility;

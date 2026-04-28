@@ -11,6 +11,7 @@ export 'src/multi_shell.dart';
 export 'src/multi_shell_location.dart';
 export 'src/multi_shell_location_page_skeleton.dart';
 export 'src/nested_location_page_skeleton.dart';
+export 'src/overlay.dart';
 export 'src/path_route_node.dart';
 export 'src/route_generation/route_nodes.dart';
 export 'src/route_node.dart';

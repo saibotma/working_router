@@ -1,5 +1,6 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:working_router/src/location.dart';
+import 'package:working_router/src/overlay.dart';
 import 'package:working_router/src/route_node.dart';
 
 sealed class RouteTarget {
@@ -76,6 +77,21 @@ base class ChildRouteTarget extends RouteTarget {
     required this.resolveChildPathNodes,
     this.writePathParameters,
     this.writeQueryParameters,
+  });
+}
+
+/// Routes to a query-controlled overlay owned by an active route node.
+///
+/// Overlay routing keeps the primary route chain unchanged. Routing to an
+/// overlay writes the overlay conditions into the query state and then rebuilds
+/// router data from the current primary route chain.
+base class OverlayRouteTarget extends RouteTarget {
+  final RouteNode owner;
+  final AnyOverlay overlay;
+
+  const OverlayRouteTarget({
+    required this.owner,
+    required this.overlay,
   });
 }
 

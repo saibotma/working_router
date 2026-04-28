@@ -21,6 +21,9 @@ abstract final class _TestId {
 
 final _typedRootId = NodeId<_TypedRootLocation>();
 final _typedAddAccountId = NodeId<_TypedAddAccountLocation>();
+final _branchOwnerId = NodeId<_BranchOwnerLocation>();
+final _firstOverlayId = NodeId<_BranchOverlay>();
+final _secondOverlayId = NodeId<_BranchOverlay>();
 
 void main() {
   group('WorkingRouterData path helpers', () {
@@ -35,6 +38,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/items/123'),
         routeNodes: <RouteNode>[list, detail].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: {itemId: '123'}.lock,
         queryParameters: IMap(),
       );
@@ -51,6 +55,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/parent/first/second'),
         routeNodes: [parent, first, second].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -76,6 +81,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/query'),
         routeNodes: [location].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -111,6 +117,7 @@ void main() {
           boundLocation,
           builtLocation,
         ].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: {'required': 'present'}.lock,
       );
@@ -127,6 +134,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/query', queryParameters: {'filter': 'active'}),
         routeNodes: [location].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: {'filter': 'active'}.lock,
       );
@@ -169,6 +177,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/query', queryParameters: {'tab': 'all'}),
         routeNodes: [location].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: {'tab': 'all'}.lock,
       );
@@ -212,6 +221,7 @@ void main() {
         final data = WorkingRouterData(
           uri: Uri(path: '/query'),
           routeNodes: [location].toIList(),
+          activeOverlaysByOwner: IMap(),
           pathParameters: IMap(),
           queryParameters: IMap(),
         );
@@ -236,6 +246,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/items/123'),
         routeNodes: <RouteNode>[list, detail].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: {itemId: '123'}.lock,
         queryParameters: IMap(),
       );
@@ -257,6 +268,7 @@ void main() {
       return WorkingRouterData(
         uri: Uri(path: '/parent/child'),
         routeNodes: locations.cast<RouteNode>().toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -327,11 +339,15 @@ void main() {
         final data = WorkingRouterData(
           uri: Uri(path: '/accounts/detail'),
           routeNodes: <RouteNode>[accountsNode, detail].toIList(),
+          activeOverlaysByOwner: IMap(),
           pathParameters: IMap(),
           queryParameters: IMap(),
         );
 
-        expect(data.routeNodes, orderedEquals([accountsNode, detail]));
+        expect(
+          data.routeNodes,
+          orderedEquals([accountsNode, detail]),
+        );
         expect(data.isMatched<_AccountsNode>(), isTrue);
         expect(
           data.isMatched<_TestLocation>(
@@ -349,6 +365,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/accounts/detail'),
         routeNodes: <RouteNode>[accountsNode, detail].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -372,6 +389,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/parent/child'),
         routeNodes: [root, parent, child].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -392,6 +410,7 @@ void main() {
       final data = WorkingRouterData(
         uri: Uri(path: '/add-account'),
         routeNodes: <RouteNode>[root, addAccount].toIList(),
+        activeOverlaysByOwner: IMap(),
         pathParameters: IMap(),
         queryParameters: IMap(),
       );
@@ -400,6 +419,31 @@ void main() {
       expect(data.leafWithId(_typedRootId), isNull);
       expect(data.lastMatchedWithId(_typedRootId), same(root));
       expect(data.lastMatchedWithId(_typedAddAccountId), same(addAccount));
+    });
+
+    test('overlay helpers use declaration order without affecting leaf', () {
+      final first = _BranchOverlay(id: _firstOverlayId);
+      final second = _BranchOverlay(id: _secondOverlayId);
+      final owner = _BranchOwnerLocation(
+        first: first,
+        second: second,
+      );
+      final data = WorkingRouterData(
+        uri: Uri(path: '/owner'),
+        routeNodes: <RouteNode>[owner].toIList(),
+        activeOverlaysByOwner: {
+          owner: <AnyOverlay>[first, second].toIList(),
+        }.lock,
+        pathParameters: IMap(),
+        queryParameters: IMap(),
+      );
+
+      expect(data.leaf, same(owner));
+      expect(data.leaf, isNot(same(first)));
+      expect(data.leaf, isNot(same(second)));
+      expect(data.lastMatched<_BranchOverlay>(), same(second));
+      expect(data.isIdMatched(_firstOverlayId), isTrue);
+      expect(data.isIdMatched(_secondOverlayId), isTrue);
     });
   });
 }
@@ -568,6 +612,31 @@ class _TypedAddAccountLocation
   @override
   void build(LocationBuilder builder) {
     builder.pathLiteral('add-account');
+  }
+}
+
+class _BranchOwnerLocation extends AbstractLocation<_BranchOwnerLocation> {
+  final _BranchOverlay first;
+  final _BranchOverlay second;
+
+  _BranchOwnerLocation({
+    required this.first,
+    required this.second,
+  }) : super(id: _branchOwnerId);
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('owner');
+    builder.overlays = [first, second];
+  }
+}
+
+class _BranchOverlay extends AbstractOverlay<_BranchOverlay> {
+  _BranchOverlay({required super.id});
+
+  @override
+  void build(OverlayBuilder builder) {
+    builder.conditions = const [];
   }
 }
 

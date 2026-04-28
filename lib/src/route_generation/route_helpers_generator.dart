@@ -149,7 +149,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     void visit(_RouteNode node, List<_RouteNode> chain) {
       final nextChain = [...chain, node];
-      if (node.idExpression != null) {
+      if (node.idExpression != null && !node.isOverlay) {
         final method = _buildMethod(nextChain, node.idExpression!, element);
         final previousMethod = usedMethodsByName[method.name];
         if (previousMethod != null && !previousMethod.isEquivalent(method)) {
@@ -208,6 +208,25 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
               element: element,
             ),
           );
+        }
+      }
+
+      if (node.isRoutableLocation &&
+          node.locationTypeSource != 'Location' &&
+          node.locationTypeSource != 'ShellLocation' &&
+          node.locationTypeSource != 'Scope') {
+        for (final overlay in node.overlays) {
+          if (_supportsGeneratedLocationChildTarget(overlay)) {
+            variants.add(
+              _buildLocationChildTargetMethodVariant(
+                owner: node,
+                relativeChain: [overlay],
+                target: overlay,
+                element: element,
+                isOverlay: true,
+              ),
+            );
+          }
         }
       }
 
@@ -560,6 +579,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     required List<_RouteNode> relativeChain,
     required _RouteNode target,
     required Element element,
+    bool isOverlay = false,
   }) {
     final (pathParameters, queryParameters) = _collectParameters(
       relativeChain,
@@ -578,6 +598,13 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       relativeChain,
       queryParameters,
     );
+    if (isOverlay && pathParameters.isNotEmpty) {
+      throw InvalidGenerationSourceError(
+        'Overlay target `${target.locationTypeSource}` cannot declare '
+        'path parameters.',
+        element: element,
+      );
+    }
 
     return _GeneratedLocationChildTargetMethodVariant(
       ownerNode: owner,
@@ -600,6 +627,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       relativeNodeMatchSources: [
         for (final node in relativeChain) _routeNodeMatchSourceOn('node', node),
       ],
+      isOverlay: isOverlay,
       exclusiveBranchSelections: target.exclusiveBranchSelections,
       pathWrites: pathWrites,
       queryWrites: queryWrites,
@@ -1408,8 +1436,10 @@ class _StaticRouteTreeExtractor {
       );
     }
 
+    final isOverlay = _isOverlayLikeClass(classElement);
     final isLocation = _isLocationLikeClass(classElement);
-    final supportsPathAndQuery = isLocation || _isShellLikeClass(classElement);
+    final supportsPathAndQuery =
+        (isLocation && !isOverlay) || _isShellLikeClass(classElement);
     final isDirectBaseNode =
         classElement.displayName == 'Location' ||
         classElement.displayName == 'AbstractLocation' ||
@@ -1419,6 +1449,8 @@ class _StaticRouteTreeExtractor {
         classElement.displayName == 'AbstractMultiShellLocation' ||
         classElement.displayName == 'MultiShell' ||
         classElement.displayName == 'AbstractMultiShell' ||
+        classElement.displayName == 'Overlay' ||
+        classElement.displayName == 'AbstractOverlay' ||
         classElement.displayName == 'Scope' ||
         classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
@@ -1464,9 +1496,11 @@ class _StaticRouteTreeExtractor {
                   evaluationContext: context,
                 );
         })();
+    final overlays = dslDefinition?.overlays ?? const <_RouteNode>[];
 
     return _RouteNode(
-      idExpression: isLocation && classElement.displayName != 'Scope'
+      idExpression:
+          (isLocation || isOverlay) && classElement.displayName != 'Scope'
           ? await _resolveIdExpression(
               _namedArgumentExpression(
                 expression.argumentList.arguments,
@@ -1483,10 +1517,12 @@ class _StaticRouteTreeExtractor {
         evaluationContext: evaluationContext,
       ),
       isLocation: isLocation,
+      isOverlay: isOverlay,
       isRoutableLocation: _isRoutableLocationLikeClass(classElement),
       locationTypeSource: classElement.displayName,
       pathSegments: pathSegments,
       queryParameters: queryParameters,
+      overlays: overlays,
       children: children,
     );
   }
@@ -1519,6 +1555,8 @@ class _StaticRouteTreeExtractor {
         classElement.displayName == 'AbstractMultiShellLocation' ||
         classElement.displayName == 'MultiShell' ||
         classElement.displayName == 'AbstractMultiShell' ||
+        classElement.displayName == 'Overlay' ||
+        classElement.displayName == 'AbstractOverlay' ||
         classElement.displayName == 'Scope' ||
         classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
@@ -1540,6 +1578,8 @@ class _StaticRouteTreeExtractor {
             'AbstractMultiShellLocation' ||
         buildMethod.enclosingElement?.displayName == 'MultiShell' ||
         buildMethod.enclosingElement?.displayName == 'AbstractMultiShell' ||
+        buildMethod.enclosingElement?.displayName == 'Overlay' ||
+        buildMethod.enclosingElement?.displayName == 'AbstractOverlay' ||
         buildMethod.enclosingElement?.displayName == 'Scope' ||
         buildMethod.enclosingElement?.displayName == 'AbstractScope' ||
         buildMethod.enclosingElement?.displayName == 'Shell' ||
@@ -1697,6 +1737,14 @@ class _StaticRouteTreeExtractor {
   }) async {
     switch (statement) {
       case ExpressionStatement():
+        if (await _resolveDslOverlaysAssignment(
+          statement.expression,
+          builderParameterName: builderParameterName,
+          context: context,
+          result: result,
+        )) {
+          return;
+        }
         if (await _resolveDslChildrenAssignment(
           statement.expression,
           builderParameterName: builderParameterName,
@@ -1849,12 +1897,56 @@ class _StaticRouteTreeExtractor {
     return true;
   }
 
+  Future<bool> _resolveDslOverlaysAssignment(
+    Expression expression, {
+    required String builderParameterName,
+    required _DslStatementContext context,
+    required _ResolvedDslDefinition result,
+  }) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (normalizedExpression is! AssignmentExpression ||
+        normalizedExpression.operator.lexeme != '=') {
+      return false;
+    }
+
+    final target = normalizedExpression.leftHandSide;
+    final isBuilderOverlays = switch (target) {
+      PrefixedIdentifier(:final prefix, :final identifier) =>
+        prefix.name == builderParameterName && identifier.name == 'overlays',
+      PropertyAccess(:final target?, :final propertyName) =>
+        target is SimpleIdentifier &&
+            target.name == builderParameterName &&
+            propertyName.name == 'overlays',
+      _ => false,
+    };
+    if (!isBuilderOverlays) {
+      return false;
+    }
+
+    result.overlays.addAll(
+      await _locationsFromListExpression(
+        normalizedExpression.rightHandSide,
+        evaluationContext: context,
+      ),
+    );
+    return true;
+  }
+
   void _markExclusiveBranchChildren({
     required _ResolvedDslDefinition baseline,
     required _ResolvedDslDefinition branchResult,
     required int groupId,
     required int branchId,
   }) {
+    final markedOverlays = [
+      for (final overlay in branchResult.overlays.skip(
+        baseline.overlays.length,
+      ))
+        overlay.withExclusiveBranch(groupId, branchId),
+    ];
+    for (var i = 0; i < markedOverlays.length; i++) {
+      branchResult.overlays[baseline.overlays.length + i] = markedOverlays[i];
+    }
     final markedChildren = _withExclusiveBranchSelection(
       branchResult.children.skip(baseline.children.length),
       groupId,
@@ -2255,6 +2347,7 @@ class _StaticRouteTreeExtractor {
             evaluationContext: evaluationContext,
           ),
       isLocation: isLocation,
+      isOverlay: false,
       isRoutableLocation: isLocation,
       locationTypeSource: isLocation ? 'Location' : 'Shell',
       pathSegments: supportsPathAndQuery
@@ -2263,6 +2356,7 @@ class _StaticRouteTreeExtractor {
       queryParameters: supportsPathAndQuery
           ? dslDefinition.queryParameters
           : const <String, _RouteQueryParameterMetadata>{},
+      overlays: dslDefinition.overlays,
       children: dslDefinition.children,
     );
   }
@@ -4151,7 +4245,21 @@ class _StaticRouteTreeExtractor {
           current.element.name == 'ShellLocation' ||
           current.element.name == 'AbstractShellLocation' ||
           current.element.name == 'MultiShellLocation' ||
-          current.element.name == 'AbstractMultiShellLocation') {
+          current.element.name == 'AbstractMultiShellLocation' ||
+          current.element.name == 'Overlay' ||
+          current.element.name == 'AbstractOverlay') {
+        return true;
+      }
+      current = current.element.supertype;
+    }
+    return false;
+  }
+
+  bool _isOverlayLikeClass(InterfaceElement classElement) {
+    InterfaceType? current = classElement.thisType;
+    while (current != null) {
+      if (current.element.name == 'Overlay' ||
+          current.element.name == 'AbstractOverlay') {
         return true;
       }
       current = current.element.supertype;
@@ -4181,7 +4289,9 @@ bool _isFrameworkRouteMemberOwner(Element? element) {
   final ownerName = element?.displayName;
   return ownerName == 'RouteNode' ||
       ownerName == 'PathRouteNode' ||
+      ownerName == 'AnyOverlay' ||
       ownerName == 'AnyLocation' ||
+      ownerName == 'AbstractOverlay' ||
       ownerName == 'AbstractLocation' ||
       ownerName == 'AbstractShellLocation' ||
       ownerName == 'AbstractMultiShellLocation' ||
@@ -4189,6 +4299,7 @@ bool _isFrameworkRouteMemberOwner(Element? element) {
       ownerName == 'AbstractScope' ||
       ownerName == 'AbstractShell' ||
       ownerName == 'Scope' ||
+      ownerName == 'Overlay' ||
       ownerName == 'Location' ||
       ownerName == 'ShellLocation' ||
       ownerName == 'MultiShellLocation' ||
@@ -4235,6 +4346,7 @@ class _ResolvedDslDefinition {
   String? locationLocalIdExpression;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
+  final List<_RouteNode> overlays;
   final List<_RouteNode> children;
   int pathParameterCount;
 
@@ -4243,6 +4355,7 @@ class _ResolvedDslDefinition {
     required this.locationLocalIdExpression,
     required this.pathSegments,
     required this.queryParameters,
+    required this.overlays,
     required this.children,
     required this.pathParameterCount,
   });
@@ -4253,6 +4366,7 @@ class _ResolvedDslDefinition {
       locationLocalIdExpression: null,
       pathSegments: <_PathSegmentMetadata>[],
       queryParameters: <String, _RouteQueryParameterMetadata>{},
+      overlays: <_RouteNode>[],
       children: <_RouteNode>[],
       pathParameterCount: 0,
     );
@@ -4264,6 +4378,7 @@ class _ResolvedDslDefinition {
       locationLocalIdExpression: locationLocalIdExpression,
       pathSegments: [...pathSegments],
       queryParameters: {...queryParameters},
+      overlays: [...overlays],
       children: [...children],
       pathParameterCount: pathParameterCount,
     );
@@ -4276,6 +4391,7 @@ class _ResolvedDslDefinition {
       pathSegments.addAll(other.pathSegments);
     }
     queryParameters.addAll(other.queryParameters);
+    overlays.addAll(other.overlays);
     children.addAll(other.children);
     if (other.pathParameterCount > pathParameterCount) {
       pathParameterCount = other.pathParameterCount;
@@ -5669,22 +5785,26 @@ class _RouteNode {
   final String? idExpression;
   final String? localIdExpression;
   final bool isLocation;
+  final bool isOverlay;
   final bool isRoutableLocation;
   final String locationTypeSource;
   final Map<int, int> exclusiveBranchSelections;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
+  final List<_RouteNode> overlays;
   final List<_RouteNode> children;
 
   const _RouteNode({
     required this.idExpression,
     required this.localIdExpression,
     required this.isLocation,
+    required this.isOverlay,
     required this.isRoutableLocation,
     required this.locationTypeSource,
     this.exclusiveBranchSelections = const {},
     required this.pathSegments,
     required this.queryParameters,
+    required this.overlays,
     required this.children,
   });
 
@@ -5693,6 +5813,7 @@ class _RouteNode {
       idExpression: idExpression,
       localIdExpression: localIdExpression,
       isLocation: isLocation,
+      isOverlay: isOverlay,
       isRoutableLocation: isRoutableLocation,
       locationTypeSource: locationTypeSource,
       exclusiveBranchSelections: {
@@ -5701,6 +5822,10 @@ class _RouteNode {
       },
       pathSegments: pathSegments,
       queryParameters: queryParameters,
+      overlays: [
+        for (final overlay in overlays)
+          overlay.withExclusiveBranch(groupId, branchId),
+      ],
       children: [
         for (final child in children)
           child.withExclusiveBranch(groupId, branchId),
@@ -5924,6 +6049,12 @@ class _GeneratedLocationChildTargetMethod {
 
   String get targetTypeSource => variants.first.targetTypeSource;
 
+  String get targetRouteTypeSource {
+    return variants.any((variant) => variant.isOverlay)
+        ? 'RouteTarget'
+        : 'ChildRouteTarget';
+  }
+
   bool get hasTargetIdentity =>
       variants.any((variant) => variant.hasTargetIdentity);
 
@@ -5956,14 +6087,14 @@ class _GeneratedLocationChildTargetMethod {
 
     if (parameters.isEmpty) {
       buffer.writeln(
-        '  ChildRouteTarget get ${first.name} {',
+        '  $targetRouteTypeSource get ${first.name} {',
       );
       _writeOwnerDispatch(buffer, first, indent: '    ');
       buffer.writeln('  }');
       return buffer.toString();
     }
 
-    buffer.writeln('  ChildRouteTarget ${first.name}({');
+    buffer.writeln('  $targetRouteTypeSource ${first.name}({');
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
       final typeSource = generatedParameter.optional
@@ -6133,6 +6264,7 @@ class _GeneratedLocationChildTargetMethodVariant {
   final List<String> structuralNameSegments;
   final List<String> identityAwareNameSegments;
   final List<String> relativeNodeMatchSources;
+  final bool isOverlay;
   final Map<int, int> exclusiveBranchSelections;
   final List<_GeneratedPathWrite> pathWrites;
   final List<_GeneratedPathWrite> queryWrites;
@@ -6152,6 +6284,7 @@ class _GeneratedLocationChildTargetMethodVariant {
     required this.structuralNameSegments,
     required this.identityAwareNameSegments,
     required this.relativeNodeMatchSources,
+    required this.isOverlay,
     required this.exclusiveBranchSelections,
     required this.pathWrites,
     required this.queryWrites,
@@ -6161,6 +6294,7 @@ class _GeneratedLocationChildTargetMethodVariant {
 
   bool isEquivalent(_GeneratedLocationChildTargetMethodVariant other) {
     return ownerTypeSource == other.ownerTypeSource &&
+        isOverlay == other.isOverlay &&
         relativeDepth == other.relativeDepth &&
         const ListEquality<String>().equals(
           relativeNodeMatchSources,
@@ -6202,6 +6336,7 @@ class _GeneratedLocationChildTargetMethodVariant {
       structuralNameSegments: structuralNameSegments,
       identityAwareNameSegments: identityAwareNameSegments,
       relativeNodeMatchSources: relativeNodeMatchSources,
+      isOverlay: isOverlay,
       exclusiveBranchSelections: exclusiveBranchSelections,
       pathWrites: pathWrites,
       queryWrites: queryWrites,
@@ -6228,13 +6363,15 @@ class _GeneratedLocationChildTargetMethodVariant {
     ];
 
     if (parameters.isEmpty) {
-      buffer.writeln('  ChildRouteTarget get $name {');
+      final returnType = isOverlay ? 'OverlayRouteTarget' : 'ChildRouteTarget';
+      buffer.writeln('  $returnType get $name {');
       writeReturnStatement(buffer, '    ');
       buffer.writeln('  }');
       return buffer.toString();
     }
 
-    buffer.writeln('  ChildRouteTarget $name({');
+    final returnType = isOverlay ? 'OverlayRouteTarget' : 'ChildRouteTarget';
+    buffer.writeln('  $returnType $name({');
     for (final parameter in parameters) {
       final generatedParameter = parameter.value;
       final typeSource = generatedParameter.optional
@@ -6296,6 +6433,16 @@ class _GeneratedLocationChildTargetMethodVariant {
   }
 
   void writeReturnStatement(StringBuffer buffer, String indent) {
+    if (isOverlay) {
+      buffer.writeln('$indent return OverlayRouteTarget(');
+      buffer.writeln('$indent   owner: this,');
+      buffer.writeln('$indent   overlay: pathRouteOverlays.where((node) {');
+      buffer.writeln('$indent     return ${relativeNodeMatchSources.single};');
+      buffer.writeln('$indent   }).single as AnyOverlay,');
+      buffer.writeln('$indent);');
+      return;
+    }
+
     buffer.writeln('$indent return ChildRouteTarget(');
     buffer.writeln('$indent   start: this,');
     buffer.writeln('$indent   resolveChildPathNodes: () {');
@@ -6711,7 +6858,7 @@ String _toUpperCamelCase(String value) {
 }
 
 String _childMethodBaseName(String locationTypeSource) {
-  for (final suffix in const ['Location', 'Node']) {
+  for (final suffix in const ['Location', 'Overlay', 'Node']) {
     if (locationTypeSource.endsWith(suffix) &&
         locationTypeSource.length > suffix.length) {
       return locationTypeSource.substring(

@@ -31,8 +31,7 @@ abstract interface class LocationPageSkeleton {
 /// gets passed to [buildPage].
 ///
 /// Does not hold state and thus can be reused.
-class BuilderLocationPageSkeleton
-    implements LocationPageSkeleton {
+class BuilderLocationPageSkeleton implements LocationPageSkeleton {
   final LocationChildBuilder buildChild;
   final LocationPageBuilder? buildPage;
   final LocationPageKeyBuilder? buildPageKey;
@@ -103,8 +102,7 @@ class BuilderLocationPageSkeleton
   }
 }
 
-class ChildLocationPageSkeleton
-    extends BuilderLocationPageSkeleton {
+class ChildLocationPageSkeleton extends BuilderLocationPageSkeleton {
   ChildLocationPageSkeleton({
     required Widget child,
     super.buildPage,
