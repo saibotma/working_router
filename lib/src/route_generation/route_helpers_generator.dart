@@ -587,6 +587,16 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       errorContext:
           '${owner.locationTypeSource} -> ${target.idExpression ?? target.locationTypeSource}',
     );
+    if (!isOverlay && owner.overlays.isNotEmpty) {
+      _addOptionalOwnerQueryParameters(
+        owner: owner,
+        pathParameters: pathParameters,
+        queryParameters: queryParameters,
+        element: element,
+        errorContext:
+            '${owner.locationTypeSource} -> ${target.idExpression ?? target.locationTypeSource}',
+      );
+    }
     final pathWrites = _collectPathWrites(
       relativeChain,
       pathParameters,
@@ -594,10 +604,14 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       errorContext:
           '${owner.locationTypeSource} -> ${target.idExpression ?? target.locationTypeSource}',
     );
-    final queryWrites = _collectQueryWrites(
-      relativeChain,
-      queryParameters,
-    );
+    final queryWrites = [
+      if (!isOverlay && owner.overlays.isNotEmpty)
+        ..._collectOwnerQueryWrites(owner, queryParameters),
+      ..._collectQueryWrites(
+        relativeChain,
+        queryParameters,
+      ),
+    ];
     if (isOverlay && pathParameters.isNotEmpty) {
       throw InvalidGenerationSourceError(
         'Overlay target `${target.locationTypeSource}` cannot declare '
@@ -858,6 +872,93 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     return (pathParameters, queryParameters);
   }
 
+  void _addOptionalOwnerQueryParameters({
+    required _RouteNode owner,
+    required Map<String, _GeneratedRouteParameter> pathParameters,
+    required Map<String, _GeneratedRouteParameter> queryParameters,
+    required Element element,
+    required String errorContext,
+  }) {
+    for (final queryParameter in owner.queryParameters.values) {
+      final parameter = _GeneratedRouteParameter(
+        routeKey: queryParameter.key,
+        parameterName: '',
+        dartTypeSource: queryParameter.dartTypeSource,
+        codecExpressionSource: queryParameter.codecExpressionSource,
+        optional: true,
+        sourceNode: queryParameter.sourceNode,
+        sourceElement: queryParameter.sourceElement,
+      );
+
+      final existing = queryParameters[queryParameter.key];
+      if (existing != null) {
+        final mergedParameter = _mergeCompatibleQueryParameter(
+          existing,
+          parameter,
+        );
+        if (mergedParameter == null) {
+          _throwGeneratedParameterError(
+            'The generated helper for `$errorContext` needs conflicting query '
+            'parameter metadata for `${queryParameter.key}`.',
+            parameter: parameter,
+            fallbackElement: element,
+          );
+        }
+        queryParameters[queryParameter.key] = mergedParameter;
+        continue;
+      }
+
+      final parameterName = _toParameterIdentifier(queryParameter.key);
+      final conflictingPathParameter = pathParameters.values
+          .where(
+            (pathParameter) =>
+                pathParameter.parameterName == parameterName &&
+                pathParameter.routeKey != queryParameter.key,
+          )
+          .firstOrNull;
+      if (conflictingPathParameter != null) {
+        _throwGeneratedParameterError(
+          'The generated helper for `$errorContext` needs a query parameter '
+          'that maps to `$parameterName`, but a path parameter already uses '
+          'that generated name.',
+          parameter: parameter,
+          fallbackElement: element,
+        );
+      }
+
+      final conflictingQueryParameter = queryParameters.values
+          .where(
+            (existingParameter) =>
+                existingParameter.parameterName == parameterName &&
+                existingParameter.routeKey != queryParameter.key,
+          )
+          .firstOrNull;
+      if (conflictingQueryParameter != null) {
+        _throwGeneratedParameterError(
+          'The generated helper for `$errorContext` needs two query '
+          'parameters that both map to `$parameterName` '
+          '(${conflictingQueryParameter.routeKey} and ${queryParameter.key}).',
+          parameter: parameter,
+          fallbackElement: element,
+        );
+      }
+
+      if (pathParameters.containsKey(queryParameter.key)) {
+        _throwGeneratedParameterError(
+          'The generated helper for `$errorContext` uses '
+          '`${queryParameter.key}` as both a path parameter and a query '
+          'parameter.',
+          parameter: parameter,
+          fallbackElement: element,
+        );
+      }
+
+      queryParameters[queryParameter.key] = parameter.copyWith(
+        parameterName: parameterName,
+      );
+    }
+  }
+
   Never _throwGeneratedParameterError(
     String message, {
     required _GeneratedRouteParameter parameter,
@@ -990,6 +1091,35 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       locationOccurrences[matchDiscriminator] = occurrenceIndex + 1;
     }
 
+    return writes;
+  }
+
+  List<_GeneratedPathWrite> _collectOwnerQueryWrites(
+    _RouteNode owner,
+    Map<String, _GeneratedRouteParameter> queryParameters,
+  ) {
+    final writes = <_GeneratedPathWrite>[];
+    for (final queryParameter in owner.queryParameters.values) {
+      final generatedParameter = queryParameters[queryParameter.key];
+      if (generatedParameter == null) {
+        continue;
+      }
+
+      writes.add(
+        _GeneratedPathWrite(
+          locationMatchDiscriminator:
+              '${_routeNodeMatchDiscriminator(owner)}Owner',
+          locationMatchSource: 'identical(node, this)',
+          occurrenceIndex: 0,
+          parameterAccessorSource:
+              'node.queryParameters.firstWhere((it) => '
+              'it.name == ${_quotedDartString(queryParameter.key)}) '
+              'as QueryParam<${queryParameter.dartTypeSource}>',
+          parameterIsOptional: true,
+          parameterName: generatedParameter.parameterName,
+        ),
+      );
+    }
     return writes;
   }
 

@@ -222,19 +222,26 @@ RouteNode get appLocationTree => RootLocation(id: rootId);
 ''',
       },
       outputs: {
-        'working_router|lib/overlay_routes.working_router.g.part':
-            decodedMatches(
-              allOf(
-                contains(
-                  'extension ChatLocationGeneratedChildTargets on ChatLocation',
-                ),
-                contains('OverlayRouteTarget get childChatSearchTarget'),
-                contains('overlay:'),
-                contains('pathRouteOverlays.where((node)'),
-                isNot(contains('as AnyOverlay')),
-                contains('ChildRouteTarget get childChannelTarget'),
+        'working_router|lib/overlay_routes.working_router.g.part': decodedMatches(
+          allOf(
+            allOf(
+              contains(
+                'extension ChatLocationGeneratedChildTargets on ChatLocation',
               ),
+              contains('OverlayRouteTarget get childChatSearchTarget'),
+              contains('overlay:'),
+              contains('pathRouteOverlays.where((node)'),
+              isNot(contains('as AnyOverlay')),
             ),
+            allOf(
+              contains('ChildRouteTarget childChannelTarget({'),
+              contains('bool? search'),
+              contains('identical(node, this)'),
+              contains("it.name == 'search'"),
+              contains('if (search case final value?)'),
+            ),
+          ),
+        ),
       },
       readerWriter: readerWriter,
     );
