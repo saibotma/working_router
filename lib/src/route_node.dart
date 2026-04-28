@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_param_codec.dart';
+import 'package:working_router/src/shared/keep_keys.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
@@ -149,18 +150,25 @@ final class DefaultUnboundQueryParam<T> extends UnboundQueryParam<T> {
 
 sealed class QueryParam<T> implements Param<T> {
   final UnboundQueryParam<T> _unboundParam;
+  final UriVisibility uriVisibility;
   UnboundQueryParam<T> get unboundParam => _unboundParam;
   @override
   RouteParamCodec<T> get codec => unboundParam.codec;
   String get name => unboundParam.name;
 
   @internal
-  QueryParam(this._unboundParam);
+  QueryParam(
+    this._unboundParam, {
+    this.uriVisibility = UriVisibility.inherit,
+  });
 }
 
 class RequiredQueryParam<T> extends QueryParam<T> {
   @internal
-  RequiredQueryParam(RequiredUnboundQueryParam<T> super.unboundParam);
+  RequiredQueryParam(
+    RequiredUnboundQueryParam<T> super.unboundParam, {
+    super.uriVisibility,
+  });
 }
 
 class DefaultQueryParam<T> extends QueryParam<T> {
@@ -171,7 +179,10 @@ class DefaultQueryParam<T> extends QueryParam<T> {
   T get defaultValue => unboundParam.defaultValue;
 
   @internal
-  DefaultQueryParam(DefaultUnboundQueryParam<T> super.unboundParam);
+  DefaultQueryParam(
+    DefaultUnboundQueryParam<T> super.unboundParam, {
+    super.uriVisibility,
+  });
 }
 
 typedef CustomPageKeyBuilder = LocalKey Function(WorkingRouterData data);
@@ -587,7 +598,7 @@ extension RouteNodePathVisibilityX on Iterable<RouteNode> {
       }
 
       final inheritedHidden = hiddenAncestor != null;
-      final hidesOwnSubtree = node.pathVisibility == RoutePathVisibility.hidden;
+      final hidesOwnSubtree = node.pathVisibility == UriVisibility.hidden;
       if (!inheritedHidden && hidesOwnSubtree) {
         hiddenAncestor = node;
       }
@@ -595,6 +606,45 @@ extension RouteNodePathVisibilityX on Iterable<RouteNode> {
         yield node;
       }
     }
+  }
+}
+
+extension RouteNodeQueryVisibilityX on Iterable<RouteNode> {
+  IMap<String, String> visibleQueryParameters(
+    IMap<String, String> queryParameters,
+  ) {
+    final hiddenNames = hiddenQueryParameterNames();
+    if (hiddenNames.isEmpty) {
+      return queryParameters;
+    }
+    return queryParameters.keepKeys(
+      queryParameters.keys.toSet().difference(hiddenNames),
+    );
+  }
+
+  Set<String> hiddenQueryParameterNames() {
+    final hiddenNames = <String>{};
+    final hiddenNamesInheritedByKey = <String>{};
+
+    for (final node in this) {
+      if (node is! PathRouteNode) {
+        continue;
+      }
+
+      for (final queryParameter in node.queryParameters) {
+        if (queryParameter.uriVisibility == UriVisibility.hidden) {
+          hiddenNames.add(queryParameter.name);
+          hiddenNamesInheritedByKey.add(queryParameter.name);
+          continue;
+        }
+
+        if (hiddenNamesInheritedByKey.contains(queryParameter.name)) {
+          hiddenNames.add(queryParameter.name);
+        }
+      }
+    }
+
+    return hiddenNames;
   }
 }
 

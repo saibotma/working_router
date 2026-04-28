@@ -2453,7 +2453,7 @@ void main() {
                         dialog = _BuilderLocation(
                           id: _Id.b,
                           build: (builder, location) {
-                            builder.pathVisibility = RoutePathVisibility.hidden;
+                            builder.pathVisibility = UriVisibility.hidden;
                             builder.pathLiteral('dialog');
                             builder.content = Content.widget(
                               const Text('dialog'),
@@ -2521,7 +2521,7 @@ void main() {
                       hiddenParent = _BuilderLocation(
                         id: _Id.b,
                         build: (builder, location) {
-                          builder.pathVisibility = RoutePathVisibility.hidden;
+                          builder.pathVisibility = UriVisibility.hidden;
                           builder.pathLiteral('hidden');
                           builder.content = Content.widget(
                             const Text('hidden'),
@@ -2564,6 +2564,134 @@ void main() {
 
       expect(find.text('child'), findsOneWidget);
       expect(router.nullableData!.uri.path, '/chat');
+    });
+
+    testWidgets('hidden query parameters stay in router state but not uri', (
+      tester,
+    ) async {
+      late _BuilderLocation chat;
+      late _BuilderLocation channel;
+      late DefaultQueryParam<bool> search;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                chat = _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('chat');
+                    search = builder.defaultBoolQueryParam(
+                      'search',
+                      defaultValue: false,
+                      visibility: UriVisibility.hidden,
+                    );
+                    builder.content = Content.widget(const Text('chat'));
+                    builder.children = [
+                      channel = _BuilderLocation(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('channel');
+                          builder.content = Content.widget(
+                            const Text('channel'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(
+        Uri(path: '/chat/channel', queryParameters: {'search': 'true'}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('channel'), findsOneWidget);
+      expect(router.nullableData!.param(search), true);
+      expect(router.nullableData!.queryParameters.unlock, {'search': 'true'});
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+
+      router.routeTo(
+        ChildRouteTarget(
+          start: chat,
+          resolveChildPathNodes: () => <RouteNode>[channel].toIList(),
+          writeQueryParameters: (node, query) {
+            if (identical(node, chat)) {
+              query(search, true);
+            }
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData!.param(search), true);
+      expect(router.nullableData!.queryParameters.unlock, {'search': 'true'});
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+    });
+
+    testWidgets('query parameters inherit hidden visibility by key', (
+      tester,
+    ) async {
+      late DefaultQueryParam<String> tab;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('chat');
+                    builder.defaultStringQueryParam(
+                      'tab',
+                      defaultValue: 'list',
+                      visibility: UriVisibility.hidden,
+                    );
+                    builder.content = Content.widget(const Text('chat'));
+                    builder.children = [
+                      _BuilderLocation(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('channel');
+                          tab = builder.defaultStringQueryParam(
+                            'tab',
+                            defaultValue: 'list',
+                          );
+                          builder.content = Content.widget(
+                            const Text('channel'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(
+        Uri(path: '/chat/channel', queryParameters: {'tab': 'details'}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData!.param(tab), 'details');
+      expect(router.nullableData!.queryParameters.unlock, {'tab': 'details'});
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
     });
   });
 }

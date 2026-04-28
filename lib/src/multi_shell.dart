@@ -293,7 +293,7 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
 
   @override
-  RoutePathVisibility get pathVisibility => _definition.pathVisibility;
+  UriVisibility get pathVisibility => _definition.pathVisibility;
 
   @override
   RouteBrowserHistory get browserHistory => _definition.browserHistory;

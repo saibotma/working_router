@@ -133,7 +133,7 @@ class BuiltShellDefinition {
   final List<AnyOverlay> overlays;
   final List<RouteNode> children;
   final PageKey? pageKey;
-  final RoutePathVisibility pathVisibility;
+  final UriVisibility pathVisibility;
   final RouteBrowserHistory browserHistory;
   final ShellBuildResult render;
 
@@ -226,7 +226,7 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
   List<AnyOverlay> get pathRouteOverlays => _definition.overlays;
 
   @override
-  RoutePathVisibility get pathVisibility => _definition.pathVisibility;
+  UriVisibility get pathVisibility => _definition.pathVisibility;
 
   @override
   RouteBrowserHistory get browserHistory => _definition.browserHistory;

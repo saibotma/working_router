@@ -206,7 +206,7 @@ class BuiltLocationDefinition {
   final List<AnyOverlay> overlays;
   final List<RouteNode> children;
   final PageKey? pageKey;
-  final RoutePathVisibility pathVisibility;
+  final UriVisibility pathVisibility;
   final RouteBrowserHistory browserHistory;
   final PathRouteNodeRenderResult? render;
 

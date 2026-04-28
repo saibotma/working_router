@@ -868,7 +868,13 @@ class WorkingRouter extends ChangeNotifier
   }) {
     return Uri(
       path: routeNodes.visiblePathRouteNodes().buildPath(pathParameters),
-      queryParameters: queryParameters.isEmpty ? null : queryParameters.unlock,
+      queryParameters: switch (routeNodes.visibleQueryParameters(
+        queryParameters,
+      )) {
+        final visibleQueryParameters when visibleQueryParameters.isEmpty =>
+          null,
+        final visibleQueryParameters => visibleQueryParameters.unlock,
+      },
     );
   }
 
