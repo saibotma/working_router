@@ -1289,6 +1289,155 @@ void main() {
     });
 
     testWidgets(
+      'enabled shell renders matched shell location with default content',
+      (tester) async {
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  Shell(
+                    build: (builder, shell, _) {
+                      builder.pathLiteral('accounts');
+                      final accountId = builder.stringPathParam();
+                      builder.content = ShellContent.builder((
+                        context,
+                        data,
+                        child,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('account:${data.param(accountId)}'),
+                            SizedBox(height: 160, child: child),
+                          ],
+                        );
+                      });
+                      builder.children = [
+                        _BuilderShellLocation(
+                          build: (builder, location, _) {
+                            builder.pathLiteral('notice-board');
+                            builder.shellContent = ShellContent.builder((
+                              context,
+                              data,
+                              child,
+                            ) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('notice-shell'),
+                                  SizedBox(height: 80, child: child),
+                                ],
+                              );
+                            });
+                            builder.defaultContent = DefaultContent.widget(
+                              const Text('select-notice'),
+                            );
+                            builder.content = const Content.none();
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/accounts/42/notice-board'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('account:42'), findsOneWidget);
+        expect(find.text('notice-shell'), findsOneWidget);
+        expect(find.text('select-notice'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(3),
+        );
+      },
+    );
+
+    testWidgets(
+      'enabled shell renders matched multi shell location content default',
+      (tester) async {
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  Shell(
+                    build: (builder, shell, _) {
+                      builder.pathLiteral('accounts');
+                      final accountId = builder.stringPathParam();
+                      builder.content = ShellContent.builder((
+                        context,
+                        data,
+                        child,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('account:${data.param(accountId)}'),
+                            SizedBox(height: 160, child: child),
+                          ],
+                        );
+                      });
+                      builder.children = [
+                        _BuilderMultiShellLocation(
+                          build: (builder, location, contentSlot) {
+                            builder.pathLiteral('notice-board');
+                            builder.shellContent = MultiShellContent.builder((
+                              context,
+                              data,
+                              slots,
+                            ) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('notice-shell'),
+                                  SizedBox(
+                                    height: 80,
+                                    child: slots.child(contentSlot),
+                                  ),
+                                ],
+                              );
+                            });
+                            builder.defaultContent = DefaultContent.widget(
+                              const Text('select-notice'),
+                            );
+                            builder.content = const Content.none();
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/accounts/42/notice-board'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('account:42'), findsOneWidget);
+        expect(find.text('notice-shell'), findsOneWidget);
+        expect(find.text('select-notice'), findsOneWidget);
+        expect(
+          tester.widgetList<Navigator>(find.byType(Navigator)),
+          hasLength(3),
+        );
+      },
+    );
+
+    testWidgets(
       'disabled shell routes implicit and explicit shell children to parent navigator',
       (tester) async {
         final router = WorkingRouter(

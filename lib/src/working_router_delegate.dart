@@ -340,7 +340,8 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
 
       switch ((entry.renderKind, entry.node)) {
         case (_MatchedNodeRenderKind.shell, final AbstractShell shell):
-          if (_navigatorWouldBuildPages(shell.routerKey, data)) {
+          if (shell.hasDefaultPage ||
+              _navigatorWouldBuildPages(shell.routerKey, data)) {
             return true;
           }
         case (
@@ -358,14 +359,16 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           _MatchedNodeRenderKind.shellLocationShell,
           final AbstractShellLocation shellLocation,
         ):
-          if (_navigatorWouldBuildPages(shellLocation.routerKey, data)) {
+          if (shellLocation.hasDefaultPage ||
+              _navigatorWouldBuildPages(shellLocation.routerKey, data)) {
             return true;
           }
         case (
           _MatchedNodeRenderKind.multiShellLocationShell,
           final AbstractMultiShellLocation multiShellLocation,
         ):
-          if (_navigatorWouldBuildPages(
+          if (multiShellLocation.contentSlotDefinition.hasDefault ||
+              _navigatorWouldBuildPages(
                 multiShellLocation.contentRouterKey,
                 data,
               ) ||
