@@ -25,6 +25,22 @@ final _branchOwnerId = NodeId<_BranchOwnerLocation>();
 final _firstOverlayId = NodeId<_BranchOverlay>();
 final _secondOverlayId = NodeId<_BranchOverlay>();
 
+WorkingRouterData _workingRouterData({
+  required Uri uri,
+  required IList<RouteNode> routeNodes,
+  required IMap<RouteNode, IList<AnyOverlay>> activeOverlaysByOwner,
+  required IMap<UnboundPathParam<dynamic>, String> pathParameters,
+  required IMap<String, String> queryParameters,
+}) {
+  return WorkingRouterData(
+    uri: uri,
+    routeNodes: routeNodes,
+    activeOverlaysByOwner: activeOverlaysByOwner,
+    pathParameters: pathParameters,
+    queryParameters: queryParameters,
+  );
+}
+
 void main() {
   group('WorkingRouterData path helpers', () {
     test('pathTemplateUpToNode ignores hydrated path parameter values', () {
@@ -35,7 +51,7 @@ void main() {
         parameter: itemId,
       );
       final boundItemId = detail.boundParameter;
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/items/123'),
         routeNodes: <RouteNode>[list, detail].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -52,7 +68,7 @@ void main() {
       final parent = _NoIdSegmentLocation(path: '/parent');
       final first = _NoIdSegmentLocation(path: '/first');
       final second = _NoIdSegmentLocation(path: '/second');
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/parent/first/second'),
         routeNodes: [parent, first, second].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -60,10 +76,8 @@ void main() {
         queryParameters: IMap(),
       );
 
-      expect(data.pathUpToLocation(first), '/parent/first');
       expect(data.pathUpToNode(first), '/parent/first');
       expect(data.pathTemplateUpToNode(first), '/parent/first');
-      expect(data.pathUpToLocation(second), '/parent/first/second');
       expect(data.pathUpToNode(second), '/parent/first/second');
       expect(data.pathTemplateUpToNode(second), '/parent/first/second');
     });
@@ -78,7 +92,7 @@ void main() {
       );
       final location = _QueryLocation(id: _TestId.query, parameter: tab);
       final boundTab = location.boundParameter;
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/query'),
         routeNodes: [location].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -110,7 +124,7 @@ void main() {
           requiredLocation.boundParameter;
       final DefaultQueryParam<String> boundTab = boundLocation.boundParameter;
       final DefaultQueryParam<String> builtTab = builtLocation.boundParameter;
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/query'),
         routeNodes: <RouteNode>[
           requiredLocation,
@@ -131,7 +145,7 @@ void main() {
       const tab = RequiredUnboundQueryParam('tab', StringRouteParamCodec());
       final location = _QueryLocation(id: _TestId.query, parameter: tab);
       final boundTab = location.boundParameter;
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/query', queryParameters: {'filter': 'active'}),
         routeNodes: [location].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -174,7 +188,7 @@ void main() {
         parameter: tab,
       );
       final inactiveTab = inactiveLocation.boundParameter;
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/query', queryParameters: {'tab': 'all'}),
         routeNodes: [location].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -218,7 +232,7 @@ void main() {
           parameter: endDateTime,
         );
         final boundEndDateTime = location.boundParameter;
-        final data = WorkingRouterData(
+        final data = _workingRouterData(
           uri: Uri(path: '/query'),
           routeNodes: [location].toIList(),
           activeOverlaysByOwner: IMap(),
@@ -243,7 +257,7 @@ void main() {
         pathParameter: itemId,
         queryParameter: tab,
       );
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/items/123'),
         routeNodes: <RouteNode>[list, detail].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -265,7 +279,7 @@ void main() {
     WorkingRouterData buildData(
       IList<AnyLocation> locations,
     ) {
-      return WorkingRouterData(
+      return _workingRouterData(
         uri: Uri(path: '/parent/child'),
         routeNodes: locations.cast<RouteNode>().toIList(),
         activeOverlaysByOwner: IMap(),
@@ -336,7 +350,7 @@ void main() {
       () {
         final accountsNode = _AccountsNode(id: _TestId.accounts);
         final detail = _TestLocation(id: _TestId.detail, path: '/detail');
-        final data = WorkingRouterData(
+        final data = _workingRouterData(
           uri: Uri(path: '/accounts/detail'),
           routeNodes: <RouteNode>[accountsNode, detail].toIList(),
           activeOverlaysByOwner: IMap(),
@@ -362,7 +376,7 @@ void main() {
     test('isIdMatched includes structural route node ids', () {
       final accountsNode = _AccountsNode(id: _TestId.accounts);
       final detail = _TestLocation(id: _TestId.detail, path: '/detail');
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/accounts/detail'),
         routeNodes: <RouteNode>[accountsNode, detail].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -386,7 +400,7 @@ void main() {
       final root = _TestLocation(id: _TestId.root, path: '/');
       final parent = _TestLocation(id: _TestId.parent, path: '/parent');
       final child = _TestLocation(id: _TestId.child, path: '/child');
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/parent/child'),
         routeNodes: [root, parent, child].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -407,7 +421,7 @@ void main() {
     test('typed node ids can resolve matched and leaf nodes directly', () {
       final root = _TypedRootLocation();
       final addAccount = _TypedAddAccountLocation();
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/add-account'),
         routeNodes: <RouteNode>[root, addAccount].toIList(),
         activeOverlaysByOwner: IMap(),
@@ -428,7 +442,7 @@ void main() {
         first: first,
         second: second,
       );
-      final data = WorkingRouterData(
+      final data = _workingRouterData(
         uri: Uri(path: '/owner'),
         routeNodes: <RouteNode>[owner].toIList(),
         activeOverlaysByOwner: {

@@ -14,7 +14,9 @@ typedef BuildRouteNodes =
     List<RouteNode> Function(WorkingRouterKey rootRouterKey);
 
 class WorkingRouter extends ChangeNotifier
-    implements RouterConfig<Uri>, WorkingRouterDataSailor {
+    implements
+        RouterConfig<WorkingRouteConfiguration>,
+        WorkingRouterDataSailor {
   /// Does not notify widgets at all.
   /// This is meant to be used for one off calls to the router,
   /// and not rebuilding a widget based router data changes.
@@ -111,13 +113,20 @@ class WorkingRouter extends ChangeNotifier
   // ignore: deprecated_member_use_from_same_package
   WorkingRouterData? get nullableData => _data;
 
-  Uri? get nullableConfiguration => nullableData?.uri;
+  WorkingRouteConfiguration? get nullableConfiguration {
+    final data = nullableData;
+    if (data == null) {
+      return null;
+    }
+    return _configurationFromData(data);
+  }
 
   @override
   BackButtonDispatcher? get backButtonDispatcher => RootBackButtonDispatcher();
 
   @override
-  RouteInformationParser<Uri>? get routeInformationParser => _informationParser;
+  RouteInformationParser<WorkingRouteConfiguration>?
+  get routeInformationParser => _informationParser;
 
   @override
   RouteInformationProvider? get routeInformationProvider {
@@ -125,7 +134,7 @@ class WorkingRouter extends ChangeNotifier
   }
 
   @override
-  RouterDelegate<Uri> get routerDelegate => _rootDelegate;
+  RouterDelegate<WorkingRouteConfiguration> get routerDelegate => _rootDelegate;
 
   @internal
   GlobalKey<NavigatorState> get rootNavigatorKey => _rootDelegate.navigatorKey;
@@ -138,10 +147,12 @@ class WorkingRouter extends ChangeNotifier
     _routeNodeTree = _buildRouteNodeTree();
     final currentData = nullableData;
     if (currentData != null) {
-      // Delegate refresh only rebuilds pages from the current router data.
-      // After the tree changes, rematch the current uri so stale active
-      // locations are dropped when that route no longer exists.
-      _updateData(_buildDataForUri(currentData.uri));
+      // The route-node tree was rebuilt, so old matched node instances must be
+      // resolved again against the new tree. Use the full internal route state
+      // because data.uri may omit hidden path segments or query parameters.
+      _updateData(
+        _buildDataForConfiguration(_configurationFromData(currentData)),
+      );
     }
     for (final it in [_rootDelegate, ..._nestedDelegates]) {
       it.refresh();
@@ -175,9 +186,11 @@ class WorkingRouter extends ChangeNotifier
   }
 
   @internal
-  void routeToUriFromRouteInformation(Uri uri) {
+  void routeToConfigurationFromRouteInformation(
+    WorkingRouteConfiguration configuration,
+  ) {
     _routeTo(
-      targetData: _buildDataForUri(uri),
+      targetData: _buildDataForConfiguration(configuration),
       reason: RouteTransitionReason.routeInformation,
     );
   }
@@ -251,9 +264,8 @@ class WorkingRouter extends ChangeNotifier
       _routeTo(
         targetData: _buildData(
           routeNodes: data.routeNodes,
-          fallback: null,
-          pathParameters: data.pathParametersForRouter,
-          queryParameters: _resetOverlayFilters(
+          pathParameters: data.pathParameters,
+          queryParameters: _resetOverlayConditions(
             data.queryParameters,
             overlay: overlay,
           ),
@@ -280,7 +292,7 @@ class WorkingRouter extends ChangeNotifier
     }
 
     final newPathRouteNodes = newNodes.pathRouteNodes;
-    final newPathParameters = data.pathParametersForRouter.keepKeys({
+    final newPathParameters = data.pathParameters.keepKeys({
       for (final element in newPathRouteNodes)
         ...element.path.whereType<PathParam<dynamic>>().map(
           (it) => it.unboundParam,
@@ -294,7 +306,6 @@ class WorkingRouter extends ChangeNotifier
     _routeTo(
       targetData: _buildData(
         routeNodes: newNodes,
-        fallback: null,
         pathParameters: newPathParameters,
         queryParameters: retainedQueryParameters,
       ),
@@ -356,7 +367,7 @@ class WorkingRouter extends ChangeNotifier
     final newLocations = locations.sublist(0, matchIndex + 1);
     final newNodes = _trimNodesToLastMatchingLocation(data, newLocations.last);
     final newPathRouteNodes = newNodes.pathRouteNodes;
-    final newPathParameters = data.pathParametersForRouter.keepKeys({
+    final newPathParameters = data.pathParameters.keepKeys({
       for (final element in newPathRouteNodes)
         ...element.path.whereType<PathParam<dynamic>>().map(
           (it) => it.unboundParam,
@@ -371,7 +382,6 @@ class WorkingRouter extends ChangeNotifier
     _routeTo(
       targetData: _buildData(
         routeNodes: newNodes,
-        fallback: null,
         pathParameters: newPathParameters,
         queryParameters: retainedQueryParameters,
       ),
@@ -573,12 +583,27 @@ class WorkingRouter extends ChangeNotifier
       uri.pathSegments.toIList(),
       queryParameters: queryParameters,
     );
+    if (matchResult.isEmpty) {
+      return WorkingRouterData(
+        uri: uri,
+        routeNodes: const IListConst([]),
+        activeOverlaysByOwner: const IMapConst({}),
+        pathParameters: const IMapConst({}),
+        queryParameters: const IMapConst({}),
+      );
+    }
+
     return _buildData(
       routeNodes: matchResult.routeNodes,
-      fallback: matchResult.isEmpty ? uri : null,
       pathParameters: matchResult.pathParameters,
       queryParameters: queryParameters,
     );
+  }
+
+  WorkingRouterData _buildDataForConfiguration(
+    WorkingRouteConfiguration configuration,
+  ) {
+    return _buildDataForUri(configuration.matchingUri);
   }
 
   WorkingRouterData _buildDataForTarget(
@@ -627,7 +652,6 @@ class WorkingRouter extends ChangeNotifier
 
         return _buildData(
           routeNodes: matchedNodes,
-          fallback: null,
           pathParameters: _resolvePathParameterWrites(
             nodes: matchedPathRouteNodes,
             writePathParameters: writePathParameters,
@@ -668,8 +692,7 @@ class WorkingRouter extends ChangeNotifier
         );
         return _buildData(
           routeNodes: routeNodes,
-          fallback: null,
-          pathParameters: data.pathParametersForRouter.addAll(
+          pathParameters: data.pathParameters.addAll(
             _resolvePathParameterWrites(
               nodes: routeNodes.pathRouteNodes,
               writePathParameters: writePathParameters,
@@ -703,8 +726,7 @@ class WorkingRouter extends ChangeNotifier
         }
         return _buildData(
           routeNodes: data.routeNodes,
-          fallback: null,
-          pathParameters: data.pathParametersForRouter,
+          pathParameters: data.pathParameters,
           queryParameters: queryParameters,
         );
       case FirstChildRouteTarget(
@@ -727,8 +749,7 @@ class WorkingRouter extends ChangeNotifier
 
         return _buildData(
           routeNodes: routeNodes,
-          fallback: null,
-          pathParameters: data.pathParametersForRouter.addAll(
+          pathParameters: data.pathParameters.addAll(
             _resolvePathParameterWrites(
               nodes: routeNodes.pathRouteNodes,
               writePathParameters: writePathParameters,
@@ -745,42 +766,31 @@ class WorkingRouter extends ChangeNotifier
 
   WorkingRouterData _buildData({
     required IList<RouteNode> routeNodes,
-    required Uri? fallback,
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
-    final pathRouteNodes = routeNodes.pathRouteNodes;
-    assert(
-      pathRouteNodes.isNotEmpty || (fallback != null),
-      'Fallback must not be null when locations are empty.',
-    );
+    assert(routeNodes.pathRouteNodes.isNotEmpty);
 
     final activeOverlaysByOwner = _activeOverlaysByOwner(
       routeNodes: routeNodes,
       queryParameters: queryParameters,
     );
-    final filteredQueryParameters = _applyOverlayFilters(
+    final effectiveQueryParameters = _applyOverlayConditions(
       queryParameters,
       activeOverlaysByOwner.values.expand((it) => it),
     );
-    final uri =
-        fallback ??
-        _uriFromRouteNodes(
-          routeNodes: routeNodes,
-          queryParameters: filteredQueryParameters,
-          pathParameters: pathParameters,
-        );
+    final uri = _uriFromRouteNodes(
+      routeNodes: routeNodes,
+      queryParameters: effectiveQueryParameters,
+      pathParameters: pathParameters,
+    );
 
     return WorkingRouterData(
       uri: uri,
       routeNodes: routeNodes,
       activeOverlaysByOwner: activeOverlaysByOwner,
-      pathParameters: pathRouteNodes.isEmpty
-          ? const IMapConst({})
-          : pathParameters,
-      queryParameters: pathRouteNodes.isEmpty
-          ? fallback!.queryParameters.toIMap()
-          : filteredQueryParameters,
+      pathParameters: pathParameters,
+      queryParameters: effectiveQueryParameters,
     );
   }
 
@@ -808,7 +818,7 @@ class WorkingRouter extends ChangeNotifier
     return overlaysByOwner.toIMap();
   }
 
-  IMap<String, String> _applyOverlayFilters(
+  IMap<String, String> _applyOverlayConditions(
     IMap<String, String> queryParameters,
     Iterable<AnyOverlay> overlays,
   ) {
@@ -825,7 +835,7 @@ class WorkingRouter extends ChangeNotifier
     return result;
   }
 
-  IMap<String, String> _resetOverlayFilters(
+  IMap<String, String> _resetOverlayConditions(
     IMap<String, String> queryParameters, {
     required AnyOverlay overlay,
   }) {
@@ -866,16 +876,149 @@ class WorkingRouter extends ChangeNotifier
     required IMap<UnboundPathParam<dynamic>, String> pathParameters,
     required IMap<String, String> queryParameters,
   }) {
-    return Uri(
-      path: routeNodes.visiblePathRouteNodes().buildPath(pathParameters),
-      queryParameters: switch (routeNodes.visibleQueryParameters(
-        queryParameters,
-      )) {
-        final visibleQueryParameters when visibleQueryParameters.isEmpty =>
-          null,
-        final visibleQueryParameters => visibleQueryParameters.unlock,
-      },
+    final visibleQueryParameters = _visibleQueryParameters(
+      routeNodes: routeNodes,
+      queryParameters: queryParameters,
     );
+    return Uri(
+      path: _visiblePathRouteNodes(routeNodes).buildPath(pathParameters),
+      queryParameters: visibleQueryParameters.isEmpty
+          ? null
+          : visibleQueryParameters.unlock,
+    );
+  }
+
+  WorkingRouteConfiguration _configurationFromData(WorkingRouterData data) {
+    return WorkingRouteConfiguration(
+      uri: data.uri,
+      hiddenPathSegments: _hiddenPathSegments(
+        routeNodes: data.routeNodes,
+        pathParameters: data.pathParameters,
+      ),
+      hiddenQueryParameters: _hiddenQueryParameters(
+        routeNodes: data.routeNodes,
+        queryParameters: data.queryParameters,
+      ),
+    );
+  }
+
+  Iterable<PathRouteNode> _visiblePathRouteNodes(
+    Iterable<RouteNode> routeNodes,
+  ) sync* {
+    PathRouteNode? hiddenAncestor;
+
+    for (final node in routeNodes) {
+      if (node is! PathRouteNode) {
+        continue;
+      }
+
+      if (hiddenAncestor case final ancestor?
+          when !ancestor.containsNode(node)) {
+        hiddenAncestor = null;
+      }
+
+      final inheritedHidden = hiddenAncestor != null;
+      final hidesOwnSubtree = node.pathVisibility == UriVisibility.hidden;
+      if (!inheritedHidden && hidesOwnSubtree) {
+        hiddenAncestor = node;
+      }
+      if (!inheritedHidden && !hidesOwnSubtree) {
+        yield node;
+      }
+    }
+  }
+
+  IList<String> _hiddenPathSegments({
+    required IList<RouteNode> routeNodes,
+    required IMap<UnboundPathParam<dynamic>, String> pathParameters,
+  }) {
+    final allSegments = _buildPathSegments(
+      routeNodes.pathRouteNodes,
+      pathParameters,
+    );
+    final visibleSegments = _buildPathSegments(
+      _visiblePathRouteNodes(routeNodes),
+      pathParameters,
+    );
+    if (visibleSegments.length >= allSegments.length) {
+      return const IListConst([]);
+    }
+    return allSegments.skip(visibleSegments.length).toIList();
+  }
+
+  IList<String> _buildPathSegments(
+    Iterable<PathRouteNode> routeNodes,
+    IMap<UnboundPathParam<dynamic>, String> pathParameters,
+  ) {
+    final uriPathSegments = <String>[];
+    for (final routeNode in routeNodes) {
+      for (final pathSegment in routeNode.path) {
+        switch (pathSegment) {
+          case LiteralPathSegment():
+            uriPathSegments.add(pathSegment.value);
+          case PathParam():
+            final rawValue = pathParameters[pathSegment.unboundParam];
+            if (rawValue == null) {
+              throw StateError(
+                'Missing value for path parameter `$pathSegment` on '
+                '${routeNode.runtimeType}.',
+              );
+            }
+            uriPathSegments.add(rawValue);
+        }
+      }
+    }
+
+    return uriPathSegments.toIList();
+  }
+
+  IMap<String, String> _visibleQueryParameters({
+    required Iterable<RouteNode> routeNodes,
+    required IMap<String, String> queryParameters,
+  }) {
+    final hiddenNames = _hiddenQueryParameterNames(routeNodes);
+    if (hiddenNames.isEmpty) {
+      return queryParameters;
+    }
+    return queryParameters.keepKeys(
+      queryParameters.keys.toSet().difference(hiddenNames),
+    );
+  }
+
+  IMap<String, String> _hiddenQueryParameters({
+    required Iterable<RouteNode> routeNodes,
+    required IMap<String, String> queryParameters,
+  }) {
+    final hiddenNames = _hiddenQueryParameterNames(routeNodes);
+    if (hiddenNames.isEmpty) {
+      return const IMapConst({});
+    }
+    return queryParameters.keepKeys(hiddenNames);
+  }
+
+  Set<String> _hiddenQueryParameterNames(Iterable<RouteNode> routeNodes) {
+    final hiddenNames = <String>{};
+    final hiddenNamesInheritedByKey = <String>{};
+
+    for (final node in routeNodes) {
+      if (node is! PathRouteNode) {
+        continue;
+      }
+
+      for (final queryParameter in node.queryParameters) {
+        if (queryParameter.uriVisibility == UriVisibility.hidden) {
+          hiddenNames.add(queryParameter.name);
+          hiddenNamesInheritedByKey.add(queryParameter.name);
+          continue;
+        }
+
+        if (hiddenNamesInheritedByKey.contains(queryParameter.name)) {
+          hiddenNames.add(queryParameter.name);
+        }
+      }
+    }
+
+    return hiddenNames;
   }
 
   IList<RouteNode> _trimNodesToLastMatchingLocation(

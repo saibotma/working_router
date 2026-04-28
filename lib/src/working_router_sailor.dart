@@ -59,8 +59,8 @@ abstract class WorkingRouterSailor {
   /// When called through `WorkingRouter.of(context)` inside a nested navigator,
   /// this is navigator-aware: it removes the last active location owned by that
   /// nested navigator before falling back to the parent/global route back
-  /// behavior. This lets a sidebar navigator close its own query-filtered page
-  /// without popping a detail page rendered in a sibling navigator.
+  /// behavior. This lets a sidebar navigator close its own condition-driven
+  /// overlay without popping a detail page rendered in a sibling navigator.
   void routeBack();
 
   /// Routes back as if [fromLocation] were the current active location.

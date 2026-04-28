@@ -502,22 +502,26 @@ void main() {
       );
     });
 
-    testWidgets('keeps fallback uri and empty locations for unknown path', (
-      tester,
-    ) async {
-      final router = _buildRouter();
+    testWidgets(
+      'keeps unmatched uri and empty matched state for unknown path',
+      (
+        tester,
+      ) async {
+        final router = _buildRouter();
 
-      router.routeToUri(
-        Uri(path: '/does-not-exist', queryParameters: {'q': '1'}),
-      );
-      await tester.pump();
+        router.routeToUri(
+          Uri(path: '/does-not-exist', queryParameters: {'q': '1'}),
+        );
+        await tester.pump();
 
-      final data = router.nullableData!;
-      expect(data.routeNodes, isEmpty);
-      expect(data.leaf, isNull);
-      expect(data.uri.path, '/does-not-exist');
-      expect(data.uri.queryParameters['q'], '1');
-    });
+        final data = router.nullableData!;
+        expect(data.routeNodes, isEmpty);
+        expect(data.leaf, isNull);
+        expect(data.uri.path, '/does-not-exist');
+        expect(data.uri.queryParameters['q'], '1');
+        expect(data.queryParameters, isEmpty);
+      },
+    );
 
     testWidgets('routeToChildWhere is a no-op for unknown path', (
       tester,
@@ -2347,7 +2351,7 @@ void main() {
           },
         ),
       );
-      final searchUri = router.nullableConfiguration!;
+      final searchUri = router.nullableConfiguration!.uri;
 
       router.routeTo(
         ChildRouteTarget(
@@ -2484,11 +2488,31 @@ void main() {
 
         expect(find.text('dialog'), findsOneWidget);
         expect(router.nullableData!.uri.path, '/chat');
+        final dialogRouteInformation = router.routeInformationParser!
+            .restoreRouteInformation(
+              router.routerDelegate.currentConfiguration!,
+            )!;
+        expect(dialogRouteInformation.uri, Uri(path: '/chat'));
+        expect(dialogRouteInformation.state, {
+          'workingRouter': {
+            'hiddenPathSegments': ['dialog'],
+          },
+        });
         router.routeBack();
         await tester.pumpAndSettle();
 
         expect(find.text('chat'), findsOneWidget);
         expect(find.text('dialog'), findsNothing);
+        expect(router.nullableData!.uri.path, '/chat');
+
+        await router.routerDelegate.setNewRoutePath(
+          await router.routeInformationParser!.parseRouteInformation(
+            dialogRouteInformation,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('dialog'), findsOneWidget);
         expect(router.nullableData!.uri.path, '/chat');
 
         router.routeToUri(Uri(path: '/chat/dialog'));
@@ -2616,6 +2640,33 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('channel'), findsOneWidget);
+      expect(router.nullableData!.param(search), true);
+      expect(router.nullableData!.queryParameters.unlock, {'search': 'true'});
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+      final searchRouteInformation = router.routeInformationParser!
+          .restoreRouteInformation(
+            router.routerDelegate.currentConfiguration!,
+          )!;
+      expect(searchRouteInformation.uri, Uri(path: '/chat/channel'));
+      expect(searchRouteInformation.state, {
+        'workingRouter': {
+          'hiddenQueryParameters': {'search': 'true'},
+        },
+      });
+
+      router.routeToUri(Uri(path: '/chat/channel'));
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData!.param(search), false);
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+
+      await router.routerDelegate.setNewRoutePath(
+        await router.routeInformationParser!.parseRouteInformation(
+          searchRouteInformation,
+        ),
+      );
+      await tester.pumpAndSettle();
+
       expect(router.nullableData!.param(search), true);
       expect(router.nullableData!.queryParameters.unlock, {'search': 'true'});
       expect(router.nullableData!.uri, Uri(path: '/chat/channel'));

@@ -4,7 +4,6 @@ import 'package:meta/meta.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_param_codec.dart';
-import 'package:working_router/src/shared/keep_keys.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
@@ -580,71 +579,6 @@ extension RouteNodePathBuilder on Iterable<PathRouteNode> {
     }
 
     return '/${uriPathSegments.join('/')}';
-  }
-}
-
-extension RouteNodePathVisibilityX on Iterable<RouteNode> {
-  Iterable<PathRouteNode> visiblePathRouteNodes() sync* {
-    PathRouteNode? hiddenAncestor;
-
-    for (final node in this) {
-      if (node is! PathRouteNode) {
-        continue;
-      }
-
-      if (hiddenAncestor case final ancestor?
-          when !ancestor.containsNode(node)) {
-        hiddenAncestor = null;
-      }
-
-      final inheritedHidden = hiddenAncestor != null;
-      final hidesOwnSubtree = node.pathVisibility == UriVisibility.hidden;
-      if (!inheritedHidden && hidesOwnSubtree) {
-        hiddenAncestor = node;
-      }
-      if (!inheritedHidden && !hidesOwnSubtree) {
-        yield node;
-      }
-    }
-  }
-}
-
-extension RouteNodeQueryVisibilityX on Iterable<RouteNode> {
-  IMap<String, String> visibleQueryParameters(
-    IMap<String, String> queryParameters,
-  ) {
-    final hiddenNames = hiddenQueryParameterNames();
-    if (hiddenNames.isEmpty) {
-      return queryParameters;
-    }
-    return queryParameters.keepKeys(
-      queryParameters.keys.toSet().difference(hiddenNames),
-    );
-  }
-
-  Set<String> hiddenQueryParameterNames() {
-    final hiddenNames = <String>{};
-    final hiddenNamesInheritedByKey = <String>{};
-
-    for (final node in this) {
-      if (node is! PathRouteNode) {
-        continue;
-      }
-
-      for (final queryParameter in node.queryParameters) {
-        if (queryParameter.uriVisibility == UriVisibility.hidden) {
-          hiddenNames.add(queryParameter.name);
-          hiddenNamesInheritedByKey.add(queryParameter.name);
-          continue;
-        }
-
-        if (hiddenNamesInheritedByKey.contains(queryParameter.name)) {
-          hiddenNames.add(queryParameter.name);
-        }
-      }
-    }
-
-    return hiddenNames;
   }
 }
 

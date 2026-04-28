@@ -11,15 +11,21 @@ class WorkingRouterData {
   @internal
   final IMap<RouteNode, IList<AnyOverlay>> activeOverlaysByOwner;
 
-  // Keep matched path params in their encoded URI form keyed by reusable
-  // unbound path definitions. The router core is still URI-first, so URI
-  // rebuilding, retention, and forwarding should work on raw URI values while
-  // decoding stays at typed access boundaries like param(...).
+  // Effective path parameters for the matched route chain.
+  //
+  // This intentionally stays stored instead of being derived from `uri`:
+  // reconstructing it requires replaying the matched path templates so each raw
+  // segment can be keyed by its UnboundPathParam identity. Keeping the encoded
+  // values here makes routing and typed `param(...)` access cheap while still
+  // decoding only at typed access boundaries.
   final IMap<UnboundPathParam<dynamic>, String> _pathParameters;
 
-  // Keep query params encoded and string-keyed for the same reason: the URI is
-  // string-keyed, and rebuilding or forwarding it should not require recovering
-  // codec metadata first.
+  // Effective query parameters for the matched route state.
+  //
+  // This includes visible query parameters from `uri`, hidden query parameters
+  // from browser state, and active overlay condition values. Keep the encoded,
+  // string-keyed form because URI rebuilding and forwarding should not require
+  // recovering codec metadata first.
   final IMap<String, String> queryParameters;
 
   WorkingRouterData({
@@ -198,17 +204,6 @@ class WorkingRouterData {
     return names.map((name) => '`$name`').join(', ');
   }
 
-  String pathUpToLocation(AnyLocation location) {
-    final locationIndex = _indexOfIdenticalNode(location);
-    if (locationIndex == -1) {
-      return uri.path;
-    }
-    final pathRouteNodesUpToLocation = routeNodes
-        .take(locationIndex + 1)
-        .pathRouteNodes;
-    return pathRouteNodesUpToLocation.buildPath(_pathParameters);
-  }
-
   String pathUpToNode(RouteNode node) {
     final nodeIndex = _indexOfIdenticalNode(node);
     if (nodeIndex == -1) {
@@ -350,8 +345,7 @@ class WorkingRouterData {
   }
 
   @internal
-  IMap<UnboundPathParam<dynamic>, String> get pathParametersForRouter =>
-      _pathParameters;
+  IMap<UnboundPathParam<dynamic>, String> get pathParameters => _pathParameters;
 
   @override
   bool operator ==(Object other) {
