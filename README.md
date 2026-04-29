@@ -32,15 +32,6 @@ everything else import it.
 4. Return the root nodes from that function.
 5. Build the router with `buildRouteNodes: (rootRouterKey) => buildRouteNodes(rootRouterKey: rootRouterKey, ...)`.
 
-Convention:
-- treat `route_nodes.dart` as the public route-layer barrel for the app
-- keep `buildRouteNodes(...)` and the generated `part` there
-- put each route node class next to the screen it renders
-- put node ids next to the composition site that assigns them
-- and `export` the feature files that define route-node subclasses when app code
-  should import those node types or generated child-target extensions through a
-  single route API surface
-
 See:
 - [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart)
 - [`example/lib/main.dart`](example/lib/main.dart)
@@ -129,6 +120,7 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
+- Route node classes often fit well next to the screen or feature they render.
 - Put node ids next to the composition site that assigns them. If `ParentNode`
   creates `ChildNode(id: childId)`, keep `childId` in the parent/composition
   file. Root ids usually live in the canonical route-tree file that returns the
