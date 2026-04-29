@@ -232,7 +232,7 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
   RouteBrowserHistory get browserHistory => _definition.browserHistory;
 
   @override
-  List<RouteNode> get children => _definition.children;
+  List<RouteNode> get resolvedChildren => _definition.children;
 
   @override
   LocalKey buildPageKey(WorkingRouterData data) {

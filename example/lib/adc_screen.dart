@@ -1,7 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
+import 'platform_modal/platform_modal_page.dart';
 import 'pop_until_target.dart';
+
+class ADCNode extends Location<ADCNode> {
+  ADCNode({
+    super.id,
+    super.parentRouterKey,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('c');
+    builder.content = Content.widget(const ADCScreen());
+    builder.page = (key, child) {
+      return PlatformModalPage<dynamic>(key: key, child: child);
+    };
+  }
+}
 
 class ADCScreen extends StatelessWidget {
   const ADCScreen({super.key});

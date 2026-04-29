@@ -100,30 +100,23 @@ final class RemoveLocationTreeElementEdit {
     return buffer.toString();
   }
 
-  static _DirectChildrenAnalysis _analyzeDirectChildren(CollectionElement element) {
+  static _DirectChildrenAnalysis _analyzeDirectChildren(
+    CollectionElement element,
+  ) {
     final buildCallback = _findBuildCallback(element);
     if (buildCallback == null) {
-      return const _DirectChildrenAnalysis(
-        canRewrite: true,
-        children: [],
-      );
+      return const _DirectChildrenAnalysis(canRewrite: true, children: []);
     }
 
     final finder = _DirectChildrenAssignmentFinder();
     buildCallback.body.accept(finder);
 
     if (finder.hasUnsafeChildrenAssignment || finder.assignments.length > 1) {
-      return const _DirectChildrenAnalysis(
-        canRewrite: false,
-        children: [],
-      );
+      return const _DirectChildrenAnalysis(canRewrite: false, children: []);
     }
 
     if (finder.assignments.isEmpty) {
-      return const _DirectChildrenAnalysis(
-        canRewrite: true,
-        children: [],
-      );
+      return const _DirectChildrenAnalysis(canRewrite: true, children: []);
     }
 
     return _DirectChildrenAnalysis(
@@ -206,7 +199,10 @@ final class RemoveLocationTreeElementEdit {
     return rawIndent.replaceAll(RegExp(r'[^\t ]'), '');
   }
 
-  static String _reindentChildSource(String selectedSource, String childIndent) {
+  static String _reindentChildSource(
+    String selectedSource,
+    String childIndent,
+  ) {
     final lines = selectedSource.split('\n');
     if (lines.length == 1) {
       return '$childIndent${lines.single.trimLeft()}';
@@ -301,7 +297,8 @@ final class _DirectChildrenAssignmentFinder extends RecursiveAstVisitor<void> {
 
   @override
   void visitAssignmentExpression(AssignmentExpression node) {
-    if (_isChildrenTarget(node.leftHandSide) && node.rightHandSide is ListLiteral) {
+    if (_isChildrenTarget(node.leftHandSide) &&
+        node.rightHandSide is ListLiteral) {
       if (_controlFlowDepth > 0) {
         hasUnsafeChildrenAssignment = true;
       }

@@ -245,7 +245,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
                 : effectiveParentRouterKey;
           }
           childRouterKey = effectiveParentRouterKey;
-        case final AbstractMultiShellLocation multiShellLocation:
+        case final MultiShellLocation multiShellLocation:
           if (multiShellLocation.navigatorEnabled) {
             yield (
               node: node,
@@ -272,7 +272,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
                 : effectiveParentRouterKey;
           }
           childRouterKey = effectiveContentChildRouterKey;
-        case final AbstractShellLocation shellLocation:
+        case final ShellLocation shellLocation:
           // A shell location contributes two render phases from one matched
           // semantic node: its outer shell page on the parent navigator and
           // its inner location page on its own nested navigator.
@@ -357,7 +357,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           }
         case (
           _MatchedNodeRenderKind.shellLocationShell,
-          final AbstractShellLocation shellLocation,
+          final ShellLocation shellLocation,
         ):
           if (shellLocation.hasDefaultPage ||
               _navigatorWouldBuildPages(shellLocation.routerKey, data)) {
@@ -365,7 +365,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           }
         case (
           _MatchedNodeRenderKind.multiShellLocationShell,
-          final AbstractMultiShellLocation multiShellLocation,
+          final MultiShellLocation multiShellLocation,
         ):
           if (multiShellLocation.contentSlotDefinition.hasDefault ||
               _navigatorWouldBuildPages(
@@ -476,7 +476,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
         ];
       case (
         _MatchedNodeRenderKind.shellLocationShell,
-        final AbstractShellLocation shellLocation,
+        final ShellLocation shellLocation,
       ):
         if (!shellLocation.navigatorEnabled) {
           return const [];
@@ -505,7 +505,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
         ];
       case (
         _MatchedNodeRenderKind.multiShellLocationShell,
-        final AbstractMultiShellLocation multiShellLocation,
+        final MultiShellLocation multiShellLocation,
       ):
         if (!multiShellLocation.navigatorEnabled) {
           return const [];

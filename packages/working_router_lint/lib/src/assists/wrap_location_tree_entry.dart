@@ -3,7 +3,8 @@ import 'package:analyzer_plugin/utilities/change_builder/change_builder_core.dar
 
 import 'wrap_location_tree_element_edit.dart';
 
-abstract class WrapLocationTreeEntryProducer extends ResolvedCorrectionProducer {
+abstract class WrapLocationTreeEntryProducer
+    extends ResolvedCorrectionProducer {
   WrapLocationTreeEntryProducer({required super.context});
 
   WrapTemplate get template;

@@ -23,7 +23,7 @@ part 'app_routes.working_router.g.dart';
 
 enum AppRouteId { root, item, itemDetails }
 
-class _RootLocation extends Location<AppRouteId, _RootLocation> {
+class _RootLocation extends Location<_RootLocation> {
   _RootLocation({required super.id});
 
   @override
@@ -34,7 +34,7 @@ class _RootLocation extends Location<AppRouteId, _RootLocation> {
   }
 }
 
-class _ItemLocation extends Location<AppRouteId, _ItemLocation> {
+class _ItemLocation extends Location<_ItemLocation> {
   _ItemLocation({required super.id});
 
   @override
@@ -48,7 +48,7 @@ class _ItemLocation extends Location<AppRouteId, _ItemLocation> {
   }
 }
 
-class _ItemDetailsLocation extends Location<AppRouteId, _ItemDetailsLocation> {
+class _ItemDetailsLocation extends Location<_ItemDetailsLocation> {
   _ItemDetailsLocation({required super.id});
 
   @override
@@ -161,7 +161,7 @@ final chatId = NodeId<ChatLocation>();
 final chatSearchId = NodeId<ChatSearchOverlay>();
 final channelId = NodeId<ChannelLocation>();
 
-class RootLocation extends AbstractLocation<RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -172,7 +172,7 @@ class RootLocation extends AbstractLocation<RootLocation> {
   }
 }
 
-class ChatLocation extends AbstractLocation<ChatLocation> {
+class ChatLocation extends Location<ChatLocation> {
   ChatLocation({required super.id});
 
   @override
@@ -208,7 +208,7 @@ class ChatSearchOverlay extends AbstractOverlay<ChatSearchOverlay> {
   }
 }
 
-class ChannelLocation extends AbstractLocation<ChannelLocation> {
+class ChannelLocation extends Location<ChannelLocation> {
   ChannelLocation({required super.id});
 
   @override
@@ -268,7 +268,7 @@ final rootId = NodeId<_RootLocation>();
 final addAccountId = NodeId<_AddAccountLocation>();
 final loginRecoveryLocalId = LocalNodeId<_LoginRecoveryLocation>();
 
-class _RootLocation extends Location<Object, _RootLocation> {
+class _RootLocation extends Location<_RootLocation> {
   _RootLocation({required super.id});
 
   @override
@@ -279,7 +279,7 @@ class _RootLocation extends Location<Object, _RootLocation> {
   }
 }
 
-class _AddAccountLocation extends Location<Object, _AddAccountLocation> {
+class _AddAccountLocation extends Location<_AddAccountLocation> {
   _AddAccountLocation({required super.id});
 
   @override
@@ -292,7 +292,7 @@ class _AddAccountLocation extends Location<Object, _AddAccountLocation> {
 }
 
 class _LoginRecoveryLocation
-    extends Location<Object, _LoginRecoveryLocation> {
+    extends Location<_LoginRecoveryLocation> {
   _LoginRecoveryLocation({super.localId});
 
   @override
@@ -338,7 +338,7 @@ part 'param_suffix_routes.g.dart';
 
 enum ParamSuffixRouteId { root, detail }
 
-class RootLocation extends Location<ParamSuffixRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation();
 
   @override
@@ -349,7 +349,7 @@ class RootLocation extends Location<ParamSuffixRouteId, RootLocation> {
   }
 }
 
-class DetailLocation extends Location<ParamSuffixRouteId, DetailLocation> {
+class DetailLocation extends Location<DetailLocation> {
   DetailLocation({required super.id});
 
   @override
@@ -406,7 +406,7 @@ part 'dsl_field_params_routes.g.dart';
 
 enum FieldDslRouteId { root, item }
 
-class RootLocation extends Location<FieldDslRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation();
 
   @override
@@ -426,7 +426,7 @@ class RootLocation extends Location<FieldDslRouteId, RootLocation> {
   }
 }
 
-class ItemLocation extends Location<FieldDslRouteId, ItemLocation> {
+class ItemLocation extends Location<ItemLocation> {
   ItemLocation({super.id, super.build});
 }
 
@@ -482,7 +482,7 @@ part 'fallback_query_param_routes.g.dart';
 enum FallbackRouteId { note }
 
 class StudentNoteLocation
-    extends Location<FallbackRouteId, StudentNoteLocation> {
+    extends Location<StudentNoteLocation> {
   final QueryParam<String>? coursePeriodId;
 
   StudentNoteLocation({
@@ -547,7 +547,7 @@ part 'static_routes.g.dart';
 
 enum StaticRouteId { root, child }
 
-class _RootLocation extends Location<StaticRouteId, _RootLocation> {
+class _RootLocation extends Location<_RootLocation> {
   _RootLocation({required super.id});
 
   @override
@@ -559,7 +559,7 @@ class _RootLocation extends Location<StaticRouteId, _RootLocation> {
   List<PathSegment> get path => const [];
 }
 
-class _ChildLocation extends Location<StaticRouteId, _ChildLocation> {
+class _ChildLocation extends Location<_ChildLocation> {
   _ChildLocation({required super.id});
 
   @override
@@ -614,7 +614,7 @@ part 'constructor_children_routes.g.dart';
 
 enum ConstructorRouteId { root, lesson, lessonEdit }
 
-class RootLocation extends Location<ConstructorRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation();
 
   @override
@@ -625,7 +625,7 @@ class RootLocation extends Location<ConstructorRouteId, RootLocation> {
   }
 }
 
-class LessonLocation extends Location<ConstructorRouteId, LessonLocation> {
+class LessonLocation extends Location<LessonLocation> {
   LessonLocation({required super.id});
 
   @override
@@ -640,7 +640,7 @@ class LessonLocation extends Location<ConstructorRouteId, LessonLocation> {
 }
 
 class LessonEditLocation
-    extends Location<ConstructorRouteId, LessonEditLocation> {
+    extends Location<LessonEditLocation> {
   LessonEditLocation({required super.id});
 
   @override
@@ -692,7 +692,7 @@ enum ConstQueryRouteId { lesson }
 const coursePeriodIdKey = 'coursePeriodId';
 const sourceDateTimeKey = 'sourceDateTime';
 
-class LessonLocation extends Location<ConstQueryRouteId, LessonLocation> {
+class LessonLocation extends Location<LessonLocation> {
   LessonLocation({required super.id});
 
   @override
@@ -744,7 +744,7 @@ part 'typed_route_params_routes.g.dart';
 enum TypedRouteId { item }
 enum ItemFilter { all, active }
 
-class ItemLocation extends Location<TypedRouteId, ItemLocation> {
+class ItemLocation extends Location<ItemLocation> {
   ItemLocation({required super.id});
 
   @override
@@ -817,7 +817,7 @@ enum InferredQueryParamRouteId { item }
 enum ItemFilter { all, active }
 
 class ItemLocation
-    extends Location<InferredQueryParamRouteId, ItemLocation> {
+    extends Location<ItemLocation> {
   ItemLocation({required super.id});
 
   @override
@@ -887,7 +887,7 @@ part 'shortcut_param_routes.g.dart';
 enum ShortcutRouteId { item }
 enum ItemFilter { all, active }
 
-class ItemLocation extends Location<ShortcutRouteId, ItemLocation> {
+class ItemLocation extends Location<ItemLocation> {
   ItemLocation({
     required super.id,
     required super.build,
@@ -960,7 +960,7 @@ part 'nullable_query_param_routes.g.dart';
 
 enum NullableQueryRouteId { item }
 
-class ItemLocation extends Location<NullableQueryRouteId, ItemLocation> {
+class ItemLocation extends Location<ItemLocation> {
   ItemLocation({
     required super.id,
     required super.build,
@@ -1033,7 +1033,7 @@ part 'nullable_query_shortcuts_routes.g.dart';
 
 enum NullableShortcutRouteId { item }
 
-class ItemLocation extends Location<NullableShortcutRouteId, ItemLocation> {
+class ItemLocation extends Location<ItemLocation> {
   ItemLocation({
     required super.id,
     required super.build,
@@ -1099,7 +1099,7 @@ part 'group_query_routes.g.dart';
 
 enum GroupQueryRouteId { privacy }
 
-class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
+class PrivacyLocation extends Location<PrivacyLocation> {
   PrivacyLocation({
     required super.id,
     required super.build,
@@ -1108,7 +1108,7 @@ class PrivacyLocation extends Location<GroupQueryRouteId, PrivacyLocation> {
 
 @RouteNodes()
 List<RouteNode> buildRouteNodes() => [
-  AnonymousScope(
+  Scope(
     build: (builder, scope) {
       final languageCode = builder.defaultStringQueryParam(
         'languageCode',
@@ -1165,7 +1165,7 @@ part 'derived_child_ids_routes.g.dart';
 enum DerivedChildRouteId { chatChannel, chatChannelSend }
 
 class ChatChannelLocation
-    extends Location<DerivedChildRouteId, ChatChannelLocation> {
+    extends Location<ChatChannelLocation> {
   ChatChannelLocation({super.id});
 
   @override
@@ -1181,7 +1181,7 @@ class ChatChannelLocation
 }
 
 class ChatChannelSendLocation
-    extends Location<DerivedChildRouteId, ChatChannelSendLocation> {
+    extends Location<ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
 
   @override
@@ -1234,7 +1234,7 @@ part 'forwarded_super_id_routes.g.dart';
 
 enum ForwardedSuperIdRouteId { chatChannel, chatChannelSend }
 
-class ChatChannelNode extends AbstractLocation<
+class ChatChannelNode extends Location<
     ForwardedSuperIdRouteId,
     ChatChannelNode> {
   ChatChannelNode({super.id});
@@ -1251,7 +1251,7 @@ class ChatChannelNode extends AbstractLocation<
   }
 }
 
-class ChatChannelSendLocation extends AbstractLocation<
+class ChatChannelSendLocation extends Location<
     ForwardedSuperIdRouteId,
     ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
@@ -1308,7 +1308,7 @@ part 'top_level_node_id_routes.g.dart';
 final chatChannelId = NodeId<ChatChannelNode>();
 final chatChannelSendId = NodeId<ChatChannelSendLocation>();
 
-class ChatChannelNode extends AbstractLocation<ChatChannelNode> {
+class ChatChannelNode extends Location<ChatChannelNode> {
   ChatChannelNode({super.id});
 
   @override
@@ -1324,7 +1324,7 @@ class ChatChannelNode extends AbstractLocation<ChatChannelNode> {
   }
 }
 
-class ChatChannelSendLocation extends AbstractLocation<
+class ChatChannelSendLocation extends Location<
     ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
 
@@ -1382,7 +1382,7 @@ final rootId = NodeId<RootLocation>();
 final childId = NodeId<ChildLocation>();
 
 abstract class BaseLocation<Self extends BaseLocation<Self>>
-    extends AbstractLocation<Self> {
+    extends Location<Self> {
   BaseLocation({required super.id});
 
   NodeId<Self>? get maybeOwnId => id;
@@ -1401,7 +1401,7 @@ class RootLocation extends BaseLocation<RootLocation> {
   }
 }
 
-class ChildLocation extends AbstractLocation<ChildLocation> {
+class ChildLocation extends Location<ChildLocation> {
   ChildLocation({super.id});
 
   @override
@@ -1429,7 +1429,7 @@ RouteNode get appLocationTree => RootLocation(id: rootId);
       expect(
         combinedLogs,
         contains(
-          'RootLocation -> BaseLocation -> AbstractLocation -> AnyLocation '
+          'RootLocation -> BaseLocation -> Location -> AnyLocation '
           '-> PathRouteNode '
           '-> RouteNode -> Object',
         ),
@@ -1463,7 +1463,7 @@ part 'derived_child_alias_ids_routes.g.dart';
 enum DerivedChildAliasRouteId { chatChannel, chatChannelSend }
 
 class ChatChannelLocation
-    extends Location<DerivedChildAliasRouteId, ChatChannelLocation> {
+    extends Location<ChatChannelLocation> {
   ChatChannelLocation({super.id});
 
   @override
@@ -1480,7 +1480,7 @@ class ChatChannelLocation
 }
 
 class ChatChannelSendLocation
-    extends Location<DerivedChildAliasRouteId, ChatChannelSendLocation> {
+    extends Location<ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
 
   @override
@@ -1513,7 +1513,7 @@ final RouteNode appLocationTree =
   );
 
   test(
-    'supports conditional child ids for reused AbstractLocation subclasses',
+    'supports conditional child ids for reused Location subclasses',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -1532,29 +1532,29 @@ import 'package:working_router/working_router.dart';
 
 part 'derived_child_ids_abstract_location_routes.g.dart';
 
-enum DerivedChildAbstractLocationRouteId {
+enum DerivedChildLocationRouteId {
   root,
   search,
   chatChannel,
   chatChannelSend,
 }
 
-class RootLocation extends AbstractLocation<
-    DerivedChildAbstractLocationRouteId,
+class RootLocation extends Location<
+    DerivedChildLocationRouteId,
     RootLocation> {
   RootLocation({required super.id});
 
   @override
   void build(LocationBuilder builder) {
     builder.children = [
-      ChatChannelNode(id: DerivedChildAbstractLocationRouteId.chatChannel),
-      SearchLocation(id: DerivedChildAbstractLocationRouteId.search),
+      ChatChannelNode(id: DerivedChildLocationRouteId.chatChannel),
+      SearchLocation(id: DerivedChildLocationRouteId.search),
     ];
   }
 }
 
-class SearchLocation extends AbstractLocation<
-    DerivedChildAbstractLocationRouteId,
+class SearchLocation extends Location<
+    DerivedChildLocationRouteId,
     SearchLocation> {
   SearchLocation({required super.id});
 
@@ -1567,8 +1567,8 @@ class SearchLocation extends AbstractLocation<
   }
 }
 
-class ChatChannelNode extends AbstractLocation<
-    DerivedChildAbstractLocationRouteId,
+class ChatChannelNode extends Location<
+    DerivedChildLocationRouteId,
     ChatChannelNode> {
   ChatChannelNode({super.id});
 
@@ -1580,15 +1580,15 @@ class ChatChannelNode extends AbstractLocation<
     builder.children = [
       ChatChannelSendLocation(
         id: hasIds
-            ? DerivedChildAbstractLocationRouteId.chatChannelSend
+            ? DerivedChildLocationRouteId.chatChannelSend
             : null,
       ),
     ];
   }
 }
 
-class ChatChannelSendLocation extends AbstractLocation<
-    DerivedChildAbstractLocationRouteId,
+class ChatChannelSendLocation extends Location<
+    DerivedChildLocationRouteId,
     ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
 
@@ -1600,7 +1600,7 @@ class ChatChannelSendLocation extends AbstractLocation<
 
 @RouteNodes()
 final RouteNode appLocationTree =
-    RootLocation(id: DerivedChildAbstractLocationRouteId.root);
+    RootLocation(id: DerivedChildLocationRouteId.root);
 ''',
         },
         outputs: {
@@ -1624,7 +1624,7 @@ final RouteNode appLocationTree =
   );
 
   test(
-    'supports nested conditional child ids through reused AbstractLocation subclasses',
+    'supports nested conditional child ids through reused Location subclasses',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -1643,7 +1643,7 @@ import 'package:working_router/working_router.dart';
 
 part 'nested_derived_child_ids_abstract_location_routes.g.dart';
 
-enum NestedDerivedChildAbstractLocationRouteId {
+enum NestedDerivedChildLocationRouteId {
   root,
   search,
   chatChannel,
@@ -1651,8 +1651,8 @@ enum NestedDerivedChildAbstractLocationRouteId {
   chatChannelEditChannelName,
 }
 
-class RootLocation extends AbstractLocation<
-    NestedDerivedChildAbstractLocationRouteId,
+class RootLocation extends Location<
+    NestedDerivedChildLocationRouteId,
     RootLocation> {
   RootLocation({required super.id});
 
@@ -1662,15 +1662,15 @@ class RootLocation extends AbstractLocation<
   ) {
     builder.children = [
       ChatChannelNode(
-        id: NestedDerivedChildAbstractLocationRouteId.chatChannel,
+        id: NestedDerivedChildLocationRouteId.chatChannel,
       ),
-      SearchLocation(id: NestedDerivedChildAbstractLocationRouteId.search),
+      SearchLocation(id: NestedDerivedChildLocationRouteId.search),
     ];
   }
 }
 
-class SearchLocation extends AbstractLocation<
-    NestedDerivedChildAbstractLocationRouteId,
+class SearchLocation extends Location<
+    NestedDerivedChildLocationRouteId,
     SearchLocation> {
   SearchLocation({required super.id});
 
@@ -1685,8 +1685,8 @@ class SearchLocation extends AbstractLocation<
   }
 }
 
-class ChatChannelNode extends AbstractLocation<
-    NestedDerivedChildAbstractLocationRouteId,
+class ChatChannelNode extends Location<
+    NestedDerivedChildLocationRouteId,
     ChatChannelNode> {
   ChatChannelNode({super.id});
 
@@ -1700,14 +1700,14 @@ class ChatChannelNode extends AbstractLocation<
     builder.children = [
       ChatChannelInfoLocation(
         id: hasIds
-            ? NestedDerivedChildAbstractLocationRouteId.chatChannelInfo
+            ? NestedDerivedChildLocationRouteId.chatChannelInfo
             : null,
         build: (builder, location) {
           builder.pathLiteral('info');
           builder.children = [
             ChatChannelEditChannelNameLocation(
               id: hasIds
-                  ? NestedDerivedChildAbstractLocationRouteId
+                  ? NestedDerivedChildLocationRouteId
                       .chatChannelEditChannelName
                   : null,
             ),
@@ -1718,14 +1718,12 @@ class ChatChannelNode extends AbstractLocation<
   }
 }
 
-class ChatChannelInfoLocation extends Location<
-    NestedDerivedChildAbstractLocationRouteId,
-    ChatChannelInfoLocation> {
+class ChatChannelInfoLocation extends Location<ChatChannelInfoLocation> {
   ChatChannelInfoLocation({super.id, required super.build});
 }
 
-class ChatChannelEditChannelNameLocation extends AbstractLocation<
-    NestedDerivedChildAbstractLocationRouteId,
+class ChatChannelEditChannelNameLocation extends Location<
+    NestedDerivedChildLocationRouteId,
     ChatChannelEditChannelNameLocation> {
   ChatChannelEditChannelNameLocation({super.id});
 
@@ -1739,7 +1737,7 @@ class ChatChannelEditChannelNameLocation extends AbstractLocation<
 
 @RouteNodes()
 final RouteNode appLocationTree =
-    RootLocation(id: NestedDerivedChildAbstractLocationRouteId.root);
+    RootLocation(id: NestedDerivedChildLocationRouteId.root);
 ''',
         },
         outputs: {
@@ -1787,7 +1785,7 @@ enum BindParamRouteId { root, channel, send }
 const channelIdParam = UnboundPathParam<String>(StringRouteParamCodec());
 const keepParam = RequiredUnboundQueryParam<String>('keep', StringRouteParamCodec());
 
-class RootLocation extends Location<BindParamRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation();
 
   @override
@@ -1798,7 +1796,7 @@ class RootLocation extends Location<BindParamRouteId, RootLocation> {
   }
 }
 
-class ChannelLocation extends Location<BindParamRouteId, ChannelLocation> {
+class ChannelLocation extends Location<ChannelLocation> {
   ChannelLocation({required super.id});
 
   @override
@@ -1812,7 +1810,7 @@ class ChannelLocation extends Location<BindParamRouteId, ChannelLocation> {
   }
 }
 
-class SendLocation extends Location<BindParamRouteId, SendLocation> {
+class SendLocation extends Location<SendLocation> {
   SendLocation({required super.id});
 
   @override
@@ -1874,7 +1872,7 @@ enum IfUnionRouteId { root, always, maybe, maybeSpread, maybeElseA, maybeElseB }
 bool get includeMaybe => throw UnimplementedError();
 bool get includeSpread => throw UnimplementedError();
 
-class RootLocation extends Location<IfUnionRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation() : super(id: IfUnionRouteId.root);
 
   @override
@@ -1910,7 +1908,7 @@ class RootLocation extends Location<IfUnionRouteId, RootLocation> {
   List<PathSegment> get path => const [];
 }
 
-class _ChildLocation extends Location<IfUnionRouteId, _ChildLocation> {
+class _ChildLocation extends Location<_ChildLocation> {
   final List<PathSegment> _path;
 
   _ChildLocation({required super.id, required List<PathSegment> path})
@@ -1968,7 +1966,7 @@ class Permissions {
   const Permissions({required this.maySeeExtra});
 }
 
-class RootLocation extends Location<ParameterizedRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   @override
   final List<RouteNode> children;
 
@@ -1981,7 +1979,7 @@ class RootLocation extends Location<ParameterizedRouteId, RootLocation> {
   List<PathSegment> get path => const [];
 }
 
-class ChatLocation extends Location<ParameterizedRouteId, ChatLocation> {
+class ChatLocation extends Location<ChatLocation> {
   @override
   final List<RouteNode> children;
 
@@ -1995,7 +1993,7 @@ class ChatLocation extends Location<ParameterizedRouteId, ChatLocation> {
 }
 
 class ChatSearchLocation
-    extends Location<ParameterizedRouteId, ChatSearchLocation> {
+    extends Location<ChatSearchLocation> {
   @override
   final List<RouteNode> children;
 
@@ -2009,7 +2007,7 @@ class ChatSearchLocation
 }
 
 class ChatChannelLocation
-    extends Location<ParameterizedRouteId, ChatChannelLocation> {
+    extends Location<ChatChannelLocation> {
   @override
   final List<RouteNode> children;
 
@@ -2027,14 +2025,14 @@ class ChatChannelLocation
 }
 
 class ChatChannelSendLocation
-    extends Location<ParameterizedRouteId, ChatChannelSendLocation> {
+    extends Location<ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
 
   @override
   List<PathSegment> get path => [LiteralPathSegment('send')];
 }
 
-class ExtraLocation extends Location<ParameterizedRouteId, ExtraLocation> {
+class ExtraLocation extends Location<ExtraLocation> {
   ExtraLocation();
 
   @override
@@ -2124,7 +2122,7 @@ part 'field_assigned_path_param_routes.g.dart';
 enum FieldAssignedRouteId { dashboard }
 
 class DashboardLocation
-    extends Location<FieldAssignedRouteId, DashboardLocation> {
+    extends Location<DashboardLocation> {
   DashboardLocation({required super.id});
 
   @override
@@ -2190,7 +2188,7 @@ part 'aliased_children_routes.g.dart';
 
 enum AliasedChildrenRouteId { root, search, leaf }
 
-class RootLocation extends Location<AliasedChildrenRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   @override
   final List<RouteNode> children;
 
@@ -2204,7 +2202,7 @@ class RootLocation extends Location<AliasedChildrenRouteId, RootLocation> {
 }
 
 class SearchLocation
-    extends Location<AliasedChildrenRouteId, SearchLocation> {
+    extends Location<SearchLocation> {
   @override
   final List<RouteNode> children;
 
@@ -2217,7 +2215,7 @@ class SearchLocation
   List<PathSegment> get path => [LiteralPathSegment('search')];
 }
 
-class LeafLocation extends Location<AliasedChildrenRouteId, LeafLocation> {
+class LeafLocation extends Location<LeafLocation> {
   LeafLocation({required super.id});
 
   @override
@@ -2287,7 +2285,7 @@ part 'default_forwarded_children_routes.g.dart';
 enum DefaultForwardedChildrenRouteId { root, parent, branch, leaf }
 
 class RootLocation
-    extends Location<DefaultForwardedChildrenRouteId, RootLocation> {
+    extends Location<RootLocation> {
   @override
   final List<RouteNode> children;
 
@@ -2301,7 +2299,7 @@ class RootLocation
 }
 
 class ParentLocation
-    extends Location<DefaultForwardedChildrenRouteId, ParentLocation> {
+    extends Location<ParentLocation> {
   @override
   final List<RouteNode> children;
 
@@ -2315,7 +2313,7 @@ class ParentLocation
 }
 
 class BranchLocation
-    extends Location<DefaultForwardedChildrenRouteId, BranchLocation> {
+    extends Location<BranchLocation> {
   BranchLocation({required super.id});
 
   @override
@@ -2328,7 +2326,7 @@ class BranchLocation
 }
 
 class LeafLocation
-    extends Location<DefaultForwardedChildrenRouteId, LeafLocation> {
+    extends Location<LeafLocation> {
   @override
   final List<RouteNode> children;
 
@@ -2393,7 +2391,7 @@ part 'shell_root_routes.g.dart';
 
 enum ShellRootRouteId { rootShell, child }
 
-class ChildLocation extends Location<ShellRootRouteId, ChildLocation> {
+class ChildLocation extends Location<ChildLocation> {
   ChildLocation({required super.id});
 
   @override
@@ -2415,7 +2413,7 @@ RouteNode get appLocationTree => Shell(
   },
 );
 
-class ChildChildLocation extends Location<ShellRootRouteId, ChildChildLocation> {
+class ChildChildLocation extends Location<ChildChildLocation> {
   ChildChildLocation({super.id, super.build});
 }
 ''',
@@ -2459,7 +2457,7 @@ part 'implicit_constructor_routes.g.dart';
 
 enum ImplicitConstructorRouteId { privacy }
 
-class LegalNode extends AbstractScope<ImplicitConstructorRouteId> {
+class LegalNode extends Scope<LegalNode> {
   @override
   void build(ScopeBuilder builder) {
     builder.children = [
@@ -2475,7 +2473,7 @@ class LegalNode extends AbstractScope<ImplicitConstructorRouteId> {
 }
 
 class PrivacyLocation
-    extends Location<ImplicitConstructorRouteId, PrivacyLocation> {
+    extends Location<PrivacyLocation> {
   PrivacyLocation({required super.id, required super.build});
 }
 
@@ -2519,7 +2517,7 @@ import 'package:working_router/working_router.dart';
 
 enum ImportedLegalRouteId { home, privacy }
 
-class LegalNode extends AbstractScope<ImportedLegalRouteId> {
+class LegalNode extends Scope<LegalNode> {
   @override
   void build(ScopeBuilder builder) {
     builder.children = [
@@ -2535,7 +2533,7 @@ class LegalNode extends AbstractScope<ImportedLegalRouteId> {
 }
 
 class PrivacyLocation
-    extends Location<ImportedLegalRouteId, PrivacyLocation> {
+    extends Location<PrivacyLocation> {
   PrivacyLocation({required super.id, required super.build});
 }
 ''',
@@ -2549,7 +2547,7 @@ import 'package:working_router/working_router.dart';
 part 'imported_implicit_constructor_routes.g.dart';
 
 class HomeLocation
-    extends Location<ImportedLegalRouteId, HomeLocation> {
+    extends Location<HomeLocation> {
   HomeLocation({required super.id, required super.build});
 }
 
@@ -2606,11 +2604,11 @@ part 'idless_child_targets_routes.g.dart';
 enum IdlessChildTargetRouteId { addAccount }
 
 class AddAccountNode
-    extends Location<IdlessChildTargetRouteId, AddAccountNode> {
+    extends Location<AddAccountNode> {
   AddAccountNode({required super.id, required super.build});
 }
 
-class LegalNode extends AbstractScope<IdlessChildTargetRouteId> {
+class LegalNode extends Scope<LegalNode> {
   @override
   void build(ScopeBuilder builder) {
     final languageCode = builder.defaultStringQueryParam(
@@ -2638,12 +2636,12 @@ class LegalNode extends AbstractScope<IdlessChildTargetRouteId> {
 }
 
 class PrivacyLocation
-    extends Location<IdlessChildTargetRouteId, PrivacyLocation> {
+    extends Location<PrivacyLocation> {
   PrivacyLocation({super.id, required super.build});
 }
 
 class TermsOfUseLocation
-    extends Location<IdlessChildTargetRouteId, TermsOfUseLocation> {
+    extends Location<TermsOfUseLocation> {
   TermsOfUseLocation({super.id, required super.build});
 }
 
@@ -2740,11 +2738,11 @@ enum ChildIdChildTargetRouteId { addAccount }
 enum LegalChildId { privacy }
 
 class AddAccountNode
-    extends Location<ChildIdChildTargetRouteId, AddAccountNode> {
+    extends Location<AddAccountNode> {
   AddAccountNode({required super.id, required super.build});
 }
 
-class LegalNode extends AbstractScope<ChildIdChildTargetRouteId> {
+class LegalNode extends Scope<LegalNode> {
   @override
   void build(ScopeBuilder builder) {
     builder.children = [
@@ -2760,7 +2758,7 @@ class LegalNode extends AbstractScope<ChildIdChildTargetRouteId> {
 }
 
 class LegalLeafLocation
-    extends Location<ChildIdChildTargetRouteId, LegalLeafLocation> {
+    extends Location<LegalLeafLocation> {
   LegalLeafLocation({super.localId, required super.build});
 }
 
@@ -2823,7 +2821,7 @@ part 'direct_child_precedence_routes.g.dart';
 enum DirectChildPrecedenceRouteId { root }
 
 class RootLocation
-    extends Location<DirectChildPrecedenceRouteId, RootLocation> {
+    extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -2836,7 +2834,7 @@ class RootLocation
 }
 
 class LessonLocation
-    extends Location<DirectChildPrecedenceRouteId, LessonLocation> {
+    extends Location<LessonLocation> {
   LessonLocation();
 
   @override
@@ -2850,7 +2848,7 @@ class LessonLocation
 }
 
 class AccountMemberLocation
-    extends Location<DirectChildPrecedenceRouteId, AccountMemberLocation> {
+    extends Location<AccountMemberLocation> {
   AccountMemberLocation({super.localId});
 
   @override
@@ -2944,7 +2942,7 @@ part 'ambiguous_idless_child_targets_routes.g.dart';
 enum AmbiguousChildTargetRouteId { root, addAccount, settings }
 
 class RootLocation
-    extends Location<AmbiguousChildTargetRouteId, RootLocation> {
+    extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -2973,16 +2971,16 @@ class RootLocation
 }
 
 class AddAccountNode
-    extends Location<AmbiguousChildTargetRouteId, AddAccountNode> {
+    extends Location<AddAccountNode> {
   AddAccountNode({required super.id, required super.build});
 }
 
 class SettingsLocation
-    extends Location<AmbiguousChildTargetRouteId, SettingsLocation> {
+    extends Location<SettingsLocation> {
   SettingsLocation({required super.id, required super.build});
 }
 
-class LegalNode extends AbstractScope<AmbiguousChildTargetRouteId> {
+class LegalNode extends Scope<LegalNode> {
   @override
   void build(ScopeBuilder builder) {
     builder.children = [
@@ -2997,7 +2995,7 @@ class LegalNode extends AbstractScope<AmbiguousChildTargetRouteId> {
 }
 
 class PrivacyLocation
-    extends Location<AmbiguousChildTargetRouteId, PrivacyLocation> {
+    extends Location<PrivacyLocation> {
   PrivacyLocation({super.id, required super.build});
 }
 
@@ -3093,7 +3091,7 @@ part 'ambiguous_mixed_id_child_targets_routes.g.dart';
 enum AmbiguousMixedIdChildTargetRouteId { root, chatChannel }
 
 class RootLocation
-    extends Location<AmbiguousMixedIdChildTargetRouteId, RootLocation> {
+    extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -3115,7 +3113,7 @@ class RootLocation
 }
 
 class ChatChannelNode
-    extends Location<AmbiguousMixedIdChildTargetRouteId, ChatChannelNode> {
+    extends Location<ChatChannelNode> {
   ChatChannelNode({super.id});
 
   @override
@@ -3128,7 +3126,7 @@ class ChatChannelNode
 }
 
 class ChatSearchLocation
-    extends Location<AmbiguousMixedIdChildTargetRouteId, ChatSearchLocation> {
+    extends Location<ChatSearchLocation> {
   ChatSearchLocation({required super.build});
 }
 
@@ -3217,7 +3215,7 @@ enum EquivalentDuplicateChildTargetRouteId { root }
 bool get useFirstLegalBranch => throw UnimplementedError();
 
 class RootLocation
-    extends Location<EquivalentDuplicateChildTargetRouteId, RootLocation> {
+    extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -3233,7 +3231,7 @@ class RootLocation
   }
 }
 
-class LegalNode extends AbstractScope<EquivalentDuplicateChildTargetRouteId> {
+class LegalNode extends Scope<LegalNode> {
   @override
   void build(ScopeBuilder builder) {
     builder.children = [
@@ -3248,7 +3246,7 @@ class LegalNode extends AbstractScope<EquivalentDuplicateChildTargetRouteId> {
 }
 
 class PrivacyLocation
-    extends Location<EquivalentDuplicateChildTargetRouteId, PrivacyLocation> {
+    extends Location<PrivacyLocation> {
   PrivacyLocation({super.id, required super.build});
 }
 
@@ -3317,7 +3315,7 @@ part 'equivalent_owner_instance_child_targets_routes.g.dart';
 enum EquivalentOwnerInstanceChildTargetRouteId { root }
 
 class RootLocation
-    extends Location<EquivalentOwnerInstanceChildTargetRouteId, RootLocation> {
+    extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -3332,7 +3330,7 @@ class RootLocation
 }
 
 class OwnerLocation
-    extends Location<EquivalentOwnerInstanceChildTargetRouteId, OwnerLocation> {
+    extends Location<OwnerLocation> {
   OwnerLocation();
 
   @override
@@ -3347,7 +3345,7 @@ class OwnerLocation
 }
 
 class SendLocation
-    extends Location<EquivalentOwnerInstanceChildTargetRouteId, SendLocation> {
+    extends Location<SendLocation> {
   SendLocation();
 
   @override
@@ -3427,7 +3425,7 @@ enum MixedOwnerIdChildTargetRouteId {
 }
 
 class RootLocation
-    extends Location<MixedOwnerIdChildTargetRouteId, RootLocation> {
+    extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -3449,11 +3447,11 @@ class RootLocation
 }
 
 class SearchLocation
-    extends Location<MixedOwnerIdChildTargetRouteId, SearchLocation> {
+    extends Location<SearchLocation> {
   SearchLocation({required super.build});
 }
 
-class ChatChannelNode extends AbstractLocation<
+class ChatChannelNode extends Location<
     MixedOwnerIdChildTargetRouteId,
     ChatChannelNode> {
   ChatChannelNode({super.id});
@@ -3488,7 +3486,7 @@ class ChatChannelNode extends AbstractLocation<
   }
 }
 
-class ChatChannelSendLocation extends AbstractLocation<
+class ChatChannelSendLocation extends Location<
     MixedOwnerIdChildTargetRouteId,
     ChatChannelSendLocation> {
   ChatChannelSendLocation({super.id});
@@ -3502,13 +3500,11 @@ class ChatChannelSendLocation extends AbstractLocation<
   }
 }
 
-class ChatChannelInfoLocation extends Location<
-    MixedOwnerIdChildTargetRouteId,
-    ChatChannelInfoLocation> {
+class ChatChannelInfoLocation extends Location<ChatChannelInfoLocation> {
   ChatChannelInfoLocation({super.id, required super.build});
 }
 
-class ChatChannelEditNameLocation extends AbstractLocation<
+class ChatChannelEditNameLocation extends Location<
     MixedOwnerIdChildTargetRouteId,
     ChatChannelEditNameLocation> {
   ChatChannelEditNameLocation({super.id});
@@ -3623,11 +3619,11 @@ part 'unsupported_route_tree_expression.g.dart';
 
 enum UnsupportedRouteId { home, privacy }
 
-class PrivacyLocation extends Location<UnsupportedRouteId, PrivacyLocation> {
+class PrivacyLocation extends Location<PrivacyLocation> {
   PrivacyLocation({required super.id, required super.build});
 }
 
-class HomeLocation extends Location<UnsupportedRouteId, HomeLocation> {
+class HomeLocation extends Location<HomeLocation> {
   HomeLocation({required super.id, required super.build});
 }
 
@@ -3712,7 +3708,7 @@ part 'missing_import_route_node.g.dart';
 
 enum MissingImportRouteId { home }
 
-class HomeLocation extends Location<MissingImportRouteId, HomeLocation> {
+class HomeLocation extends Location<HomeLocation> {
   HomeLocation({required super.id, required super.build});
 }
 
@@ -3773,7 +3769,7 @@ part 'conflicting_query_parameter_metadata.g.dart';
 
 enum ConflictRouteId { root, group, lesson }
 
-class RootLocation extends Location<ConflictRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -3784,7 +3780,7 @@ class RootLocation extends Location<ConflictRouteId, RootLocation> {
   }
 }
 
-class GroupLocation extends Location<ConflictRouteId, GroupLocation> {
+class GroupLocation extends Location<GroupLocation> {
   GroupLocation({required super.id});
 
   @override
@@ -3797,7 +3793,7 @@ class GroupLocation extends Location<ConflictRouteId, GroupLocation> {
   }
 }
 
-class LessonLocation extends Location<ConflictRouteId, LessonLocation> {
+class LessonLocation extends Location<LessonLocation> {
   LessonLocation({required super.id});
 
   @override
@@ -3864,7 +3860,7 @@ part 'compatible_query_parameter_metadata.g.dart';
 
 enum CompatibleRouteId { root, filter, lesson }
 
-class RootLocation extends Location<CompatibleRouteId, RootLocation> {
+class RootLocation extends Location<RootLocation> {
   RootLocation({required super.id});
 
   @override
@@ -3875,7 +3871,7 @@ class RootLocation extends Location<CompatibleRouteId, RootLocation> {
   }
 }
 
-class FilterLocation extends Location<CompatibleRouteId, FilterLocation> {
+class FilterLocation extends Location<FilterLocation> {
   FilterLocation({required super.id});
 
   @override
@@ -3892,7 +3888,7 @@ class FilterLocation extends Location<CompatibleRouteId, FilterLocation> {
   }
 }
 
-class LessonLocation extends Location<CompatibleRouteId, LessonLocation> {
+class LessonLocation extends Location<LessonLocation> {
   LessonLocation({required super.id});
 
   @override
@@ -3959,7 +3955,7 @@ part 'shell_params_routes.g.dart';
 enum ShellParamsRouteId { dashboard }
 
 class DashboardLocation
-    extends Location<ShellParamsRouteId, DashboardLocation> {
+    extends Location<DashboardLocation> {
   DashboardLocation({super.id, required super.build});
 }
 
@@ -4028,11 +4024,11 @@ part 'shell_location_routes.g.dart';
 enum ShellLocationRouteId { settings, theme }
 
 class SettingsLocation
-    extends ShellLocation<ShellLocationRouteId, SettingsLocation> {
+    extends ShellLocation<SettingsLocation> {
   SettingsLocation({required super.id, required super.build});
 }
 
-class ThemeLocation extends Location<ShellLocationRouteId, ThemeLocation> {
+class ThemeLocation extends Location<ThemeLocation> {
   ThemeLocation({required super.id, required super.build});
 }
 

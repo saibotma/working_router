@@ -1572,17 +1572,13 @@ class _StaticRouteTreeExtractor {
         (isLocation && !isOverlay) || _isShellLikeClass(classElement);
     final isDirectBaseNode =
         classElement.displayName == 'Location' ||
-        classElement.displayName == 'AbstractLocation' ||
         classElement.displayName == 'ShellLocation' ||
-        classElement.displayName == 'AbstractShellLocation' ||
         classElement.displayName == 'MultiShellLocation' ||
-        classElement.displayName == 'AbstractMultiShellLocation' ||
         classElement.displayName == 'MultiShell' ||
         classElement.displayName == 'AbstractMultiShell' ||
         classElement.displayName == 'Overlay' ||
         classElement.displayName == 'AbstractOverlay' ||
         classElement.displayName == 'Scope' ||
-        classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
         classElement.displayName == 'AbstractShell';
     final context = isDirectBaseNode
@@ -1678,17 +1674,13 @@ class _StaticRouteTreeExtractor {
     }
 
     if (classElement.displayName == 'Location' ||
-        classElement.displayName == 'AbstractLocation' ||
         classElement.displayName == 'ShellLocation' ||
-        classElement.displayName == 'AbstractShellLocation' ||
         classElement.displayName == 'MultiShellLocation' ||
-        classElement.displayName == 'AbstractMultiShellLocation' ||
         classElement.displayName == 'MultiShell' ||
         classElement.displayName == 'AbstractMultiShell' ||
         classElement.displayName == 'Overlay' ||
         classElement.displayName == 'AbstractOverlay' ||
         classElement.displayName == 'Scope' ||
-        classElement.displayName == 'AbstractScope' ||
         classElement.displayName == 'Shell' ||
         classElement.displayName == 'AbstractShell') {
       return null;
@@ -1700,18 +1692,13 @@ class _StaticRouteTreeExtractor {
     );
     if (buildMethod == null ||
         buildMethod.enclosingElement?.displayName == 'Location' ||
-        buildMethod.enclosingElement?.displayName == 'AbstractLocation' ||
         buildMethod.enclosingElement?.displayName == 'ShellLocation' ||
-        buildMethod.enclosingElement?.displayName == 'AbstractShellLocation' ||
         buildMethod.enclosingElement?.displayName == 'MultiShellLocation' ||
-        buildMethod.enclosingElement?.displayName ==
-            'AbstractMultiShellLocation' ||
         buildMethod.enclosingElement?.displayName == 'MultiShell' ||
         buildMethod.enclosingElement?.displayName == 'AbstractMultiShell' ||
         buildMethod.enclosingElement?.displayName == 'Overlay' ||
         buildMethod.enclosingElement?.displayName == 'AbstractOverlay' ||
         buildMethod.enclosingElement?.displayName == 'Scope' ||
-        buildMethod.enclosingElement?.displayName == 'AbstractScope' ||
         buildMethod.enclosingElement?.displayName == 'Shell' ||
         buildMethod.enclosingElement?.displayName == 'AbstractShell') {
       return null;
@@ -4353,12 +4340,8 @@ class _StaticRouteTreeExtractor {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
       if (current.element.name == 'Location' ||
-          current.element.name == 'AbstractLocation' ||
           current.element.name == 'ShellLocation' ||
-          current.element.name == 'AbstractShellLocation' ||
           current.element.name == 'MultiShellLocation' ||
-          current.element.name == 'AbstractMultiShellLocation' ||
-          current.element.name == 'AbstractScope' ||
           current.element.name == 'Scope') {
         return true;
       }
@@ -4371,11 +4354,8 @@ class _StaticRouteTreeExtractor {
     InterfaceType? current = classElement.thisType;
     while (current != null) {
       if (current.element.name == 'Location' ||
-          current.element.name == 'AbstractLocation' ||
           current.element.name == 'ShellLocation' ||
-          current.element.name == 'AbstractShellLocation' ||
           current.element.name == 'MultiShellLocation' ||
-          current.element.name == 'AbstractMultiShellLocation' ||
           current.element.name == 'Overlay' ||
           current.element.name == 'AbstractOverlay') {
         return true;
@@ -4403,7 +4383,6 @@ class _StaticRouteTreeExtractor {
       if (current.element.name == 'Shell' ||
           current.element.name == 'ShellLocation' ||
           current.element.name == 'MultiShellLocation' ||
-          current.element.name == 'AbstractMultiShellLocation' ||
           current.element.name == 'MultiShell' ||
           current.element.name == 'AbstractMultiShell' ||
           current.element.name == 'AbstractShell') {
@@ -4422,17 +4401,13 @@ bool _isFrameworkRouteMemberOwner(Element? element) {
       ownerName == 'AnyOverlay' ||
       ownerName == 'AnyLocation' ||
       ownerName == 'AbstractOverlay' ||
-      ownerName == 'AbstractLocation' ||
-      ownerName == 'AbstractShellLocation' ||
-      ownerName == 'AbstractMultiShellLocation' ||
-      ownerName == 'AbstractMultiShell' ||
-      ownerName == 'AbstractScope' ||
-      ownerName == 'AbstractShell' ||
-      ownerName == 'Scope' ||
-      ownerName == 'Overlay' ||
       ownerName == 'Location' ||
       ownerName == 'ShellLocation' ||
       ownerName == 'MultiShellLocation' ||
+      ownerName == 'AbstractMultiShell' ||
+      ownerName == 'AbstractShell' ||
+      ownerName == 'Scope' ||
+      ownerName == 'Overlay' ||
       ownerName == 'MultiShell' ||
       ownerName == 'Shell';
 }

@@ -2,46 +2,14 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:test/test.dart';
 import 'package:working_router_lint/src/assists/remove_location_tree_element_edit.dart';
 import 'package:working_router_lint/src/assists/wrap_location_tree_element_edit.dart';
-import 'package:working_router_lint/src/assists/wrap_with_location.dart';
-import 'package:working_router_lint/src/assists/wrap_with_multi_shell.dart';
-import 'package:working_router_lint/src/assists/wrap_with_scope.dart';
 import 'package:working_router_lint/src/assists/wrap_with_shell.dart';
 
 void main() {
-  test('wrap with scope wraps a builder.children entry', () {
-    const source = '''
-void build(builder) {
-  builder.children = [
-    PrivacyLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('privacy');
-      },
-    ),
-  ];
-}
-''';
-    final edit = _createEdit(
-      source: source,
-      snippet: 'PrivacyLocation(',
-      template: WrapWithScope.templateForTest,
-    );
-
-    expect(edit, isNotNull);
-    final changedSource = _applyEdit(source, edit!);
-    expect(changedSource, contains('Scope('));
-    expect(changedSource, contains('builder.children = ['));
-    expect(changedSource, contains('PrivacyLocation('));
-  });
-
   test('wrap with shell wraps a builder.children entry', () {
     const source = '''
 void build(builder) {
   builder.children = [
-    PrivacyLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('privacy');
-      },
-    ),
+    PrivacyLocation(),
   ];
 }
 ''';
@@ -54,59 +22,6 @@ void build(builder) {
     expect(edit, isNotNull);
     final changedSource = _applyEdit(source, edit!);
     expect(changedSource, contains('Shell('));
-    expect(changedSource, contains('PrivacyLocation('));
-  });
-
-  test('wrap with location wraps a builder.children entry', () {
-    const source = '''
-void build(builder) {
-  builder.children = [
-    PrivacyLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('privacy');
-      },
-    ),
-  ];
-}
-''';
-    final edit = _createEdit(
-      source: source,
-      snippet: 'PrivacyLocation(',
-      template: WrapWithLocation.templateForTest,
-    );
-
-    expect(edit, isNotNull);
-    final changedSource = _applyEdit(source, edit!);
-    expect(changedSource, contains('Location('));
-    expect(changedSource, contains('builder.content = const Content.none();'));
-    expect(changedSource, contains('PrivacyLocation('));
-  });
-
-  test('wrap with multi shell wraps a builder.children entry', () {
-    const source = '''
-void build(builder) {
-  builder.children = [
-    PrivacyLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('privacy');
-      },
-    ),
-  ];
-}
-''';
-    final edit = _createEdit(
-      source: source,
-      snippet: 'PrivacyLocation(',
-      template: WrapWithMultiShell.templateForTest,
-    );
-
-    expect(edit, isNotNull);
-    final changedSource = _applyEdit(source, edit!);
-    expect(changedSource, contains('MultiShell('));
-    expect(changedSource, contains('final slot = builder.slot();'));
-    expect(changedSource, contains('return slots.child(slot);'));
-    expect(changedSource, contains('Scope('));
-    expect(changedSource, contains('parentRouterKey: slot.routerKey,'));
     expect(changedSource, contains('PrivacyLocation('));
   });
 
@@ -114,11 +29,7 @@ void build(builder) {
     const source = '''
 List<Object> buildLocations() {
   return [
-    SplashLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('splash');
-      },
-    ),
+    SplashLocation(),
   ];
 }
 ''';
@@ -135,144 +46,11 @@ List<Object> buildLocations() {
     expect(changedSource, contains('SplashLocation('));
   });
 
-  test('wrap with location wraps an entry in a returned tree list', () {
-    const source = '''
-List<Object> buildLocations() {
-  return [
-    SplashLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('splash');
-      },
-    ),
-  ];
-}
-''';
-    final edit = _createEdit(
-      source: source,
-      snippet: 'SplashLocation(',
-      template: WrapWithLocation.templateForTest,
-    );
-
-    expect(edit, isNotNull);
-    final changedSource = _applyEdit(source, edit!);
-    expect(changedSource, contains('return ['));
-    expect(changedSource, contains('Location('));
-    expect(changedSource, contains('builder.content = const Content.none();'));
-    expect(changedSource, contains('SplashLocation('));
-  });
-
-  test('wrap with scope wraps an entry inside an if spread branch', () {
-    const source = '''
-List<Object> buildLocations(bool enabled) {
-  return [
-    if (enabled) ...[
-      Shell(
-        build: (builder, shell, routerKey) {
-          builder.children = [
-            PrivacyLocation(
-              build: (builder, location) {
-                builder.content = Content.widget('privacy');
-              },
-            ),
-          ];
-        },
-      ),
-    ],
-  ];
-}
-''';
-    final edit = _createEdit(
-      source: source,
-      snippet: 'Shell(',
-      template: WrapWithScope.templateForTest,
-    );
-
-    expect(edit, isNotNull);
-    final changedSource = _applyEdit(source, edit!);
-    expect(changedSource, contains('if (enabled) ...['));
-    expect(changedSource, contains('Scope('));
-    expect(changedSource, contains('Shell('));
-  });
-
-  test('wrap with scope wraps a shell inside a builder.children if spread branch', () {
-    const source = '''
-void build(builder, permissions) {
-  builder.children = [
-    if (permissions.maySeeAttendances) ...[
-      Shell(
-        build: (builder, shell, routerKey) {
-          builder.children = [
-            PrivacyLocation(
-              build: (builder, location) {
-                builder.content = Content.widget('privacy');
-              },
-            ),
-          ];
-        },
-      ),
-    ],
-  ];
-}
-''';
-    final edit = _createEdit(
-      source: source,
-      snippet: 'Shell(',
-      template: WrapWithScope.templateForTest,
-    );
-
-    expect(edit, isNotNull);
-    final changedSource = _applyEdit(source, edit!);
-    expect(changedSource, contains('if (permissions.maySeeAttendances) ...['));
-    expect(changedSource, contains('Scope('));
-    expect(changedSource, contains('Shell('));
-  });
-
-  test(
-    'wrap with scope finds a shell inside a builder.children if spread branch from line indentation',
-    () {
-      const source = '''
-void build(builder, permissions) {
-  builder.children = [
-    if (permissions.maySeeAttendances) ...[
-      Shell(
-        build: (builder, shell, routerKey) {
-          builder.children = [
-            PrivacyLocation(
-              build: (builder, location) {
-                builder.content = Content.widget('privacy');
-              },
-            ),
-          ];
-        },
-      ),
-    ],
-  ];
-}
-''';
-      final edit = _createCollapsedEditAtLineIndent(
-        source: source,
-        lineSnippet: '      Shell(',
-        template: WrapWithScope.templateForTest,
-      );
-
-      expect(edit, isNotNull);
-      final changedSource = _applyEdit(source, edit!);
-      expect(changedSource, contains('if (permissions.maySeeAttendances) ...['));
-      expect(changedSource, contains('Scope('));
-      expect(changedSource, contains('Shell('));
-    },
-  );
-
   test('wrap with shell formats nested children indentation correctly', () {
     const source = '''
 void build(builder) {
   builder.children = [
-    ALocation(
-      id: LocationId.a,
-      build: (builder, location) {
-        builder.content = Content.widget('a');
-      },
-    ),
+    ALocation(id: LocationId.a),
   ];
 }
 ''';
@@ -291,7 +69,7 @@ void build(builder) {
     Shell(
       build: (builder, shell, routerKey) {
         builder.children = [
-          ALocation(
+          ALocation(id: LocationId.a),
 '''),
     );
   });
@@ -302,12 +80,11 @@ List<Object> buildLocations() {
   return [
     Shell(
       build: (builder, shell, routerKey) {
+        builder.content = ShellContent.builder((context, data, child) {
+          return child;
+        });
         builder.children = [
-          PrivacyLocation(
-            build: (builder, location) {
-              builder.content = Content.widget('privacy');
-            },
-          ),
+          PrivacyLocation(),
         ];
       },
     ),
@@ -316,8 +93,8 @@ List<Object> buildLocations() {
 ''';
     final edit = _createEdit(
       source: source,
-      snippet: "builder.content = Content.widget('privacy')",
-      template: WrapWithScope.templateForTest,
+      snippet: 'return child;',
+      template: WrapWithShell.templateForTest,
     );
 
     expect(edit, isNull);
@@ -328,8 +105,8 @@ List<Object> buildLocations() {
 void build(builder) {
   builder.children = [
     ALocation(),
-    Scope(
-      build: (builder, scope) {
+    Shell(
+      build: (builder, shell, routerKey) {
         builder.children = [
           BLocation(),
           CLocation(),
@@ -340,11 +117,11 @@ void build(builder) {
   ];
 }
 ''';
-    final edit = _createRemoveEdit(source: source, snippet: 'Scope(');
+    final edit = _createRemoveEdit(source: source, snippet: 'Shell(');
 
     expect(edit, isNotNull);
     final changedSource = _applyRemoveEdit(source, edit!);
-    expect(changedSource, isNot(contains('Scope(')));
+    expect(changedSource, isNot(contains('Shell(')));
     expect(
       changedSource,
       contains('''
@@ -363,8 +140,8 @@ void build(builder) {
 void build(builder) {
   builder.children = [
     ALocation(),
-    Scope(
-      build: (builder, scope) {
+    Shell(
+      build: (builder, shell, routerKey) {
         builder.children = [
           BLocation(),
           CLocation(),
@@ -374,11 +151,11 @@ void build(builder) {
   ];
 }
 ''';
-    final edit = _createRemoveEdit(source: source, snippet: 'Scope(');
+    final edit = _createRemoveEdit(source: source, snippet: 'Shell(');
 
     expect(edit, isNotNull);
     final changedSource = _applyRemoveEdit(source, edit!);
-    expect(changedSource, isNot(contains('Scope(')));
+    expect(changedSource, isNot(contains('Shell(')));
     expect(
       changedSource,
       contains('''
@@ -391,8 +168,10 @@ void build(builder) {
     );
   });
 
-  test('remove element deletes a leaf entry when there are no children to unwrap', () {
-    const source = '''
+  test(
+    'remove element deletes a leaf entry when there are no children to unwrap',
+    () {
+      const source = '''
 void build(builder) {
   builder.children = [
     ALocation(),
@@ -400,21 +179,26 @@ void build(builder) {
   ];
 }
 ''';
-    final edit = _createRemoveEdit(source: source, snippet: 'BLocation(');
+      final edit = _createRemoveEdit(source: source, snippet: 'BLocation(');
 
-    expect(edit, isNotNull);
-    final changedSource = _applyRemoveEdit(source, edit!);
-    expect(changedSource, isNot(contains('BLocation(')));
-    expect(changedSource, contains('builder.children = [\n    ALocation(),\n  ];'));
-  });
+      expect(edit, isNotNull);
+      final changedSource = _applyRemoveEdit(source, edit!);
+      expect(changedSource, isNot(contains('BLocation(')));
+      expect(
+        changedSource,
+        contains('builder.children = [\n    ALocation(),\n  ];'),
+      );
+    },
+  );
 
-  test('remove element unwraps a returned root entry with one direct children assignment', () {
-    const source = '''
+  test(
+    'remove element unwraps a returned root entry with one direct children assignment',
+    () {
+      const source = '''
 List<Object> buildLocations() {
   return [
-    SplashLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('splash');
+    Shell(
+      build: (builder, shell, routerKey) {
         builder.children = [
           ALocation(),
         ];
@@ -423,28 +207,30 @@ List<Object> buildLocations() {
   ];
 }
 ''';
-    final edit = _createRemoveEdit(source: source, snippet: 'SplashLocation(');
+      final edit = _createRemoveEdit(source: source, snippet: 'Shell(');
 
-    expect(edit, isNotNull);
-    final changedSource = _applyRemoveEdit(source, edit!);
-    expect(changedSource, isNot(contains('SplashLocation(')));
-    expect(
-      changedSource,
-      contains('''
+      expect(edit, isNotNull);
+      final changedSource = _applyRemoveEdit(source, edit!);
+      expect(changedSource, isNot(contains('Shell(')));
+      expect(
+        changedSource,
+        contains('''
   return [
     ALocation(),
   ];
 '''),
-    );
-  });
+      );
+    },
+  );
 
-  test('remove element is unavailable for returned root entry with conditional children', () {
-    const source = '''
+  test(
+    'remove element is unavailable for returned root entry with conditional children',
+    () {
+      const source = '''
 List<Object> buildLocations(bool showA) {
   return [
-    SplashLocation(
-      build: (builder, location) {
-        builder.content = Content.widget('splash');
+    Shell(
+      build: (builder, shell, routerKey) {
         if (showA) {
           builder.children = [
             ALocation(),
@@ -459,10 +245,11 @@ List<Object> buildLocations(bool showA) {
   ];
 }
 ''';
-    final edit = _createRemoveEdit(source: source, snippet: 'SplashLocation(');
+      final edit = _createRemoveEdit(source: source, snippet: 'Shell(');
 
-    expect(edit, isNull);
-  });
+      expect(edit, isNull);
+    },
+  );
 }
 
 WrapLocationTreeElementEdit? _createEdit({
@@ -481,27 +268,6 @@ WrapLocationTreeElementEdit? _createEdit({
     source: source,
     selectionOffset: offset,
     selectionLength: snippet.length,
-    eol: '\n',
-    template: template,
-  );
-}
-
-WrapLocationTreeElementEdit? _createCollapsedEditAtLineIndent({
-  required String source,
-  required String lineSnippet,
-  required WrapTemplate template,
-}) {
-  final parsed = parseString(content: source);
-  final offset = source.indexOf(lineSnippet);
-  if (offset == -1) {
-    throw StateError('Snippet `$lineSnippet` not found in test source.');
-  }
-
-  return WrapLocationTreeElementEdit.create(
-    unit: parsed.unit,
-    source: source,
-    selectionOffset: offset,
-    selectionLength: 0,
     eol: '\n',
     template: template,
   );
@@ -534,5 +300,9 @@ RemoveLocationTreeElementEdit? _createRemoveEdit({
 }
 
 String _applyRemoveEdit(String source, RemoveLocationTreeElementEdit edit) {
-  return source.replaceRange(edit.range.offset, edit.range.end, edit.replacement);
+  return source.replaceRange(
+    edit.range.offset,
+    edit.range.end,
+    edit.replacement,
+  );
 }

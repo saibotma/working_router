@@ -6,8 +6,8 @@ definition API.
 ## Core Ideas
 
 - `Location<Self>` is the main typed semantic route node API.
-- `AbstractLocation<Self>` is the override-based base for named classes.
-- `AnonymousLocation(...)` is the anonymous callback-based semantic route node.
+- `Location<Self>` is override-based: route-node configuration lives in the
+  node class' `build(...)` method.
 - `Shell` is a directly constructible structural route node that inserts a nested navigator.
 - `MultiShell` is the parallel-shell variant for layouts with multiple sibling nested navigators.
 - Routes are defined in `build(...)` with ordered builder calls:
@@ -47,25 +47,20 @@ See:
 
 ## Defining Nodes
 
-The route API is centered around lightweight route-node classes. Use
-`Location<Self>` for named callback-based subclasses, `AbstractLocation<Self>`
-for override-based subclasses, and `AnonymousLocation(...)` for anonymous
-callback-based nodes.
+The route API is centered around lightweight route-node classes. Subclass
+`Location<Self>` and put the node's path, params, content, page, and child
+configuration inside `build(...)`.
 
 ```dart
-final exampleId = NodeId<ExampleNode>();
 final detailId = NodeId<DetailNode>();
 
 class ExampleNode extends Location<ExampleNode> {
   ExampleNode({
     super.id,
-    required super.build,
   });
-}
 
-final example = ExampleNode(
-  id: exampleId,
-  build: (builder, location) {
+  @override
+  void build(LocationBuilder builder) {
     builder.pathLiteral('items');
     final itemId = builder.stringPathParam();
     final filter = builder.defaultStringQueryParam(
@@ -82,7 +77,23 @@ final example = ExampleNode(
     builder.children = [
       DetailNode(id: detailId),
     ];
-  },
+  }
+}
+
+class DetailNode extends Location<DetailNode> {
+  DetailNode({super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('detail');
+    builder.content = Content.widget(const DetailScreen());
+  }
+}
+
+final exampleId = NodeId<ExampleNode>();
+
+final example = ExampleNode(
+  id: exampleId,
 );
 ```
 
@@ -118,14 +129,14 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
-- Use `AnonymousLocation(...)`, `AnonymousScope(...)`, `Shell(...)`,
-  `AnonymousShellLocation(...)`, `MultiShell(...)`, and
-  `AnonymousMultiShellLocation(...)` for anonymous callback-based route
-  definitions, or use `Location<Self>`, `Scope<Self>`, `ShellLocation<Self>`,
-  and `MultiShellLocation<Self>` for named callback-based nodes, or subclass
-  `AbstractLocation`, `AbstractScope`, `AbstractShell`,
-  `AbstractShellLocation`, `AbstractMultiShell`, and
-  `AbstractMultiShellLocation` to override `build(...)` directly.
+- Put node ids next to the composition site that assigns them. If `ParentNode`
+  creates `ChildNode(id: childId)`, keep `childId` in the parent/composition
+  file. Root ids usually live in the canonical route-tree file that returns the
+  root node.
+- When descendants need handles declared by the parent, such as params, shell
+  router keys, or multi-shell slots, accept
+  `ChildrenBuilder<Self> buildChildren` and call it after those handles have
+  been assigned.
 - Page keys can be configured with `builder.pageKey = ...`, using
   `PageKey.templatePath()`, `PageKey.path()`, or `PageKey.custom(...)`.
 - `builder.content = Content.widget(...)` is the constant-widget variant.
@@ -158,20 +169,24 @@ to a route param without owning the location that declares it:
 ```dart
 final accountId = UnboundPathParam<AccountId>(const AccountIdCodec());
 
-AnonymousLocation(
-  build: (builder, location) {
+class AccountNode extends Location<AccountNode> {
+  final ChildrenBuilder<AccountNode>? buildChildren;
+  late final Param<AccountId> boundAccountId;
+
+  AccountNode({this.buildChildren});
+
+  @override
+  void build(LocationBuilder builder) {
     builder.pathLiteral('accounts');
-    final boundAccountId = builder.bindParam(accountId);
-    builder.children = [
-      DashboardNode(
-        build: (builder, location) {
-          builder.content = Content.builder((context, data) {
-            return Text(data.param(boundAccountId).toString());
-          });
-        },
-      ),
-    ];
-  },
+    boundAccountId = builder.bindParam(accountId);
+    builder.children = buildChildren?.call(this) ?? const [];
+  }
+}
+
+final account = AccountNode(
+  buildChildren: (account) => [
+    DashboardNode(accountId: account.boundAccountId),
+  ],
 );
 
 // Somewhere outer in the widget tree:
@@ -182,7 +197,7 @@ If a route node itself should keep access to a bound param after `build(...)`,
 store the returned `Param<T>` on the node instance:
 
 ```dart
-class AccountNode extends AbstractShell {
+class AccountNode extends Location<AccountNode> {
   late final Param<AccountId> accountId;
 
   @override
@@ -203,12 +218,13 @@ helpers.
 
 See:
 - [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart)
-- [`example/lib/locations.dart`](example/lib/locations.dart)
+- [`example/lib/splash_screen.dart`](example/lib/splash_screen.dart)
+- [`example/lib/alphabet_sidebar_screen.dart`](example/lib/alphabet_sidebar_screen.dart)
 
 ## Scope Vs Shell Vs ShellLocation
 
-Use an `AnonymousScope` when you want a shared route scope without rendering
-anything inline, or `Scope<Self>` for a named callback-based scope. A scope:
+Use a `Scope<Self>` when you want a shared route scope without rendering
+anything inline. A scope:
 - can define shared path and query parameters
 - can hold child locations
 - does not build a page
@@ -271,19 +287,97 @@ default content, the router throws instead of silently leaving that pane
 empty. A slot's default page stays in the same navigator and acts as that
 slot's root page beneath deeper routed pages.
 
-## Callback Vs Abstract Types
+## Composing Children
 
-Use the callback-based types when defining a tree inline:
+Prefer self-contained feature nodes. Put the route node next to the screen it
+draws and let that node declare its own route configuration and children in
+`build(...)`.
 
 ```dart
-AnonymousScope(
-  build: (builder, scope) {
-    builder.children = [
-      PrivacyNode(id: RouteId.privacy, build: ...),
-    ];
-  },
-);
+class AccountNode extends Location<AccountNode> {
+  AccountNode({super.id});
 
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('account');
+    builder.content = Content.widget(const AccountScreen());
+    builder.children = [
+      AccountOverviewNode(),
+      AccountSettingsNode(),
+    ];
+  }
+}
+```
+
+Use the container node style only when the node intentionally represents a
+reusable container whose contents are supplied by its caller. In that case the
+node owns an explicit constructor field and assigns it inside `build(...)`:
+
+```dart
+class LegalNode extends Scope<LegalNode> {
+  final List<RouteNode> children;
+
+  LegalNode({this.children = const []});
+
+  @override
+  void build(ScopeBuilder builder) {
+    builder.children = children;
+  }
+}
+
+final legal = LegalNode(
+  children: [
+    PrivacyNode(id: RouteId.privacy),
+    TermsNode(id: RouteId.terms),
+  ],
+);
+```
+
+Use `ChildrenBuilder<Self>` when children need handles that the parent
+declares during `build(...)`. Assign the handle to a `late final` field before
+calling the child factory:
+
+```dart
+class ChatSplitNode extends AbstractMultiShell {
+  late final MultiShellSlot listSlot;
+  late final MultiShellSlot detailSlot;
+  final ChildrenBuilder<ChatSplitNode>? buildChildren;
+
+  ChatSplitNode({this.buildChildren});
+
+  @override
+  void build(MultiShellBuilder builder) {
+    listSlot = builder.slot(
+      defaultContent: DefaultContent.widget(const ChannelListScreen()),
+    );
+    detailSlot = builder.slot();
+    builder.content = MultiShellContent.builder(
+      (context, data, slots) => Row(
+        children: [
+          Expanded(child: slots.child(listSlot)),
+          Expanded(child: slots.child(detailSlot)),
+        ],
+      ),
+    );
+    builder.children = buildChildren?.call(this) ?? const [];
+  }
+}
+
+final chat = ChatSplitNode(
+  buildChildren: (chat) => [
+    SearchNode(parentRouterKey: chat.listSlot.routerKey),
+    DetailNode(
+      id: RouteId.detail,
+      parentRouterKey: chat.detailSlot.routerKey,
+    ),
+  ],
+);
+```
+
+`Shell` and `MultiShell` are still directly constructible structural nodes for
+inline navigator boundaries:
+
+```dart
 Shell(
   build: (builder, shell, routerKey) {
     builder.content = ShellContent.builder(
@@ -291,112 +385,10 @@ Shell(
     );
     builder.defaultContent = DefaultContent.widget(const Placeholder());
     builder.children = [
-      DashboardNode(id: RouteId.dashboard, build: ...),
+      DashboardNode(id: RouteId.dashboard),
     ];
   },
 );
-
-MultiShell(
-  build: (builder, shell) {
-    final listSlot = builder.slot(
-      defaultContent: DefaultContent.widget(const ChannelListScreen()),
-    );
-    final detailSlot = builder.slot();
-    builder.content = MultiShellContent.builder(
-      (context, data, slots) => Row(
-        children: [
-          Expanded(child: slots.child(listSlot)),
-          Expanded(child: slots.child(detailSlot)),
-        ],
-      ),
-    );
-    builder.children = [
-      SearchNode(parentRouterKey: listSlot.routerKey, build: ...),
-      DetailNode(
-        id: RouteId.detail,
-        parentRouterKey: detailSlot.routerKey,
-        build: ...,
-      ),
-    ];
-  },
-);
-
-AnonymousShellLocation(
-  id: RouteId.settings,
-  build: (builder, location, routerKey) {
-    builder.shellPage = (key, child) =>
-        MaterialPage(key: key, child: child);
-    builder.content = Content.widget(const SettingsScreen());
-    builder.children = [
-      ThemeModeNode(id: RouteId.themeMode, build: ...),
-    ];
-  },
-);
-```
-
-Use `Scope<Self>`, `Location<Self>`, `ShellLocation<Self>`, and
-`MultiShellLocation<Self>` when you want a reusable named callback-based
-subtree. Use the abstract base classes when you want to package that subtree
-by overriding `build(...)` directly:
-
-```dart
-class LegalNode extends AbstractScope<LegalNode> {
-  @override
-  void build(ScopeBuilder builder) {
-    builder.children = [
-      PrivacyNode(id: RouteId.privacy, build: ...),
-      TermsNode(id: RouteId.terms, build: ...),
-    ];
-  }
-}
-
-class AccountNode extends AbstractShell {
-  @override
-  void build(ShellBuilder builder) {
-    builder.content = ShellContent.builder(
-      (context, data, child) => Scaffold(body: child),
-    );
-    builder.children = [
-      DashboardNode(id: RouteId.dashboard, build: ...),
-    ];
-  }
-}
-
-class ChatSplitNode extends AbstractMultiShell {
-  @override
-  void build(MultiShellBuilder builder) {
-    final listSlot = builder.slot();
-    final detailSlot = builder.slot();
-    builder.content = MultiShellContent.builder(
-      (context, data, slots) => Row(
-        children: [
-          Expanded(child: slots.child(listSlot)),
-          Expanded(child: slots.child(detailSlot)),
-        ],
-      ),
-    );
-    builder.children = [
-      SearchNode(parentRouterKey: listSlot.routerKey, build: ...),
-      DetailNode(
-        id: RouteId.detail,
-        parentRouterKey: detailSlot.routerKey,
-        build: ...,
-      ),
-    ];
-  }
-}
-
-class SettingsNode extends AbstractShellLocation<SettingsNode> {
-  SettingsNode({required super.id});
-
-  @override
-  void build(ShellLocationBuilder builder) {
-    builder.content = Content.widget(const SettingsScreen());
-    builder.children = [
-      ThemeModeNode(id: RouteId.themeMode, build: ...),
-    ];
-  }
-}
 ```
 
 ## Page Keys
@@ -439,16 +431,18 @@ In practice, that means:
 Example:
 
 ```dart
-LessonLocation(
-  id: RouteId.lesson,
-  build: (builder, location) {
+class LessonLocation extends Location<LessonLocation> {
+  LessonLocation({super.id});
+
+  @override
+  void build(LocationBuilder builder) {
     final lessonId = builder.stringPathParam();
     builder.content = Content.builder((context, data) {
       return LessonScreen(lessonId: data.param(lessonId));
     });
     builder.pageKey = const PageKey.templatePath();
-  },
-);
+  }
+}
 ```
 
 Use `PageKey.templatePath()` if changing `lessonId` should keep the same page.
@@ -490,15 +484,23 @@ This is shown in the package example in
 
 ## Defining Shell Locations
 
-`AnonymousShellLocation` is the shorthand for the common
+`ShellLocation<Self>` is the shorthand for the common
 `Shell + one child Location`
 shape:
 
 ```dart
-AnonymousShellLocation(
-  id: RouteId.settings,
-  navigatorEnabled: screenSize != ScreenSize.small,
-  build: (builder, location, routerKey) {
+class SettingsLocation extends ShellLocation<SettingsLocation> {
+  final ScreenSize screenSize;
+  final List<RouteNode> children;
+
+  SettingsLocation({
+    super.id,
+    required this.screenSize,
+    this.children = const [],
+  }) : super(navigatorEnabled: screenSize != ScreenSize.small);
+
+  @override
+  void build(ShellLocationBuilder builder) {
     builder.pathLiteral('settings');
 
     builder.shellContent = ShellContent.builder((context, data, child) {
@@ -511,11 +513,17 @@ AnonymousShellLocation(
       return MaterialPage(key: key, child: child);
     };
 
-    builder.children = [
-      ThemeModeNode(id: RouteId.themeMode, build: ...),
-    ];
-  },
-)
+    builder.children = children;
+  }
+}
+
+final settings = SettingsLocation(
+  id: RouteId.settings,
+  screenSize: screenSize,
+  children: [
+    ThemeModeNode(id: RouteId.themeMode),
+  ],
+);
 ```
 
 Use:
@@ -530,19 +538,28 @@ Use:
 
 ## Defining Multi Shell Locations
 
-`AnonymousMultiShellLocation` is the parallel-shell variant for layouts with
-multiple
-sibling slot navigators plus one built-in `contentSlot` for the location's own
-page, such as a desktop split view with independent left and right stacks.
+`MultiShellLocation<Self>` is the parallel-shell variant for layouts with
+multiple sibling slot navigators plus one built-in `contentSlot` for the
+location's own page, such as a desktop split view with independent left and
+right stacks.
 
 ```dart
-AnonymousMultiShellLocation(
-  id: RouteId.chat,
-  navigatorEnabled: screenSize != ScreenSize.small,
-  build: (builder, location, contentSlot) {
+class ChatLocation extends MultiShellLocation<ChatLocation> {
+  late final MultiShellSlot listSlot;
+  final ScreenSize screenSize;
+  final ChildrenBuilder<ChatLocation>? buildChildren;
+
+  ChatLocation({
+    super.id,
+    required this.screenSize,
+    this.buildChildren,
+  }) : super(navigatorEnabled: screenSize != ScreenSize.small);
+
+  @override
+  void build(MultiShellLocationBuilder builder) {
     builder.pathLiteral('chat');
 
-    final listSlot = builder.slot(
+    listSlot = builder.slot(
       defaultContent: DefaultContent.widget(const ChannelListScreen()),
     );
 
@@ -562,24 +579,28 @@ AnonymousMultiShellLocation(
     );
     builder.content = const Content.none();
 
-    builder.children = [
-      ChannelListNode(
-        id: RouteId.channelList,
-        parentRouterKey: listSlot.routerKey,
-        build: ...,
-      ),
-      ChannelDetailNode(
-        id: RouteId.channelDetail,
-        parentRouterKey: contentSlot.routerKey,
-        build: ...,
-      ),
-    ];
-  },
-)
+    builder.children = buildChildren?.call(this) ?? const [];
+  }
+}
+
+final chat = ChatLocation(
+  id: RouteId.chat,
+  screenSize: screenSize,
+  buildChildren: (chat) => [
+    ChannelListNode(
+      id: RouteId.channelList,
+      parentRouterKey: chat.listSlot.routerKey,
+    ),
+    ChannelDetailNode(
+      id: RouteId.channelDetail,
+      parentRouterKey: chat.contentSlot.routerKey,
+    ),
+  ],
+);
 ```
 
 Use:
-- the `contentSlot` build parameter for the location's own page navigator
+- the `contentSlot` property for the location's own page navigator
 - `defaultContent = ...` and `defaultPage = ...` for the implicit `contentSlot`
   root page
 - `builder.slot()` for extra sibling navigators
@@ -630,18 +651,28 @@ useful for pane state such as a chat search view that should appear beside the
 currently selected channel.
 
 ```dart
-AnonymousMultiShellLocation(
-  id: RouteId.chat,
-  navigatorEnabled: screenSize != ScreenSize.small,
-  build: (builder, location, contentSlot) {
+class ChatLocation extends MultiShellLocation<ChatLocation> {
+  late final DefaultQueryParam<ChatDisplay> chatDisplay;
+  late final MultiShellSlot listSlot;
+  final ScreenSize screenSize;
+  final ChildrenBuilder<ChatLocation>? buildChildren;
+
+  ChatLocation({
+    super.id,
+    required this.screenSize,
+    this.buildChildren,
+  }) : super(navigatorEnabled: screenSize != ScreenSize.small);
+
+  @override
+  void build(MultiShellLocationBuilder builder) {
     builder.pathLiteral('chat');
-    final chatDisplay = builder.defaultEnumQueryParam(
+    chatDisplay = builder.defaultEnumQueryParam(
       'chatDisplay',
       ChatDisplay.values,
       defaultValue: ChatDisplay.list,
     );
 
-    final listSlot = builder.slot(
+    listSlot = builder.slot(
       defaultContent: DefaultContent.widget(const ChannelListScreen()),
     );
 
@@ -652,23 +683,29 @@ AnonymousMultiShellLocation(
       ),
     );
 
-    builder.children = [
-      SearchNode(
-        id: RouteId.search,
-        chatDisplay: chatDisplay,
-        parentRouterKey: listSlot.routerKey,
-      ),
-      ChannelDetailNode(
-        id: RouteId.channelDetail,
-        parentRouterKey: contentSlot.routerKey,
-      ),
-    ];
-  },
-)
+    builder.children = buildChildren?.call(this) ?? const [];
+  }
+}
+
+final chat = ChatLocation(
+  id: RouteId.chat,
+  screenSize: screenSize,
+  buildChildren: (chat) => [
+    SearchNode(
+      id: RouteId.search,
+      chatDisplay: chat.chatDisplay,
+      parentRouterKey: chat.listSlot.routerKey,
+    ),
+    ChannelDetailNode(
+      id: RouteId.channelDetail,
+      parentRouterKey: chat.contentSlot.routerKey,
+    ),
+  ],
+);
 ```
 
 ```dart
-class SearchNode extends AbstractLocation<SearchNode> {
+class SearchNode extends Location<SearchNode> {
   final DefaultQueryParam<ChatDisplay> chatDisplay;
 
   SearchNode({
@@ -807,13 +844,12 @@ The package example demonstrates:
 - the splash -> a -> ab/abc and ad/adc flow
 - a responsive route tree where small screens stack on top of `/a` while
   medium/large screens keep the alphabet sidebar visible in a shell
-- an `AnonymousShellLocation` that removes one nesting level from a
+- an `ShellLocation` that removes one nesting level from a
   `Shell + Location`
   pattern
-- lightweight named callback-based `Location<Self>` nodes plus an
-  override-based `AbstractLocation` example
-- direct `Shell(...)` and `AnonymousShellLocation(...)` usage with optional
-  `ShellLocation<Self>` / `AbstractShellLocation` subclassing support
+- override-based `Location<Self>` and `ShellLocation<Self>` nodes with
+  constructor-provided children
+- direct `Shell(...)` usage for structural navigator boundaries
 - typed path and query params
 - generated `routeToX(...)` helpers
 - generated `XRouteTarget(...)` classes

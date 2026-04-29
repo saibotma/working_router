@@ -1,4 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:working_router/working_router.dart';
+
+import 'inner_shell_root_screen.dart';
+import 'shell_bypass_screen.dart';
+
+final adeId = NodeId<ADENode>();
+
+class ADNestedNode extends ShellLocation<ADNestedNode> {
+  ADNestedNode({
+    super.id,
+    super.parentRouterKey,
+  });
+
+  @override
+  void build(ShellLocationBuilder builder) {
+    builder.shellContent = ShellContent.builder(
+      (context, data, child) => InnerShellScreen(child: child),
+    );
+    builder.content = Content.widget(const InnerShellRootScreen());
+    builder.children = [
+      ADENode(
+        id: adeId,
+        parentRouterKey: parentRouterKey ?? routerKey,
+      ),
+    ];
+  }
+}
 
 class InnerShellScreen extends StatelessWidget {
   final Widget child;

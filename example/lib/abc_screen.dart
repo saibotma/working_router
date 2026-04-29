@@ -1,4 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:working_router/working_router.dart';
+
+import 'platform_modal/platform_modal_page.dart';
+
+class ABCNode extends Location<ABCNode> {
+  ABCNode({
+    super.id,
+    required super.parentRouterKey,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('c');
+    final id = builder.stringPathParam();
+    final bParam = builder.stringQueryParam('b');
+    final cParam = builder.stringQueryParam('c');
+
+    builder.content = Content.builder((context, data) {
+      return ABCScreen(
+        id: data.param(id),
+        b: data.param(bParam),
+        c: data.param(cParam),
+      );
+    });
+    builder.page = (key, child) {
+      return PlatformModalPage<dynamic>(key: key, child: child);
+    };
+  }
+}
 
 class ABCScreen extends StatelessWidget {
   final String id;

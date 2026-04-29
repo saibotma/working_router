@@ -7,9 +7,6 @@ It currently provides IDE assists for restructuring location trees without
 manually rewriting `builder.children = [...]` lists.
 
 Current assists:
-- Wrap a `builder.children = [...]` entry with `Location`
-- Wrap a `builder.children = [...]` entry with `MultiShell`
-- Wrap a `builder.children = [...]` entry with `Scope`
 - Wrap a `builder.children = [...]` entry with `Shell`
 - Remove an element while keeping its children when the structure is
   unambiguous

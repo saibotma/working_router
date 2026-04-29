@@ -16,10 +16,6 @@ import 'package:working_router/src/route_node.dart'
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildLocation<Self extends AnyLocation<Self>> =
-    void Function(LocationBuilder builder, Self node);
-typedef BuildAnonymousLocation =
-    void Function(LocationBuilder builder, AnonymousLocation node);
 typedef LocationWidgetBuilder =
     Widget Function(BuildContext context, WorkingRouterData data);
 typedef SelfBuiltLocationPageBuilder =
@@ -225,11 +221,10 @@ class BuiltLocationDefinition {
 
 /// Erased router-facing base type for all locations.
 ///
-/// [`Location`] is the main typed callback-based convenience type, while
-/// [`AbstractLocation`] is the override-based base for custom subclasses:
+/// [`Location`] is the override-based base for custom subclasses:
 ///
 /// ```dart
-/// class ALocation extends AbstractLocation<ALocation> { ... }
+/// class ALocation extends Location<ALocation> { ... }
 /// ```
 ///
 /// Router internals, matched location lists, and generic predicates still need
@@ -291,7 +286,7 @@ abstract class AnyLocation<Self extends AnyLocation<Self>>
   IList<RouteNode> matchRelative(
     bool Function(AnyLocation location) predicate,
   ) {
-    for (final child in children) {
+    for (final child in resolvedChildren) {
       final childMatch = matchRelativeNode(child, predicate);
       if (childMatch.isNotEmpty) {
         return childMatch;
@@ -325,70 +320,25 @@ abstract class AnyLocation<Self extends AnyLocation<Self>>
   int get hashCode => Object.hash(runtimeType, id, localId);
 }
 
-abstract class AbstractLocation<Self extends AnyLocation<Self>>
+/// Override-based base class for reusable location subclasses.
+///
+/// Use this when a location is implemented by subclassing and overriding
+/// [build] directly.
+abstract class Location<Self extends AnyLocation<Self>>
     extends AnyLocation<Self>
     implements BuildsWithLocationBuilder {
-  /// Override-based base class for reusable location subclasses.
-  ///
-  /// Use this when a location is implemented by subclassing and overriding
-  /// [build] directly.
-  AbstractLocation({
+  Location({
     super.id,
     super.localId,
     super.parentRouterKey,
     super.tags,
   });
 
-  /// Mirrors the `node` callback parameter used by callback-based locations.
-  ///
-  /// This makes override-based locations easier to keep in sync with inline
-  /// callback-based locations when moving builder code between the two forms.
+  /// A typed reference to this node for child-factory code.
   Self get node => this as Self;
 
   @override
   LocationBuilder createBuilder() => LocationBuilder();
-}
-
-class Location<Self extends AnyLocation<Self>> extends AbstractLocation<Self> {
-  final BuildLocation<Self> _build;
-
-  /// Main typed callback-based location API.
-  ///
-  /// Use this for lightweight named route-node subclasses that simply forward a
-  /// `build:` callback.
-  Location({
-    super.id,
-    super.localId,
-    super.parentRouterKey,
-    super.tags,
-    required BuildLocation<Self> build,
-  }) : _build = build;
-
-  @override
-  void build(LocationBuilder builder) {
-    _build(builder, this as Self);
-  }
-}
-
-/// Callback-based convenience location for anonymous inline route nodes.
-///
-/// This intentionally does not expose a self generic parameter. Use
-/// [Location] for the main typed callback-based API.
-class AnonymousLocation extends AbstractLocation<AnonymousLocation> {
-  final BuildAnonymousLocation _build;
-
-  AnonymousLocation({
-    super.id,
-    super.localId,
-    super.parentRouterKey,
-    super.tags,
-    required BuildAnonymousLocation build,
-  }) : _build = build;
-
-  @override
-  void build(LocationBuilder builder) {
-    _build(builder, this);
-  }
 }
 
 List<Page<dynamic>> buildDefaultPagesForSlot({

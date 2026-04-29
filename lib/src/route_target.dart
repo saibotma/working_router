@@ -54,8 +54,8 @@ base class ChildRouteTarget extends RouteTarget {
   /// Resolves the exact live descendant route-node chain below [start].
   ///
   /// Generated `childXTarget(...)` helpers typically set this to a callback
-  /// that walks `start.children` layer by layer and returns the intended child
-  /// path for the current runtime tree shape.
+  /// that walks `start.resolvedChildren` layer by layer and returns the
+  /// intended child path for the current runtime tree shape.
   final IList<RouteNode>? Function() resolveChildPathNodes;
 
   /// Writes typed path parameter values for the matched target route chain.

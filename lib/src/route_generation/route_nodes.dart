@@ -66,22 +66,15 @@
 /// for the full route vocabulary.
 ///
 /// Supported composition includes:
-/// - named `Location<Self>` subclasses
-/// - named `Scope<Self>` subclasses
-/// - named `ShellLocation<Self>` / `MultiShellLocation<Self>` subclasses
-/// - named `AbstractLocation<Self>`, `AbstractScope<Self>`, and
-///   `AbstractShellLocation<Self>`
-///   subclasses when you prefer overriding `build(...)`
+/// - named `Location<Self>`, `Scope<Self>`, `ShellLocation<Self>`, and
+///   `MultiShellLocation<Self>` subclasses that override `build(...)`
 /// - direct `Shell(...)` nodes
-/// - direct `AnonymousLocation(...)`, `AnonymousScope(...)`,
-///   `AnonymousShellLocation(...)`, and `AnonymousMultiShellLocation(...)`
-///   nodes
 /// - top-level or static helper fields and getters
 /// - top-level, static, or local helper functions
 /// - helper function arguments when the tree-relevant expressions remain
 ///   statically recoverable from source
 /// - `PathParam` instance fields declared on the location class
-/// - children returned from `build(...)` or a forwarded `builder:` callback
+/// - children returned from `build(...)`
 /// - children declared on the location or shell instance via a `children`
 ///   field or getter
 /// - collection `if` elements and spreads inside children lists

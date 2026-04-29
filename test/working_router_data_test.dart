@@ -462,7 +462,7 @@ void main() {
   });
 }
 
-class _TestLocation extends AbstractLocation<_TestLocation> {
+class _TestLocation extends Location<_TestLocation> {
   final List<PathSegment> _segments;
 
   _TestLocation({required NodeId<_TestLocation> id, required String path})
@@ -477,7 +477,7 @@ class _TestLocation extends AbstractLocation<_TestLocation> {
   }
 }
 
-class _ParamOnlyLocation extends AbstractLocation<_ParamOnlyLocation> {
+class _ParamOnlyLocation extends Location<_ParamOnlyLocation> {
   final UnboundPathParam<String> parameter;
   late final PathParam<String> boundParameter =
       definition.pathParameters.single as PathParam<String>;
@@ -493,7 +493,7 @@ class _ParamOnlyLocation extends AbstractLocation<_ParamOnlyLocation> {
   }
 }
 
-class _QueryLocation extends AbstractLocation<_QueryLocation> {
+class _QueryLocation extends Location<_QueryLocation> {
   final UnboundQueryParam<String> parameter;
   late final QueryParam<String> boundParameter =
       definition.queryParameters.single as QueryParam<String>;
@@ -507,7 +507,7 @@ class _QueryLocation extends AbstractLocation<_QueryLocation> {
   }
 }
 
-class _NullableQueryLocation extends AbstractLocation<_NullableQueryLocation> {
+class _NullableQueryLocation extends Location<_NullableQueryLocation> {
   final UnboundQueryParam<DateTime?> parameter;
   late final QueryParam<DateTime?> boundParameter =
       definition.queryParameters.single as QueryParam<DateTime?>;
@@ -523,7 +523,7 @@ class _NullableQueryLocation extends AbstractLocation<_NullableQueryLocation> {
   }
 }
 
-class _DefaultQueryLocation extends AbstractLocation<_DefaultQueryLocation> {
+class _DefaultQueryLocation extends Location<_DefaultQueryLocation> {
   final DefaultUnboundQueryParam<String> parameter;
   late final DefaultQueryParam<String> boundParameter =
       definition.queryParameters.single as DefaultQueryParam<String>;
@@ -540,7 +540,7 @@ class _DefaultQueryLocation extends AbstractLocation<_DefaultQueryLocation> {
 }
 
 class _BuilderDefaultQueryLocation
-    extends AbstractLocation<_BuilderDefaultQueryLocation> {
+    extends Location<_BuilderDefaultQueryLocation> {
   late final DefaultQueryParam<String> boundParameter =
       definition.queryParameters.single as DefaultQueryParam<String>;
 
@@ -558,7 +558,7 @@ class _BuilderDefaultQueryLocation
 }
 
 class _BuilderRequiredQueryLocation
-    extends AbstractLocation<_BuilderRequiredQueryLocation> {
+    extends Location<_BuilderRequiredQueryLocation> {
   late final RequiredQueryParam<String> boundParameter =
       definition.queryParameters.single as RequiredQueryParam<String>;
 
@@ -572,7 +572,7 @@ class _BuilderRequiredQueryLocation
   }
 }
 
-class _NoIdSegmentLocation extends AbstractLocation<_NoIdSegmentLocation> {
+class _NoIdSegmentLocation extends Location<_NoIdSegmentLocation> {
   final List<PathSegment> _segments;
 
   _NoIdSegmentLocation({required String path})
@@ -586,7 +586,7 @@ class _NoIdSegmentLocation extends AbstractLocation<_NoIdSegmentLocation> {
   }
 }
 
-class _BoundParamLocation extends AbstractLocation<_BoundParamLocation> {
+class _BoundParamLocation extends Location<_BoundParamLocation> {
   final UnboundPathParam<String> pathParameter;
   final UnboundQueryParam<String> queryParameter;
 
@@ -612,15 +612,14 @@ class _AccountsNode extends AbstractShell<_AccountsNode> {
   }
 }
 
-class _TypedRootLocation extends AbstractLocation<_TypedRootLocation> {
+class _TypedRootLocation extends Location<_TypedRootLocation> {
   _TypedRootLocation() : super(id: _typedRootId);
 
   @override
   void build(LocationBuilder builder) {}
 }
 
-class _TypedAddAccountLocation
-    extends AbstractLocation<_TypedAddAccountLocation> {
+class _TypedAddAccountLocation extends Location<_TypedAddAccountLocation> {
   _TypedAddAccountLocation() : super(id: _typedAddAccountId);
 
   @override
@@ -629,7 +628,7 @@ class _TypedAddAccountLocation
   }
 }
 
-class _BranchOwnerLocation extends AbstractLocation<_BranchOwnerLocation> {
+class _BranchOwnerLocation extends Location<_BranchOwnerLocation> {
   final _BranchOverlay first;
   final _BranchOverlay second;
 

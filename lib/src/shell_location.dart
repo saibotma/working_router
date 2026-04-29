@@ -5,19 +5,6 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildShellLocation<Self extends AnyLocation<Self>> =
-    void Function(
-      ShellLocationBuilder builder,
-      Self node,
-      WorkingRouterKey routerKey,
-    );
-typedef BuildAnonymousShellLocation =
-    void Function(
-      ShellLocationBuilder builder,
-      AnonymousShellLocation node,
-      WorkingRouterKey routerKey,
-    );
-
 final class ShellLocationBuildResult extends LocationBuildResult {
   final LocationWidgetBuilder? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
@@ -149,17 +136,13 @@ class ShellLocationBuilder extends LocationBuilder {
 /// shell location then behaves like a normal [Location] for rendering, while
 /// descendants that would normally inherit or explicitly target this shell
 /// location's [routerKey] are routed to its parent navigator instead.
-abstract class AbstractShellLocation<Self extends AnyLocation<Self>>
+abstract class ShellLocation<Self extends AnyLocation<Self>>
     extends AnyLocation<Self>
     implements BuildsWithShellLocationBuilder {
   final WorkingRouterKey routerKey;
   final bool navigatorEnabled;
 
-  /// Override-based base class for reusable shell location subclasses.
-  ///
-  /// Use this when a shell location is implemented by subclassing and
-  /// overriding [build] directly.
-  AbstractShellLocation({
+  ShellLocation({
     super.id,
     super.localId,
     super.parentRouterKey,
@@ -168,12 +151,7 @@ abstract class AbstractShellLocation<Self extends AnyLocation<Self>>
     this.navigatorEnabled = true,
   }) : routerKey = routerKey ?? WorkingRouterKey();
 
-  /// Mirrors the `node` callback parameter used by callback-based shell
-  /// locations.
-  ///
-  /// This makes override-based shell locations easier to keep in sync with
-  /// inline callback-based shell locations when moving builder code between the
-  /// two forms.
+  /// A typed reference to this node for child-factory code.
   Self get node => this as Self;
 
   @override
@@ -215,58 +193,6 @@ abstract class AbstractShellLocation<Self extends AnyLocation<Self>>
   }
 }
 
-/// Typed callback-based shell location.
-///
-/// Use this when you want callback-based composition but still need a named
-/// concrete self type, for example when subclassing this wrapper directly.
-class ShellLocation<Self extends AnyLocation<Self>>
-    extends AbstractShellLocation<Self> {
-  final BuildShellLocation<Self> _build;
-
-  /// Main typed callback-based shell location API.
-  ///
-  /// Use this for lightweight named shell location subclasses that simply
-  /// forward a `build:` callback.
-  ShellLocation({
-    super.id,
-    super.localId,
-    super.parentRouterKey,
-    super.tags,
-    super.routerKey,
-    super.navigatorEnabled,
-    required BuildShellLocation<Self> build,
-  }) : _build = build;
-
-  @override
-  void build(ShellLocationBuilder builder) {
-    _build(builder, this as Self, routerKey);
-  }
-}
-
-/// Callback-based convenience shell location for anonymous inline route nodes.
-///
-/// This intentionally does not expose a self generic parameter. Use
-/// [ShellLocation] for the main typed callback-based API.
-class AnonymousShellLocation
-    extends AbstractShellLocation<AnonymousShellLocation> {
-  final BuildAnonymousShellLocation _build;
-
-  AnonymousShellLocation({
-    super.id,
-    super.localId,
-    super.parentRouterKey,
-    super.tags,
-    super.routerKey,
-    super.navigatorEnabled,
-    required BuildAnonymousShellLocation build,
-  }) : _build = build;
-
-  @override
-  void build(ShellLocationBuilder builder) {
-    _build(builder, this, routerKey);
-  }
-}
-
 LocationWidgetBuilder? _resolveDefaultWidgetBuilder(
   DefaultContent? defaultContent,
 ) {
@@ -279,8 +205,7 @@ SelfBuiltLocationPageBuilder? _resolveDefaultPageBuilder({
 }) {
   if (defaultPage != null && defaultContent == null) {
     throw StateError(
-      'AnonymousShellLocation defaultPage was configured without '
-      'defaultContent.',
+      'ShellLocation defaultPage was configured without defaultContent.',
     );
   }
   return defaultPage;

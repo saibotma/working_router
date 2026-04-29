@@ -6,19 +6,6 @@ import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-typedef BuildMultiShellLocation<Self extends AnyLocation<Self>> =
-    void Function(
-      MultiShellLocationBuilder builder,
-      Self node,
-      MultiShellSlot contentSlot,
-    );
-typedef BuildAnonymousMultiShellLocation =
-    void Function(
-      MultiShellLocationBuilder builder,
-      AnonymousMultiShellLocation node,
-      MultiShellSlot contentSlot,
-    );
-
 final class MultiShellLocationBuildResult extends LocationBuildResult {
   final LocationWidgetBuilder? buildWidget;
   final SelfBuiltLocationPageBuilder? buildPage;
@@ -189,13 +176,13 @@ class MultiShellLocationBuilder extends LocationBuilder {
 /// pages. Extra slots must be created via [MultiShellLocationBuilder.slot] and
 /// may define their own default content/page. Children without an explicit
 /// `parentRouterKey` inherit the [contentSlot].
-abstract class AbstractMultiShellLocation<Self extends AnyLocation<Self>>
+abstract class MultiShellLocation<Self extends AnyLocation<Self>>
     extends AnyLocation<Self>
     implements BuildsWithMultiShellLocationBuilder {
   final MultiShellSlot contentSlot;
   final bool navigatorEnabled;
 
-  AbstractMultiShellLocation({
+  MultiShellLocation({
     super.id,
     super.localId,
     super.parentRouterKey,
@@ -207,12 +194,7 @@ abstract class AbstractMultiShellLocation<Self extends AnyLocation<Self>>
          debugLabel: 'content',
        );
 
-  /// Mirrors the `node` callback parameter used by callback-based multi shell
-  /// locations.
-  ///
-  /// This makes override-based multi shell locations easier to keep in sync
-  /// with inline callback-based multi shell locations when moving builder code
-  /// between the two forms.
+  /// A typed reference to this node for child-factory code.
   Self get node => this as Self;
 
   @override
@@ -257,58 +239,6 @@ abstract class AbstractMultiShellLocation<Self extends AnyLocation<Self>>
   Page<dynamic> buildShellPage(LocalKey? key, Widget child) {
     return _multiShellRender.buildShellPage?.call(key, child) ??
         MaterialPage<dynamic>(key: key, child: child);
-  }
-}
-
-/// Typed callback-based [AbstractMultiShellLocation].
-///
-/// Use this when you want callback-based composition but still need a named
-/// concrete self type, for example when subclassing this wrapper directly.
-class MultiShellLocation<Self extends AnyLocation<Self>>
-    extends AbstractMultiShellLocation<Self> {
-  final BuildMultiShellLocation<Self> _build;
-
-  /// Main typed callback-based multi shell location API.
-  ///
-  /// Use this for lightweight named multi shell location subclasses that
-  /// simply forward a `build:` callback.
-  MultiShellLocation({
-    super.id,
-    super.localId,
-    super.parentRouterKey,
-    super.tags,
-    super.contentRouterKey,
-    super.navigatorEnabled,
-    required BuildMultiShellLocation<Self> build,
-  }) : _build = build;
-
-  @override
-  void build(MultiShellLocationBuilder builder) {
-    _build(builder, this as Self, contentSlot);
-  }
-}
-
-/// Callback-based multi shell location for anonymous inline route nodes.
-///
-/// This intentionally does not expose a self generic parameter. Use
-/// [MultiShellLocation] for the main typed callback-based API.
-class AnonymousMultiShellLocation
-    extends AbstractMultiShellLocation<AnonymousMultiShellLocation> {
-  final BuildAnonymousMultiShellLocation _build;
-
-  AnonymousMultiShellLocation({
-    super.id,
-    super.localId,
-    super.parentRouterKey,
-    super.tags,
-    super.contentRouterKey,
-    super.navigatorEnabled,
-    required BuildAnonymousMultiShellLocation build,
-  }) : _build = build;
-
-  @override
-  void build(MultiShellLocationBuilder builder) {
-    _build(builder, this, contentSlot);
   }
 }
 

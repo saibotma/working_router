@@ -1,6 +1,3 @@
-import 'package:example/state_preserving_tabs/scaffold_location.dart';
-import 'package:example/state_preserving_tabs/tab1_location.dart';
-import 'package:example/state_preserving_tabs/tab2_location.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
@@ -11,13 +8,42 @@ import 'package:working_router/working_router.dart';
 // Another solution to test out would be this draft:
 // https://github.com/lulupointu/vrouter/issues/32#issuecomment-816510075
 
+class ScaffoldNode extends Location<ScaffoldNode> {
+  final List<RouteNode> children;
+
+  ScaffoldNode({required this.children});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.children = children;
+  }
+}
+
+class Tab1Node extends Location<Tab1Node> {
+  Tab1Node();
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('tab1');
+  }
+}
+
+class Tab2Node extends Location<Tab2Node> {
+  Tab2Node();
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('tab2');
+  }
+}
+
 void main() {
   runApp(const StatePreservingTabs());
 }
 
 List<RouteNode> buildRouteNodes(WorkingRouterKey _) => [
       ScaffoldNode(
-        childNodes: [
+        children: [
           Tab1Node(),
           Tab2Node(),
         ],
@@ -93,8 +119,7 @@ class _StatePreservingTabsState extends State<StatePreservingTabs> {
     );
   }
 
-  final emptyPage =
-      ChildLocationPageSkeleton(child: const Placeholder());
+  final emptyPage = ChildLocationPageSkeleton(child: const Placeholder());
   // Give each tab page a unique key, so that it does not get rebuilt
   // (and thus looses state) when switching between tabs. This is required,
   // because tab1Page will also be returned (above) when Tab2Node is active

@@ -132,7 +132,8 @@ final class _LocationTreeListEntryFinder extends RecursiveAstVisitor<void> {
 
   bool _isChildrenAssignmentList(ListLiteral node) {
     final assignment = node.parent;
-    if (assignment is! AssignmentExpression || assignment.rightHandSide != node) {
+    if (assignment is! AssignmentExpression ||
+        assignment.rightHandSide != node) {
       return false;
     }
 

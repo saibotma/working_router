@@ -1,4 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:working_router/working_router.dart';
+
+class ADENode extends Location<ADENode> {
+  ADENode({
+    super.id,
+    super.parentRouterKey,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('e');
+    builder.content = Content.widget(const ShellBypassScreen());
+  }
+}
 
 class ShellBypassScreen extends StatelessWidget {
   const ShellBypassScreen({super.key});

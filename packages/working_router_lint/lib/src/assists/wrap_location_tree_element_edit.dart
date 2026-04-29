@@ -51,10 +51,7 @@ final class WrapLocationTreeElementEdit {
     );
 
     return WrapLocationTreeElementEdit(
-      range: SourceRange(
-        element.offset,
-        element.end - element.offset,
-      ),
+      range: SourceRange(element.offset, element.end - element.offset),
       replacement: template(
         selectedSource: selectedSource,
         indent: indent,
@@ -73,7 +70,10 @@ final class WrapLocationTreeElementEdit {
     return rawIndent.replaceAll(RegExp(r'[^\t ]'), '');
   }
 
-  static String _reindentSelectedSource(String selectedSource, String childIndent) {
+  static String _reindentSelectedSource(
+    String selectedSource,
+    String childIndent,
+  ) {
     final lines = selectedSource.split('\n');
     if (lines.length == 1) {
       return '$childIndent${lines.single}';

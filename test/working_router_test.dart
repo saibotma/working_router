@@ -3272,16 +3272,15 @@ abstract final class _MigratingId {
 
 final _overlaySearchId = NodeId<_BuilderOverlay>();
 
-class _PathLocation extends AbstractLocation<_PathLocation> {
+class _PathLocation extends Location<_PathLocation> {
   final List<PathSegment> _segments;
-  final List<RouteNode> _childNodes;
+  final List<RouteNode> children;
 
   _PathLocation({
     required NodeId<_PathLocation> id,
     required String path,
-    List<RouteNode> children = const [],
+    this.children = const [],
   }) : _segments = _pathSegments(path),
-       _childNodes = children,
        super(id: id);
 
   @override
@@ -3289,44 +3288,45 @@ class _PathLocation extends AbstractLocation<_PathLocation> {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
-    builder.children = _childNodes;
+    builder.children = children;
   }
 }
 
 abstract class _ParamPathLocation<Self extends _ParamPathLocation<Self>>
-    extends AbstractLocation<Self> {
+    extends Location<Self> {
   final List<PathSegment> _segments;
-  final List<RouteNode> _childNodes;
+  final List<RouteNode> children;
 
   _ParamPathLocation({
     required NodeId<Self> id,
     required String path,
-    List<RouteNode> children = const [],
+    this.children = const [],
   }) : _segments = _pathSegments(path),
-       _childNodes = children,
        super(id: id);
 
   @override
   void build(LocationBuilder builder) {
-    final children = register(builder);
-    builder.children = children;
+    register(builder);
   }
 
-  List<RouteNode> register(
+  void register(
     LocationBuilder builder,
   ) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
-    return _childNodes;
+    builder.children = children;
   }
 }
 
 class _ParamRootLocation extends _ParamPathLocation<_ParamRootLocation> {
   _ParamRootLocation({
     required super.id,
-    super.children = const [],
-  }) : super(path: '');
+    List<RouteNode> children = const [],
+  }) : super(
+         path: '',
+         children: List.unmodifiable(children),
+       );
 }
 
 class _ItemLocation extends _ParamPathLocation<_ItemLocation> {
@@ -3339,17 +3339,19 @@ class _ItemLocation extends _ParamPathLocation<_ItemLocation> {
 
   _ItemLocation({
     required super.id,
-    super.children = const [],
-  }) : super(path: 'item');
+    List<RouteNode> children = const [],
+  }) : super(
+         path: 'item',
+         children: List.unmodifiable(children),
+       );
 
   @override
-  List<RouteNode> register(
+  void register(
     LocationBuilder builder,
   ) {
-    final children = super.register(builder);
+    super.register(builder);
     builder.bindParam(idParameter);
     builder.bindParam(keep);
-    return children;
   }
 }
 
@@ -3360,32 +3362,29 @@ class _DetailLocation extends _ParamPathLocation<_DetailLocation> {
   });
 
   @override
-  List<RouteNode> register(
+  void register(
     LocationBuilder builder,
   ) {
-    final children = super.register(builder);
+    super.register(builder);
     builder.stringQueryParam('detail');
-    return children;
   }
 }
 
-class _MigratingRootLocation extends AbstractLocation<_MigratingRootLocation> {
-  final List<RouteNode> _childNodes;
+class _MigratingRootLocation extends Location<_MigratingRootLocation> {
+  final List<RouteNode> children;
 
   _MigratingRootLocation({
     required NodeId<_MigratingRootLocation> id,
-    List<RouteNode> children = const [],
-  }) : _childNodes = children,
-       super(id: id);
+    this.children = const [],
+  }) : super(id: id);
 
   @override
   void build(LocationBuilder builder) {
-    builder.children = _childNodes;
+    builder.children = children;
   }
 }
 
-class _SelfBuiltAccountLocation
-    extends AbstractLocation<_SelfBuiltAccountLocation> {
+class _SelfBuiltAccountLocation extends Location<_SelfBuiltAccountLocation> {
   _SelfBuiltAccountLocation({
     required NodeId<_SelfBuiltAccountLocation> id,
   }) : super(id: id);
@@ -3404,11 +3403,20 @@ class _SelfBuiltAccountLocation
 }
 
 class _BuilderLocation extends Location<_BuilderLocation> {
+  final void Function(LocationBuilder builder, _BuilderLocation location)
+  _build;
+
   _BuilderLocation({
     required super.id,
     super.parentRouterKey,
-    required super.build,
-  });
+    required void Function(LocationBuilder builder, _BuilderLocation location)
+    build,
+  }) : _build = build;
+
+  @override
+  void build(LocationBuilder builder) {
+    _build(builder, this);
+  }
 }
 
 class _BuilderOverlay extends AbstractOverlay<_BuilderOverlay> {
@@ -3427,24 +3435,65 @@ class _BuilderOverlay extends AbstractOverlay<_BuilderOverlay> {
 }
 
 class _BuilderScope extends Scope<_BuilderScope> {
+  final void Function(ScopeBuilder builder, _BuilderScope scope) _build;
+
   _BuilderScope({
-    required super.build,
-  });
+    required void Function(ScopeBuilder builder, _BuilderScope scope) build,
+  }) : _build = build;
+
+  @override
+  void build(ScopeBuilder builder) {
+    _build(builder, this);
+  }
 }
 
 class _BuilderShellLocation extends ShellLocation<_BuilderShellLocation> {
+  final void Function(
+    ShellLocationBuilder builder,
+    _BuilderShellLocation location,
+    WorkingRouterKey routerKey,
+  )
+  _build;
+
   _BuilderShellLocation({
     super.navigatorEnabled,
-    required super.build,
-  });
+    required void Function(
+      ShellLocationBuilder builder,
+      _BuilderShellLocation location,
+      WorkingRouterKey routerKey,
+    )
+    build,
+  }) : _build = build;
+
+  @override
+  void build(ShellLocationBuilder builder) {
+    _build(builder, this, routerKey);
+  }
 }
 
 class _BuilderMultiShellLocation
     extends MultiShellLocation<_BuilderMultiShellLocation> {
+  final void Function(
+    MultiShellLocationBuilder builder,
+    _BuilderMultiShellLocation location,
+    MultiShellSlot contentSlot,
+  )
+  _build;
+
   _BuilderMultiShellLocation({
     super.navigatorEnabled,
-    required super.build,
-  });
+    required void Function(
+      MultiShellLocationBuilder builder,
+      _BuilderMultiShellLocation location,
+      MultiShellSlot contentSlot,
+    )
+    build,
+  }) : _build = build;
+
+  @override
+  void build(MultiShellLocationBuilder builder) {
+    _build(builder, this, contentSlot);
+  }
 }
 
 class _BuilderMultiShell extends MultiShell {
@@ -3454,7 +3503,7 @@ class _BuilderMultiShell extends MultiShell {
   });
 }
 
-class _ChannelLocation extends AbstractLocation<_ChannelLocation> {
+class _ChannelLocation extends Location<_ChannelLocation> {
   late final PathParam<String> channelId;
 
   _ChannelLocation({

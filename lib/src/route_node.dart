@@ -34,6 +34,13 @@ final class LocalNodeId<T extends RouteNode<T>> implements AnyLocalNodeId {
   LocalNodeId();
 }
 
+/// Builds a route node's children after the node has declared its own handles.
+///
+/// Use this for tree-shaped composition when descendants need parent-owned
+/// objects such as path/query params, shell router keys, or multi-shell slots.
+typedef ChildrenBuilder<Self extends RouteNode<Self>> =
+    List<RouteNode> Function(Self node);
+
 sealed class PathSegment {
   const PathSegment();
 }
@@ -271,7 +278,8 @@ abstract class RouteNode<Self extends RouteNode<Self>> {
     this.parentRouterKey,
   });
 
-  List<RouteNode> get children => const [];
+  /// Children after the node's route definition has been built.
+  List<RouteNode> get resolvedChildren => const [];
 
   /// Builds the default [Page] key for this node.
   ///
@@ -307,7 +315,7 @@ abstract class RouteNode<Self extends RouteNode<Self>> {
     if (identical(this, node)) {
       return true;
     }
-    for (final child in children) {
+    for (final child in resolvedChildren) {
       if (child.containsNode(node)) {
         return true;
       }
@@ -390,7 +398,7 @@ RouteMatch _matchNode(
       ? uriPathSegments
       : uriPathSegments.sublist(node.path.length);
   final childMatch = _matchChildren(
-    node.children,
+    node.resolvedChildren,
     nextPathSegments,
     queryParameters: queryParameters,
   );
@@ -436,7 +444,7 @@ IList<RouteNode> _matchNodeById(
     if (node.id == id) {
       return [node].toIList();
     }
-    for (final child in node.children) {
+    for (final child in node.resolvedChildren) {
       final childMatch = _matchNodeById(child, id);
       if (childMatch.isNotEmpty) {
         return [node, ...childMatch].toIList();
@@ -449,7 +457,7 @@ IList<RouteNode> _matchNodeById(
     return [node].toIList();
   }
 
-  for (final child in node.children) {
+  for (final child in node.resolvedChildren) {
     final childMatch = _matchNodeById(child, id);
     if (childMatch.isNotEmpty) {
       return [node, ...childMatch].toIList();
@@ -464,7 +472,7 @@ IList<RouteNode> matchRelativeNode(
   bool Function(AnyLocation location) predicate,
 ) {
   if (node is! PathRouteNode) {
-    for (final child in node.children) {
+    for (final child in node.resolvedChildren) {
       final childMatch = matchRelativeNode(child, predicate);
       if (childMatch.isNotEmpty) {
         return [node, ...childMatch].toIList();
@@ -477,7 +485,7 @@ IList<RouteNode> matchRelativeNode(
     return [node].toIList();
   }
 
-  for (final child in node.children) {
+  for (final child in node.resolvedChildren) {
     final childMatch = matchRelativeNode(child, predicate);
     if (childMatch.isNotEmpty) {
       return [node, ...childMatch].toIList();
@@ -594,7 +602,7 @@ IList<RouteNode>? resolveExactChildRouteNodes(
   RouteNode owner,
   List<bool Function(RouteNode node)> relativeMatchers,
 ) {
-  var children = owner.children;
+  var children = owner.resolvedChildren;
   final matchedNodes = <RouteNode>[];
 
   for (final matcher in relativeMatchers) {
@@ -610,7 +618,7 @@ IList<RouteNode>? resolveExactChildRouteNodes(
     }
 
     matchedNodes.add(matchedChild);
-    children = matchedChild.children;
+    children = matchedChild.resolvedChildren;
   }
 
   return matchedNodes.toIList();
