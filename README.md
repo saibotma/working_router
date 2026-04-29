@@ -14,10 +14,8 @@ definition API.
   - `pathLiteral(...)`
   - `pathParam(...)`
   - `queryParam(...)`
-- The same `build(...)` method also decides whether the location is:
-  - legacy when no render is configured, so `buildRootPages` handles it
-  - self-built via `builder.content = ...`, with an optional page override from `builder.page = ...`
-  - and returns the child `RouteNode`s as a list
+- The same `build(...)` method also configures location content, optional page
+  wrappers, and child `RouteNode`s.
 - `@RouteNodes()` generates typed `routeToX(...)` helpers and `XRouteTarget`
   classes, plus start-anchored `childXTarget(...)` helpers, from one canonical
   route-tree file.
@@ -145,6 +143,7 @@ Important details:
 - `builder.content = Content.builder(...)` is the data-aware variant.
 - `builder.content = const Content.none()` creates a semantic non-rendering
   location that can still be terminal.
+- Leaving `content` unset is equivalent to `Content.none()`.
 - `builder.page = ...` only overrides the default page wrapper around rendered
   content.
 - For rare cross-cutting cases, define reusable unbound params with
@@ -162,8 +161,6 @@ Important details:
   terminal semantic location.
 - `content` and `defaultContent` may depend on `context` and `data`, but they
   should not switch semantic page role based on other external mutable state.
-- If `content` is left entirely unset, the location is treated as legacy and
-  resolved through `buildRootPages`.
 
 Reusable unbound params are mainly useful when outer code needs nullable access
 to a route param without owning the location that declares it:
@@ -475,8 +472,8 @@ but routing ownership aliases it back to the shell parent navigator. That
 means children can either inherit implicitly or keep using
 `parentRouterKey: routerKey` without forcing a second responsive tree.
 
-Nested shell routing is hosted by a stateful `NestedRouting` widget, so the
-nested delegate keeps its own navigator key and stack across
+Nested shell routing is hosted by a stateful internal widget, so the nested
+delegate keeps its own navigator key and stack across
 `WorkingRouter.refresh()` as long as that shell widget is reused. That is what
 makes dynamic route-tree refreshes practical here, because nested navigator
 state can survive tree changes that still keep the same shell alive.
@@ -817,13 +814,6 @@ Redirects can use the same targets:
 ```dart
 return RedirectTransition(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'));
 ```
-
-## Legacy `buildRootPages`
-
-The old `buildRootPages` / skeleton flow still exists for migration.
-
-For that case, a location simply leaves `builder.content` unset. The route
-stays in the tree while page construction still happens in `buildRootPages`.
 
 ## Running The Generator
 

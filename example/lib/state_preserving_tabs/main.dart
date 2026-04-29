@@ -8,32 +8,67 @@ import 'package:working_router/working_router.dart';
 // Another solution to test out would be this draft:
 // https://github.com/lulupointu/vrouter/issues/32#issuecomment-816510075
 
-class ScaffoldNode extends Location<ScaffoldNode> {
-  final List<RouteNode> children;
-
-  ScaffoldNode({required this.children});
-
+class ScaffoldNode extends AbstractMultiShell<ScaffoldNode> {
   @override
-  void build(LocationBuilder builder) {
-    builder.children = children;
+  void build(MultiShellBuilder builder) {
+    final tab1Slot = builder.slot(
+      debugLabel: 'tab1',
+      defaultContent: DefaultContent.widget(
+        const ScreenWithState(color: Colors.red),
+      ),
+      defaultPage: (key, child) {
+        return MaterialPage<dynamic>(key: key, child: child);
+      },
+    );
+    final tab2Slot = builder.slot(
+      debugLabel: 'tab2',
+      defaultContent: DefaultContent.widget(
+        const ScreenWithState(color: Colors.blue),
+      ),
+      defaultPage: (key, child) {
+        return MaterialPage<dynamic>(key: key, child: child);
+      },
+    );
+    builder.content = MultiShellContent.builder((context, data, slots) {
+      final index = data.leaf is Tab2Node ? 1 : 0;
+      return StatePreservingScaffold(
+        index: index,
+        children: [
+          slots.child(tab1Slot),
+          slots.child(tab2Slot),
+        ],
+      );
+    });
+    builder.children = [
+      Tab1Node(parentRouterKey: tab1Slot.routerKey),
+      Tab2Node(parentRouterKey: tab2Slot.routerKey),
+    ];
   }
 }
 
 class Tab1Node extends Location<Tab1Node> {
-  Tab1Node();
+  Tab1Node({super.parentRouterKey});
 
   @override
   void build(LocationBuilder builder) {
     builder.pathLiteral('tab1');
+    builder.pageKey = PageKey.custom((_) => const ValueKey('tab1'));
+    builder.content = Content.widget(
+      const ScreenWithState(color: Colors.red),
+    );
   }
 }
 
 class Tab2Node extends Location<Tab2Node> {
-  Tab2Node();
+  Tab2Node({super.parentRouterKey});
 
   @override
   void build(LocationBuilder builder) {
     builder.pathLiteral('tab2');
+    builder.pageKey = PageKey.custom((_) => const ValueKey('tab2'));
+    builder.content = Content.widget(
+      const ScreenWithState(color: Colors.blue),
+    );
   }
 }
 
@@ -42,12 +77,7 @@ void main() {
 }
 
 List<RouteNode> buildRouteNodes(WorkingRouterKey _) => [
-      ScaffoldNode(
-        children: [
-          Tab1Node(),
-          Tab2Node(),
-        ],
-      ),
+      ScaffoldNode(),
     ];
 
 class StatePreservingTabs extends StatefulWidget {
@@ -58,79 +88,9 @@ class StatePreservingTabs extends StatefulWidget {
 }
 
 class _StatePreservingTabsState extends State<StatePreservingTabs> {
-  final tab1RouterKey = WorkingRouterKey();
-  final tab2RouterKey = WorkingRouterKey();
-
   late final WorkingRouter router = WorkingRouter(
     noContentWidget: const Text("No content"),
     buildRouteNodes: buildRouteNodes,
-    buildRootPages: (_, location, data) {
-      // Need to have one nested navigator for each tab, because otherwise
-      // the same navigator (with the same global navigator key) would be
-      // inside the IndexedStack which flutter does not allow.
-      // This also has the added benefit, that this could be extended to also
-      // not just persist widget state, but also the route state per
-      // nested navigator like it is done here:
-      // https://github.com/lulupointu/vrouter/issues/32#issuecomment-884901775
-      final leaf = data.leaf;
-
-      if (location is ScaffoldNode &&
-          leaf is Tab1Node &&
-          data.isChildOf(
-            (candidate) => candidate is ScaffoldNode,
-            leaf,
-          )) {
-        return [buildScaffoldPage(index: 0)];
-      }
-
-      if (location is ScaffoldNode &&
-          leaf is Tab2Node &&
-          data.isChildOf(
-            (candidate) => candidate is ScaffoldNode,
-            leaf,
-          )) {
-        return [buildScaffoldPage(index: 1)];
-      }
-
-      return [];
-    },
-  );
-
-  LocationPageSkeleton buildScaffoldPage({required int index}) {
-    return NestedLocationPageSkeleton(
-      router: router,
-      routerKey: index == 0 ? tab1RouterKey : tab2RouterKey,
-      buildChild: (context, _, child) {
-        return StatePreservingScaffold(index: index, child: child);
-      },
-      buildPages: (_, location, routerData) {
-        // Return the correct tab page depending on the index.
-        // Have to return the tab for the index, also when another index
-        // is currently active, because also the "temporarily deactivated"
-        // navigators will still be active in the IndexedStack.
-        if ((location is Tab1Node) && index == 0) {
-          return [tab1Page];
-        }
-        if ((location is Tab2Node) && index == 1) {
-          return [tab2Page];
-        }
-        return [emptyPage];
-      },
-    );
-  }
-
-  final emptyPage = ChildLocationPageSkeleton(child: const Placeholder());
-  // Give each tab page a unique key, so that it does not get rebuilt
-  // (and thus looses state) when switching between tabs. This is required,
-  // because tab1Page will also be returned (above) when Tab2Node is active
-  // and vice versa.
-  final tab1Page = ChildLocationPageSkeleton(
-    buildPageKey: (_, __) => const ValueKey("tab1"),
-    child: const ScreenWithState(color: Colors.red),
-  );
-  final tab2Page = ChildLocationPageSkeleton(
-    buildPageKey: (_, __) => const ValueKey("tab2"),
-    child: const ScreenWithState(color: Colors.blue),
   );
 
   @override
@@ -171,11 +131,11 @@ class _ScreenWithStateState extends State<ScreenWithState> {
 
 class StatePreservingScaffold extends StatefulWidget {
   final int index;
-  final Widget child;
+  final List<Widget> children;
 
   const StatePreservingScaffold({
     required this.index,
-    required this.child,
+    required this.children,
     super.key,
   });
 
@@ -185,18 +145,14 @@ class StatePreservingScaffold extends StatefulWidget {
 }
 
 class _StatePreservingScaffoldState extends State<StatePreservingScaffold> {
-  List<Widget> tabs = [const SizedBox(), const SizedBox()];
-
   @override
   Widget build(BuildContext context) {
     final router = WorkingRouter.of(context);
 
     // Got the tab logic from:
     // https://github.com/lulupointu/vrouter/issues/32#issuecomment-884901775
-    tabs[widget.index] = widget.child;
-
     return Scaffold(
-      body: IndexedStack(index: widget.index, children: tabs),
+      body: IndexedStack(index: widget.index, children: widget.children),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: widget.index,
         items: const [

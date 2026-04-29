@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:working_router/src/inherited_working_router.dart';
-import 'package:working_router/working_router.dart';
+import 'package:working_router/src/working_router.dart';
+import 'package:working_router/src/working_router_data.dart';
+import 'package:working_router/src/working_router_delegate.dart';
+import 'package:working_router/src/working_router_key.dart';
 
 /// Hosts a nested [WorkingRouterDelegate] inside widget state.
 ///
@@ -17,14 +20,12 @@ import 'package:working_router/working_router.dart';
 /// router when this navigator has no active location to remove.
 class NestedRouting extends StatefulWidget {
   final WorkingRouter router;
-  final BuildPages buildPages;
   final List<Page<dynamic>> Function(WorkingRouterData data)? buildDefaultPages;
   final WorkingRouterKey routerKey;
   final String? debugLabel;
 
   const NestedRouting({
     required this.router,
-    required this.buildPages,
     this.buildDefaultPages,
     required this.routerKey,
     this.debugLabel,
@@ -40,7 +41,6 @@ class _NestedRoutingState extends State<NestedRouting> {
     isRootDelegate: false,
     routerKey: widget.routerKey,
     router: widget.router,
-    buildPages: widget.buildPages,
     buildDefaultPages: widget.buildDefaultPages,
     debugLabel: widget.debugLabel,
   );

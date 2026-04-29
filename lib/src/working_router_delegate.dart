@@ -1,32 +1,24 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:working_router/src/inherited_working_router.dart';
 import 'package:working_router/src/inherited_working_router_data.dart';
 import 'package:working_router/src/location.dart';
-import 'package:working_router/src/location_page_skeleton.dart';
 import 'package:working_router/src/multi_shell.dart';
 import 'package:working_router/src/multi_shell_location.dart';
-import 'package:working_router/src/multi_shell_location_page_skeleton.dart';
-import 'package:working_router/src/nested_location_page_skeleton.dart';
 import 'package:working_router/src/overlay.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_node.dart';
 import 'package:working_router/src/shell.dart';
 import 'package:working_router/src/shell_location.dart';
+import 'package:working_router/src/widgets/location_observer.dart';
+import 'package:working_router/src/widgets/nearest_location.dart';
+import 'package:working_router/src/widgets/nested_routing.dart';
 import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_information_parser.dart';
 import 'package:working_router/src/working_router_key.dart';
-
-typedef BuildPages =
-    List<LocationPageSkeleton> Function(
-      WorkingRouter router,
-      AnyLocation location,
-      WorkingRouterData data,
-    );
 
 enum _MatchedNodeRenderKind {
   node,
@@ -50,7 +42,6 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
   WorkingRouterKey routerKey;
   final bool isRootDelegate;
   final WorkingRouter router;
-  final BuildPages? buildPages;
   final List<Page<dynamic>> Function(WorkingRouterData data)? buildDefaultPages;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
@@ -67,7 +58,6 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     required this.isRootDelegate,
     required this.routerKey,
     required this.router,
-    required this.buildPages,
     this.buildDefaultPages,
     this.noContentWidget,
     this.navigatorInitializingWidget,
@@ -102,7 +92,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
         if (_pages!.isEmpty) {
           assert(
             isRootDelegate,
-            "buildPages of nested routers must not return empty pages.",
+            "Nested routers must not build an empty page stack.",
           );
           return noContentWidget!;
         }
@@ -157,23 +147,12 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
   }
 
   void refresh() {
-    if (_data != null) {
-      final routedPages = _matchedNodesForNavigator(_data!)
-          .map((entry) {
-            return _buildPagesForMatchedEntry(entry, _data!).map((
-              pageSkeleton,
-            ) {
-              return pageSkeleton.inflate(
-                data: _data!,
-                router: router,
-                node: entry.node,
-              );
-            });
-          })
-          .flattened
-          .map((e) => e.page)
-          .toList();
-      final defaultPages = buildDefaultPages?.call(_data!) ?? const [];
+    final data = _data;
+    if (data != null) {
+      final routedPages = _matchedNodesForNavigator(
+        data,
+      ).expand((entry) => _pagesForMatchedEntry(entry, data)).toList();
+      final defaultPages = buildDefaultPages?.call(data) ?? const [];
       _pages = [...defaultPages, ...routedPages];
       notifyListeners();
     }
@@ -324,7 +303,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     }
   }
 
-  bool _navigatorWouldBuildPages(
+  bool _navigatorWouldRenderPages(
     WorkingRouterKey navigatorRouterKey,
     WorkingRouterData data,
   ) {
@@ -341,7 +320,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
       switch ((entry.renderKind, entry.node)) {
         case (_MatchedNodeRenderKind.shell, final AbstractShell shell):
           if (shell.hasDefaultPage ||
-              _navigatorWouldBuildPages(shell.routerKey, data)) {
+              _navigatorWouldRenderPages(shell.routerKey, data)) {
             return true;
           }
         case (
@@ -360,7 +339,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           final ShellLocation shellLocation,
         ):
           if (shellLocation.hasDefaultPage ||
-              _navigatorWouldBuildPages(shellLocation.routerKey, data)) {
+              _navigatorWouldRenderPages(shellLocation.routerKey, data)) {
             return true;
           }
         case (
@@ -368,7 +347,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           final MultiShellLocation multiShellLocation,
         ):
           if (multiShellLocation.contentSlotDefinition.hasDefault ||
-              _navigatorWouldBuildPages(
+              _navigatorWouldRenderPages(
                 multiShellLocation.contentRouterKey,
                 data,
               ) ||
@@ -380,11 +359,11 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
             return true;
           }
         case (_, final AnyLocation location):
-          if (_buildPagesForLocation(location, data).isNotEmpty) {
+          if (_pagesForLocation(location, data).isNotEmpty) {
             return true;
           }
         case (_, final AnyOverlay overlay):
-          if (_buildPagesForOverlay(overlay, data).isNotEmpty) {
+          if (_pagesForOverlay(overlay, data).isNotEmpty) {
             return true;
           }
       }
@@ -393,7 +372,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     return false;
   }
 
-  List<LocationPageSkeleton> _buildPagesForMatchedEntry(
+  List<Page<dynamic>> _pagesForMatchedEntry(
     _MatchedNodeEntry entry,
     WorkingRouterData data,
   ) {
@@ -402,11 +381,11 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
         if (!shell.navigatorEnabled) {
           return const [];
         }
-        final navigatorWouldBuildPages = _navigatorWouldBuildPages(
+        final navigatorWouldRenderPages = _navigatorWouldRenderPages(
           shell.routerKey,
           data,
         );
-        if (!navigatorWouldBuildPages) {
+        if (!navigatorWouldRenderPages) {
           if (_hasMatchedDescendantAfter(entry.node, data)) {
             if (!shell.hasDefaultPage) {
               throw StateError(
@@ -421,21 +400,21 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           }
         }
         return [
-          NestedLocationPageSkeleton(
-            router: router,
-            buildPages: (_, location, data) => _buildPagesForLocation(
-              location,
-              data,
-            ),
-            buildDefaultPages: shell.hasDefaultPage
-                ? (data) => shell.buildDefaultPages(data)
-                : null,
-            routerKey: shell.routerKey,
-            buildChild: (context, nestedData, child) {
-              return shell.buildContent(context, nestedData, child);
+          _buildNodePage(
+            node: shell,
+            data: data,
+            buildChild: (context, nestedData) {
+              final nested = NestedRouting(
+                router: router,
+                buildDefaultPages: shell.hasDefaultPage
+                    ? (data) => shell.buildDefaultPages(data)
+                    : null,
+                routerKey: shell.routerKey,
+                debugLabel: '$shell',
+              );
+              return shell.buildContent(context, nestedData, nested);
             },
             buildPage: shell.buildPage,
-            debugLabel: '$shell',
           ),
         ];
       case (
@@ -454,24 +433,24 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           return const [];
         }
         return [
-          MultiShellLocationPageSkeleton(
-            router: router,
-            buildPages:
-                (
-                  WorkingRouter _,
-                  AnyLocation location,
-                  WorkingRouterData data,
-                ) => _buildPagesForLocation(location, data),
-            slots: resolvedSlots,
-            buildChild: (context, nestedData, slots) {
+          _buildNodePage(
+            node: multiShell,
+            data: data,
+            buildChild: (context, nestedData) {
+              final slotChildren = MultiShellSlotChildren({
+                for (final resolvedSlot in resolvedSlots)
+                  resolvedSlot.slot: _buildSlotChild(
+                    resolvedSlot: resolvedSlot,
+                    debugLabel: '$multiShell',
+                  ),
+              });
               return multiShell.buildContent(
                 context,
                 nestedData,
-                slots,
+                slotChildren,
               );
             },
             buildPage: multiShell.buildPage,
-            debugLabel: '$multiShell',
           ),
         ];
       case (
@@ -482,25 +461,25 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           return const [];
         }
         return [
-          NestedLocationPageSkeleton(
-            router: router,
-            buildPages: (_, location, data) => _buildPagesForLocation(
-              location,
-              data,
-            ),
-            buildDefaultPages: shellLocation.hasDefaultPage
-                ? (data) => shellLocation.buildDefaultPages(data)
-                : null,
-            routerKey: shellLocation.routerKey,
-            buildChild: (context, nestedData, child) {
+          _buildNodePage(
+            node: shellLocation,
+            data: data,
+            buildChild: (context, nestedData) {
+              final nested = NestedRouting(
+                router: router,
+                buildDefaultPages: shellLocation.hasDefaultPage
+                    ? (data) => shellLocation.buildDefaultPages(data)
+                    : null,
+                routerKey: shellLocation.routerKey,
+                debugLabel: '$shellLocation',
+              );
               return shellLocation.buildShellContent(
                 context,
                 nestedData,
-                child,
+                nested,
               );
             },
             buildPage: shellLocation.buildShellPage,
-            debugLabel: '$shellLocation',
           ),
         ];
       case (
@@ -515,66 +494,73 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           data,
           containerNavigatorEnabled: true,
         );
-        final contentNavigatorActive = _navigatorWouldBuildPages(
+        final contentNavigatorActive = _navigatorWouldRenderPages(
           multiShellLocation.contentRouterKey,
           data,
         );
         return [
-          MultiShellLocationPageSkeleton(
-            router: router,
-            buildPages:
-                (
-                  WorkingRouter _,
-                  AnyLocation location,
-                  WorkingRouterData data,
-                ) => _buildPagesForLocation(location, data),
-            slots: [
-              MultiShellResolvedSlot(
-                definition: multiShellLocation.contentSlotDefinition,
-                isEnabled: true,
-                hasRoutedContent: contentNavigatorActive,
-              ),
-              ...resolvedExtraSlots,
-            ],
-            buildChild: (context, nestedData, slots) {
+          _buildNodePage(
+            node: multiShellLocation,
+            data: data,
+            buildChild: (context, nestedData) {
+              final slotChildren = MultiShellSlotChildren({
+                for (final resolvedSlot in [
+                  MultiShellResolvedSlot(
+                    definition: multiShellLocation.contentSlotDefinition,
+                    isEnabled: true,
+                    hasRoutedContent: contentNavigatorActive,
+                  ),
+                  ...resolvedExtraSlots,
+                ])
+                  resolvedSlot.slot: _buildSlotChild(
+                    resolvedSlot: resolvedSlot,
+                    debugLabel: '$multiShellLocation',
+                  ),
+              });
               return multiShellLocation.buildShellContent(
                 context,
                 nestedData,
-                slots,
+                slotChildren,
               );
             },
             buildPage: multiShellLocation.buildShellPage,
-            debugLabel: '$multiShellLocation',
           ),
         ];
       case (_, final AnyLocation location):
-        return _buildPagesForLocation(location, data);
+        return _pagesForLocation(location, data);
       case (_, final AnyOverlay overlay):
-        return _buildPagesForOverlay(overlay, data);
+        return _pagesForOverlay(overlay, data);
     }
 
     return const [];
   }
 
-  List<LocationPageSkeleton> _buildPagesForLocation(
+  List<Page<dynamic>> _pagesForLocation(
     AnyLocation location,
     WorkingRouterData data,
   ) {
     if (!location.contributesPage) {
       return const [];
     }
-    final selfBuiltPages = _selfBuiltPages(location, data);
-    if (selfBuiltPages != null) {
-      return selfBuiltPages;
-    }
-    final fallback = buildPages;
-    if (fallback != null) {
-      return fallback(router, location, data);
-    }
-    return const [];
+    return [
+      _buildNodePage(
+        node: location,
+        data: data,
+        buildChild: (context, currentData) {
+          final child = location.buildWidget(context, currentData);
+          if (child == null) {
+            throw StateError(
+              'Location ${location.runtimeType} does not build content.',
+            );
+          }
+          return child;
+        },
+        buildPage: location.buildPage,
+      ),
+    ];
   }
 
-  List<LocationPageSkeleton> _buildPagesForOverlay(
+  List<Page<dynamic>> _pagesForOverlay(
     AnyOverlay overlay,
     WorkingRouterData data,
   ) {
@@ -582,11 +568,124 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
       return const [];
     }
     return [
-      BuilderLocationPageSkeleton(
+      _buildNodePage(
+        node: overlay,
+        data: data,
         buildChild: overlay.buildWidget,
         buildPage: overlay.buildPage,
       ),
     ];
+  }
+
+  Page<dynamic> _buildNodePage({
+    required RouteNode node,
+    required WorkingRouterData data,
+    required Widget Function(BuildContext context, WorkingRouterData data)
+    buildChild,
+    required Page<dynamic> Function(LocalKey? key, Widget child) buildPage,
+  }) {
+    // Keep the widget subtree keyed by the fully hydrated matched path.
+    // This lets inner widget state reset when a path parameter changes, while
+    // still preserving the outer Page identity.
+    final childKey = ValueKey((node.runtimeType, data.pathUpToNode(node)));
+    final builtChild = Builder(
+      key: childKey,
+      builder: (context) {
+        final child = buildChild(context, data);
+        if (node case final AnyLocation location) {
+          final wrapChild = router.wrapLocationChild;
+          if (wrapChild != null) {
+            return wrapChild(context, location, data, child);
+          }
+        }
+        return child;
+      },
+    );
+    final wrappedChild = InheritedWorkingRouterData(
+      // Require an extra inherited widget for each location, because
+      // the widget below should have access to old router data, when
+      // it animates out of view because of a routing event.
+      data: data,
+      child: switch (node) {
+        final AnyLocation location => NearestLocation(
+          location: location,
+          child: NotificationListener(
+            onNotification: (notification) {
+              if (notification is AddLocationObserverMessage) {
+                router.addObserver(notification.state);
+                return true;
+              }
+              if (notification is RemoveLocationObserverMessage) {
+                router.removeObserver(notification.state);
+                return true;
+              }
+              return false;
+            },
+            child: builtChild,
+          ),
+        ),
+        _ => builtChild,
+      },
+    );
+    return buildPage(node.buildPageKey(data), wrappedChild);
+  }
+
+  MultiShellResolvedSlotChild _buildSlotChild({
+    required MultiShellResolvedSlot resolvedSlot,
+    required String? debugLabel,
+  }) {
+    if (!resolvedSlot.isEnabled) {
+      return const MultiShellResolvedSlotChild(
+        isEnabled: false,
+        child: null,
+      );
+    }
+    final buildDefaultWidget = resolvedSlot.definition.buildDefaultWidget;
+    if (!resolvedSlot.hasRoutedContent && buildDefaultWidget == null) {
+      return const MultiShellResolvedSlotChild(
+        isEnabled: true,
+        child: null,
+      );
+    }
+
+    return MultiShellResolvedSlotChild(
+      isEnabled: true,
+      child: NestedRouting(
+        router: router,
+        buildDefaultPages: buildDefaultWidget == null
+            ? null
+            : (data) => [
+                _buildDefaultPage(
+                  data: data,
+                  resolvedSlot: resolvedSlot,
+                ),
+              ],
+        routerKey: resolvedSlot.slot.routerKey,
+        debugLabel:
+            resolvedSlot.slot.debugLabel ?? '$debugLabel/${resolvedSlot.slot}',
+      ),
+    );
+  }
+
+  Page<dynamic> _buildDefaultPage({
+    required WorkingRouterData data,
+    required MultiShellResolvedSlot resolvedSlot,
+  }) {
+    final buildDefaultWidget = resolvedSlot.definition.buildDefaultWidget!;
+    final defaultChild = InheritedWorkingRouterData(
+      data: data,
+      child: Builder(
+        builder: (context) {
+          return buildDefaultWidget(context, data);
+        },
+      ),
+    );
+    final key = ValueKey((resolvedSlot.slot.routerKey, 'default'));
+    return resolvedSlot.definition.buildDefaultPage?.call(
+          key,
+          defaultChild,
+        ) ??
+        MaterialPage<dynamic>(key: key, child: defaultChild);
   }
 
   bool _hasMatchedDescendantAfter(
@@ -619,35 +718,8 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           hasRoutedContent:
               containerNavigatorEnabled &&
               slotDefinition.navigatorEnabled &&
-              _navigatorWouldBuildPages(slotDefinition.slot.routerKey, data),
+              _navigatorWouldRenderPages(slotDefinition.slot.routerKey, data),
         ),
-    ];
-  }
-
-  /// Adapts the new location-owned `buildWidget` / `buildPage` API to the
-  /// existing skeleton-based delegate flow. Returns `null` when the location
-  /// still relies on the legacy `buildPages` callback.
-  List<LocationPageSkeleton>? _selfBuiltPages(
-    AnyLocation location,
-    WorkingRouterData data,
-  ) {
-    if (!location.buildsOwnPage) {
-      return null;
-    }
-
-    return [
-      BuilderLocationPageSkeleton(
-        buildChild: (context, currentData) {
-          final child = location.buildWidget(context, currentData);
-          if (child == null) {
-            throw StateError(
-              'Location ${location.runtimeType} returned null from buildWidget().',
-            );
-          }
-          return child;
-        },
-        buildPage: location.buildPage,
-      ),
     ];
   }
 

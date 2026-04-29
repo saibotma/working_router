@@ -83,14 +83,8 @@ class ShellLocationBuilder extends LocationBuilder {
   }
 
   @override
-  LocationBuildResult? resolveRender({String? debugContext}) {
+  LocationBuildResult resolveRender({String? debugContext}) {
     final locationRender = super.resolveRender(debugContext: debugContext);
-    if (locationRender == null) {
-      throw StateError(
-        'ShellLocationBuilder requires content. '
-        'A shell location does not support the legacy buildPages fallback.',
-      );
-    }
     final buildDefaultWidget = _resolveDefaultWidgetBuilder(_defaultContent);
     final buildDefaultPage = _resolveDefaultPageBuilder(
       defaultContent: _defaultContent,

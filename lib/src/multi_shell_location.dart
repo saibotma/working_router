@@ -120,15 +120,8 @@ class MultiShellLocationBuilder extends LocationBuilder {
   }
 
   @override
-  LocationBuildResult? resolveRender({String? debugContext}) {
+  LocationBuildResult resolveRender({String? debugContext}) {
     final locationRender = super.resolveRender(debugContext: debugContext);
-    if (locationRender == null) {
-      throw StateError(
-        'MultiShellLocationBuilder requires content. '
-        'A multi shell location does not support the legacy buildPages '
-        'fallback.',
-      );
-    }
     if (_shellContent == null) {
       throw StateError(
         'MultiShellLocationBuilder requires shellContent. '

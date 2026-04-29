@@ -688,31 +688,28 @@ void main() {
               _PathLocation(
                 id: _PathId.a,
                 path: 'a',
+                child: const Text('a'),
+                pageKey: PageKey.custom((data) {
+                  sawExpectedData =
+                      data.uri.path == '/a/b' &&
+                      data.leaf?.id == _PathId.b &&
+                      data.routeNodes.any((it) => it.id == _PathId.a);
+                  final key = ValueKey('${_PathId.a}:${data.uri.path}');
+                  keys[_PathId.a] = key;
+                  return key;
+                }),
                 children: [
-                  _PathLocation(id: _PathId.b, path: 'b', children: []),
+                  _PathLocation(
+                    id: _PathId.b,
+                    path: 'b',
+                    child: const Text('b'),
+                    children: [],
+                  ),
                 ],
               ),
             ],
           ),
         ],
-        buildRootPages: (_, location, _) {
-          return [
-            ChildLocationPageSkeleton(
-              buildPageKey: (keyLocation, data) {
-                if (keyLocation.id == _PathId.a) {
-                  sawExpectedData =
-                      data.uri.path == '/a/b' &&
-                      data.leaf?.id == _PathId.b &&
-                      data.routeNodes.contains(keyLocation);
-                }
-                final key = ValueKey('${keyLocation.id}:${data.uri.path}');
-                keys[keyLocation.id!] = key;
-                return key;
-              },
-              child: Text('${location.id}'),
-            ),
-          ];
-        },
         noContentWidget: const SizedBox.shrink(),
       );
 
@@ -781,19 +778,17 @@ void main() {
                 id: _PathId.a,
                 path: 'a',
                 children: [
-                  _PathLocation(id: _PathId.b, path: 'b', children: []),
+                  _PathLocation(
+                    id: _PathId.b,
+                    path: 'b',
+                    child: const Text('b'),
+                    children: [],
+                  ),
                 ],
               ),
             ],
           ),
         ],
-        buildRootPages: (_, location, _) {
-          return [
-            ChildLocationPageSkeleton(
-              child: Text('${location.id}'),
-            ),
-          ];
-        },
         noContentWidget: const SizedBox.shrink(),
         wrapLocationChild: (context, location, data, child) {
           if (location.id == _PathId.b) {
@@ -859,13 +854,6 @@ void main() {
               ],
             ),
           ],
-          buildRootPages: (_, location, _) {
-            return [
-              ChildLocationPageSkeleton(
-                child: Text('${location.id}'),
-              ),
-            ];
-          },
           noContentWidget: const SizedBox.shrink(),
         );
 
@@ -883,7 +871,7 @@ void main() {
     );
 
     testWidgets(
-      'supports self-built locations alongside legacy buildRootPages',
+      'supports self-built locations below non-rendering parents',
       (tester) async {
         final router = WorkingRouter(
           buildRouteNodes: (_) => [
@@ -894,16 +882,6 @@ void main() {
               ],
             ),
           ],
-          buildRootPages: (_, location, _) {
-            if (identical(location.id, _MigratingId.root)) {
-              return [
-                ChildLocationPageSkeleton(
-                  child: const Text('legacy-root'),
-                ),
-              ];
-            }
-            return const [];
-          },
           noContentWidget: const SizedBox.shrink(),
         );
 
@@ -913,7 +891,6 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('legacy-root', skipOffstage: false), findsOneWidget);
         expect(find.text('42:overview'), findsOneWidget);
       },
     );
@@ -950,11 +927,6 @@ void main() {
               },
             ),
           ],
-          buildRootPages: (_, location, _) {
-            return [
-              ChildLocationPageSkeleton(child: Text('${location.id}')),
-            ];
-          },
           noContentWidget: const SizedBox.shrink(),
         );
 
@@ -3119,45 +3091,38 @@ WorkingRouter _buildRouter({
   int redirectLimit = 5,
   Widget noContentWidget = const SizedBox.shrink(),
 }) {
-  final bPage = ChildLocationPageSkeleton(
-    child: LocationObserver(
-      beforeLeave: beforeLeave,
-      child: const Text('b'),
-    ),
-  );
-
   return WorkingRouter(
     buildRouteNodes: (_) => [
       _PathLocation(
         id: _PathId.root,
         path: '',
+        child: const Text('root'),
         children: [
           _PathLocation(
             id: _PathId.a,
             path: 'a',
+            child: const Text('a'),
             children: [
-              _PathLocation(id: _PathId.b, path: 'b', children: []),
+              _PathLocation(
+                id: _PathId.b,
+                path: 'b',
+                child: LocationObserver(
+                  beforeLeave: beforeLeave,
+                  child: const Text('b'),
+                ),
+                children: [],
+              ),
             ],
           ),
-          _PathLocation(id: _PathId.c, path: 'c', children: []),
+          _PathLocation(
+            id: _PathId.c,
+            path: 'c',
+            child: const Text('c'),
+            children: [],
+          ),
         ],
       ),
     ],
-    buildRootPages: (_, location, _) {
-      if (identical(location.id, _PathId.root)) {
-        return [ChildLocationPageSkeleton(child: const Text('root'))];
-      }
-      if (identical(location.id, _PathId.a)) {
-        return [ChildLocationPageSkeleton(child: const Text('a'))];
-      }
-      if (identical(location.id, _PathId.b)) {
-        return [bPage];
-      }
-      if (identical(location.id, _PathId.c)) {
-        return [ChildLocationPageSkeleton(child: const Text('c'))];
-      }
-      return [];
-    },
     noContentWidget: noContentWidget,
     decideTransition: decideTransition,
     onTransitionCommitted: onTransitionCommitted,
@@ -3174,47 +3139,36 @@ WorkingRouter _buildOrderRouter({
       _PathLocation(
         id: _PathId.root,
         path: '',
+        child: const Text('root'),
         children: [
           _PathLocation(
             id: _PathId.a,
             path: 'a',
-            children: [
-              _PathLocation(id: _PathId.b, path: 'b', children: []),
-            ],
-          ),
-          _PathLocation(id: _PathId.c, path: 'c', children: []),
-        ],
-      ),
-    ],
-    buildRootPages: (_, location, _) {
-      if (identical(location.id, _PathId.root)) {
-        return [ChildLocationPageSkeleton(child: const Text('root'))];
-      }
-      if (identical(location.id, _PathId.a)) {
-        return [
-          ChildLocationPageSkeleton(
             child: LocationObserver(
               beforeLeave: beforeLeaveA,
               child: const Text('a'),
             ),
+            children: [
+              _PathLocation(
+                id: _PathId.b,
+                path: 'b',
+                child: LocationObserver(
+                  beforeLeave: beforeLeaveB,
+                  child: const Text('b'),
+                ),
+                children: [],
+              ),
+            ],
           ),
-        ];
-      }
-      if (identical(location.id, _PathId.b)) {
-        return [
-          ChildLocationPageSkeleton(
-            child: LocationObserver(
-              beforeLeave: beforeLeaveB,
-              child: const Text('b'),
-            ),
+          _PathLocation(
+            id: _PathId.c,
+            path: 'c',
+            child: const Text('c'),
+            children: [],
           ),
-        ];
-      }
-      if (identical(location.id, _PathId.c)) {
-        return [ChildLocationPageSkeleton(child: const Text('c'))];
-      }
-      return [];
-    },
+        ],
+      ),
+    ],
     noContentWidget: const SizedBox.shrink(),
   );
 }
@@ -3234,13 +3188,6 @@ WorkingRouter _buildParamRouter() {
         ],
       ),
     ],
-    buildRootPages: (_, location, _) {
-      return [
-        ChildLocationPageSkeleton(
-          child: Text('${location.id}'),
-        ),
-      ];
-    },
     noContentWidget: const SizedBox.shrink(),
   );
 }
@@ -3275,10 +3222,14 @@ final _overlaySearchId = NodeId<_BuilderOverlay>();
 class _PathLocation extends Location<_PathLocation> {
   final List<PathSegment> _segments;
   final List<RouteNode> children;
+  final Widget? child;
+  final PageKey? pageKey;
 
   _PathLocation({
     required NodeId<_PathLocation> id,
     required String path,
+    this.child,
+    this.pageKey,
     this.children = const [],
   }) : _segments = _pathSegments(path),
        super(id: id);
@@ -3287,6 +3238,12 @@ class _PathLocation extends Location<_PathLocation> {
   void build(LocationBuilder builder) {
     for (final segment in _segments) {
       builder.pathSegment(segment);
+    }
+    if (pageKey != null) {
+      builder.pageKey = pageKey!;
+    }
+    if (child != null) {
+      builder.content = Content.widget(child!);
     }
     builder.children = children;
   }
@@ -3315,6 +3272,7 @@ abstract class _ParamPathLocation<Self extends _ParamPathLocation<Self>>
     for (final segment in _segments) {
       builder.pathSegment(segment);
     }
+    builder.content = Content.builder((_, _) => Text('$id'));
     builder.children = children;
   }
 }

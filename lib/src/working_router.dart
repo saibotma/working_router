@@ -4,6 +4,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router.dart';
+import 'package:working_router/src/working_router_delegate.dart';
 import 'package:working_router/working_router.dart';
 
 /// Rebuilds the top-level route tree for a router instance.
@@ -78,7 +79,6 @@ class WorkingRouter extends ChangeNotifier
 
   WorkingRouter({
     required this.buildRouteNodes,
-    BuildPages? buildRootPages,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     this.wrapLocationChild,
@@ -97,7 +97,6 @@ class WorkingRouter extends ChangeNotifier
       debugLabel: "root",
       isRootDelegate: true,
       router: this,
-      buildPages: buildRootPages,
       noContentWidget: noContentWidget,
       wrapNavigator: wrapNavigator,
       navigatorKey: _rootNavigatorKey,

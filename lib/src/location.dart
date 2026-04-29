@@ -20,6 +20,13 @@ typedef LocationWidgetBuilder =
     Widget Function(BuildContext context, WorkingRouterData data);
 typedef SelfBuiltLocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
+typedef LocationChildWrapper =
+    Widget Function(
+      BuildContext context,
+      AnyLocation location,
+      WorkingRouterData data,
+      Widget child,
+    );
 
 sealed class Content {
   const Content();
@@ -146,7 +153,7 @@ class LocationBuilder extends PathRouteNodeBuilder {
     _buildPageConfiguredStackTrace = StackTrace.current;
   }
 
-  LocationBuildResult? resolveRender({String? debugContext}) {
+  LocationBuildResult resolveRender({String? debugContext}) {
     if (_content == null) {
       if (_buildPage != null) {
         _throwPageConfigurationError(
@@ -155,7 +162,7 @@ class LocationBuilder extends PathRouteNodeBuilder {
           debugContext: debugContext,
         );
       }
-      return null;
+      return const NonRenderingLocationBuildResult();
     }
 
     return switch (_content!) {
@@ -243,12 +250,6 @@ abstract class AnyLocation<Self extends AnyLocation<Self>>
   }) : tags = tags.toISet();
 
   bool get contributesPage => switch (definition.render) {
-    final LocationBuildResult render => render.buildWidgetOrNull != null,
-    null => true,
-    _ => false,
-  };
-
-  bool get buildsOwnPage => switch (definition.render) {
     final LocationBuildResult render => render.buildWidgetOrNull != null,
     _ => false,
   };
