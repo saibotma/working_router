@@ -2956,6 +2956,92 @@ void main() {
       expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
     });
 
+    testWidgets('hidden query state-only changes report browser navigation', (
+      tester,
+    ) async {
+      late _BuilderLocation chat;
+      late _BuilderLocation channel;
+      late _BuilderOverlay searchOverlay;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                chat = _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('chat');
+                    final search = builder.defaultBoolQueryParam(
+                      'search',
+                      defaultValue: false,
+                      visibility: UriVisibility.hidden,
+                    );
+                    builder.content = Content.widget(const Text('chat'));
+                    builder.overlays = [
+                      searchOverlay = _BuilderOverlay(
+                        id: _overlaySearchId,
+                        build: (builder, location) {
+                          builder.conditions = [search.matches(true)];
+                          builder.content = Content.widget(
+                            const Text('search'),
+                          );
+                        },
+                      ),
+                    ];
+                    builder.children = [
+                      channel = _BuilderLocation(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('channel');
+                          builder.content = Content.widget(
+                            const Text('channel'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      final informationProvider =
+          router.routeInformationProvider! as WorkingRouteInformationProvider;
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(Uri(path: '/chat/channel'));
+      await tester.pumpAndSettle();
+      informationProvider.debugReportedTypes.clear();
+
+      router.routeTo(
+        OverlayRouteTarget(
+          owner: chat,
+          overlay: searchOverlay,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData!.leaf, same(channel));
+      expect(
+        router.nullableData!.isMatched<_BuilderOverlay>(
+          (node) => identical(node, searchOverlay),
+        ),
+        isTrue,
+      );
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+      expect(router.nullableConfiguration!.hiddenQueryParameters.unlock, {
+        'search': 'true',
+      });
+      expect(
+        informationProvider.debugReportedTypes.last,
+        RouteInformationReportingType.navigate,
+      );
+    });
+
     testWidgets('query parameters inherit hidden visibility by key', (
       tester,
     ) async {

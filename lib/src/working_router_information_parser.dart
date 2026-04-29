@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -140,6 +141,8 @@ IMap<String, String> _readHiddenQueryParameters(
 }
 
 class WorkingRouteInformationProvider extends PlatformRouteInformationProvider {
+  static const DeepCollectionEquality _stateEquality = DeepCollectionEquality();
+
   final bool Function() consumeReplaceBrowserHistory;
 
   @visibleForTesting
@@ -155,14 +158,29 @@ class WorkingRouteInformationProvider extends PlatformRouteInformationProvider {
     RouteInformation routeInformation, {
     RouteInformationReportingType type = RouteInformationReportingType.none,
   }) {
-    final effectiveType = consumeReplaceBrowserHistory()
-        ? RouteInformationReportingType.neglect
-        : type;
+    final effectiveType = _effectiveReportingType(routeInformation, type);
     debugReportedTypes.add(effectiveType);
     super.routerReportsNewRouteInformation(
       routeInformation,
       type: effectiveType,
     );
+  }
+
+  RouteInformationReportingType _effectiveReportingType(
+    RouteInformation routeInformation,
+    RouteInformationReportingType type,
+  ) {
+    if (consumeReplaceBrowserHistory()) {
+      return RouteInformationReportingType.neglect;
+    }
+    if (type != RouteInformationReportingType.none) {
+      return type;
+    }
+    if (value.uri == routeInformation.uri &&
+        !_stateEquality.equals(value.state, routeInformation.state)) {
+      return RouteInformationReportingType.navigate;
+    }
+    return type;
   }
 }
 
