@@ -20,12 +20,17 @@ class WorkingRouterData {
   // decoding only at typed access boundaries.
   final IMap<UnboundPathParam<dynamic>, String> _pathParameters;
 
-  // Effective query parameters for the matched route state.
-  //
-  // This includes visible query parameters from `uri`, hidden query parameters
-  // from browser state, and active overlay condition values. Keep the encoded,
-  // string-keyed form because URI rebuilding and forwarding should not require
-  // recovering codec metadata first.
+  /// Effective encoded query parameters for the matched route state.
+  ///
+  /// This includes visible query parameters from [uri], hidden query parameters
+  /// from browser state, and active overlay condition values. Keep the encoded,
+  /// string-keyed form because URI rebuilding and forwarding should not require
+  /// recovering codec metadata first.
+  ///
+  /// Application code should read declared query parameters with [param] or
+  /// [paramOrNull] so values go through declaration checks, codecs, defaults,
+  /// and active-route checks.
+  @internal
   final IMap<String, String> queryParameters;
 
   WorkingRouterData({

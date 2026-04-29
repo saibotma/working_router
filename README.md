@@ -138,6 +138,9 @@ Important details:
   `UnboundPathParam` / `UnboundQueryParam`, bind them with
   `builder.bindParam(...)`, read the bound `Param` with `data.param(...)`, and
   read the reusable unbound definition with `data.paramOrNull(...)`.
+- Query values should be read through `data.param(...)` or
+  `data.paramOrNull(...)`, not by indexing the raw query parameter map. The
+  typed helpers enforce active-route membership and apply codecs/defaults.
 - `WorkingRouterData` exposes the full matched chain as `data.routeNodes`.
   Use `data.lastMatched<T>()` when you need the most specific matched node of a
   type, use `data.lastMatchedWithId(someNodeId)` when you want that lookup to
