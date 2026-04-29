@@ -60,6 +60,66 @@ void main() {
     });
 
     testWidgets(
+      'calls committed transition hook after redirects and before data update',
+      (tester) async {
+        final leave = Completer<bool>();
+        final calls = <String>[];
+        late final WorkingRouter router;
+        router = _buildRouter(
+          beforeLeave: () {
+            calls.add('beforeLeave:${router.nullableData!.uri.path}');
+            return leave.future;
+          },
+          decideTransition: (_, transition) {
+            calls.add(
+              'decide:${transition.to.uri.path}:${transition.reason.name}',
+            );
+            if (transition.to.uri.path == '/a') {
+              return RedirectTransition.toUri(Uri(path: '/c'));
+            }
+            return const AllowTransition();
+          },
+          onTransitionCommitted: (transition) {
+            final currentPath = router.nullableData?.uri.path ?? '<null>';
+            calls.add(
+              'committed:$currentPath->'
+              '${transition.to.uri.path}:${transition.reason.name}',
+            );
+          },
+        );
+        router.addListener(() {
+          calls.add('listener:${router.nullableData!.uri.path}');
+        });
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/a/b'));
+        await tester.pumpAndSettle();
+        calls.clear();
+
+        router.routeToUri(Uri(path: '/a'));
+        await tester.pump();
+
+        expect(calls, [
+          'decide:/a:programmatic',
+          'decide:/c:redirect',
+          'beforeLeave:/a/b',
+        ]);
+        expect(router.nullableData!.uri.path, '/a/b');
+
+        leave.complete(true);
+        await tester.pumpAndSettle();
+
+        expect(calls, [
+          'decide:/a:programmatic',
+          'decide:/c:redirect',
+          'beforeLeave:/a/b',
+          'committed:/a/b->/c:redirect',
+          'listener:/c',
+        ]);
+      },
+    );
+
+    testWidgets(
       'calls TransitionDecider with null from after unmatched target',
       (
         tester,
@@ -2968,6 +3028,7 @@ Future<void> _pumpRouterApp(
 
 WorkingRouter _buildRouter({
   TransitionDecider? decideTransition,
+  RouteTransitionCommitted? onTransitionCommitted,
   Future<bool> Function()? beforeLeave,
   int redirectLimit = 5,
   Widget noContentWidget = const SizedBox.shrink(),
@@ -3013,6 +3074,7 @@ WorkingRouter _buildRouter({
     },
     noContentWidget: noContentWidget,
     decideTransition: decideTransition,
+    onTransitionCommitted: onTransitionCommitted,
     redirectLimit: redirectLimit,
   );
 }

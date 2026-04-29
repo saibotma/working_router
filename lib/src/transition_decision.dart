@@ -27,6 +27,13 @@ class RouteTransition {
   });
 }
 
+/// Called once a route transition is accepted and no longer speculative.
+///
+/// The router invokes this after redirects have resolved and `beforeLeave`
+/// callbacks have allowed the transition, but before pages for the new route
+/// data are built. Keep this callback synchronous and fast.
+typedef RouteTransitionCommitted = void Function(RouteTransition transition);
+
 /// The result of a transition callback.
 sealed class TransitionDecision {
   const TransitionDecision();

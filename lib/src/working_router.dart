@@ -63,6 +63,7 @@ class WorkingRouter extends ChangeNotifier
   WorkingRouterData? _data;
 
   final TransitionDecider? _decideTransition;
+  final RouteTransitionCommitted? _onTransitionCommitted;
   final int _redirectLimit;
 
   /// Rebuilds the routing tree used by this router instance.
@@ -82,12 +83,14 @@ class WorkingRouter extends ChangeNotifier
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     this.wrapLocationChild,
     TransitionDecider? decideTransition,
+    RouteTransitionCommitted? onTransitionCommitted,
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _rootNavigatorKey =
            navigatorKey ?? GlobalKey<NavigatorState>(debugLabel: 'root'),
        _decideTransition = decideTransition,
+       _onTransitionCommitted = onTransitionCommitted,
        _redirectLimit = redirectLimit {
     _routeNodeTree = _buildRouteNodeTree();
     _rootDelegate = WorkingRouterDelegate(
@@ -422,14 +425,15 @@ class WorkingRouter extends ChangeNotifier
     final myVersion = ++_routingVersion;
     final oldData = nullableData;
 
-    final resolvedData = _resolveTransitionDecision(
+    final resolvedTransition = _resolveTransitionDecision(
       oldData: oldData,
       initialData: targetData,
       initialReason: reason,
     );
-    if (resolvedData == null) {
+    if (resolvedTransition == null) {
       return;
     }
+    final resolvedData = resolvedTransition.data;
 
     unawaited(
       _guardBeforeLeave(
@@ -440,6 +444,13 @@ class WorkingRouter extends ChangeNotifier
           _replaceNextBrowserHistoryReport = _shouldReplaceBrowserHistoryReport(
             oldData,
             resolvedData,
+          );
+          _onTransitionCommitted?.call(
+            RouteTransition(
+              from: oldData,
+              to: resolvedData,
+              reason: resolvedTransition.reason,
+            ),
           );
           _updateData(resolvedData);
 
@@ -519,18 +530,19 @@ class WorkingRouter extends ChangeNotifier
     onAllowed();
   }
 
-  WorkingRouterData? _resolveTransitionDecision({
+  ({WorkingRouterData data, RouteTransitionReason reason})?
+  _resolveTransitionDecision({
     required WorkingRouterData? oldData,
     required WorkingRouterData initialData,
     required RouteTransitionReason initialReason,
   }) {
     if (initialData.routeNodes.isEmpty) {
-      return initialData;
+      return (data: initialData, reason: initialReason);
     }
 
     final decideTransition = _decideTransition;
     if (decideTransition == null) {
-      return initialData;
+      return (data: initialData, reason: initialReason);
     }
 
     var currentData = initialData;
@@ -553,7 +565,7 @@ class WorkingRouter extends ChangeNotifier
 
       switch (decision) {
         case AllowTransition():
-          return currentData;
+          return (data: currentData, reason: currentReason);
         case BlockTransition():
           return null;
         case RedirectTransition(:final to):
@@ -574,7 +586,7 @@ class WorkingRouter extends ChangeNotifier
           );
 
           if (currentData.uri == previousUri) {
-            return currentData;
+            return (data: currentData, reason: currentReason);
           }
 
           if (!visitedUris.add(currentData.uri)) {
