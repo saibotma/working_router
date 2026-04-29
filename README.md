@@ -37,6 +37,8 @@ everything else import it.
 Convention:
 - treat `route_nodes.dart` as the public route-layer barrel for the app
 - keep `buildRouteNodes(...)` and the generated `part` there
+- put each route node class next to the screen it renders
+- put node ids next to the composition site that assigns them
 - and `export` the feature files that define route-node subclasses when app code
   should import those node types or generated child-target extensions through a
   single route API surface
