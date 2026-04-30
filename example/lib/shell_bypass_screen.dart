@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:working_router/working_router.dart';
 
-class ADENode extends Location<ADENode> {
-  ADENode({
+class ADERouteNode extends Location<ADERouteNode> {
+  ADERouteNode({
     super.id,
     super.parentRouterKey,
   });

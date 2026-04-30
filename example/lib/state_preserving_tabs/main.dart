@@ -8,7 +8,7 @@ import 'package:working_router/working_router.dart';
 // Another solution to test out would be this draft:
 // https://github.com/lulupointu/vrouter/issues/32#issuecomment-816510075
 
-class ScaffoldNode extends AbstractMultiShell<ScaffoldNode> {
+class ScaffoldRouteNode extends AbstractMultiShell<ScaffoldRouteNode> {
   @override
   void build(MultiShellBuilder builder) {
     final tab1Slot = builder.slot(
@@ -30,7 +30,7 @@ class ScaffoldNode extends AbstractMultiShell<ScaffoldNode> {
       },
     );
     builder.content = MultiShellContent.builder((context, data, slots) {
-      final index = data.leaf is Tab2Node ? 1 : 0;
+      final index = data.leaf is Tab2RouteNode ? 1 : 0;
       return StatePreservingScaffold(
         index: index,
         children: [
@@ -40,14 +40,14 @@ class ScaffoldNode extends AbstractMultiShell<ScaffoldNode> {
       );
     });
     builder.children = [
-      Tab1Node(parentRouterKey: tab1Slot.routerKey),
-      Tab2Node(parentRouterKey: tab2Slot.routerKey),
+      Tab1RouteNode(parentRouterKey: tab1Slot.routerKey),
+      Tab2RouteNode(parentRouterKey: tab2Slot.routerKey),
     ];
   }
 }
 
-class Tab1Node extends Location<Tab1Node> {
-  Tab1Node({super.parentRouterKey});
+class Tab1RouteNode extends Location<Tab1RouteNode> {
+  Tab1RouteNode({super.parentRouterKey});
 
   @override
   void build(LocationBuilder builder) {
@@ -59,8 +59,8 @@ class Tab1Node extends Location<Tab1Node> {
   }
 }
 
-class Tab2Node extends Location<Tab2Node> {
-  Tab2Node({super.parentRouterKey});
+class Tab2RouteNode extends Location<Tab2RouteNode> {
+  Tab2RouteNode({super.parentRouterKey});
 
   @override
   void build(LocationBuilder builder) {
@@ -77,7 +77,7 @@ void main() {
 }
 
 List<RouteNode> buildRouteNodes(WorkingRouterKey _) => [
-      ScaffoldNode(),
+      ScaffoldRouteNode(),
     ];
 
 class StatePreservingTabs extends StatefulWidget {

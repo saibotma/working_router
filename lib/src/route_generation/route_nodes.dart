@@ -57,6 +57,10 @@
 /// - all path parameters from the full ancestor chain
 /// - all query parameter keys from the full ancestor chain
 ///
+/// When child helper names are derived from route-node type names, the
+/// generator strips common route declaration suffixes like `Location`,
+/// `Overlay`, `RouteNode`, `Shell`, `Scope`, and `Node`.
+///
 /// Static helper members and local helper functions can still be used inside
 /// the tree composition as long as the annotated entrypoint itself is top-level.
 ///

@@ -231,7 +231,7 @@ class BuiltLocationDefinition {
 /// [`Location`] is the override-based base for custom subclasses:
 ///
 /// ```dart
-/// class ALocation extends Location<ALocation> { ... }
+/// class ARouteNode extends Location<ARouteNode> { ... }
 /// ```
 ///
 /// Router internals, matched location lists, and generic predicates still need

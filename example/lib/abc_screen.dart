@@ -3,8 +3,8 @@ import 'package:working_router/working_router.dart';
 
 import 'platform_modal/platform_modal_page.dart';
 
-class ABCNode extends Location<ABCNode> {
-  ABCNode({
+class ABCRouteNode extends Location<ABCRouteNode> {
+  ABCRouteNode({
     super.id,
     required super.parentRouterKey,
   });

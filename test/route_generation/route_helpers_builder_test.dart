@@ -3188,6 +3188,110 @@ List<RouteNode> buildRouteNodes() => [
     },
   );
 
+  test('strips structural suffixes from generated child target names', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions.empty,
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/structural_suffix_routes.dart': '''
+library structural_suffix_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'structural_suffix_routes.g.dart';
+
+class RootRouteNode extends Location<RootRouteNode> {
+  @override
+  void build(LocationBuilder builder) {
+    builder.children = [
+      AccountShellRouteNode(),
+      AuthScopeRouteNode(),
+      PublicScopeRouteNode(),
+    ];
+  }
+}
+
+class AccountShellRouteNode extends ShellLocation<AccountShellRouteNode> {
+  @override
+  void build(ShellLocationBuilder builder) {
+    builder.pathLiteral('account');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+class AuthScopeRouteNode extends Scope<AuthScopeRouteNode> {
+  @override
+  void build(ScopeBuilder builder) {
+    builder.children = [
+      PrivacyRouteNode(),
+    ];
+  }
+}
+
+class PublicScopeRouteNode extends Scope<PublicScopeRouteNode> {
+  @override
+  void build(ScopeBuilder builder) {
+    builder.children = [
+      PrivacyRouteNode(),
+    ];
+  }
+}
+
+class PrivacyRouteNode extends Location<PrivacyRouteNode> {
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('privacy');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+List<RouteNode> buildRouteNodes() => [
+  RootRouteNode(),
+];
+''',
+      },
+      outputs: {
+        'working_router|lib/structural_suffix_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                allOf(
+                  contains(
+                    'extension RootRouteNodeGeneratedChildTargets on RootRouteNode {',
+                  ),
+                  contains('ChildRouteTarget get childAccountTarget'),
+                  contains('void routeToChildAccount(BuildContext context)'),
+                  contains('ChildRouteTarget get childAuthPrivacyTarget'),
+                  contains(
+                    'void routeToChildAuthPrivacy(BuildContext context)',
+                  ),
+                  contains('ChildRouteTarget get childPublicPrivacyTarget'),
+                  contains(
+                    'void routeToChildPublicPrivacy(BuildContext context)',
+                  ),
+                ),
+                allOf(
+                  isNot(contains('childAccountShellTarget')),
+                  isNot(contains('childAccountRouteTarget')),
+                  isNot(contains('childAuthScopePrivacyTarget')),
+                  isNot(contains('childPublicScopePrivacyTarget')),
+                  isNot(contains('routeToChildAccountRoute')),
+                  isNot(contains('routeToChildAuthScopePrivacy')),
+                  isNot(contains('routeToChildPublicScopePrivacy')),
+                ),
+              ),
+            ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
+
   test(
     'keeps one owner-bound child target for equivalent duplicate descendants',
     () async {

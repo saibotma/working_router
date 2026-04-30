@@ -4,8 +4,8 @@ import 'package:working_router/working_router.dart';
 import 'platform_modal/platform_modal_page.dart';
 import 'pop_until_target.dart';
 
-class ADCNode extends Location<ADCNode> {
-  ADCNode({
+class ADCRouteNode extends Location<ADCRouteNode> {
+  ADCRouteNode({
     super.id,
     super.parentRouterKey,
   });

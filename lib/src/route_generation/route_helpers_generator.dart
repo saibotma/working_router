@@ -6963,17 +6963,30 @@ String _toUpperCamelCase(String value) {
 }
 
 String _childMethodBaseName(String locationTypeSource) {
-  for (final suffix in const ['Location', 'Overlay', 'Node']) {
-    if (locationTypeSource.endsWith(suffix) &&
-        locationTypeSource.length > suffix.length) {
-      return locationTypeSource.substring(
-        0,
-        locationTypeSource.length - suffix.length,
-      );
+  var baseName = locationTypeSource;
+
+  while (true) {
+    var strippedSuffix = false;
+
+    for (final suffix in const [
+      'Location',
+      'Overlay',
+      'RouteNode',
+      'Shell',
+      'Scope',
+      'Node',
+    ]) {
+      if (baseName.endsWith(suffix) && baseName.length > suffix.length) {
+        baseName = baseName.substring(0, baseName.length - suffix.length);
+        strippedSuffix = true;
+        break;
+      }
+    }
+
+    if (!strippedSuffix) {
+      return baseName;
     }
   }
-
-  return locationTypeSource;
 }
 
 String _identityBaseNameFromExpression(String expression) {

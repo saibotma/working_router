@@ -5,14 +5,14 @@ import 'abc_screen.dart';
 import 'adc_screen.dart';
 import 'inner_shell_screen.dart';
 
-final abcId = NodeId<ABCNode>();
-final adcId = NodeId<ADCNode>();
-final adShellId = NodeId<ADNestedNode>();
+final abcId = NodeId<ABCRouteNode>();
+final adcId = NodeId<ADCRouteNode>();
+final adShellId = NodeId<ADNestedRouteNode>();
 
-class ABNode extends Location<ABNode> {
+class ABRouteNode extends Location<ABRouteNode> {
   final WorkingRouterKey rootRouterKey;
 
-  ABNode({
+  ABRouteNode({
     super.id,
     super.parentRouterKey,
     required this.rootRouterKey,
@@ -23,7 +23,7 @@ class ABNode extends Location<ABNode> {
     builder.pathLiteral('b');
     builder.content = Content.widget(const FilledAlphabetScreen());
     builder.children = [
-      ABCNode(
+      ABCRouteNode(
         id: abcId,
         parentRouterKey: rootRouterKey,
       ),
@@ -31,11 +31,11 @@ class ABNode extends Location<ABNode> {
   }
 }
 
-class ADNode extends Location<ADNode> {
+class ADRouteNode extends Location<ADRouteNode> {
   final WorkingRouterKey rootRouterKey;
   final WorkingRouterKey? outerShellRouterKey;
 
-  ADNode({
+  ADRouteNode({
     super.id,
     super.parentRouterKey,
     required this.rootRouterKey,
@@ -47,12 +47,12 @@ class ADNode extends Location<ADNode> {
     builder.pathLiteral('d');
     builder.content = Content.widget(const FilledAlphabetScreen());
     builder.children = [
-      ADCNode(
+      ADCRouteNode(
         id: adcId,
         parentRouterKey: rootRouterKey,
       ),
       if (outerShellRouterKey != null)
-        ADNestedNode(
+        ADNestedRouteNode(
           id: adShellId,
           parentRouterKey: outerShellRouterKey,
         ),

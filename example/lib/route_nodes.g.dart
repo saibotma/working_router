@@ -142,7 +142,7 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor {
   }
 }
 
-extension ABNodeGeneratedChildTargets on ABNode {
+extension ABRouteNodeGeneratedChildTargets on ABRouteNode {
   ChildRouteTarget childAbcTarget({
     required String id,
     required String b,
@@ -205,7 +205,7 @@ extension ABNodeGeneratedChildTargets on ABNode {
   }
 }
 
-extension ADNestedNodeGeneratedChildTargets on ADNestedNode {
+extension ADNestedRouteNodeGeneratedChildTargets on ADNestedRouteNode {
   ChildRouteTarget get childAdeTarget {
     return ChildRouteTarget(
       start: this,
@@ -222,7 +222,7 @@ extension ADNestedNodeGeneratedChildTargets on ADNestedNode {
   }
 }
 
-extension ADNodeGeneratedChildTargets on ADNode {
+extension ADRouteNodeGeneratedChildTargets on ADRouteNode {
   ChildRouteTarget get childAdcTarget {
     return ChildRouteTarget(
       start: this,
@@ -270,7 +270,7 @@ extension ADNodeGeneratedChildTargets on ADNode {
   }
 }
 
-extension ANodeGeneratedChildTargets on ANode {
+extension ARouteNodeGeneratedChildTargets on ARouteNode {
   ChildRouteTarget get childAbTarget {
     return ChildRouteTarget(
       start: this,
@@ -413,7 +413,7 @@ extension ANodeGeneratedChildTargets on ANode {
   }
 }
 
-extension SplashNodeGeneratedChildTargets on SplashNode {
+extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
   ChildRouteTarget get childATarget {
     return ChildRouteTarget(
       start: this,

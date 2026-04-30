@@ -43,10 +43,10 @@ The route API is centered around lightweight route-node classes. Subclass
 configuration inside `build(...)`.
 
 ```dart
-final detailId = NodeId<DetailNode>();
+final detailId = NodeId<DetailRouteNode>();
 
-class ExampleNode extends Location<ExampleNode> {
-  ExampleNode({
+class ExampleRouteNode extends Location<ExampleRouteNode> {
+  ExampleRouteNode({
     super.id,
   });
 
@@ -66,13 +66,13 @@ class ExampleNode extends Location<ExampleNode> {
     });
 
     builder.children = [
-      DetailNode(id: detailId),
+      DetailRouteNode(id: detailId),
     ];
   }
 }
 
-class DetailNode extends Location<DetailNode> {
-  DetailNode({super.id});
+class DetailRouteNode extends Location<DetailRouteNode> {
+  DetailRouteNode({super.id});
 
   @override
   void build(LocationBuilder builder) {
@@ -81,9 +81,9 @@ class DetailNode extends Location<DetailNode> {
   }
 }
 
-final exampleId = NodeId<ExampleNode>();
+final exampleId = NodeId<ExampleRouteNode>();
 
-final example = ExampleNode(
+final example = ExampleRouteNode(
   id: exampleId,
 );
 ```
@@ -120,11 +120,16 @@ Important details:
   segments, so a missing value means the route does not match rather than
   producing `null`. Use query parameters for optional values.
 - Child routes are assigned with `builder.children = [...]`.
+- Concrete route node subclasses should use the `RouteNode` suffix, for example
+  `AccountRouteNode`. This keeps colocated route declarations distinct from
+  screens, Flutter `Route`s, and other feature-local node types.
 - Route node classes often fit well next to the screen or feature they render.
-- Put node ids next to the composition site that assigns them. If `ParentNode`
-  creates `ChildNode(id: childId)`, keep `childId` in the parent/composition
-  file. Root ids usually live in the canonical route-tree file that returns the
-  root node.
+  When possible, name the route node after that screen with `RouteNode` in place
+  of the `Screen` suffix, such as `AccountRouteNode` next to `AccountScreen`.
+- Put node ids next to the composition site that assigns them. If
+  `ParentRouteNode` creates `ChildRouteNode(id: childId)`, keep `childId` in
+  the parent/composition file. Root ids usually live in the canonical
+  route-tree file that returns the root node.
 - When descendants need handles declared by the parent, such as params, shell
   router keys, or multi-shell slots, accept
   `ChildrenBuilder<Self> buildChildren` and call it after those handles have
@@ -160,11 +165,11 @@ to a route param without owning the location that declares it:
 ```dart
 final accountId = UnboundPathParam<AccountId>(const AccountIdCodec());
 
-class AccountNode extends Location<AccountNode> {
-  final ChildrenBuilder<AccountNode>? buildChildren;
+class AccountRouteNode extends Location<AccountRouteNode> {
+  final ChildrenBuilder<AccountRouteNode>? buildChildren;
   late final Param<AccountId> boundAccountId;
 
-  AccountNode({this.buildChildren});
+  AccountRouteNode({this.buildChildren});
 
   @override
   void build(LocationBuilder builder) {
@@ -174,9 +179,9 @@ class AccountNode extends Location<AccountNode> {
   }
 }
 
-final account = AccountNode(
+final account = AccountRouteNode(
   buildChildren: (account) => [
-    DashboardNode(accountId: account.boundAccountId),
+    DashboardRouteNode(accountId: account.boundAccountId),
   ],
 );
 
@@ -188,14 +193,14 @@ If a route node itself should keep access to a bound param after `build(...)`,
 store the returned `Param<T>` on the node instance:
 
 ```dart
-class AccountNode extends Location<AccountNode> {
+class AccountRouteNode extends Location<AccountRouteNode> {
   late final Param<AccountId> accountId;
 
   @override
   void build(ShellBuilder builder) {
     accountId = builder.pathParam(const AccountIdCodec());
     builder.children = [
-      DashboardNode(id: RouteId.dashboard, accountId: accountId),
+      DashboardRouteNode(id: RouteId.dashboard, accountId: accountId),
     ];
   }
 }
@@ -281,20 +286,21 @@ slot's root page beneath deeper routed pages.
 ## Composing Children
 
 Prefer self-contained feature nodes. Put the route node next to the screen it
-draws and let that node declare its own route configuration and children in
-`build(...)`.
+draws and, when possible, name it like the screen with `RouteNode` instead of
+`Screen`, such as `AccountRouteNode` next to `AccountScreen`. Let that node
+declare its own route configuration and children in `build(...)`.
 
 ```dart
-class AccountNode extends Location<AccountNode> {
-  AccountNode({super.id});
+class AccountRouteNode extends Location<AccountRouteNode> {
+  AccountRouteNode({super.id});
 
   @override
   void build(LocationBuilder builder) {
     builder.pathLiteral('account');
     builder.content = Content.widget(const AccountScreen());
     builder.children = [
-      AccountOverviewNode(),
-      AccountSettingsNode(),
+      AccountOverviewRouteNode(),
+      AccountSettingsRouteNode(),
     ];
   }
 }
@@ -305,10 +311,10 @@ reusable container whose contents are supplied by its caller. In that case the
 node owns an explicit constructor field and assigns it inside `build(...)`:
 
 ```dart
-class LegalNode extends Scope<LegalNode> {
+class LegalRouteNode extends Scope<LegalRouteNode> {
   final List<RouteNode> children;
 
-  LegalNode({this.children = const []});
+  LegalRouteNode({this.children = const []});
 
   @override
   void build(ScopeBuilder builder) {
@@ -316,10 +322,10 @@ class LegalNode extends Scope<LegalNode> {
   }
 }
 
-final legal = LegalNode(
+final legal = LegalRouteNode(
   children: [
-    PrivacyNode(id: RouteId.privacy),
-    TermsNode(id: RouteId.terms),
+    PrivacyRouteNode(id: RouteId.privacy),
+    TermsRouteNode(id: RouteId.terms),
   ],
 );
 ```
@@ -329,12 +335,12 @@ declares during `build(...)`. Assign the handle to a `late final` field before
 calling the child factory:
 
 ```dart
-class ChatSplitNode extends AbstractMultiShell {
+class ChatSplitRouteNode extends AbstractMultiShell {
   late final MultiShellSlot listSlot;
   late final MultiShellSlot detailSlot;
-  final ChildrenBuilder<ChatSplitNode>? buildChildren;
+  final ChildrenBuilder<ChatSplitRouteNode>? buildChildren;
 
-  ChatSplitNode({this.buildChildren});
+  ChatSplitRouteNode({this.buildChildren});
 
   @override
   void build(MultiShellBuilder builder) {
@@ -354,10 +360,10 @@ class ChatSplitNode extends AbstractMultiShell {
   }
 }
 
-final chat = ChatSplitNode(
+final chat = ChatSplitRouteNode(
   buildChildren: (chat) => [
-    SearchNode(parentRouterKey: chat.listSlot.routerKey),
-    DetailNode(
+    SearchRouteNode(parentRouterKey: chat.listSlot.routerKey),
+    ChannelDetailRouteNode(
       id: RouteId.detail,
       parentRouterKey: chat.detailSlot.routerKey,
     ),
@@ -376,7 +382,7 @@ Shell(
     );
     builder.defaultContent = DefaultContent.widget(const Placeholder());
     builder.children = [
-      DashboardNode(id: RouteId.dashboard),
+      DashboardRouteNode(id: RouteId.dashboard),
     ];
   },
 );
@@ -422,8 +428,8 @@ In practice, that means:
 Example:
 
 ```dart
-class LessonLocation extends Location<LessonLocation> {
-  LessonLocation({super.id});
+class LessonRouteNode extends Location<LessonRouteNode> {
+  LessonRouteNode({super.id});
 
   @override
   void build(LocationBuilder builder) {
@@ -453,7 +459,7 @@ Shell(
       return Scaffold(body: child);
     });
 
-    builder.children = [SomeLocation(id: MyRouteId.some)];
+    builder.children = [SomeRouteNode(id: MyRouteId.some)];
   },
 )
 ```
@@ -480,11 +486,11 @@ This is shown in the package example in
 shape:
 
 ```dart
-class SettingsLocation extends ShellLocation<SettingsLocation> {
+class SettingsRouteNode extends ShellLocation<SettingsRouteNode> {
   final ScreenSize screenSize;
   final List<RouteNode> children;
 
-  SettingsLocation({
+  SettingsRouteNode({
     super.id,
     required this.screenSize,
     this.children = const [],
@@ -508,11 +514,11 @@ class SettingsLocation extends ShellLocation<SettingsLocation> {
   }
 }
 
-final settings = SettingsLocation(
+final settings = SettingsRouteNode(
   id: RouteId.settings,
   screenSize: screenSize,
   children: [
-    ThemeModeNode(id: RouteId.themeMode),
+    ThemeModeRouteNode(id: RouteId.themeMode),
   ],
 );
 ```
@@ -535,12 +541,12 @@ location's own page, such as a desktop split view with independent left and
 right stacks.
 
 ```dart
-class ChatLocation extends MultiShellLocation<ChatLocation> {
+class ChatRouteNode extends MultiShellLocation<ChatRouteNode> {
   late final MultiShellSlot listSlot;
   final ScreenSize screenSize;
-  final ChildrenBuilder<ChatLocation>? buildChildren;
+  final ChildrenBuilder<ChatRouteNode>? buildChildren;
 
-  ChatLocation({
+  ChatRouteNode({
     super.id,
     required this.screenSize,
     this.buildChildren,
@@ -574,15 +580,15 @@ class ChatLocation extends MultiShellLocation<ChatLocation> {
   }
 }
 
-final chat = ChatLocation(
+final chat = ChatRouteNode(
   id: RouteId.chat,
   screenSize: screenSize,
   buildChildren: (chat) => [
-    ChannelListNode(
+    ChannelListRouteNode(
       id: RouteId.channelList,
       parentRouterKey: chat.listSlot.routerKey,
     ),
-    ChannelDetailNode(
+    ChannelDetailRouteNode(
       id: RouteId.channelDetail,
       parentRouterKey: chat.contentSlot.routerKey,
     ),
@@ -642,13 +648,13 @@ useful for pane state such as a chat search view that should appear beside the
 currently selected channel.
 
 ```dart
-class ChatLocation extends MultiShellLocation<ChatLocation> {
+class ChatRouteNode extends MultiShellLocation<ChatRouteNode> {
   late final DefaultQueryParam<ChatDisplay> chatDisplay;
   late final MultiShellSlot listSlot;
   final ScreenSize screenSize;
-  final ChildrenBuilder<ChatLocation>? buildChildren;
+  final ChildrenBuilder<ChatRouteNode>? buildChildren;
 
-  ChatLocation({
+  ChatRouteNode({
     super.id,
     required this.screenSize,
     this.buildChildren,
@@ -678,16 +684,16 @@ class ChatLocation extends MultiShellLocation<ChatLocation> {
   }
 }
 
-final chat = ChatLocation(
+final chat = ChatRouteNode(
   id: RouteId.chat,
   screenSize: screenSize,
   buildChildren: (chat) => [
-    SearchNode(
+    SearchRouteNode(
       id: RouteId.search,
       chatDisplay: chat.chatDisplay,
       parentRouterKey: chat.listSlot.routerKey,
     ),
-    ChannelDetailNode(
+    ChannelDetailRouteNode(
       id: RouteId.channelDetail,
       parentRouterKey: chat.contentSlot.routerKey,
     ),
@@ -696,10 +702,10 @@ final chat = ChatLocation(
 ```
 
 ```dart
-class SearchNode extends Location<SearchNode> {
+class SearchRouteNode extends Location<SearchRouteNode> {
   final DefaultQueryParam<ChatDisplay> chatDisplay;
 
-  SearchNode({
+  SearchRouteNode({
     required this.chatDisplay,
     super.parentRouterKey,
   });
@@ -747,6 +753,9 @@ For start-anchored child targets:
   distinct ids
 - generated helper names derive from the referenced id variable name and strip
   common trailing suffixes like `Id`, `NodeId`, and `LocalId`
+- when generated child helper names derive from a route-node type name, the
+  generator strips common declaration suffixes like `RouteNode`, `Location`,
+  `Overlay`, `Shell`, `Scope`, and `Node`
 - if the same start node could reach multiple descendants that would generate the
   same `childXTarget(...)` helper, the generator suppresses that safe ancestor
   helper and generates `routeToFirstChildX(...)` instead
