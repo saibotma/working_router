@@ -284,7 +284,7 @@ class WorkingRouter extends ChangeNotifier
       return;
     }
 
-    final newNodes = data.routeNodes.removeAt(locationIndex);
+    final newNodes = data.routeNodes.take(locationIndex).toIList();
     if (newNodes.locations.length == data.routeNodes.locations.length) {
       return;
     }

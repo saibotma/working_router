@@ -1135,6 +1135,95 @@ void main() {
       },
     );
 
+    testWidgets(
+      'popping a shell location page removes its nested child locations',
+      (tester) async {
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderLocation(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('dashboard');
+                      builder.content = Content.widget(
+                        const Text('dashboard'),
+                      );
+                      builder.children = [
+                        _BuilderShellLocation(
+                          build: (builder, location, _) {
+                            builder.pathLiteral('settings');
+                            builder.shellContent = ShellContent.builder((
+                              context,
+                              data,
+                              child,
+                            ) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('settings-shell'),
+                                  SizedBox(height: 80, child: child),
+                                ],
+                              );
+                            });
+                            builder.content = Content.widget(
+                              const Text('settings'),
+                            );
+                            builder.children = [
+                              _BuilderLocation(
+                                id: _Id.b,
+                                build: (builder, location) {
+                                  builder.pathLiteral('theme');
+                                  builder.content = Content.widget(
+                                    const Text('theme'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/dashboard/settings/theme'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('settings-shell'), findsOneWidget);
+        expect(find.text('theme'), findsOneWidget);
+        expect(
+          router.nullableData!.uri,
+          Uri(path: '/dashboard/settings/theme'),
+        );
+
+        final rootNavigator = tester.state<NavigatorState>(
+          find
+              .ancestor(
+                of: find.text('settings-shell'),
+                matching: find.byType(Navigator),
+              )
+              .first,
+        );
+        final didPop = await rootNavigator.maybePop();
+        await tester.pumpAndSettle();
+
+        expect(didPop, true);
+        expect(find.text('dashboard'), findsOneWidget);
+        expect(find.text('settings-shell'), findsNothing);
+        expect(find.text('theme'), findsNothing);
+        expect(router.nullableData!.uri, Uri(path: '/dashboard'));
+      },
+    );
+
     testWidgets('shell without matching child is treated as unresolved', (
       tester,
     ) async {
