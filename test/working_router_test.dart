@@ -2663,8 +2663,8 @@ void main() {
       expect(find.text('channel:42'), findsOneWidget);
       expect(router.nullableData!.leaf, same(channel));
       expect(
-        router.nullableData!.isMatched<_BuilderOverlay>(
-          (node) => identical(node, search),
+        router.nullableData!.isMatched(
+          (node) => node is _BuilderOverlay && identical(node, search),
         ),
         isTrue,
       );
@@ -3088,8 +3088,8 @@ void main() {
 
       expect(router.nullableData!.leaf, same(channel));
       expect(
-        router.nullableData!.isMatched<_BuilderOverlay>(
-          (node) => identical(node, searchOverlay),
+        router.nullableData!.isMatched(
+          (node) => node is _BuilderOverlay && identical(node, searchOverlay),
         ),
         isTrue,
       );

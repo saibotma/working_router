@@ -277,7 +277,7 @@ class WorkingRouterData {
   }
 
   bool isTypeMatched<T extends RouteNode<T>>() {
-    return isMatched<T>();
+    return routeNodesWithOverlays.any((node) => node is T);
   }
 
   bool isAnyTypeMatched2<T1 extends RouteNode<T1>, T2 extends RouteNode<T2>>() {
@@ -294,17 +294,13 @@ class WorkingRouterData {
     });
   }
 
-  /// Returns whether any matched route node of type [T] exists.
+  /// Returns whether any matched route node satisfies [match].
   ///
   /// Structural nodes such as scopes and shells participate here as well.
   /// Query overlays participate here when their conditions match, even though
   /// overlays are not part of [routeNodes] and can never be [leaf].
-  bool isMatched<T extends RouteNode<T>>([bool Function(T node)? match]) {
-    final typedNodes = routeNodesWithOverlays.whereType<T>();
-    if (match == null) {
-      return typedNodes.isNotEmpty;
-    }
-    return typedNodes.any(match);
+  bool isMatched(bool Function(RouteNode node) match) {
+    return routeNodesWithOverlays.any(match);
   }
 
   T? lastMatched<T extends RouteNode<T>>([bool Function(T node)? match]) {

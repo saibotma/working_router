@@ -362,10 +362,10 @@ void main() {
           data.routeNodes,
           orderedEquals([accountsNode, detail]),
         );
-        expect(data.isMatched<_AccountsNode>(), isTrue);
+        expect(data.isTypeMatched<_AccountsNode>(), isTrue);
         expect(
-          data.isMatched<_TestLocation>(
-            (location) => location.id == _TestId.detail,
+          data.isMatched(
+            (node) => node is _TestLocation && node.id == _TestId.detail,
           ),
           isTrue,
         );
