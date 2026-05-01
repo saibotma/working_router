@@ -476,6 +476,14 @@ delegate keeps its own navigator key and stack across
 makes dynamic route-tree refreshes practical here, because nested navigator
 state can survive tree changes that still keep the same shell alive.
 
+`WorkingRouter.refresh()` rebuilds the route-node tree and rematches the
+current route against that new tree. Any `RouteNode` objects from the old tree
+are no longer live after refresh. If a widget needs to route via a child target,
+it is safe to pass the route node from the current build/default-content
+callback to child widgets as a constructor argument. Do not keep route-node
+instances in longer-lived state, controllers, or memoized callbacks across
+refreshes.
+
 This is shown in the package example in
 [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart).
 

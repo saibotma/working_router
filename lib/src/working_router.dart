@@ -145,6 +145,13 @@ class WorkingRouter extends ChangeNotifier
   WorkingRouterKey get rootRouterKey => _rootRouterKey;
 
   /// Rebuilds the route node tree for this router instance.
+  ///
+  /// The current route is rematched against the rebuilt tree, so
+  /// [WorkingRouterData.routeNodes] is replaced with the new live route-node
+  /// instances. It is safe to pass a route node from the current build callback
+  /// to child widgets as a constructor argument. Avoid storing route-node
+  /// instances in longer-lived state, controllers, or memoized callbacks across
+  /// refreshes.
   void refresh() {
     _routeNodeTree = _buildRouteNodeTree();
     final currentData = nullableData;

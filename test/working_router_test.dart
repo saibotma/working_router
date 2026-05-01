@@ -2765,6 +2765,99 @@ void main() {
     });
 
     testWidgets(
+      'nested default slot uses refreshed route nodes for child targets',
+      (tester) async {
+        late _BuilderLocation channel;
+        var resolveChildPathNodesCalls = 0;
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation(
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      final leftSlot = builder.slot(
+                        debugLabel: 'left',
+                        defaultContent: DefaultContent.builder((
+                          context,
+                          data,
+                        ) {
+                          return TextButton(
+                            onPressed: () {
+                              WorkingRouter.of(context).routeTo(
+                                ChildRouteTarget(
+                                  start: location,
+                                  resolveChildPathNodes: () {
+                                    resolveChildPathNodesCalls += 1;
+                                    return resolveExactChildRouteNodes(
+                                      location,
+                                      [(node) => identical(node, channel)],
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                            child: const Text('open channel'),
+                          );
+                        }),
+                      );
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(height: 80, child: slots.child(leftSlot)),
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(contentSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.content = Content.widget(const Text('empty'));
+                      channel = _BuilderLocation(
+                        id: _Id.b,
+                        parentRouterKey: contentSlot.routerKey,
+                        build: (builder, location) {
+                          builder.pathLiteral('channel');
+                          builder.content = Content.widget(
+                            const Text('channel'),
+                          );
+                        },
+                      );
+                      builder.children = [channel];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToUri(Uri(path: '/chat'));
+        await tester.pumpAndSettle();
+
+        router.refresh();
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('open channel'));
+        await tester.pumpAndSettle();
+
+        expect(resolveChildPathNodesCalls, 1);
+        expect(find.text('channel'), findsOneWidget);
+        expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+      },
+    );
+
+    testWidgets(
       'hidden route is matchable from url but omitted from generated uri',
       (tester) async {
         late _BuilderLocation chat;

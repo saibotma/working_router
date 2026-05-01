@@ -42,7 +42,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
   WorkingRouterKey routerKey;
   final bool isRootDelegate;
   final WorkingRouter router;
-  final List<Page<dynamic>> Function(WorkingRouterData data)? buildDefaultPages;
+  List<Page<dynamic>> Function(WorkingRouterData data)? buildDefaultPages;
   final Widget? noContentWidget;
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
@@ -728,8 +728,23 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     refresh();
   }
 
-  void updateRouterKey(WorkingRouterKey routerKey) {
+  /// Updates configuration owned by a reused nested delegate.
+  ///
+  /// Nested delegates intentionally survive shell widget rebuilds so their
+  /// navigator state is preserved. Their configuration still has to follow the
+  /// current [NestedRouting] widget, because [buildDefaultPages] is built from
+  /// the current shell or slot route-node definitions.
+  void updateConfiguration({
+    required WorkingRouterKey routerKey,
+    required List<Page<dynamic>> Function(WorkingRouterData data)?
+    buildDefaultPages,
+    WorkingRouterData? data,
+  }) {
     this.routerKey = routerKey;
+    this.buildDefaultPages = buildDefaultPages;
+    if (data != null) {
+      _data = data;
+    }
     refresh();
   }
 

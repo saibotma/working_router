@@ -14,6 +14,12 @@ import 'package:working_router/src/working_router_key.dart';
 /// This is what lets working_router support dynamic route trees without
 /// immediately discarding nested navigator state on every refresh.
 ///
+/// A refresh still replaces the route-node instances in
+/// [WorkingRouterData.routeNodes]. When this widget is reused after the
+/// surrounding shell or slot rebuilds, the nested delegate must receive the new
+/// [routerKey] and [buildDefaultPages] callback so default pages are rebuilt
+/// from the refreshed route-node definitions instead of from the old tree.
+///
 /// It also installs a navigator-aware [WorkingRouter.of] value. Calling
 /// `WorkingRouter.of(context).routeBack()` from inside this widget routes back
 /// inside this nested navigator first, then falls back to the parent/global
@@ -53,9 +59,20 @@ class _NestedRoutingState extends State<NestedRouting> {
   void didUpdateWidget(covariant NestedRouting oldWidget) {
     // The stateful nested delegate is reused across widget updates, so keep
     // its router ownership key in sync when the surrounding shell now targets
-    // a different nested router boundary.
-    if (!identical(oldWidget.routerKey, widget.routerKey)) {
-      _delegate!.updateRouterKey(widget.routerKey);
+    // a different nested router boundary. The default-page builder also
+    // comes from the current shell/slot node definitions, which are replaced
+    // by WorkingRouter.refresh().
+    final routerKeyChanged = !identical(oldWidget.routerKey, widget.routerKey);
+    final buildDefaultPagesChanged = !identical(
+      oldWidget.buildDefaultPages,
+      widget.buildDefaultPages,
+    );
+    if (routerKeyChanged || buildDefaultPagesChanged) {
+      _delegate!.updateConfiguration(
+        routerKey: widget.routerKey,
+        buildDefaultPages: widget.buildDefaultPages,
+        data: widget.router.nullableData,
+      );
       _sailor.routerKey = widget.routerKey;
     }
     super.didUpdateWidget(oldWidget);
