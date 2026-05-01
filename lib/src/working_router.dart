@@ -150,8 +150,9 @@ class WorkingRouter extends ChangeNotifier
   /// [WorkingRouterData.routeNodes] is replaced with the new live route-node
   /// instances. It is safe to pass a route node from the current build callback
   /// to child widgets as a constructor argument. Avoid storing route-node
-  /// instances in longer-lived state, controllers, or memoized callbacks across
-  /// refreshes.
+  /// instances in widget state, controllers, providers, or memoized callbacks
+  /// across refreshes. If a current build callback still receives an old node,
+  /// that is likely a working_router bug.
   void refresh() {
     _routeNodeTree = _buildRouteNodeTree();
     final currentData = nullableData;
@@ -702,7 +703,23 @@ class WorkingRouter extends ChangeNotifier
           (node) => identical(node, start),
         );
         if (startIndex == -1) {
-          return data;
+          final startIsInCurrentTree = _routeNodeTree.any(
+            (node) => node.containsNode(start),
+          );
+          final reason = startIsInCurrentTree
+              ? 'not part of the current active route chain'
+              : 'not part of the current route-node tree';
+          throw StateError(
+            'Cannot route to ChildRouteTarget because its start node '
+            '`${start.runtimeType}` is $reason for `${data.uri}`. '
+            'This can happen when a route node is kept in widget state, a '
+            'controller, a provider, or a memoized callback across '
+            'WorkingRouter.refresh(). Pass route nodes from the current build '
+            'callback to widgets instead, or read the current node from '
+            'WorkingRouterData before building the target. If the node came '
+            'directly from the current build callback, this is likely a '
+            'working_router bug.',
+          );
         }
 
         final matchedNodes = resolveChildPathNodes();

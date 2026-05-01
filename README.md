@@ -481,8 +481,9 @@ current route against that new tree. Any `RouteNode` objects from the old tree
 are no longer live after refresh. If a widget needs to route via a child target,
 it is safe to pass the route node from the current build/default-content
 callback to child widgets as a constructor argument. Do not keep route-node
-instances in longer-lived state, controllers, or memoized callbacks across
-refreshes.
+instances in widget state, controllers, providers, or memoized callbacks across
+refreshes. If a current build/default-content callback still receives an old
+route-node instance after refresh, that is likely a working_router bug.
 
 This is shown in the package example in
 [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart).

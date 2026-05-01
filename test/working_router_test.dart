@@ -2857,6 +2857,71 @@ void main() {
       },
     );
 
+    testWidgets('child target throws for stale start node after refresh', (
+      tester,
+    ) async {
+      late _BuilderLocation chat;
+      late _BuilderLocation channel;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                chat = _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('chat');
+                    builder.content = Content.widget(const Text('chat'));
+                    channel = _BuilderLocation(
+                      id: _Id.b,
+                      build: (builder, location) {
+                        builder.pathLiteral('channel');
+                        builder.content = Content.widget(
+                          const Text('channel'),
+                        );
+                      },
+                    );
+                    builder.children = [channel];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToUri(Uri(path: '/chat'));
+      await tester.pumpAndSettle();
+      final staleChat = chat;
+      final staleChannel = channel;
+
+      router.refresh();
+      await tester.pumpAndSettle();
+
+      expect(
+        () => router.routeTo(
+          ChildRouteTarget(
+            start: staleChat,
+            resolveChildPathNodes: () => <RouteNode>[staleChannel].toIList(),
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('Cannot route to ChildRouteTarget'),
+              contains('not part of the current route-node tree'),
+            ),
+          ),
+        ),
+      );
+    });
+
     testWidgets(
       'hidden route is matchable from url but omitted from generated uri',
       (tester) async {
