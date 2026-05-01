@@ -112,6 +112,16 @@ class WorkingRouter extends ChangeNotifier
   // ignore: deprecated_member_use_from_same_package
   WorkingRouterData get data => _data!;
 
+  @override
+  RouteTarget get routeTarget {
+    final configuration = _configurationFromData(data);
+    return StaticRouteTarget(
+      configuration.uri,
+      hiddenPathSegments: configuration.hiddenPathSegments,
+      hiddenQueryParameters: configuration.hiddenQueryParameters,
+    );
+  }
+
   // ignore: deprecated_member_use_from_same_package
   WorkingRouterData? get nullableData => _data;
 
@@ -175,13 +185,18 @@ class WorkingRouter extends ChangeNotifier
   }
 
   @override
-  void routeToUriString(String uriString) {
-    routeTo(UriRouteTarget(Uri.parse(uriString)));
-  }
-
-  @override
-  void routeToUri(Uri uri) {
-    routeTo(UriRouteTarget(uri));
+  void routeToStatic(
+    Uri uri, {
+    IList<String> hiddenPathSegments = const IListConst([]),
+    IMap<String, String> hiddenQueryParameters = const IMapConst({}),
+  }) {
+    routeTo(
+      StaticRouteTarget(
+        uri,
+        hiddenPathSegments: hiddenPathSegments,
+        hiddenQueryParameters: hiddenQueryParameters,
+      ),
+    );
   }
 
   @override
@@ -636,14 +651,62 @@ class WorkingRouter extends ChangeNotifier
     return _buildDataForUri(configuration.matchingUri);
   }
 
+  Uri _matchingUri({
+    required Uri uri,
+    required IList<String> hiddenPathSegments,
+    required IMap<String, String> hiddenQueryParameters,
+  }) {
+    final queryParameters = {
+      ...hiddenQueryParameters.unlock,
+      ...uri.queryParameters,
+    };
+    final pathSegments = [...uri.pathSegments, ...hiddenPathSegments];
+    final path = pathSegments.isEmpty
+        ? uri.path
+        : '${uri.path.startsWith('/') ? '/' : ''}${pathSegments.join('/')}';
+    return uri.replace(
+      path: path,
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+    );
+  }
+
   WorkingRouterData _buildDataForTarget(
     RouteTarget target, {
     required WorkingRouterData? currentData,
     bool retainSharedQueryParameters = true,
   }) {
     switch (target) {
-      case UriRouteTarget(:final uri):
-        return _buildDataForUri(uri);
+      case StaticRouteTarget(
+        :final uri,
+        :final hiddenPathSegments,
+        :final hiddenQueryParameters,
+      ):
+        return _buildDataForUri(
+          _matchingUri(
+            uri: uri,
+            hiddenPathSegments: hiddenPathSegments,
+            hiddenQueryParameters: hiddenQueryParameters,
+          ),
+        );
+      case NavigatorConstrainedRouteTarget(
+        :final target,
+        :final locationId,
+        :final fallback,
+      ):
+        final targetData = _buildDataForTarget(
+          target,
+          currentData: currentData,
+          retainSharedQueryParameters: retainSharedQueryParameters,
+        );
+        return _dataConstrainedToNavigator(
+              targetData,
+              locationId: locationId,
+            ) ??
+            _buildDataForTarget(
+              fallback,
+              currentData: currentData,
+              retainSharedQueryParameters: retainSharedQueryParameters,
+            );
       case IdRouteTarget(
         :final id,
         :final writePathParameters,
@@ -1077,6 +1140,39 @@ class WorkingRouter extends ChangeNotifier
     return data.routeNodes.take(lastRemainingNodeIndex + 1).toIList();
   }
 
+  WorkingRouterData? _dataConstrainedToNavigator(
+    WorkingRouterData data, {
+    required AnyNodeId locationId,
+  }) {
+    final deepestLocation = _rootDelegate.deepestLocationInNavigator(
+      data: data,
+      locationId: locationId,
+    );
+    if (deepestLocation == null) {
+      return null;
+    }
+    if (identical(deepestLocation, data.leaf)) {
+      return data;
+    }
+
+    final routeNodes = _trimNodesToLastMatchingLocation(data, deepestLocation);
+    final pathRouteNodes = routeNodes.pathRouteNodes;
+    return _buildData(
+      routeNodes: routeNodes,
+      pathParameters: data.pathParameters.keepKeys({
+        for (final element in pathRouteNodes)
+          ...element.path.whereType<PathParam<dynamic>>().map(
+            (it) => it.unboundParam,
+          ),
+      }),
+      queryParameters: data.queryParameters.keepKeys(
+        pathRouteNodes
+            .expand((element) => element.queryParameters.map((it) => it.name))
+            .toSet(),
+      ),
+    );
+  }
+
   Map<UnboundPathParam<dynamic>, String> _resolvePathParameterWrites({
     required Iterable<PathRouteNode> nodes,
     required WritePathParameters? writePathParameters,
@@ -1255,18 +1351,24 @@ class NestedWorkingRouterSailor extends ChangeNotifier
   WorkingRouterData get data => router.data;
 
   @override
+  RouteTarget get routeTarget => router.routeTarget;
+
+  @override
   void routeTo(RouteTarget target) {
     router.routeTo(target);
   }
 
   @override
-  void routeToUriString(String uriString) {
-    router.routeToUriString(uriString);
-  }
-
-  @override
-  void routeToUri(Uri uri) {
-    router.routeToUri(uri);
+  void routeToStatic(
+    Uri uri, {
+    IList<String> hiddenPathSegments = const IListConst([]),
+    IMap<String, String> hiddenQueryParameters = const IMapConst({}),
+  }) {
+    router.routeToStatic(
+      uri,
+      hiddenPathSegments: hiddenPathSegments,
+      hiddenQueryParameters: hiddenQueryParameters,
+    );
   }
 
   @override

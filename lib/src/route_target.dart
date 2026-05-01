@@ -7,10 +7,51 @@ sealed class RouteTarget {
   const RouteTarget();
 }
 
-final class UriRouteTarget extends RouteTarget {
+/// Routes to a fixed serialized route.
+///
+/// Hidden path segments and hidden query parameters are included for route
+/// state that is intentionally omitted from the browser-visible URI.
+final class StaticRouteTarget extends RouteTarget {
   final Uri uri;
+  final IList<String> hiddenPathSegments;
+  final IMap<String, String> hiddenQueryParameters;
 
-  const UriRouteTarget(this.uri);
+  const StaticRouteTarget(
+    this.uri, {
+    this.hiddenPathSegments = const IListConst([]),
+    this.hiddenQueryParameters = const IMapConst({}),
+  });
+}
+
+/// Resolves [target] and then trims it to the deepest route prefix rendered
+/// inside the navigator subtree owned by [locationId].
+///
+/// If no matched prefix is rendered inside that navigator subtree, [fallback]
+/// is resolved instead. Resolution is intentionally delayed until navigation
+/// time so responsive route-tree changes are respected.
+final class NavigatorConstrainedRouteTarget extends RouteTarget {
+  final RouteTarget target;
+  final AnyNodeId locationId;
+  final RouteTarget fallback;
+
+  const NavigatorConstrainedRouteTarget({
+    required this.target,
+    required this.locationId,
+    required this.fallback,
+  });
+}
+
+extension RouteTargetNavigatorConstraint on RouteTarget {
+  RouteTarget constrainToNavigator({
+    required AnyNodeId locationId,
+    required RouteTarget fallback,
+  }) {
+    return NavigatorConstrainedRouteTarget(
+      target: this,
+      locationId: locationId,
+      fallback: fallback,
+    );
+  }
 }
 
 base class IdRouteTarget extends RouteTarget {

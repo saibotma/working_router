@@ -4,7 +4,7 @@ import 'package:working_router/src/working_router_data.dart';
 
 /// Why this transition was triggered.
 enum RouteTransitionReason {
-  /// Application code explicitly routed (e.g. routeToUri, routeBack, routeToId).
+  /// Application code explicitly routed (e.g. routeToStatic, routeBack, routeToId).
   programmatic,
 
   /// A transition callback redirected to a new destination.
@@ -63,7 +63,7 @@ final class RedirectTransition extends TransitionDecision {
   }
 
   factory RedirectTransition.toUri(Uri uri) {
-    return RedirectTransition(UriRouteTarget(uri));
+    return RedirectTransition(StaticRouteTarget(uri));
   }
 
   factory RedirectTransition.toId(

@@ -1,11 +1,14 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:working_router/working_router.dart';
 
 abstract class WorkingRouterSailor {
   void routeTo(RouteTarget target);
 
-  void routeToUriString(String uriString);
-
-  void routeToUri(Uri uri);
+  void routeToStatic(
+    Uri uri, {
+    IList<String> hiddenPathSegments = const IListConst([]),
+    IMap<String, String> hiddenQueryParameters = const IMapConst({}),
+  });
 
   /// Routes to a matched location by id.
   ///
@@ -16,7 +19,8 @@ abstract class WorkingRouterSailor {
   /// Prefer generated `routeTo...` helpers in application code. The
   /// [writePathParameters] and [writeQueryParameters] callbacks are low-level
   /// hooks for those generated helpers and are discouraged for handwritten
-  /// routing code. Use [routeToUri] when navigating to an already-encoded URI.
+  /// routing code. Use [routeToStatic] when navigating to an already-encoded
+  /// URI, or [routeTo] with [StaticRouteTarget] when storing a reusable target.
   void routeToId(
     AnyNodeId id, {
     WritePathParameters? writePathParameters,

@@ -192,6 +192,83 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     return lastNode;
   }
 
+  AnyLocation? deepestLocationInNavigator({
+    required WorkingRouterData data,
+    required AnyNodeId locationId,
+  }) {
+    final navigatorKeysInSubtree = <WorkingRouterKey>{};
+    var foundTargetLocation = false;
+    AnyLocation? deepestLocation;
+
+    for (final entry in _matchedNodesWithEffectiveParentRouterKeys(data)) {
+      final node = entry.node;
+      if (!foundTargetLocation) {
+        if (node is AnyLocation &&
+            node.id == locationId &&
+            entry.renderKind == _MatchedNodeRenderKind.node) {
+          foundTargetLocation = true;
+          deepestLocation = node;
+          navigatorKeysInSubtree.addAll(_ownedNavigatorKeys(entry));
+        }
+        continue;
+      }
+
+      final isRenderedInSubtree = navigatorKeysInSubtree.any(
+        (routerKey) => identical(routerKey, entry.effectiveParentRouterKey),
+      );
+      if (!isRenderedInSubtree) {
+        if (node is AnyLocation) {
+          break;
+        }
+        continue;
+      }
+
+      navigatorKeysInSubtree.addAll(_ownedNavigatorKeys(entry));
+      if (node is AnyLocation &&
+          entry.renderKind == _MatchedNodeRenderKind.node) {
+        deepestLocation = node;
+      }
+    }
+
+    return deepestLocation;
+  }
+
+  Iterable<WorkingRouterKey> _ownedNavigatorKeys(
+    _MatchedNodeEntry entry,
+  ) sync* {
+    switch (entry.node) {
+      case final AbstractMultiShell multiShell:
+        if (!multiShell.navigatorEnabled) {
+          return;
+        }
+        for (final slotDefinition in multiShell.slotDefinitions) {
+          if (slotDefinition.navigatorEnabled) {
+            yield slotDefinition.slot.routerKey;
+          }
+        }
+      case final MultiShellLocation multiShellLocation:
+        if (!multiShellLocation.navigatorEnabled) {
+          return;
+        }
+        yield multiShellLocation.contentRouterKey;
+        for (final slotDefinition in multiShellLocation.slotDefinitions) {
+          if (slotDefinition.navigatorEnabled) {
+            yield slotDefinition.slot.routerKey;
+          }
+        }
+      case final ShellLocation shellLocation:
+        if (shellLocation.navigatorEnabled) {
+          yield shellLocation.routerKey;
+        }
+      case final AbstractShell shell:
+        if (shell.navigatorEnabled) {
+          yield shell.routerKey;
+        }
+      case PathRouteNode() || AnyOverlay():
+        return;
+    }
+  }
+
   Iterable<_MatchedNodeEntry> _matchedNodesWithEffectiveParentRouterKeys(
     WorkingRouterData data,
   ) sync* {

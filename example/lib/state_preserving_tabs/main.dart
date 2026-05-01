@@ -167,9 +167,9 @@ class _StatePreservingScaffoldState extends State<StatePreservingScaffold> {
         ],
         onTap: (index) {
           if (index == 0) {
-            router.routeToUriString("/tab1");
+            router.routeToStatic(Uri(path: '/tab1'));
           } else {
-            router.routeToUriString("/tab2");
+            router.routeToStatic(Uri(path: '/tab2'));
           }
         },
       ),

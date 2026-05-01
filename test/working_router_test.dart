@@ -21,11 +21,11 @@ void main() {
         },
       );
 
-      router.routeToUri(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/a'));
       await tester.pump();
       expect(router.nullableData, isNull);
 
-      router.routeToUri(Uri(path: '/c'));
+      router.routeToStatic(Uri(path: '/c'));
       await tester.pump();
       expect(router.nullableData!.uri.path, '/c');
     });
@@ -46,10 +46,10 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(Uri(path: '/c'));
+      router.routeToStatic(Uri(path: '/c'));
       await tester.pumpAndSettle();
 
-      router.routeToUri(Uri(path: '/does-not-exist'));
+      router.routeToStatic(Uri(path: '/does-not-exist'));
       await tester.pumpAndSettle();
 
       expect(calls, contains('/c'));
@@ -92,11 +92,11 @@ void main() {
         });
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/a/b'));
+        router.routeToStatic(Uri(path: '/a/b'));
         await tester.pumpAndSettle();
         calls.clear();
 
-        router.routeToUri(Uri(path: '/a'));
+        router.routeToStatic(Uri(path: '/a'));
         await tester.pump();
 
         expect(calls, [
@@ -136,10 +136,10 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/does-not-exist'));
+        router.routeToStatic(Uri(path: '/does-not-exist'));
         await tester.pumpAndSettle();
 
-        router.routeToUri(Uri(path: '/c'));
+        router.routeToStatic(Uri(path: '/c'));
         await tester.pumpAndSettle();
 
         expect(fromValues.last, isNull);
@@ -158,7 +158,7 @@ void main() {
         },
       );
 
-      uriRouter.routeToUri(Uri(path: '/a'));
+      uriRouter.routeToStatic(Uri(path: '/a'));
       await tester.pump();
       expect(uriRouter.nullableData!.uri.path, '/c');
 
@@ -171,7 +171,7 @@ void main() {
         },
       );
 
-      idRouter.routeToUri(Uri(path: '/a'));
+      idRouter.routeToStatic(Uri(path: '/a'));
       await tester.pump();
       expect(idRouter.nullableData!.uri.path, '/c');
     });
@@ -193,7 +193,7 @@ void main() {
         },
       );
 
-      router.routeToUri(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/a'));
       await tester.pump();
 
       expect(router.nullableData!.uri.path, '/c');
@@ -214,7 +214,7 @@ void main() {
         },
       );
 
-      expect(() => router.routeToUri(Uri(path: '/a')), returnsNormally);
+      expect(() => router.routeToStatic(Uri(path: '/a')), returnsNormally);
       await tester.pump();
       expect(router.nullableData!.uri.path, '/a');
     });
@@ -232,7 +232,7 @@ void main() {
         },
       );
 
-      expect(() => router.routeToUri(Uri(path: '/a')), throwsStateError);
+      expect(() => router.routeToStatic(Uri(path: '/a')), throwsStateError);
     });
 
     testWidgets('throws when redirect limit is exceeded', (tester) async {
@@ -245,7 +245,7 @@ void main() {
         },
       );
 
-      expect(() => router.routeToUri(Uri(path: '/a')), throwsStateError);
+      expect(() => router.routeToStatic(Uri(path: '/a')), throwsStateError);
     });
 
     testWidgets('replace browser history routes report as neglect', (
@@ -288,7 +288,7 @@ void main() {
       await _pumpRouterApp(tester, router);
       informationProvider.debugReportedTypes.clear();
 
-      router.routeToUri(Uri(path: '/remembered'));
+      router.routeToStatic(Uri(path: '/remembered'));
       await tester.pumpAndSettle();
       expect(
         informationProvider.debugReportedTypes.last,
@@ -298,7 +298,7 @@ void main() {
       );
 
       informationProvider.debugReportedTypes.clear();
-      router.routeToUri(Uri(path: '/replaced'));
+      router.routeToStatic(Uri(path: '/replaced'));
       await tester.pumpAndSettle();
       expect(
         informationProvider.debugReportedTypes.last,
@@ -306,7 +306,7 @@ void main() {
       );
 
       informationProvider.debugReportedTypes.clear();
-      router.routeToUri(Uri(path: '/remembered'));
+      router.routeToStatic(Uri(path: '/remembered'));
       await tester.pumpAndSettle();
       expect(
         informationProvider.debugReportedTypes.last,
@@ -329,11 +329,11 @@ void main() {
       );
 
       await _pumpApp(tester, router);
-      router.routeToUri(Uri(path: '/a/b'));
+      router.routeToStatic(Uri(path: '/a/b'));
       await tester.pumpAndSettle();
       expect(router.nullableData!.uri.path, '/a/b');
 
-      router.routeToUri(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/a'));
       await tester.pump();
       expect(router.nullableData!.uri.path, '/a/b');
       expect(callCount, 1);
@@ -357,12 +357,12 @@ void main() {
       );
 
       await _pumpApp(tester, router);
-      router.routeToUri(Uri(path: '/a/b'));
+      router.routeToStatic(Uri(path: '/a/b'));
       await tester.pumpAndSettle();
       expect(router.nullableData!.uri.path, '/a/b');
 
-      router.routeToUri(Uri(path: '/a'));
-      router.routeToUri(Uri(path: '/c'));
+      router.routeToStatic(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/c'));
       await tester.pumpAndSettle();
       expect(router.nullableData!.uri.path, '/c');
       expect(callCount, 2);
@@ -379,11 +379,11 @@ void main() {
       final router = _buildRouter(beforeLeave: () => leave.future);
 
       await _pumpApp(tester, router);
-      router.routeToUri(Uri(path: '/a/b'));
+      router.routeToStatic(Uri(path: '/a/b'));
       await tester.pumpAndSettle();
       expect(router.nullableData!.uri.path, '/a/b');
 
-      router.routeToUri(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/a'));
       await tester.pump();
       expect(router.nullableData!.uri.path, '/a/b');
 
@@ -410,9 +410,9 @@ void main() {
       );
 
       await _pumpApp(tester, router);
-      router.routeToUri(Uri(path: '/a/b'));
+      router.routeToStatic(Uri(path: '/a/b'));
       await tester.pumpAndSettle();
-      router.routeToUri(Uri(path: '/c'));
+      router.routeToStatic(Uri(path: '/c'));
       await tester.pumpAndSettle();
 
       expect(calls, unorderedEquals(['a', 'b']));
@@ -437,9 +437,9 @@ void main() {
         );
 
         await _pumpApp(tester, router);
-        router.routeToUri(Uri(path: '/a/b'));
+        router.routeToStatic(Uri(path: '/a/b'));
         await tester.pumpAndSettle();
-        router.routeToUri(Uri(path: '/c'));
+        router.routeToStatic(Uri(path: '/c'));
         await tester.pumpAndSettle();
 
         expect(calls, isNotEmpty);
@@ -455,7 +455,7 @@ void main() {
     ) async {
       final router = _buildParamRouter();
 
-      router.routeToUri(Uri.parse('/item/42/details?keep=1&drop=2'));
+      router.routeToStatic(Uri.parse('/item/42/details?keep=1&drop=2'));
       await tester.pump();
       final itemLocation = router.nullableData!.routeNodes
           .whereType<_ItemLocation>()
@@ -484,7 +484,7 @@ void main() {
     ) async {
       final router = _buildRouter();
 
-      router.routeToUri(Uri.parse('/a/b'));
+      router.routeToStatic(Uri.parse('/a/b'));
       await tester.pump();
 
       final ancestorLocation = router.nullableData!.routeNodes
@@ -538,7 +538,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/settings/edit'));
+        router.routeToStatic(Uri(path: '/settings/edit'));
         await tester.pumpAndSettle();
 
         expect(find.text('settings'), findsOneWidget);
@@ -553,7 +553,9 @@ void main() {
       (tester) async {
         final router = _buildParamRouter();
 
-        router.routeToUri(Uri.parse('/item/42/details?keep=1&detail=2&drop=3'));
+        router.routeToStatic(
+          Uri.parse('/item/42/details?keep=1&detail=2&drop=3'),
+        );
         await tester.pump();
 
         router.routeToId(
@@ -627,7 +629,7 @@ void main() {
       ) async {
         final router = _buildRouter();
 
-        router.routeToUri(
+        router.routeToStatic(
           Uri(path: '/does-not-exist', queryParameters: {'q': '1'}),
         );
         await tester.pump();
@@ -646,7 +648,7 @@ void main() {
     ) async {
       final router = _buildRouter();
 
-      router.routeToUri(Uri(path: '/does-not-exist'));
+      router.routeToStatic(Uri(path: '/does-not-exist'));
       await tester.pump();
 
       expect(
@@ -664,7 +666,7 @@ void main() {
     ) async {
       final router = _buildRouter();
 
-      router.routeToUri(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/a'));
       await tester.pump();
       expect(router.nullableData!.uri.path, '/a');
 
@@ -713,7 +715,7 @@ void main() {
         noContentWidget: const SizedBox.shrink(),
       );
 
-      router.routeToUri(Uri(path: '/a/b'));
+      router.routeToStatic(Uri(path: '/a/b'));
       await tester.pump();
 
       expect(sawExpectedData, isTrue);
@@ -756,7 +758,7 @@ void main() {
         noContentWidget: const SizedBox.shrink(),
       );
 
-      router.routeToUri(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/a'));
       await tester.pump();
 
       expect(sawExpectedData, isTrue);
@@ -808,7 +810,7 @@ void main() {
       );
 
       await _pumpApp(tester, router);
-      router.routeToUri(Uri(path: '/a/b'));
+      router.routeToStatic(Uri(path: '/a/b'));
       await tester.pumpAndSettle();
 
       expect(sawExpectedData, isTrue);
@@ -819,7 +821,7 @@ void main() {
       final router = _buildRouter();
       await _pumpApp(tester, router);
 
-      router.routeToUri(Uri(path: '/a/b'));
+      router.routeToStatic(Uri(path: '/a/b'));
       await tester.pumpAndSettle();
       expect(router.nullableData!.uri.path, '/a/b');
 
@@ -857,7 +859,7 @@ void main() {
           noContentWidget: const SizedBox.shrink(),
         );
 
-        router.routeToUri(Uri(path: '/a/b'));
+        router.routeToStatic(Uri(path: '/a/b'));
         await tester.pump();
         expect(router.nullableData!.leaf?.id, _PathId.b);
 
@@ -886,7 +888,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(
+        router.routeToStatic(
           Uri(path: '/accounts/42', queryParameters: {'tab': 'overview'}),
         );
         await tester.pumpAndSettle();
@@ -931,13 +933,13 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(
+        router.routeToStatic(
           Uri(path: '/privacy', queryParameters: {'languageCode': 'de'}),
         );
         await tester.pumpAndSettle();
         expect(find.text('de'), findsOneWidget);
 
-        router.routeToUri(Uri(path: '/privacy'));
+        router.routeToStatic(Uri(path: '/privacy'));
         await tester.pumpAndSettle();
         expect(find.text('en'), findsOneWidget);
       },
@@ -1072,7 +1074,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(
+      router.routeToStatic(
         Uri(
           path: '/accounts/42/dashboard',
           queryParameters: {'tab': 'billing'},
@@ -1123,7 +1125,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/accounts/42'));
+        router.routeToStatic(Uri(path: '/accounts/42'));
         await tester.pumpAndSettle();
 
         expect(find.text('shell'), findsOneWidget);
@@ -1195,7 +1197,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/dashboard/settings/theme'));
+        router.routeToStatic(Uri(path: '/dashboard/settings/theme'));
         await tester.pumpAndSettle();
 
         expect(find.text('settings-shell'), findsOneWidget);
@@ -1258,7 +1260,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(Uri(path: '/accounts/42'));
+      router.routeToStatic(Uri(path: '/accounts/42'));
       await tester.pumpAndSettle();
 
       expect(find.text('no-content'), findsOneWidget);
@@ -1309,7 +1311,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/accounts/42/dashboard'));
+        router.routeToStatic(Uri(path: '/accounts/42/dashboard'));
         await tester.pumpAndSettle();
 
         expect(find.text('default:42', skipOffstage: false), findsOneWidget);
@@ -1407,7 +1409,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri.parse('/accounts/42/dashboard'));
+        router.routeToStatic(Uri.parse('/accounts/42/dashboard'));
         await tester.pumpAndSettle();
 
         expect(find.text('42:42'), findsOneWidget);
@@ -1449,7 +1451,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(Uri(path: '/accounts/42/dashboard'));
+      router.routeToStatic(Uri(path: '/accounts/42/dashboard'));
       await tester.pump();
 
       expect(
@@ -1527,7 +1529,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/accounts/42/notice-board'));
+        router.routeToStatic(Uri(path: '/accounts/42/notice-board'));
         await tester.pumpAndSettle();
 
         expect(find.text('account:42'), findsOneWidget);
@@ -1603,7 +1605,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/accounts/42/notice-board'));
+        router.routeToStatic(Uri(path: '/accounts/42/notice-board'));
         await tester.pumpAndSettle();
 
         expect(find.text('account:42'), findsOneWidget);
@@ -1665,7 +1667,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/accounts/42/details'));
+        router.routeToStatic(Uri(path: '/accounts/42/details'));
         await tester.pumpAndSettle();
 
         expect(find.text('details:42'), findsOneWidget);
@@ -1717,7 +1719,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/accounts/42'));
+        router.routeToStatic(Uri(path: '/accounts/42'));
         await tester.pumpAndSettle();
 
         expect(find.text('settings:42'), findsOneWidget);
@@ -1726,7 +1728,7 @@ void main() {
           hasLength(1),
         );
 
-        router.routeToUri(Uri(path: '/accounts/42/details'));
+        router.routeToStatic(Uri(path: '/accounts/42/details'));
         await tester.pumpAndSettle();
 
         expect(find.text('details:42'), findsOneWidget);
@@ -1794,7 +1796,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/accounts/42'));
+        router.routeToStatic(Uri(path: '/accounts/42'));
         await tester.pumpAndSettle();
 
         expect(find.text('shell'), findsOneWidget);
@@ -1873,7 +1875,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat/search/detail'));
+        router.routeToStatic(Uri(path: '/chat/search/detail'));
         await tester.pumpAndSettle();
 
         expect(find.text('search'), findsOneWidget);
@@ -1952,7 +1954,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat/search/detail'));
+        router.routeToStatic(Uri(path: '/chat/search/detail'));
         await tester.pumpAndSettle();
 
         expect(find.text('search'), findsOneWidget);
@@ -2025,7 +2027,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat/search/detail'));
+        router.routeToStatic(Uri(path: '/chat/search/detail'));
         await tester.pumpAndSettle();
 
         expect(find.text('detail'), findsOneWidget);
@@ -2097,7 +2099,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat/search/detail'));
+        router.routeToStatic(Uri(path: '/chat/search/detail'));
         await tester.pumpAndSettle();
 
         expect(find.text('detail'), findsOneWidget);
@@ -2168,7 +2170,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat/detail'));
+        router.routeToStatic(Uri(path: '/chat/detail'));
         await tester.pumpAndSettle();
 
         expect(find.text('default-list'), findsOneWidget);
@@ -2228,7 +2230,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat'));
+        router.routeToStatic(Uri(path: '/chat'));
         await tester.pumpAndSettle();
 
         expect(find.text('default-list'), findsOneWidget);
@@ -2297,7 +2299,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat'));
+        router.routeToStatic(Uri(path: '/chat'));
         await tester.pumpAndSettle();
 
         expect(find.text('default-list'), findsOneWidget);
@@ -2333,7 +2335,7 @@ void main() {
         Object? thrownError;
         StackTrace? thrownStackTrace;
         try {
-          router.routeToUri(Uri(path: '/chat'));
+          router.routeToStatic(Uri(path: '/chat'));
         } catch (error, stackTrace) {
           thrownError = error;
           thrownStackTrace = stackTrace;
@@ -2417,7 +2419,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat'));
+        router.routeToStatic(Uri(path: '/chat'));
         await tester.pumpAndSettle();
 
         final defaultNavigatorFinder = find.ancestor(
@@ -2428,7 +2430,7 @@ void main() {
           defaultNavigatorFinder.first,
         );
 
-        router.routeToUri(Uri(path: '/chat/search'));
+        router.routeToStatic(Uri(path: '/chat/search'));
         await tester.pumpAndSettle();
 
         final searchNavigatorFinder = find.ancestor(
@@ -2498,7 +2500,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat/detail'));
+        router.routeToStatic(Uri(path: '/chat/detail'));
         await tester.pump();
 
         expect(
@@ -2554,7 +2556,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat'));
+        router.routeToStatic(Uri(path: '/chat'));
         await tester.pumpAndSettle();
 
         expect(find.text('detail'), findsOneWidget);
@@ -2643,7 +2645,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(Uri(path: '/chat/channel/42'));
+      router.routeToStatic(Uri(path: '/chat/channel/42'));
       await tester.pumpAndSettle();
 
       expect(find.text('list'), findsOneWidget);
@@ -2694,7 +2696,7 @@ void main() {
       expect(find.text('channel:42'), findsOneWidget);
       expect(router.nullableData!.uri, searchUri);
 
-      router.routeToUri(searchUri);
+      router.routeToStatic(searchUri);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('search'));
@@ -2705,7 +2707,7 @@ void main() {
       expect(find.text('channel:42'), findsOneWidget);
       expect(router.nullableData!.uri, Uri(path: '/chat/channel/42'));
 
-      router.routeToUri(searchUri);
+      router.routeToStatic(searchUri);
       await tester.pumpAndSettle();
 
       expect(find.text('search'), findsOneWidget);
@@ -2746,7 +2748,7 @@ void main() {
         ),
       );
 
-      router.routeToUri(searchUri);
+      router.routeToStatic(searchUri);
       await tester.pumpAndSettle();
 
       final searchNavigator = tester.state<NavigatorState>(
@@ -2842,7 +2844,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat'));
+        router.routeToStatic(Uri(path: '/chat'));
         await tester.pumpAndSettle();
 
         router.refresh();
@@ -2894,7 +2896,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(Uri(path: '/chat'));
+      router.routeToStatic(Uri(path: '/chat'));
       await tester.pumpAndSettle();
       final staleChat = chat;
       final staleChannel = channel;
@@ -2961,7 +2963,7 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToUri(Uri(path: '/chat'));
+        router.routeToStatic(Uri(path: '/chat'));
         await tester.pumpAndSettle();
 
         router.routeTo(
@@ -3001,7 +3003,7 @@ void main() {
         expect(find.text('dialog'), findsOneWidget);
         expect(router.nullableData!.uri.path, '/chat');
 
-        router.routeToUri(Uri(path: '/chat/dialog'));
+        router.routeToStatic(Uri(path: '/chat/dialog'));
         await tester.pumpAndSettle();
 
         expect(find.text('dialog'), findsOneWidget);
@@ -3060,7 +3062,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(Uri(path: '/chat'));
+      router.routeToStatic(Uri(path: '/chat'));
       await tester.pumpAndSettle();
 
       router.routeTo(
@@ -3120,7 +3122,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(
+      router.routeToStatic(
         Uri(path: '/chat/channel', queryParameters: {'search': 'true'}),
       );
       await tester.pumpAndSettle();
@@ -3140,7 +3142,7 @@ void main() {
         },
       });
 
-      router.routeToUri(Uri(path: '/chat/channel'));
+      router.routeToStatic(Uri(path: '/chat/channel'));
       await tester.pumpAndSettle();
 
       expect(router.nullableData!.param(search), false);
@@ -3232,7 +3234,7 @@ void main() {
           router.routeInformationProvider! as WorkingRouteInformationProvider;
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(Uri(path: '/chat/channel'));
+      router.routeToStatic(Uri(path: '/chat/channel'));
       await tester.pumpAndSettle();
       informationProvider.debugReportedTypes.clear();
 
@@ -3260,6 +3262,171 @@ void main() {
         RouteInformationReportingType.navigate,
       );
     });
+
+    testWidgets(
+      'routeTarget restores hidden path tail and hidden query state',
+      (
+        tester,
+      ) async {
+        late DefaultQueryParam<bool> search;
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderLocation(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('chat');
+                      search = builder.defaultBoolQueryParam(
+                        'search',
+                        defaultValue: false,
+                        visibility: UriVisibility.hidden,
+                      );
+                      builder.content = Content.widget(const Text('chat'));
+                      builder.children = [
+                        _BuilderLocation(
+                          id: _Id.b,
+                          build: (builder, location) {
+                            builder.pathVisibility = UriVisibility.hidden;
+                            builder.pathLiteral('dialog');
+                            builder.content = Content.widget(
+                              const Text('dialog'),
+                            );
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                  _BuilderLocation(
+                    id: _Id.c,
+                    build: (builder, location) {
+                      builder.pathLiteral('other');
+                      builder.content = Content.widget(const Text('other'));
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(
+          Uri(path: '/chat/dialog', queryParameters: {'search': 'true'}),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('dialog'), findsOneWidget);
+        expect(router.nullableData!.uri, Uri(path: '/chat'));
+        expect(router.nullableConfiguration!.hiddenPathSegments.unlock, [
+          'dialog',
+        ]);
+        expect(router.nullableConfiguration!.hiddenQueryParameters.unlock, {
+          'search': 'true',
+        });
+        final rememberedTarget = router.routeTarget;
+
+        router.routeToStatic(Uri(path: '/other'));
+        await tester.pumpAndSettle();
+        router.routeTo(rememberedTarget);
+        await tester.pumpAndSettle();
+
+        expect(find.text('dialog'), findsOneWidget);
+        expect(router.nullableData!.param(search), true);
+        expect(router.nullableData!.uri, Uri(path: '/chat'));
+        expect(router.nullableConfiguration!.hiddenPathSegments.unlock, [
+          'dialog',
+        ]);
+        expect(router.nullableConfiguration!.hiddenQueryParameters.unlock, {
+          'search': 'true',
+        });
+      },
+    );
+
+    testWidgets(
+      'constrainToNavigator trims to deepest route still rendered inside target navigator',
+      (tester) async {
+        var desktop = true;
+        late DefaultQueryParam<String> filter;
+
+        final router = WorkingRouter(
+          buildRouteNodes: (rootRouterKey) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderMultiShellLocation(
+                    id: _Id.chat,
+                    navigatorEnabled: desktop,
+                    build: (builder, location, contentSlot) {
+                      builder.pathLiteral('chat');
+                      filter = builder.defaultStringQueryParam(
+                        'filter',
+                        defaultValue: 'all',
+                      );
+                      builder.shellContent = MultiShellContent.builder((
+                        context,
+                        data,
+                        slots,
+                      ) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 80,
+                              child: slots.child(contentSlot),
+                            ),
+                          ],
+                        );
+                      });
+                      builder.content = Content.widget(
+                        const Text('chat-root'),
+                      );
+                      builder.children = [
+                        _ChannelLocation(
+                          parentRouterKey: desktop
+                              ? contentSlot.routerKey
+                              : rootRouterKey,
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri.parse('/chat/channel/42?filter=unread'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('channel:42'), findsOneWidget);
+        final rememberedTarget = router.routeTarget;
+
+        desktop = false;
+        router.refresh();
+        await tester.pumpAndSettle();
+
+        router.routeTo(
+          rememberedTarget.constrainToNavigator(
+            locationId: _Id.chat,
+            fallback: StaticRouteTarget(Uri(path: '/chat')),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('chat-root'), findsOneWidget);
+        expect(find.text('channel:42'), findsNothing);
+        expect(router.nullableData!.uri, Uri.parse('/chat?filter=unread'));
+        expect(router.nullableData!.param(filter), 'unread');
+      },
+    );
 
     testWidgets('query parameters inherit hidden visibility by key', (
       tester,
@@ -3307,7 +3474,7 @@ void main() {
       );
 
       await _pumpRouterApp(tester, router);
-      router.routeToUri(
+      router.routeToStatic(
         Uri(path: '/chat/channel', queryParameters: {'tab': 'details'}),
       );
       await tester.pumpAndSettle();
@@ -3444,6 +3611,7 @@ abstract final class _Id {
   static final a = NodeId<_BuilderLocation>();
   static final b = NodeId<_BuilderLocation>();
   static final c = NodeId<_BuilderLocation>();
+  static final chat = NodeId<_BuilderMultiShellLocation>();
 }
 
 abstract final class _PathId {
@@ -3686,6 +3854,7 @@ class _BuilderMultiShellLocation
   _build;
 
   _BuilderMultiShellLocation({
+    super.id,
     super.navigatorEnabled,
     required void Function(
       MultiShellLocationBuilder builder,
