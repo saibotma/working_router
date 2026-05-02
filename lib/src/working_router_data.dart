@@ -81,7 +81,7 @@ class WorkingRouterData {
     return result.toIList();
   }
 
-  T? leafWithId<T extends AnyLocation<T>>(NodeId<T> id) {
+  T? leafWithId<T extends AnyLocation<T>>(RouteNodeId<T> id) {
     final leaf = this.leaf;
     if (leaf is T && leaf.id == id) {
       return leaf;
@@ -259,18 +259,18 @@ class WorkingRouterData {
     return false;
   }
 
-  bool isIdMatched(AnyNodeId id) {
+  bool isIdMatched(AnyRouteNodeId id) {
     return routeNodesWithOverlays.any((node) => node.id == id);
   }
 
-  bool isAnyIdMatched(Iterable<AnyNodeId> ids) {
+  bool isAnyIdMatched(Iterable<AnyRouteNodeId> ids) {
     return routeNodesWithOverlays.any((node) => ids.contains(node.id));
   }
 
-  AnyNodeId? matchingId(Iterable<AnyNodeId> ids) {
+  AnyRouteNodeId? matchingId(Iterable<AnyRouteNodeId> ids) {
     for (final node in routeNodesWithOverlays) {
       if (ids.contains(node.id)) {
-        return node.id! as AnyNodeId;
+        return node.id! as AnyRouteNodeId;
       }
     }
     return null;
@@ -317,7 +317,7 @@ class WorkingRouterData {
   }
 
   T? lastMatchedWithId<T extends RouteNode<T>>(
-    NodeId<T> id, [
+    RouteNodeId<T> id, [
     bool Function(T node)? match,
   ]) {
     return lastMatched<T>((node) {

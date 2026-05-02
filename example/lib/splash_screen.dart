@@ -6,7 +6,7 @@ import 'nested_screen.dart';
 import 'responsive.dart';
 import 'route_nodes.dart';
 
-final aId = NodeId<ARouteNode>();
+final aRouteNodeId = RouteNodeId<ARouteNode>();
 
 class SplashRouteNode extends Location<SplashRouteNode> {
   final ScreenSize screenSize;
@@ -32,7 +32,7 @@ class SplashRouteNode extends Location<SplashRouteNode> {
 
           builder.children = [
             ARouteNode(
-              id: aId,
+              id: aRouteNodeId,
               rendersStandaloneSidebar: screenSize == ScreenSize.small,
               rootRouterKey: rootRouterKey,
               outerShellRouterKey: routerKey,

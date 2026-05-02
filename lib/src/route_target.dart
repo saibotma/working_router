@@ -31,7 +31,7 @@ final class StaticRouteTarget extends RouteTarget {
 /// time so responsive route-tree changes are respected.
 final class NavigatorConstrainedRouteTarget extends RouteTarget {
   final RouteTarget target;
-  final AnyNodeId locationId;
+  final AnyRouteNodeId locationId;
   final RouteTarget fallback;
 
   const NavigatorConstrainedRouteTarget({
@@ -43,7 +43,7 @@ final class NavigatorConstrainedRouteTarget extends RouteTarget {
 
 extension RouteTargetNavigatorConstraint on RouteTarget {
   RouteTarget constrainToNavigator({
-    required AnyNodeId locationId,
+    required AnyRouteNodeId locationId,
     required RouteTarget fallback,
   }) {
     return NavigatorConstrainedRouteTarget(
@@ -55,7 +55,7 @@ extension RouteTargetNavigatorConstraint on RouteTarget {
 }
 
 base class IdRouteTarget extends RouteTarget {
-  final AnyNodeId id;
+  final AnyRouteNodeId id;
 
   /// Writes typed path parameter values for the matched target route chain.
   ///

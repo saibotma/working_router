@@ -43,7 +43,7 @@ The route API is centered around lightweight route-node classes. Subclass
 configuration inside `build(...)`.
 
 ```dart
-final detailId = NodeId<DetailRouteNode>();
+final detailRouteNodeId = RouteNodeId<DetailRouteNode>();
 
 class ExampleRouteNode extends Location<ExampleRouteNode> {
   ExampleRouteNode({
@@ -66,7 +66,7 @@ class ExampleRouteNode extends Location<ExampleRouteNode> {
     });
 
     builder.children = [
-      DetailRouteNode(id: detailId),
+      DetailRouteNode(id: detailRouteNodeId),
     ];
   }
 }
@@ -81,10 +81,10 @@ class DetailRouteNode extends Location<DetailRouteNode> {
   }
 }
 
-final exampleId = NodeId<ExampleRouteNode>();
+final exampleRouteNodeId = RouteNodeId<ExampleRouteNode>();
 
 final example = ExampleRouteNode(
-  id: exampleId,
+  id: exampleRouteNodeId,
 );
 ```
 
@@ -126,10 +126,12 @@ Important details:
 - Route node classes often fit well next to the screen or feature they render.
   When possible, name the route node after that screen with `RouteNode` in place
   of the `Screen` suffix, such as `AccountRouteNode` next to `AccountScreen`.
-- Put node ids next to the composition site that assigns them. If
-  `ParentRouteNode` creates `ChildRouteNode(id: childId)`, keep `childId` in
-  the parent/composition file. Root ids usually live in the canonical
-  route-tree file that returns the root node.
+- Put node ids next to the composition site that assigns them. Prefer explicit
+  names like `accountRouteNodeId` for `RouteNodeId<T>` values and
+  `loginRecoveryLocalRouteNodeId` for `LocalRouteNodeId<T>` values. If
+  `ParentRouteNode` creates `ChildRouteNode(id: childRouteNodeId)`, keep
+  `childRouteNodeId` in the parent/composition file. Root ids usually live in
+  the canonical route-tree file that returns the root node.
 - When descendants need handles declared by the parent, such as params, shell
   router keys, or multi-shell slots, accept
   `ChildrenBuilder<Self> buildChildren` and call it after those handles have
@@ -753,15 +755,18 @@ From `@RouteNodes()`, the generator emits:
 
 For start-anchored child targets:
 
-- global route ids are usually top-level `final NodeId<T>()` values
-- child routing can use top-level `final LocalNodeId<T>()` values via
-  `localId`, which are preferred over route type names for generated
-  `childXTarget(...)` names and matching
+- global route ids are usually top-level
+  `final someRouteNodeId = RouteNodeId<T>()` values
+- child routing can use top-level
+  `final someLocalRouteNodeId = LocalRouteNodeId<T>()` values via `localId`, which
+  are preferred over route type names for generated `childXTarget(...)` names
+  and matching
 - both token types are intentionally non-const: ids are modeled as identity
   tokens, and repeated occurrences of the same route-node type may need
   distinct ids
 - generated helper names derive from the referenced id variable name and strip
-  common trailing suffixes like `Id`, `NodeId`, and `LocalId`
+  common trailing suffixes like `RouteNodeId`, `LocalRouteNodeId`, `LocalId`,
+  and `Id`
 - when generated child helper names derive from a route-node type name, the
   generator strips common declaration suffixes like `RouteNode`, `Location`,
   `Overlay`, `Shell`, `Scope`, and `Node`

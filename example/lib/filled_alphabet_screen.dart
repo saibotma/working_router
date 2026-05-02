@@ -5,9 +5,9 @@ import 'abc_screen.dart';
 import 'adc_screen.dart';
 import 'inner_shell_screen.dart';
 
-final abcId = NodeId<ABCRouteNode>();
-final adcId = NodeId<ADCRouteNode>();
-final adShellId = NodeId<ADNestedRouteNode>();
+final abcRouteNodeId = RouteNodeId<ABCRouteNode>();
+final adcRouteNodeId = RouteNodeId<ADCRouteNode>();
+final adShellRouteNodeId = RouteNodeId<ADNestedRouteNode>();
 
 class ABRouteNode extends Location<ABRouteNode> {
   final WorkingRouterKey rootRouterKey;
@@ -24,7 +24,7 @@ class ABRouteNode extends Location<ABRouteNode> {
     builder.content = Content.widget(const FilledAlphabetScreen());
     builder.children = [
       ABCRouteNode(
-        id: abcId,
+        id: abcRouteNodeId,
         parentRouterKey: rootRouterKey,
       ),
     ];
@@ -48,12 +48,12 @@ class ADRouteNode extends Location<ADRouteNode> {
     builder.content = Content.widget(const FilledAlphabetScreen());
     builder.children = [
       ADCRouteNode(
-        id: adcId,
+        id: adcRouteNodeId,
         parentRouterKey: rootRouterKey,
       ),
       if (outerShellRouterKey != null)
         ADNestedRouteNode(
-          id: adShellId,
+          id: adShellRouteNodeId,
           parentRouterKey: outerShellRouterKey,
         ),
     ];

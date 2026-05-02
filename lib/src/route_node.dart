@@ -7,12 +7,12 @@ import 'package:working_router/src/route_param_codec.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_key.dart';
 
-abstract interface class AnyNodeId {
-  const AnyNodeId();
+abstract interface class AnyRouteNodeId {
+  const AnyRouteNodeId();
 }
 
-abstract interface class AnyLocalNodeId {
-  const AnyLocalNodeId();
+abstract interface class AnyLocalRouteNodeId {
+  const AnyLocalRouteNodeId();
 }
 
 /// Typed global route-node identity token.
@@ -21,17 +21,18 @@ abstract interface class AnyLocalNodeId {
 /// same route-node type may legitimately appear multiple times with different
 /// ids. Requiring a normal object instance avoids const canonicalization and
 /// keeps distinct declarations distinct even when they use the same `T`.
-final class NodeId<T extends RouteNode<T>> implements AnyNodeId {
-  NodeId();
+final class RouteNodeId<T extends RouteNode<T>> implements AnyRouteNodeId {
+  RouteNodeId();
 }
 
 /// Typed subtree-local route-node identity token.
 ///
-/// This is intentionally non-const for the same reason as [NodeId]: local ids
-/// are identity tokens and must remain distinct across repeated occurrences of
-/// the same route-node type.
-final class LocalNodeId<T extends RouteNode<T>> implements AnyLocalNodeId {
-  LocalNodeId();
+/// This is intentionally non-const for the same reason as [RouteNodeId]: local
+/// ids are identity tokens and must remain distinct across repeated occurrences
+/// of the same route-node type.
+final class LocalRouteNodeId<T extends RouteNode<T>>
+    implements AnyLocalRouteNodeId {
+  LocalRouteNodeId();
 }
 
 /// Builds a route node's children after the node has declared its own handles.
@@ -262,14 +263,14 @@ final class _CustomPageKey extends PageKey {
 }
 
 abstract class RouteNode<Self extends RouteNode<Self>> {
-  final NodeId<Self>? id;
+  final RouteNodeId<Self>? id;
 
   /// Optional subtree-local identity used only for start-anchored child routing.
   ///
   /// Unlike [id], a [localId] only needs to be meaningful within the current
   /// start subtree. Generated `childXTarget(...)` helpers prefer this over the
   /// route type name when it is available.
-  final LocalNodeId<Self>? localId;
+  final LocalRouteNodeId<Self>? localId;
   final WorkingRouterKey? parentRouterKey;
 
   RouteNode({
@@ -307,7 +308,7 @@ abstract class RouteNode<Self extends RouteNode<Self>> {
     );
   }
 
-  IList<RouteNode> matchId(AnyNodeId id) {
+  IList<RouteNode> matchId(AnyRouteNodeId id) {
     return _matchNodeById(this, id);
   }
 
@@ -360,7 +361,7 @@ extension TreeElementsX on Iterable<RouteNode> {
     return emptyRouteMatch();
   }
 
-  IList<RouteNode> matchId(AnyNodeId id) {
+  IList<RouteNode> matchId(AnyRouteNodeId id) {
     for (final node in this) {
       final match = node.matchId(id);
       if (match.isNotEmpty) {
@@ -438,7 +439,7 @@ RouteMatch _matchChildren(
 
 IList<RouteNode> _matchNodeById(
   RouteNode node,
-  AnyNodeId id,
+  AnyRouteNodeId id,
 ) {
   if (node is! PathRouteNode) {
     if (node.id == id) {

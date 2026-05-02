@@ -22,7 +22,7 @@ abstract class WorkingRouterSailor {
   /// routing code. Use [routeToStatic] when navigating to an already-encoded
   /// URI, or [routeTo] with [StaticRouteTarget] when storing a reusable target.
   void routeToId(
-    AnyNodeId id, {
+    AnyRouteNodeId id, {
     WritePathParameters? writePathParameters,
     WriteQueryParameters? writeQueryParameters,
   });

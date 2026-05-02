@@ -4,7 +4,7 @@ import 'package:working_router/working_router.dart';
 import 'inner_shell_root_screen.dart';
 import 'shell_bypass_screen.dart';
 
-final adeId = NodeId<ADERouteNode>();
+final adeRouteNodeId = RouteNodeId<ADERouteNode>();
 
 class ADNestedRouteNode extends ShellLocation<ADNestedRouteNode> {
   ADNestedRouteNode({
@@ -20,7 +20,7 @@ class ADNestedRouteNode extends ShellLocation<ADNestedRouteNode> {
     builder.content = Content.widget(const InnerShellRootScreen());
     builder.children = [
       ADERouteNode(
-        id: adeId,
+        id: adeRouteNodeId,
         parentRouterKey: parentRouterKey ?? routerKey,
       ),
     ];

@@ -156,10 +156,10 @@ import 'package:working_router/working_router.dart';
 
 part 'overlay_routes.working_router.g.dart';
 
-final rootId = NodeId<RootLocation>();
-final chatId = NodeId<ChatLocation>();
-final chatSearchId = NodeId<ChatSearchOverlay>();
-final channelId = NodeId<ChannelLocation>();
+final rootId = RouteNodeId<RootLocation>();
+final chatId = RouteNodeId<ChatLocation>();
+final chatSearchId = RouteNodeId<ChatSearchOverlay>();
+final channelId = RouteNodeId<ChannelLocation>();
 
 class RootLocation extends Location<RootLocation> {
   RootLocation({required super.id});
@@ -247,26 +247,28 @@ RouteNode get appLocationTree => RootLocation(id: rootId);
     );
   });
 
-  test('uses top-level node id variable names without the id suffix', () async {
-    final builder = workingRouterRouteHelpersBuilder(
-      BuilderOptions.empty,
-    );
-    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
-    await readerWriter.testing.loadIsolateSources();
+  test(
+    'uses top-level node id variable names without identity suffixes',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
 
-    await testBuilder(
-      builder,
-      {
-        'working_router|lib/app_routes.dart': '''
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/app_routes.dart': '''
 library app_routes;
 
 import 'package:working_router/working_router.dart';
 
 part 'app_routes.working_router.g.dart';
 
-final rootId = NodeId<_RootLocation>();
-final addAccountId = NodeId<_AddAccountLocation>();
-final loginRecoveryLocalId = LocalNodeId<_LoginRecoveryLocation>();
+final rootRouteNodeId = RouteNodeId<_RootLocation>();
+final addAccountRouteNodeId = RouteNodeId<_AddAccountLocation>();
+final loginRecoveryLocalRouteNodeId = LocalRouteNodeId<_LoginRecoveryLocation>();
 
 class _RootLocation extends Location<_RootLocation> {
   _RootLocation({required super.id});
@@ -274,7 +276,7 @@ class _RootLocation extends Location<_RootLocation> {
   @override
   void build(LocationBuilder builder) {
     builder.children = [
-      _AddAccountLocation(id: addAccountId),
+      _AddAccountLocation(id: addAccountRouteNodeId),
     ];
   }
 }
@@ -286,7 +288,7 @@ class _AddAccountLocation extends Location<_AddAccountLocation> {
   void build(LocationBuilder builder) {
     builder.pathLiteral('add-account');
     builder.children = [
-      _LoginRecoveryLocation(localId: loginRecoveryLocalId),
+      _LoginRecoveryLocation(localId: loginRecoveryLocalRouteNodeId),
     ];
   }
 }
@@ -302,22 +304,23 @@ class _LoginRecoveryLocation
 }
 
 @RouteNodes()
-RouteNode get appLocationTree => _RootLocation(id: rootId);
+RouteNode get appLocationTree => _RootLocation(id: rootRouteNodeId);
 ''',
-      },
-      outputs: {
-        'working_router|lib/app_routes.working_router.g.part': decodedMatches(
-          allOf(
-            contains('void routeToAddAccount()'),
-            isNot(contains('void routeToAddAccountId()')),
-            contains('get childLoginRecoveryTarget'),
-            isNot(contains('get childLoginRecoveryLocalIdTarget')),
+        },
+        outputs: {
+          'working_router|lib/app_routes.working_router.g.part': decodedMatches(
+            allOf(
+              contains('void routeToAddAccount()'),
+              isNot(contains('void routeToAddAccountRouteNodeId()')),
+              contains('get childLoginRecoveryTarget'),
+              isNot(contains('get childLoginRecoveryLocalRouteNodeIdTarget')),
+            ),
           ),
-        ),
-      },
-      readerWriter: readerWriter,
-    );
-  });
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
 
   test('strips Param and Parameter suffixes from generated path names', () async {
     final builder = workingRouterRouteHelpersBuilder(
@@ -1287,7 +1290,7 @@ final RouteNode appLocationTree = ChatChannelNode(
   );
 
   test(
-    'supports child ids derived from top-level NodeId arguments in a consuming package',
+    'supports child ids derived from top-level RouteNodeId arguments in a consuming package',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -1305,8 +1308,8 @@ import 'package:working_router/working_router.dart';
 
 part 'top_level_node_id_routes.g.dart';
 
-final chatChannelId = NodeId<ChatChannelNode>();
-final chatChannelSendId = NodeId<ChatChannelSendLocation>();
+final chatChannelId = RouteNodeId<ChatChannelNode>();
+final chatChannelSendId = RouteNodeId<ChatChannelSendLocation>();
 
 class ChatChannelNode extends Location<ChatChannelNode> {
   ChatChannelNode({super.id});
@@ -1378,14 +1381,14 @@ import 'package:working_router/working_router.dart';
 
 part 'inherited_getter_path_routes.g.dart';
 
-final rootId = NodeId<RootLocation>();
-final childId = NodeId<ChildLocation>();
+final rootId = RouteNodeId<RootLocation>();
+final childId = RouteNodeId<ChildLocation>();
 
 abstract class BaseLocation<Self extends BaseLocation<Self>>
     extends Location<Self> {
   BaseLocation({required super.id});
 
-  NodeId<Self>? get maybeOwnId => id;
+  RouteNodeId<Self>? get maybeOwnId => id;
 }
 
 class RootLocation extends BaseLocation<RootLocation> {

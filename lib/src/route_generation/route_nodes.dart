@@ -46,13 +46,14 @@
 /// about which path/query parameters are required or how they are encoded.
 ///
 /// Global route ids are commonly declared as top-level
-/// `final NodeId<T>()` values, and local child ids as
-/// `final LocalNodeId<T>()` values. The
+/// `final someRouteNodeId = RouteNodeId<T>()` values, and local child ids as
+/// `final someLocalRouteNodeId = LocalRouteNodeId<T>()` values. The
 /// tokens are intentionally non-const because ids are identity-based and the
 /// same route-node type may need multiple distinct ids across repeated
 /// occurrences in one tree. The
 /// generated helper name is derived from the referenced identifier and strips
-/// common trailing suffixes like `Id`, `NodeId`, and `LocalId`. Its required
+/// common trailing suffixes like `RouteNodeId`, `LocalRouteNodeId`, `LocalId`,
+/// and `Id`. Its required
 /// parameters are the union of:
 /// - all path parameters from the full ancestor chain
 /// - all query parameter keys from the full ancestor chain

@@ -222,7 +222,7 @@ class WorkingRouter extends ChangeNotifier
 
   @override
   void routeToId(
-    AnyNodeId id, {
+    AnyRouteNodeId id, {
     WritePathParameters? writePathParameters,
     WriteQueryParameters? writeQueryParameters,
   }) {
@@ -1142,7 +1142,7 @@ class WorkingRouter extends ChangeNotifier
 
   WorkingRouterData? _dataConstrainedToNavigator(
     WorkingRouterData data, {
-    required AnyNodeId locationId,
+    required AnyRouteNodeId locationId,
   }) {
     final deepestLocation = _rootDelegate.deepestLocationInNavigator(
       data: data,
@@ -1373,7 +1373,7 @@ class NestedWorkingRouterSailor extends ChangeNotifier
 
   @override
   void routeToId(
-    AnyNodeId id, {
+    AnyRouteNodeId id, {
     WritePathParameters? writePathParameters,
     WriteQueryParameters? writeQueryParameters,
   }) {

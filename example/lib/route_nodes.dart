@@ -9,7 +9,7 @@ import 'splash_screen.dart';
 
 part 'route_nodes.g.dart';
 
-final splashId = NodeId<SplashRouteNode>();
+final splashRouteNodeId = RouteNodeId<SplashRouteNode>();
 
 @RouteNodes()
 List<RouteNode> buildRouteNodes({
@@ -18,7 +18,7 @@ List<RouteNode> buildRouteNodes({
 }) {
   return [
     SplashRouteNode(
-      id: splashId,
+      id: splashRouteNodeId,
       screenSize: screenSize,
       rootRouterKey: rootRouterKey,
     ),

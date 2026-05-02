@@ -67,7 +67,7 @@ final class RedirectTransition extends TransitionDecision {
   }
 
   factory RedirectTransition.toId(
-    AnyNodeId id, {
+    AnyRouteNodeId id, {
     WritePathParameters? writePathParameters,
     WriteQueryParameters? writeQueryParameters,
   }) {

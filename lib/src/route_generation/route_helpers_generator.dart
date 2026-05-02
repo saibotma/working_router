@@ -6991,7 +6991,12 @@ String _childMethodBaseName(String locationTypeSource) {
 
 String _identityBaseNameFromExpression(String expression) {
   final token = expression.split('.').last;
-  for (final suffix in const ['LocalId', 'NodeId', 'Id']) {
+  for (final suffix in const [
+    'LocalRouteNodeId',
+    'RouteNodeId',
+    'LocalId',
+    'Id',
+  ]) {
     if (token.endsWith(suffix) && token.length > suffix.length) {
       return token.substring(0, token.length - suffix.length);
     }

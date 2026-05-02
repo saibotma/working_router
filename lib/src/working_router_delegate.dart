@@ -194,7 +194,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
 
   AnyLocation? deepestLocationInNavigator({
     required WorkingRouterData data,
-    required AnyNodeId locationId,
+    required AnyRouteNodeId locationId,
   }) {
     final navigatorKeysInSubtree = <WorkingRouterKey>{};
     var foundTargetLocation = false;

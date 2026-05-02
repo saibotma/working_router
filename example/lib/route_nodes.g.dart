@@ -9,38 +9,26 @@ part of 'route_nodes.dart';
 // ignore_for_file: type=lint
 
 final class SplashRouteTarget extends IdRouteTarget {
-  SplashRouteTarget()
-      : super(
-          splashId,
-        );
+  SplashRouteTarget() : super(splashRouteNodeId);
 }
 
 final class ARouteTarget extends IdRouteTarget {
-  ARouteTarget()
-      : super(
-          aId,
-        );
+  ARouteTarget() : super(aRouteNodeId);
 }
 
 final class AbRouteTarget extends IdRouteTarget {
-  AbRouteTarget()
-      : super(
-          abId,
-        );
+  AbRouteTarget() : super(abRouteNodeId);
 }
 
 final class AbcRouteTarget extends IdRouteTarget {
-  AbcRouteTarget({
-    required String id,
-    required String b,
-    required String c,
-  }) : super(
-          abcId,
+  AbcRouteTarget({required String id, required String b, required String c})
+      : super(
+          abcRouteNodeId,
           writePathParameters: (() {
-            var abcIdMatchIndex = 0;
+            var abcRouteNodeIdMatchIndex = 0;
             return (node, path) {
-              if (node.id == abcId) {
-                switch (abcIdMatchIndex++) {
+              if (node.id == abcRouteNodeId) {
+                switch (abcRouteNodeIdMatchIndex++) {
                   case 0:
                     path(node.pathParameters[0] as PathParam<String>, id);
                     break;
@@ -49,19 +37,21 @@ final class AbcRouteTarget extends IdRouteTarget {
             };
           })(),
           writeQueryParameters: (() {
-            var abcIdMatchIndex = 0;
+            var abcRouteNodeIdMatchIndex = 0;
             return (node, query) {
-              if (node.id == abcId) {
-                switch (abcIdMatchIndex++) {
+              if (node.id == abcRouteNodeId) {
+                switch (abcRouteNodeIdMatchIndex++) {
                   case 0:
                     query(
-                        node.queryParameters.firstWhere((it) => it.name == 'b')
-                            as QueryParam<String>,
-                        b);
+                      node.queryParameters.firstWhere((it) => it.name == 'b')
+                          as QueryParam<String>,
+                      b,
+                    );
                     query(
-                        node.queryParameters.firstWhere((it) => it.name == 'c')
-                            as QueryParam<String>,
-                        c);
+                      node.queryParameters.firstWhere((it) => it.name == 'c')
+                          as QueryParam<String>,
+                      c,
+                    );
                     break;
                 }
               }
@@ -71,31 +61,19 @@ final class AbcRouteTarget extends IdRouteTarget {
 }
 
 final class AdRouteTarget extends IdRouteTarget {
-  AdRouteTarget()
-      : super(
-          adId,
-        );
+  AdRouteTarget() : super(adRouteNodeId);
 }
 
 final class AdcRouteTarget extends IdRouteTarget {
-  AdcRouteTarget()
-      : super(
-          adcId,
-        );
+  AdcRouteTarget() : super(adcRouteNodeId);
 }
 
 final class AdShellRouteTarget extends IdRouteTarget {
-  AdShellRouteTarget()
-      : super(
-          adShellId,
-        );
+  AdShellRouteTarget() : super(adShellRouteNodeId);
 }
 
 final class AdeRouteTarget extends IdRouteTarget {
-  AdeRouteTarget()
-      : super(
-          adeId,
-        );
+  AdeRouteTarget() : super(adeRouteNodeId);
 }
 
 extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor {
@@ -111,18 +89,8 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor {
     routeTo(AbRouteTarget());
   }
 
-  void routeToAbc({
-    required String id,
-    required String b,
-    required String c,
-  }) {
-    routeTo(
-      AbcRouteTarget(
-        id: id,
-        b: b,
-        c: c,
-      ),
-    );
+  void routeToAbc({required String id, required String b, required String c}) {
+    routeTo(AbcRouteTarget(id: id, b: b, c: c));
   }
 
   void routeToAd() {
@@ -152,14 +120,14 @@ extension ABRouteNodeGeneratedChildTargets on ABRouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == abcId,
+          (node) => node.id == abcRouteNodeId,
         ]);
       },
       writePathParameters: (() {
-        var abcIdMatchIndex = 0;
+        var abcRouteNodeIdMatchIndex = 0;
         return (node, path) {
-          if (node.id == abcId) {
-            switch (abcIdMatchIndex++) {
+          if (node.id == abcRouteNodeId) {
+            switch (abcRouteNodeIdMatchIndex++) {
               case 0:
                 path(node.pathParameters[0] as PathParam<String>, id);
                 break;
@@ -168,19 +136,21 @@ extension ABRouteNodeGeneratedChildTargets on ABRouteNode {
         };
       })(),
       writeQueryParameters: (() {
-        var abcIdMatchIndex = 0;
+        var abcRouteNodeIdMatchIndex = 0;
         return (node, query) {
-          if (node.id == abcId) {
-            switch (abcIdMatchIndex++) {
+          if (node.id == abcRouteNodeId) {
+            switch (abcRouteNodeIdMatchIndex++) {
               case 0:
                 query(
-                    node.queryParameters.firstWhere((it) => it.name == 'b')
-                        as QueryParam<String>,
-                    b);
+                  node.queryParameters.firstWhere((it) => it.name == 'b')
+                      as QueryParam<String>,
+                  b,
+                );
                 query(
-                    node.queryParameters.firstWhere((it) => it.name == 'c')
-                        as QueryParam<String>,
-                    c);
+                  node.queryParameters.firstWhere((it) => it.name == 'c')
+                      as QueryParam<String>,
+                  c,
+                );
                 break;
             }
           }
@@ -195,13 +165,7 @@ extension ABRouteNodeGeneratedChildTargets on ABRouteNode {
     required String b,
     required String c,
   }) {
-    WorkingRouter.of(context).routeTo(
-      childAbcTarget(
-        id: id,
-        b: b,
-        c: c,
-      ),
-    );
+    WorkingRouter.of(context).routeTo(childAbcTarget(id: id, b: b, c: c));
   }
 }
 
@@ -211,7 +175,7 @@ extension ADNestedRouteNodeGeneratedChildTargets on ADNestedRouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adeId,
+          (node) => node.id == adeRouteNodeId,
         ]);
       },
     );
@@ -228,7 +192,7 @@ extension ADRouteNodeGeneratedChildTargets on ADRouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adcId,
+          (node) => node.id == adcRouteNodeId,
         ]);
       },
     );
@@ -243,7 +207,7 @@ extension ADRouteNodeGeneratedChildTargets on ADRouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adShellId,
+          (node) => node.id == adShellRouteNodeId,
         ]);
       },
     );
@@ -258,8 +222,8 @@ extension ADRouteNodeGeneratedChildTargets on ADRouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adShellId,
-          (node) => node.id == adeId,
+          (node) => node.id == adShellRouteNodeId,
+          (node) => node.id == adeRouteNodeId,
         ]);
       },
     );
@@ -276,7 +240,7 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == abId,
+          (node) => node.id == abRouteNodeId,
         ]);
       },
     );
@@ -295,15 +259,15 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == abId,
-          (node) => node.id == abcId,
+          (node) => node.id == abRouteNodeId,
+          (node) => node.id == abcRouteNodeId,
         ]);
       },
       writePathParameters: (() {
-        var abcIdMatchIndex = 0;
+        var abcRouteNodeIdMatchIndex = 0;
         return (node, path) {
-          if (node.id == abcId) {
-            switch (abcIdMatchIndex++) {
+          if (node.id == abcRouteNodeId) {
+            switch (abcRouteNodeIdMatchIndex++) {
               case 0:
                 path(node.pathParameters[0] as PathParam<String>, id);
                 break;
@@ -312,19 +276,21 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
         };
       })(),
       writeQueryParameters: (() {
-        var abcIdMatchIndex = 0;
+        var abcRouteNodeIdMatchIndex = 0;
         return (node, query) {
-          if (node.id == abcId) {
-            switch (abcIdMatchIndex++) {
+          if (node.id == abcRouteNodeId) {
+            switch (abcRouteNodeIdMatchIndex++) {
               case 0:
                 query(
-                    node.queryParameters.firstWhere((it) => it.name == 'b')
-                        as QueryParam<String>,
-                    b);
+                  node.queryParameters.firstWhere((it) => it.name == 'b')
+                      as QueryParam<String>,
+                  b,
+                );
                 query(
-                    node.queryParameters.firstWhere((it) => it.name == 'c')
-                        as QueryParam<String>,
-                    c);
+                  node.queryParameters.firstWhere((it) => it.name == 'c')
+                      as QueryParam<String>,
+                  c,
+                );
                 break;
             }
           }
@@ -339,13 +305,7 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
     required String b,
     required String c,
   }) {
-    WorkingRouter.of(context).routeTo(
-      childAbcTarget(
-        id: id,
-        b: b,
-        c: c,
-      ),
-    );
+    WorkingRouter.of(context).routeTo(childAbcTarget(id: id, b: b, c: c));
   }
 
   ChildRouteTarget get childAdTarget {
@@ -353,7 +313,7 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adId,
+          (node) => node.id == adRouteNodeId,
         ]);
       },
     );
@@ -368,8 +328,8 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adId,
-          (node) => node.id == adcId,
+          (node) => node.id == adRouteNodeId,
+          (node) => node.id == adcRouteNodeId,
         ]);
       },
     );
@@ -384,8 +344,8 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adId,
-          (node) => node.id == adShellId,
+          (node) => node.id == adRouteNodeId,
+          (node) => node.id == adShellRouteNodeId,
         ]);
       },
     );
@@ -400,9 +360,9 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
       start: this,
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
-          (node) => node.id == adId,
-          (node) => node.id == adShellId,
-          (node) => node.id == adeId,
+          (node) => node.id == adRouteNodeId,
+          (node) => node.id == adShellRouteNodeId,
+          (node) => node.id == adeRouteNodeId,
         ]);
       },
     );
@@ -420,7 +380,7 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
           (node) => node is Shell,
-          (node) => node.id == aId,
+          (node) => node.id == aRouteNodeId,
         ]);
       },
     );
@@ -436,8 +396,8 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
           (node) => node is Shell,
-          (node) => node.id == aId,
-          (node) => node.id == abId,
+          (node) => node.id == aRouteNodeId,
+          (node) => node.id == abRouteNodeId,
         ]);
       },
     );
@@ -457,16 +417,16 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
           (node) => node is Shell,
-          (node) => node.id == aId,
-          (node) => node.id == abId,
-          (node) => node.id == abcId,
+          (node) => node.id == aRouteNodeId,
+          (node) => node.id == abRouteNodeId,
+          (node) => node.id == abcRouteNodeId,
         ]);
       },
       writePathParameters: (() {
-        var abcIdMatchIndex = 0;
+        var abcRouteNodeIdMatchIndex = 0;
         return (node, path) {
-          if (node.id == abcId) {
-            switch (abcIdMatchIndex++) {
+          if (node.id == abcRouteNodeId) {
+            switch (abcRouteNodeIdMatchIndex++) {
               case 0:
                 path(node.pathParameters[0] as PathParam<String>, id);
                 break;
@@ -475,19 +435,21 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
         };
       })(),
       writeQueryParameters: (() {
-        var abcIdMatchIndex = 0;
+        var abcRouteNodeIdMatchIndex = 0;
         return (node, query) {
-          if (node.id == abcId) {
-            switch (abcIdMatchIndex++) {
+          if (node.id == abcRouteNodeId) {
+            switch (abcRouteNodeIdMatchIndex++) {
               case 0:
                 query(
-                    node.queryParameters.firstWhere((it) => it.name == 'b')
-                        as QueryParam<String>,
-                    b);
+                  node.queryParameters.firstWhere((it) => it.name == 'b')
+                      as QueryParam<String>,
+                  b,
+                );
                 query(
-                    node.queryParameters.firstWhere((it) => it.name == 'c')
-                        as QueryParam<String>,
-                    c);
+                  node.queryParameters.firstWhere((it) => it.name == 'c')
+                      as QueryParam<String>,
+                  c,
+                );
                 break;
             }
           }
@@ -502,13 +464,7 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
     required String b,
     required String c,
   }) {
-    WorkingRouter.of(context).routeTo(
-      childAbcTarget(
-        id: id,
-        b: b,
-        c: c,
-      ),
-    );
+    WorkingRouter.of(context).routeTo(childAbcTarget(id: id, b: b, c: c));
   }
 
   ChildRouteTarget get childAdTarget {
@@ -517,8 +473,8 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
           (node) => node is Shell,
-          (node) => node.id == aId,
-          (node) => node.id == adId,
+          (node) => node.id == aRouteNodeId,
+          (node) => node.id == adRouteNodeId,
         ]);
       },
     );
@@ -534,9 +490,9 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
           (node) => node is Shell,
-          (node) => node.id == aId,
-          (node) => node.id == adId,
-          (node) => node.id == adcId,
+          (node) => node.id == aRouteNodeId,
+          (node) => node.id == adRouteNodeId,
+          (node) => node.id == adcRouteNodeId,
         ]);
       },
     );
@@ -552,9 +508,9 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
           (node) => node is Shell,
-          (node) => node.id == aId,
-          (node) => node.id == adId,
-          (node) => node.id == adShellId,
+          (node) => node.id == aRouteNodeId,
+          (node) => node.id == adRouteNodeId,
+          (node) => node.id == adShellRouteNodeId,
         ]);
       },
     );
@@ -570,10 +526,10 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
       resolveChildPathNodes: () {
         return resolveExactChildRouteNodes(this, [
           (node) => node is Shell,
-          (node) => node.id == aId,
-          (node) => node.id == adId,
-          (node) => node.id == adShellId,
-          (node) => node.id == adeId,
+          (node) => node.id == aRouteNodeId,
+          (node) => node.id == adRouteNodeId,
+          (node) => node.id == adShellRouteNodeId,
+          (node) => node.id == adeRouteNodeId,
         ]);
       },
     );

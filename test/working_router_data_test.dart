@@ -3,27 +3,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:working_router/working_router.dart';
 
 abstract final class _TestId {
-  static final list = NodeId<_TestLocation>();
-  static final paramOnly = NodeId<_ParamOnlyLocation>();
-  static final detail = NodeId<_TestLocation>();
-  static final query = NodeId<_QueryLocation>();
-  static final queryRequired = NodeId<_BuilderRequiredQueryLocation>();
-  static final queryNullable = NodeId<_NullableQueryLocation>();
-  static final queryDefault = NodeId<_DefaultQueryLocation>();
-  static final queryBuilderDefault = NodeId<_BuilderDefaultQueryLocation>();
-  static final root = NodeId<_TestLocation>();
-  static final parent = NodeId<_TestLocation>();
-  static final child = NodeId<_TestLocation>();
-  static final other = NodeId<_TestLocation>();
-  static final bound = NodeId<_BoundParamLocation>();
-  static final accounts = NodeId<_AccountsNode>();
+  static final list = RouteNodeId<_TestLocation>();
+  static final paramOnly = RouteNodeId<_ParamOnlyLocation>();
+  static final detail = RouteNodeId<_TestLocation>();
+  static final query = RouteNodeId<_QueryLocation>();
+  static final queryRequired = RouteNodeId<_BuilderRequiredQueryLocation>();
+  static final queryNullable = RouteNodeId<_NullableQueryLocation>();
+  static final queryDefault = RouteNodeId<_DefaultQueryLocation>();
+  static final queryBuilderDefault =
+      RouteNodeId<_BuilderDefaultQueryLocation>();
+  static final root = RouteNodeId<_TestLocation>();
+  static final parent = RouteNodeId<_TestLocation>();
+  static final child = RouteNodeId<_TestLocation>();
+  static final other = RouteNodeId<_TestLocation>();
+  static final bound = RouteNodeId<_BoundParamLocation>();
+  static final accounts = RouteNodeId<_AccountsNode>();
 }
 
-final _typedRootId = NodeId<_TypedRootLocation>();
-final _typedAddAccountId = NodeId<_TypedAddAccountLocation>();
-final _branchOwnerId = NodeId<_BranchOwnerLocation>();
-final _firstOverlayId = NodeId<_BranchOverlay>();
-final _secondOverlayId = NodeId<_BranchOverlay>();
+final _typedRootId = RouteNodeId<_TypedRootLocation>();
+final _typedAddAccountId = RouteNodeId<_TypedAddAccountLocation>();
+final _branchOwnerId = RouteNodeId<_BranchOwnerLocation>();
+final _firstOverlayId = RouteNodeId<_BranchOverlay>();
+final _secondOverlayId = RouteNodeId<_BranchOverlay>();
 
 WorkingRouterData _workingRouterData({
   required Uri uri,
@@ -465,7 +466,7 @@ void main() {
 class _TestLocation extends Location<_TestLocation> {
   final List<PathSegment> _segments;
 
-  _TestLocation({required NodeId<_TestLocation> id, required String path})
+  _TestLocation({required RouteNodeId<_TestLocation> id, required String path})
     : _segments = _pathSegments(path),
       super(id: id);
 
@@ -483,7 +484,7 @@ class _ParamOnlyLocation extends Location<_ParamOnlyLocation> {
       definition.pathParameters.single as PathParam<String>;
 
   _ParamOnlyLocation({
-    required NodeId<_ParamOnlyLocation> id,
+    required RouteNodeId<_ParamOnlyLocation> id,
     required this.parameter,
   }) : super(id: id);
 
@@ -498,8 +499,10 @@ class _QueryLocation extends Location<_QueryLocation> {
   late final QueryParam<String> boundParameter =
       definition.queryParameters.single as QueryParam<String>;
 
-  _QueryLocation({required NodeId<_QueryLocation> id, required this.parameter})
-    : super(id: id);
+  _QueryLocation({
+    required RouteNodeId<_QueryLocation> id,
+    required this.parameter,
+  }) : super(id: id);
 
   @override
   void build(LocationBuilder builder) {
@@ -513,7 +516,7 @@ class _NullableQueryLocation extends Location<_NullableQueryLocation> {
       definition.queryParameters.single as QueryParam<DateTime?>;
 
   _NullableQueryLocation({
-    required NodeId<_NullableQueryLocation> id,
+    required RouteNodeId<_NullableQueryLocation> id,
     required this.parameter,
   }) : super(id: id);
 
@@ -529,7 +532,7 @@ class _DefaultQueryLocation extends Location<_DefaultQueryLocation> {
       definition.queryParameters.single as DefaultQueryParam<String>;
 
   _DefaultQueryLocation({
-    required NodeId<_DefaultQueryLocation> id,
+    required RouteNodeId<_DefaultQueryLocation> id,
     required this.parameter,
   }) : super(id: id);
 
@@ -545,7 +548,7 @@ class _BuilderDefaultQueryLocation
       definition.queryParameters.single as DefaultQueryParam<String>;
 
   _BuilderDefaultQueryLocation({
-    required NodeId<_BuilderDefaultQueryLocation> id,
+    required RouteNodeId<_BuilderDefaultQueryLocation> id,
   }) : super(id: id);
 
   @override
@@ -563,7 +566,7 @@ class _BuilderRequiredQueryLocation
       definition.queryParameters.single as RequiredQueryParam<String>;
 
   _BuilderRequiredQueryLocation({
-    required NodeId<_BuilderRequiredQueryLocation> id,
+    required RouteNodeId<_BuilderRequiredQueryLocation> id,
   }) : super(id: id);
 
   @override
@@ -591,7 +594,7 @@ class _BoundParamLocation extends Location<_BoundParamLocation> {
   final UnboundQueryParam<String> queryParameter;
 
   _BoundParamLocation({
-    required NodeId<_BoundParamLocation> id,
+    required RouteNodeId<_BoundParamLocation> id,
     required this.pathParameter,
     required this.queryParameter,
   }) : super(id: id);

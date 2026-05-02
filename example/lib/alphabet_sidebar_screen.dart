@@ -6,8 +6,8 @@ import 'empty_alphabet_screen.dart';
 import 'filled_alphabet_screen.dart';
 import 'pop_until_target.dart';
 
-final abId = NodeId<ABRouteNode>();
-final adId = NodeId<ADRouteNode>();
+final abRouteNodeId = RouteNodeId<ABRouteNode>();
+final adRouteNodeId = RouteNodeId<ADRouteNode>();
 
 class ARouteNode extends Location<ARouteNode> {
   final bool rendersStandaloneSidebar;
@@ -35,11 +35,11 @@ class ARouteNode extends Location<ARouteNode> {
 
     builder.children = [
       ABRouteNode(
-        id: abId,
+        id: abRouteNodeId,
         rootRouterKey: rootRouterKey,
       ),
       ADRouteNode(
-        id: adId,
+        id: adRouteNodeId,
         rootRouterKey: rootRouterKey,
         outerShellRouterKey: outerShellRouterKey,
       ),

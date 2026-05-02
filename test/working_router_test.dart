@@ -576,7 +576,7 @@ void main() {
     testWidgets('routeToId throws for structural route node ids', (
       tester,
     ) async {
-      final shellId = NodeId<Shell>();
+      final shellId = RouteNodeId<Shell>();
       final router = WorkingRouter(
         buildRouteNodes: (_) => [
           _BuilderLocation(
@@ -3607,32 +3607,32 @@ WorkingRouter _buildParamRouter() {
 }
 
 abstract final class _Id {
-  static final root = NodeId<_BuilderLocation>();
-  static final a = NodeId<_BuilderLocation>();
-  static final b = NodeId<_BuilderLocation>();
-  static final c = NodeId<_BuilderLocation>();
-  static final chat = NodeId<_BuilderMultiShellLocation>();
+  static final root = RouteNodeId<_BuilderLocation>();
+  static final a = RouteNodeId<_BuilderLocation>();
+  static final b = RouteNodeId<_BuilderLocation>();
+  static final c = RouteNodeId<_BuilderLocation>();
+  static final chat = RouteNodeId<_BuilderMultiShellLocation>();
 }
 
 abstract final class _PathId {
-  static final root = NodeId<_PathLocation>();
-  static final a = NodeId<_PathLocation>();
-  static final b = NodeId<_PathLocation>();
-  static final c = NodeId<_PathLocation>();
+  static final root = RouteNodeId<_PathLocation>();
+  static final a = RouteNodeId<_PathLocation>();
+  static final b = RouteNodeId<_PathLocation>();
+  static final c = RouteNodeId<_PathLocation>();
 }
 
 abstract final class _ParamId {
-  static final root = NodeId<_ParamRootLocation>();
-  static final item = NodeId<_ItemLocation>();
-  static final details = NodeId<_DetailLocation>();
+  static final root = RouteNodeId<_ParamRootLocation>();
+  static final item = RouteNodeId<_ItemLocation>();
+  static final details = RouteNodeId<_DetailLocation>();
 }
 
 abstract final class _MigratingId {
-  static final root = NodeId<_MigratingRootLocation>();
-  static final account = NodeId<_SelfBuiltAccountLocation>();
+  static final root = RouteNodeId<_MigratingRootLocation>();
+  static final account = RouteNodeId<_SelfBuiltAccountLocation>();
 }
 
-final _overlaySearchId = NodeId<_BuilderOverlay>();
+final _overlaySearchId = RouteNodeId<_BuilderOverlay>();
 
 class _PathLocation extends Location<_PathLocation> {
   final List<PathSegment> _segments;
@@ -3641,7 +3641,7 @@ class _PathLocation extends Location<_PathLocation> {
   final PageKey? pageKey;
 
   _PathLocation({
-    required NodeId<_PathLocation> id,
+    required RouteNodeId<_PathLocation> id,
     required String path,
     this.child,
     this.pageKey,
@@ -3670,7 +3670,7 @@ abstract class _ParamPathLocation<Self extends _ParamPathLocation<Self>>
   final List<RouteNode> children;
 
   _ParamPathLocation({
-    required NodeId<Self> id,
+    required RouteNodeId<Self> id,
     required String path,
     this.children = const [],
   }) : _segments = _pathSegments(path),
@@ -3747,7 +3747,7 @@ class _MigratingRootLocation extends Location<_MigratingRootLocation> {
   final List<RouteNode> children;
 
   _MigratingRootLocation({
-    required NodeId<_MigratingRootLocation> id,
+    required RouteNodeId<_MigratingRootLocation> id,
     this.children = const [],
   }) : super(id: id);
 
@@ -3759,7 +3759,7 @@ class _MigratingRootLocation extends Location<_MigratingRootLocation> {
 
 class _SelfBuiltAccountLocation extends Location<_SelfBuiltAccountLocation> {
   _SelfBuiltAccountLocation({
-    required NodeId<_SelfBuiltAccountLocation> id,
+    required RouteNodeId<_SelfBuiltAccountLocation> id,
   }) : super(id: id);
 
   @override
