@@ -248,7 +248,7 @@ RouteNode get appLocationTree => RootLocation(id: rootId);
   });
 
   test(
-    'uses top-level node id variable names without identity suffixes',
+    'strips concise and explicit identity suffixes from top-level id names',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
         BuilderOptions.empty,
@@ -266,9 +266,9 @@ import 'package:working_router/working_router.dart';
 
 part 'app_routes.working_router.g.dart';
 
-final rootRouteNodeId = RouteNodeId<_RootLocation>();
+final rootId = RouteNodeId<_RootLocation>();
 final addAccountRouteNodeId = RouteNodeId<_AddAccountLocation>();
-final loginRecoveryLocalRouteNodeId = LocalRouteNodeId<_LoginRecoveryLocation>();
+final loginRecoveryLocalId = LocalRouteNodeId<_LoginRecoveryLocation>();
 
 class _RootLocation extends Location<_RootLocation> {
   _RootLocation({required super.id});
@@ -288,7 +288,7 @@ class _AddAccountLocation extends Location<_AddAccountLocation> {
   void build(LocationBuilder builder) {
     builder.pathLiteral('add-account');
     builder.children = [
-      _LoginRecoveryLocation(localId: loginRecoveryLocalRouteNodeId),
+      _LoginRecoveryLocation(localId: loginRecoveryLocalId),
     ];
   }
 }
@@ -304,7 +304,7 @@ class _LoginRecoveryLocation
 }
 
 @RouteNodes()
-RouteNode get appLocationTree => _RootLocation(id: rootRouteNodeId);
+RouteNode get appLocationTree => _RootLocation(id: rootId);
 ''',
         },
         outputs: {
@@ -313,7 +313,7 @@ RouteNode get appLocationTree => _RootLocation(id: rootRouteNodeId);
               contains('void routeToAddAccount()'),
               isNot(contains('void routeToAddAccountRouteNodeId()')),
               contains('get childLoginRecoveryTarget'),
-              isNot(contains('get childLoginRecoveryLocalRouteNodeIdTarget')),
+              isNot(contains('get childLoginRecoveryLocalIdTarget')),
             ),
           ),
         },

@@ -46,8 +46,10 @@
 /// about which path/query parameters are required or how they are encoded.
 ///
 /// Global route ids are commonly declared as top-level
-/// `final someRouteNodeId = RouteNodeId<T>()` values, and local child ids as
-/// `final someLocalRouteNodeId = LocalRouteNodeId<T>()` values. The
+/// `final someId = RouteNodeId<T>()` values, and local child ids as
+/// `final someLocalId = LocalRouteNodeId<T>()` values. Use longer names like
+/// `someRouteNodeId` or `someLocalRouteNodeId` when the shorter name would be
+/// ambiguous with a domain id. The
 /// tokens are intentionally non-const because ids are identity-based and the
 /// same route-node type may need multiple distinct ids across repeated
 /// occurrences in one tree. The

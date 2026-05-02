@@ -43,7 +43,7 @@ The route API is centered around lightweight route-node classes. Subclass
 configuration inside `build(...)`.
 
 ```dart
-final detailRouteNodeId = RouteNodeId<DetailRouteNode>();
+final detailId = RouteNodeId<DetailRouteNode>();
 
 class ExampleRouteNode extends Location<ExampleRouteNode> {
   ExampleRouteNode({
@@ -66,7 +66,7 @@ class ExampleRouteNode extends Location<ExampleRouteNode> {
     });
 
     builder.children = [
-      DetailRouteNode(id: detailRouteNodeId),
+      DetailRouteNode(id: detailId),
     ];
   }
 }
@@ -81,10 +81,10 @@ class DetailRouteNode extends Location<DetailRouteNode> {
   }
 }
 
-final exampleRouteNodeId = RouteNodeId<ExampleRouteNode>();
+final exampleId = RouteNodeId<ExampleRouteNode>();
 
 final example = ExampleRouteNode(
-  id: exampleRouteNodeId,
+  id: exampleId,
 );
 ```
 
@@ -126,12 +126,14 @@ Important details:
 - Route node classes often fit well next to the screen or feature they render.
   When possible, name the route node after that screen with `RouteNode` in place
   of the `Screen` suffix, such as `AccountRouteNode` next to `AccountScreen`.
-- Put node ids next to the composition site that assigns them. Prefer explicit
-  names like `accountRouteNodeId` for `RouteNodeId<T>` values and
-  `loginRecoveryLocalRouteNodeId` for `LocalRouteNodeId<T>` values. If
-  `ParentRouteNode` creates `ChildRouteNode(id: childRouteNodeId)`, keep
-  `childRouteNodeId` in the parent/composition file. Root ids usually live in
-  the canonical route-tree file that returns the root node.
+- Put node ids next to the composition site that assigns them. Prefer concise
+  names like `chatChannelFinalizeAddMembersId` when the route name is already
+  specific enough, and add `RouteNodeId` / `LocalRouteNodeId` only when the
+  shorter name would be confused with a domain id, such as `accountRouteNodeId`
+  instead of `accountId`. If `ParentRouteNode` creates
+  `ChildRouteNode(id: childId)`, keep `childId` in the parent/composition file.
+  Root ids usually live in the canonical route-tree file that returns the root
+  node.
 - When descendants need handles declared by the parent, such as params, shell
   router keys, or multi-shell slots, accept
   `ChildrenBuilder<Self> buildChildren` and call it after those handles have
@@ -755,12 +757,12 @@ From `@RouteNodes()`, the generator emits:
 
 For start-anchored child targets:
 
-- global route ids are usually top-level
-  `final someRouteNodeId = RouteNodeId<T>()` values
-- child routing can use top-level
-  `final someLocalRouteNodeId = LocalRouteNodeId<T>()` values via `localId`, which
-  are preferred over route type names for generated `childXTarget(...)` names
-  and matching
+- global route ids are usually top-level `final someId = RouteNodeId<T>()`
+  values, using `someRouteNodeId` when `someId` would be ambiguous
+- child routing can use top-level `final someLocalId = LocalRouteNodeId<T>()`
+  values via `localId`, using `someLocalRouteNodeId` when `someLocalId` would
+  be ambiguous; local ids are preferred over route type names for generated
+  `childXTarget(...)` names and matching
 - both token types are intentionally non-const: ids are modeled as identity
   tokens, and repeated occurrences of the same route-node type may need
   distinct ids
