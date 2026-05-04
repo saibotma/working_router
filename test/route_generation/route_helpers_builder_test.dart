@@ -3855,6 +3855,96 @@ List<RouteNode> buildRouteNodes() => [
   );
 
   test(
+    'reports duplicate generated route method names at the duplicate route node',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <({String level, String message})>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/duplicate_route_method_name.dart': '''
+library duplicate_route_method_name;
+
+import 'package:working_router/working_router.dart';
+
+part 'duplicate_route_method_name.g.dart';
+
+enum DuplicateRouteId { root, account, forgotPassword }
+
+class RootLocation extends Location<RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.children = [
+      ForgotPasswordLocation(id: DuplicateRouteId.forgotPassword),
+      AccountLocation(id: DuplicateRouteId.account),
+    ];
+  }
+}
+
+class AccountLocation extends Location<AccountLocation> {
+  AccountLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('account');
+    final accountId = builder.stringPathParam();
+    builder.children = [
+      ForgotPasswordLocation(
+        id: DuplicateRouteId.forgotPassword,
+      ),
+    ];
+  }
+}
+
+class ForgotPasswordLocation extends Location<ForgotPasswordLocation> {
+  ForgotPasswordLocation({required super.id});
+}
+
+@RouteNodes()
+List<RouteNode> buildRouteNodes() => [
+  RootLocation(id: DuplicateRouteId.root),
+];
+''',
+        },
+        onLog: (log) => logs.add(
+          (level: log.level.name, message: log.message),
+        ),
+        readerWriter: readerWriter,
+      );
+
+      final severeMessages = logs
+          .where((log) => log.level == 'SEVERE')
+          .map((log) => log.message)
+          .join('\n');
+      expect(
+        severeMessages,
+        allOf(
+          contains(
+            'Duplicate generated method name `routeToForgotPassword` for route node `ForgotPasswordLocation` with id `DuplicateRouteId.forgotPassword`.',
+          ),
+          contains(
+            'package:working_router/duplicate_route_method_name.dart:',
+          ),
+          contains('ForgotPasswordLocation('),
+          contains('id: DuplicateRouteId.forgotPassword'),
+          isNot(
+            contains(
+              'List<RouteNode> buildRouteNodes() => [',
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
     'reports conflicting generated query parameter metadata at the offending declaration',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

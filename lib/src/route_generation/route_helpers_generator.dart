@@ -154,8 +154,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         final previousMethod = usedMethodsByName[method.name];
         if (previousMethod != null && !previousMethod.isEquivalent(method)) {
           throw InvalidGenerationSourceError(
-            'Duplicate generated method name `${method.name}`.',
-            element: element,
+            'Duplicate generated method name `${method.name}` for route node '
+            '`${node.locationTypeSource}` with id `${node.idExpression}`. '
+            'Rename one of the ids or use a more specific id name.',
+            node: node.sourceNode,
           );
         }
         if (previousMethod == null) {
@@ -1625,6 +1627,7 @@ class _StaticRouteTreeExtractor {
     final overlays = dslDefinition?.overlays ?? const <_RouteNode>[];
 
     return _RouteNode(
+      sourceNode: expression,
       idExpression:
           (isLocation || isOverlay) && classElement.displayName != 'Scope'
           ? await _resolveIdExpression(
@@ -2450,6 +2453,7 @@ class _StaticRouteTreeExtractor {
     );
 
     return _RouteNode(
+      sourceNode: invocation,
       idExpression: isLocation
           ? dslDefinition.locationIdExpression ??
                 await _resolveIdExpression(
@@ -5887,6 +5891,7 @@ class _BoundStringExpression {
 }
 
 class _RouteNode {
+  final AstNode sourceNode;
   final String? idExpression;
   final String? localIdExpression;
   final bool isLocation;
@@ -5900,6 +5905,7 @@ class _RouteNode {
   final List<_RouteNode> children;
 
   const _RouteNode({
+    required this.sourceNode,
     required this.idExpression,
     required this.localIdExpression,
     required this.isLocation,
@@ -5915,6 +5921,7 @@ class _RouteNode {
 
   _RouteNode withExclusiveBranch(int groupId, int branchId) {
     return _RouteNode(
+      sourceNode: sourceNode,
       idExpression: idExpression,
       localIdExpression: localIdExpression,
       isLocation: isLocation,
