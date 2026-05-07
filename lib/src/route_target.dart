@@ -7,6 +7,62 @@ sealed class RouteTarget {
   const RouteTarget();
 }
 
+/// A non-terminal route prefix that can be combined with a relative URI.
+///
+/// Route bases are intentionally not [RouteTarget]s. They describe a route
+/// prefix such as a shell or scope, and only become routable after [append]
+/// supplies the remaining relative path.
+abstract interface class RouteBase {
+  RouteTarget append(Uri relativeUri);
+}
+
+/// Resolves an id-addressed route prefix before appending a relative URI.
+///
+/// This is intended for generated `...RouteBase` helpers.
+base class IdRouteBase implements RouteBase {
+  final AnyRouteNodeId id;
+
+  /// Writes typed path parameter values for the matched route prefix.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand.
+  final WritePathParameters? writePathParameters;
+
+  /// Writes typed query parameter values for the matched route prefix.
+  ///
+  /// This is intended for generated route helpers. Prefer using those helpers
+  /// instead of writing this callback by hand.
+  final WriteQueryParameters? writeQueryParameters;
+
+  const IdRouteBase(
+    this.id, {
+    this.writePathParameters,
+    this.writeQueryParameters,
+  });
+
+  @override
+  RouteTarget append(Uri relativeUri) {
+    return BaseAppendedRouteTarget(
+      base: this,
+      relativeUri: relativeUri,
+    );
+  }
+}
+
+/// Routes to [relativeUri] appended below [base].
+///
+/// Application code normally creates this through generated
+/// `SomeRouteBase(...).append(relativeUri)` helpers.
+final class BaseAppendedRouteTarget extends RouteTarget {
+  final IdRouteBase base;
+  final Uri relativeUri;
+
+  const BaseAppendedRouteTarget({
+    required this.base,
+    required this.relativeUri,
+  });
+}
+
 /// Routes to a fixed serialized route.
 ///
 /// Hidden path segments and hidden query parameters are included for route

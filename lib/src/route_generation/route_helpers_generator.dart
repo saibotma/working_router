@@ -26,12 +26,14 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     );
     final roots = await extractor.extract(declarationElement);
     final methods = _collectRouteMethods(roots, declarationElement);
+    final bases = _collectRouteBases(roots, declarationElement);
     final locationChildTargetResult = _collectLocationChildTargetMethods(
       roots,
       declarationElement,
       onSuppressedAmbiguousMethod: (warning) => log.warning(warning),
     );
     if (methods.isEmpty &&
+        bases.isEmpty &&
         locationChildTargetResult.methods.isEmpty &&
         locationChildTargetResult.firstRouteMethods.isEmpty) {
       return '';
@@ -43,6 +45,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     for (final method in methods) {
       buffer.writeln(method.renderTargetClass());
+    }
+    for (final base in bases) {
+      buffer.writeln(base.renderBaseClass());
     }
     final extensionName =
         '${_toUpperCamelCase(declarationElement.displayName)}GeneratedRoutes';
@@ -149,7 +154,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     void visit(_RouteNode node, List<_RouteNode> chain) {
       final nextChain = [...chain, node];
-      if (node.idExpression != null && !node.isOverlay) {
+      if (node.idExpression != null && node.isRoutableLocation) {
         final method = _buildMethod(nextChain, node.idExpression!, element);
         final previousMethod = usedMethodsByName[method.name];
         if (previousMethod != null && !previousMethod.isEquivalent(method)) {
@@ -175,6 +180,46 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       visit(root, const []);
     }
     return methods;
+  }
+
+  List<_GeneratedRouteBase> _collectRouteBases(
+    Iterable<_RouteNode> roots,
+    Element element,
+  ) {
+    final bases = <_GeneratedRouteBase>[];
+    final usedBasesByName = <String, _GeneratedRouteBase>{};
+
+    void visit(_RouteNode node, List<_RouteNode> chain) {
+      final nextChain = [...chain, node];
+      if (node.idExpression != null &&
+          !node.isOverlay &&
+          !node.isRoutableLocation) {
+        final base = _buildRouteBase(nextChain, node.idExpression!, element);
+        final previousBase = usedBasesByName[base.name];
+        if (previousBase != null && !previousBase.isEquivalent(base)) {
+          throw InvalidGenerationSourceError(
+            'Duplicate generated route base name `${base.name}` for route '
+            'node `${node.locationTypeSource}` with id '
+            '`${node.idExpression}`. Rename one of the ids or use a more '
+            'specific id name.',
+            node: node.sourceNode,
+          );
+        }
+        if (previousBase == null) {
+          usedBasesByName[base.name] = base;
+          bases.add(base);
+        }
+      }
+
+      for (final child in node.children) {
+        visit(child, nextChain);
+      }
+    }
+
+    for (final root in roots) {
+      visit(root, const []);
+    }
+    return bases;
   }
 
   _GeneratedLocationChildTargetMethodsResult _collectLocationChildTargetMethods(
@@ -567,6 +612,39 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     return _GeneratedRouteMethod.toId(
       name: methodName,
       targetClassName: targetClassName,
+      idExpression: idExpression,
+      pathWrites: pathWrites,
+      queryWrites: queryWrites,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
+  }
+
+  _GeneratedRouteBase _buildRouteBase(
+    List<_RouteNode> chain,
+    String idExpression,
+    Element element,
+  ) {
+    final idBaseName = _identityBaseNameFromExpression(idExpression);
+    final baseClassName = '${_toUpperCamelCase(idBaseName)}Base';
+    final (pathParameters, queryParameters) = _collectParameters(
+      chain,
+      element: element,
+      errorContext: idExpression,
+    );
+    final pathWrites = _collectPathWrites(
+      chain,
+      pathParameters,
+      element: element,
+      errorContext: idExpression,
+    );
+    final queryWrites = _collectQueryWrites(
+      chain,
+      queryParameters,
+    );
+
+    return _GeneratedRouteBase(
+      name: baseClassName,
       idExpression: idExpression,
       pathWrites: pathWrites,
       queryWrites: queryWrites,
@@ -1570,8 +1648,8 @@ class _StaticRouteTreeExtractor {
 
     final isOverlay = _isOverlayLikeClass(classElement);
     final isLocation = _isLocationLikeClass(classElement);
-    final supportsPathAndQuery =
-        (isLocation && !isOverlay) || _isShellLikeClass(classElement);
+    final isShell = _isShellLikeClass(classElement);
+    final supportsPathAndQuery = (isLocation && !isOverlay) || isShell;
     final isDirectBaseNode =
         classElement.displayName == 'Location' ||
         classElement.displayName == 'ShellLocation' ||
@@ -1629,7 +1707,8 @@ class _StaticRouteTreeExtractor {
     return _RouteNode(
       sourceNode: expression,
       idExpression:
-          (isLocation || isOverlay) && classElement.displayName != 'Scope'
+          (isLocation || isOverlay || isShell) &&
+              classElement.displayName != 'Scope'
           ? await _resolveIdExpression(
               _namedArgumentExpression(
                 expression.argumentList.arguments,
@@ -2454,7 +2533,7 @@ class _StaticRouteTreeExtractor {
 
     return _RouteNode(
       sourceNode: invocation,
-      idExpression: isLocation
+      idExpression: isLocation || supportsPathAndQuery
           ? dslDefinition.locationIdExpression ??
                 await _resolveIdExpression(
                   _namedArgumentExpression(arguments, 'id'),
@@ -6109,6 +6188,128 @@ class _GeneratedRouteMethod {
         '          (location) => $childLocationMatchSource,',
       );
     }
+
+    if (pathWrites.isNotEmpty) {
+      buffer.writeln('          writePathParameters: (() {');
+      for (final entry in pathWritesByLocationType.entries) {
+        final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
+        buffer.writeln('            var $counterName = 0;');
+      }
+      buffer.writeln('            return (node, path) {');
+      for (final entry in pathWritesByLocationType.entries) {
+        final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
+        buffer.writeln(
+          '              if (${entry.value.values.first.first.locationMatchSource}) {',
+        );
+        buffer.writeln('                switch ($counterName++) {');
+        final occurrences = entry.value.entries.toList()
+          ..sort((left, right) => left.key.compareTo(right.key));
+        for (final occurrence in occurrences) {
+          buffer.writeln('                  case ${occurrence.key}:');
+          for (final pathWrite in occurrence.value) {
+            buffer.writeln(
+              '                    path(${pathWrite.parameterAccessorSource}, '
+              '${pathWrite.parameterName});',
+            );
+          }
+          buffer.writeln('                    break;');
+        }
+        buffer.writeln('                }');
+        buffer.writeln('              }');
+      }
+      buffer.writeln('            };');
+      buffer.writeln('          })(),');
+    }
+
+    _writeQueryWrites(buffer, '          ', queryWrites);
+
+    buffer.writeln('        );');
+  }
+}
+
+class _GeneratedRouteBase {
+  final String name;
+  final String idExpression;
+  final List<_GeneratedPathWrite> pathWrites;
+  final List<_GeneratedPathWrite> queryWrites;
+  final Map<String, _GeneratedRouteParameter> pathParameters;
+  final Map<String, _GeneratedRouteParameter> queryParameters;
+
+  const _GeneratedRouteBase({
+    required this.name,
+    required this.idExpression,
+    required this.pathWrites,
+    required this.queryWrites,
+    required this.pathParameters,
+    required this.queryParameters,
+  });
+
+  bool isEquivalent(_GeneratedRouteBase other) {
+    return _generatedTargetDefinitionEquivalent(
+      name: name,
+      targetClassName: name,
+      idExpression: idExpression,
+      childLocationMatchSource: null,
+      pathWrites: pathWrites,
+      queryWrites: queryWrites,
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+      otherName: other.name,
+      otherTargetClassName: other.name,
+      otherIdExpression: other.idExpression,
+      otherChildLocationMatchSource: null,
+      otherPathWrites: other.pathWrites,
+      otherQueryWrites: other.queryWrites,
+      otherPathParameters: other.pathParameters,
+      otherQueryParameters: other.queryParameters,
+    );
+  }
+
+  String renderBaseClass() {
+    final buffer = StringBuffer();
+    final parameters = [
+      ...pathParameters.entries,
+      ...queryParameters.entries,
+    ];
+    buffer.writeln('final class $name extends IdRouteBase {');
+
+    if (parameters.isEmpty) {
+      buffer.writeln('  $name()');
+    } else {
+      buffer.writeln('  $name({');
+      for (final parameter in parameters) {
+        final generatedParameter = parameter.value;
+        final typeSource = generatedParameter.optional
+            ? _nullableTypeSource(generatedParameter.dartTypeSource)
+            : generatedParameter.dartTypeSource;
+        final requiredKeyword = generatedParameter.optional ? '' : 'required ';
+        buffer.writeln(
+          '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+        );
+      }
+      buffer.writeln('  })');
+    }
+
+    _writeSuperInvocation(buffer);
+    buffer.writeln('}');
+    return buffer.toString();
+  }
+
+  void _writeSuperInvocation(StringBuffer buffer) {
+    final pathWritesByLocationType =
+        <String, Map<int, List<_GeneratedPathWrite>>>{};
+    for (final pathWrite in pathWrites) {
+      final byOccurrence = pathWritesByLocationType.putIfAbsent(
+        pathWrite.locationMatchDiscriminator,
+        () => <int, List<_GeneratedPathWrite>>{},
+      );
+      byOccurrence
+          .putIfAbsent(pathWrite.occurrenceIndex, () => [])
+          .add(pathWrite);
+    }
+
+    buffer.writeln('      : super(');
+    buffer.writeln('          $idExpression,');
 
     if (pathWrites.isNotEmpty) {
       buffer.writeln('          writePathParameters: (() {');

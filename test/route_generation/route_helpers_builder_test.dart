@@ -139,6 +139,87 @@ RouteNode get appLocationTree => _appLocationTree;
     );
   });
 
+  test('generates route bases for non-routable shells', () async {
+    final builder = workingRouterRouteHelpersBuilder(
+      BuilderOptions.empty,
+    );
+    final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+    await readerWriter.testing.loadIsolateSources();
+
+    await testBuilder(
+      builder,
+      {
+        'working_router|lib/account_routes.dart': '''
+library account_routes;
+
+import 'package:working_router/working_router.dart';
+
+part 'account_routes.working_router.g.dart';
+
+final rootId = RouteNodeId<RootLocation>();
+final accountRouteId = RouteNodeId<Shell>();
+final dashboardId = RouteNodeId<DashboardLocation>();
+
+class RootLocation extends Location<RootLocation> {
+  RootLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.children = [
+      Shell(
+        id: accountRouteId,
+        build: (builder, shell, routerKey) {
+          builder.pathLiteral('accounts');
+          final accountId = builder.stringPathParam();
+          builder.children = [
+            DashboardLocation(id: dashboardId),
+          ];
+        },
+      ),
+    ];
+  }
+}
+
+class DashboardLocation extends Location<DashboardLocation> {
+  DashboardLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('dashboard');
+  }
+}
+
+@RouteNodes()
+RouteNode get accountRoutes => RootLocation(id: rootId);
+''',
+      },
+      outputs: {
+        'working_router|lib/account_routes.working_router.g.part': decodedMatches(
+          allOf(
+            allOf(
+              contains('final class AccountRouteBase extends IdRouteBase {'),
+              contains('AccountRouteBase({'),
+              contains('required String accountId,'),
+              contains('accountRouteId,'),
+              contains(
+                'path(node.pathParameters[0] as PathParam<String>, accountId);',
+              ),
+            ),
+            allOf(
+              contains(
+                'final class DashboardRouteTarget extends IdRouteTarget {',
+              ),
+              contains('void routeToDashboard({required String accountId})'),
+              isNot(contains('void routeToAccount(')),
+              isNot(contains('final class AccountRouteTarget')),
+            ),
+          ),
+        ),
+      },
+      readerWriter: readerWriter,
+    );
+  });
+
   test('generates overlay targets', () async {
     final builder = workingRouterRouteHelpersBuilder(
       BuilderOptions.empty,

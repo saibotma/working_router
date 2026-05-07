@@ -3348,6 +3348,115 @@ void main() {
     );
 
     testWidgets(
+      'relativeUriAfter can be appended below a non-location route base',
+      (tester) async {
+        final accountShellId = RouteNodeId<Shell>();
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  Shell(
+                    id: accountShellId,
+                    build: (builder, shell, routerKey) {
+                      builder.pathLiteral('accounts');
+                      builder.stringPathParam();
+                      builder.children = [
+                        _BuilderLocation(
+                          id: _Id.a,
+                          build: (builder, location) {
+                            builder.pathLiteral('dashboard');
+                            builder.defaultBoolQueryParam(
+                              'search',
+                              defaultValue: false,
+                              visibility: UriVisibility.hidden,
+                            );
+                            builder.content = Content.widget(
+                              const Text('dashboard'),
+                            );
+                            builder.children = [
+                              _BuilderLocation(
+                                id: _Id.b,
+                                build: (builder, location) {
+                                  builder.pathVisibility = UriVisibility.hidden;
+                                  builder.pathLiteral('dialog');
+                                  builder.content = Content.widget(
+                                    const Text('dialog'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(
+          Uri.parse(
+            '/accounts/missing/dashboard/dialog'
+            '?search=true&accountScopedTargetUri=old',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final relativeUri = router.nullableData!.relativeUriAfter(
+          accountShellId,
+        )!;
+        expect(relativeUri.path, '/dashboard/dialog');
+        expect(relativeUri.queryParameters, {
+          'search': 'true',
+          'accountScopedTargetUri': 'old',
+        });
+
+        final accountScopedTargetUri = relativeUri.replace(
+          queryParameters: Map.of(relativeUri.queryParameters)
+            ..remove('accountScopedTargetUri'),
+        );
+        router.routeTo(
+          IdRouteBase(
+            accountShellId,
+            writePathParameters: (node, path) {
+              if (node.id == accountShellId) {
+                final accountId =
+                    node.pathParameters.single as PathParam<String>;
+                path(accountId, 'selected');
+              }
+            },
+          ).append(accountScopedTargetUri),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('dialog'), findsOneWidget);
+        expect(
+          router.nullableData!.uri,
+          Uri(path: '/accounts/selected/dashboard'),
+        );
+        expect(router.nullableConfiguration!.hiddenPathSegments.unlock, [
+          'dialog',
+        ]);
+        expect(router.nullableConfiguration!.hiddenQueryParameters.unlock, {
+          'search': 'true',
+        });
+        expect(
+          router.nullableData!.queryParameters.containsKey(
+            'accountScopedTargetUri',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
       'constrainToNavigator trims to deepest route still rendered inside target navigator',
       (tester) async {
         var desktop = true;

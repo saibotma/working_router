@@ -259,6 +259,34 @@ class WorkingRouterData {
     return false;
   }
 
+  /// Builds a relative URI from the matched route suffix after [id].
+  ///
+  /// The returned URI is not a complete route by itself. It is intended to be
+  /// stored and later appended below a compatible generated `...RouteBase`.
+  ///
+  /// Hidden path segments and hidden query parameters are serialized as normal
+  /// URI path/query parts here. When the URI is later routed as part of a full
+  /// route, [WorkingRouter] matches them normally and canonicalizes them back
+  /// into hidden route state.
+  ///
+  /// Query parameters are URI-level state, so this preserves the current
+  /// effective query map. Call [Uri.replace] on the returned URI to remove
+  /// app-specific query keys that should not be remembered.
+  Uri? relativeUriAfter(AnyRouteNodeId id) {
+    final idIndex = routeNodes.indexWhere((node) => node.id == id);
+    if (idIndex == -1) {
+      return null;
+    }
+
+    final relativeRouteNodes = routeNodes.skip(idIndex + 1).toIList();
+    final relativePathRouteNodes = relativeRouteNodes.pathRouteNodes;
+
+    return Uri(
+      path: relativePathRouteNodes.buildPath(_pathParameters),
+      queryParameters: queryParameters.isEmpty ? null : queryParameters.unlock,
+    );
+  }
+
   bool isIdMatched(AnyRouteNodeId id) {
     return routeNodesWithOverlays.any((node) => node.id == id);
   }

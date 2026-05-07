@@ -707,6 +707,20 @@ class WorkingRouter extends ChangeNotifier
               currentData: currentData,
               retainSharedQueryParameters: retainSharedQueryParameters,
             );
+      case BaseAppendedRouteTarget(
+        base: IdRouteBase(
+          :final id,
+          :final writePathParameters,
+          :final writeQueryParameters,
+        ),
+        :final relativeUri,
+      ):
+        return _buildDataForBaseAppendedUri(
+          id: id,
+          writePathParameters: writePathParameters,
+          writeQueryParameters: writeQueryParameters,
+          relativeUri: relativeUri,
+        );
       case IdRouteTarget(
         :final id,
         :final writePathParameters,
@@ -871,6 +885,66 @@ class WorkingRouter extends ChangeNotifier
           ),
         );
     }
+  }
+
+  WorkingRouterData _buildDataForBaseAppendedUri({
+    required AnyRouteNodeId id,
+    required WritePathParameters? writePathParameters,
+    required WriteQueryParameters? writeQueryParameters,
+    required Uri relativeUri,
+  }) {
+    if (relativeUri.hasScheme || relativeUri.hasAuthority) {
+      throw StateError(
+        'RouteBase.append(...) only accepts a relative URI, but got '
+        '`$relativeUri`.',
+      );
+    }
+
+    final matchedNodes = _routeNodeTree.matchId(id);
+    final baseNode = matchedNodes.lastOrNull;
+    if (baseNode == null || baseNode.id != id) {
+      throw StateError(
+        'RouteBase.append(...) could not find a route node with id `$id`.',
+      );
+    }
+    if (baseNode is! PathRouteNode) {
+      throw StateError(
+        'RouteBase.append(...) requires id `$id` to belong to a path route '
+        'node, but it belongs to `${baseNode.runtimeType}`.',
+      );
+    }
+
+    final matchedPathRouteNodes = matchedNodes.pathRouteNodes;
+    final basePathParameters = _resolvePathParameterWrites(
+      nodes: matchedPathRouteNodes,
+      writePathParameters: writePathParameters,
+    ).toIMap();
+    final baseQueryParameters = _mergeQueryParameterWrites(
+      initialQueryParameters: null,
+      nodes: matchedPathRouteNodes,
+      writeQueryParameters: writeQueryParameters,
+    );
+    final baseUri = Uri(
+      path: matchedPathRouteNodes.buildPath(basePathParameters),
+      queryParameters: baseQueryParameters.isEmpty
+          ? null
+          : baseQueryParameters.unlock,
+    );
+    final queryParameters = {
+      ...baseUri.queryParameters,
+      ...relativeUri.queryParameters,
+    };
+
+    return _buildDataForUri(
+      baseUri.replace(
+        pathSegments: [
+          ...baseUri.pathSegments,
+          ...relativeUri.pathSegments,
+        ],
+        queryParameters: queryParameters.isEmpty ? null : queryParameters,
+        fragment: relativeUri.fragment.isEmpty ? null : relativeUri.fragment,
+      ),
+    );
   }
 
   WorkingRouterData _buildData({
