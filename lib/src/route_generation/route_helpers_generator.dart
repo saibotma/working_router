@@ -626,7 +626,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     Element element,
   ) {
     final idBaseName = _identityBaseNameFromExpression(idExpression);
-    final baseClassName = '${_toUpperCamelCase(idBaseName)}Base';
+    final upperBaseName = _toUpperCamelCase(idBaseName);
+    final baseClassName = upperBaseName.endsWith('Route')
+        ? '${upperBaseName}Base'
+        : '${upperBaseName}RouteBase';
     final (pathParameters, queryParameters) = _collectParameters(
       chain,
       element: element,
