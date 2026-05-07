@@ -716,10 +716,22 @@ class WorkingRouter extends ChangeNotifier
         :final relativeUri,
       ):
         return _buildDataForBaseAppendedUri(
-          id: id,
-          writePathParameters: writePathParameters,
-          writeQueryParameters: writeQueryParameters,
+          base: IdRouteBase(
+            id,
+            writePathParameters: writePathParameters,
+            writeQueryParameters: writeQueryParameters,
+          ),
           relativeUri: relativeUri,
+        );
+      case ScopedRouteTarget(:final base, :final fallback):
+        final baseData = _buildDataForRouteBase(base);
+        if (currentData != null && _isInsideScope(currentData, baseData)) {
+          return currentData;
+        }
+        return _buildDataForTarget(
+          fallback,
+          currentData: currentData,
+          retainSharedQueryParameters: retainSharedQueryParameters,
         );
       case IdRouteTarget(
         :final id,
@@ -888,9 +900,7 @@ class WorkingRouter extends ChangeNotifier
   }
 
   WorkingRouterData _buildDataForBaseAppendedUri({
-    required AnyRouteNodeId id,
-    required WritePathParameters? writePathParameters,
-    required WriteQueryParameters? writeQueryParameters,
+    required IdRouteBase base,
     required Uri relativeUri,
   }) {
     if (relativeUri.hasScheme || relativeUri.hasAuthority) {
@@ -900,6 +910,34 @@ class WorkingRouter extends ChangeNotifier
       );
     }
 
+    final baseData = _buildDataForRouteBase(base);
+    final queryParameters = {
+      ...baseData.queryParameters.unlock,
+      ...relativeUri.queryParameters,
+    };
+    final basePath = baseData.routeNodes.pathRouteNodes.buildPath(
+      baseData.pathParameters,
+    );
+    final basePathSegments = Uri(path: basePath).pathSegments;
+
+    return _buildDataForUri(
+      baseData.uri.replace(
+        pathSegments: [
+          ...basePathSegments,
+          ...relativeUri.pathSegments,
+        ],
+        queryParameters: queryParameters.isEmpty ? null : queryParameters,
+        fragment: relativeUri.fragment.isEmpty ? null : relativeUri.fragment,
+      ),
+    );
+  }
+
+  WorkingRouterData _buildDataForRouteBase(IdRouteBase base) {
+    final IdRouteBase(
+      :id,
+      :writePathParameters,
+      :writeQueryParameters,
+    ) = base;
     final matchedNodes = _routeNodeTree.matchId(id);
     final baseNode = matchedNodes.lastOrNull;
     if (baseNode == null || baseNode.id != id) {
@@ -924,27 +962,40 @@ class WorkingRouter extends ChangeNotifier
       nodes: matchedPathRouteNodes,
       writeQueryParameters: writeQueryParameters,
     );
-    final baseUri = Uri(
-      path: matchedPathRouteNodes.buildPath(basePathParameters),
-      queryParameters: baseQueryParameters.isEmpty
-          ? null
-          : baseQueryParameters.unlock,
+    return _buildData(
+      routeNodes: matchedNodes,
+      pathParameters: basePathParameters,
+      queryParameters: baseQueryParameters,
     );
-    final queryParameters = {
-      ...baseUri.queryParameters,
-      ...relativeUri.queryParameters,
-    };
+  }
 
-    return _buildDataForUri(
-      baseUri.replace(
-        pathSegments: [
-          ...baseUri.pathSegments,
-          ...relativeUri.pathSegments,
-        ],
-        queryParameters: queryParameters.isEmpty ? null : queryParameters,
-        fragment: relativeUri.fragment.isEmpty ? null : relativeUri.fragment,
-      ),
-    );
+  bool _isInsideScope(
+    WorkingRouterData currentData,
+    WorkingRouterData scopeData,
+  ) {
+    if (scopeData.routeNodes.length > currentData.routeNodes.length) {
+      return false;
+    }
+
+    for (var i = 0; i < scopeData.routeNodes.length; i++) {
+      if (!identical(scopeData.routeNodes[i], currentData.routeNodes[i])) {
+        return false;
+      }
+    }
+
+    for (final entry in scopeData.pathParameters.entries) {
+      if (currentData.pathParameters[entry.key] != entry.value) {
+        return false;
+      }
+    }
+
+    for (final entry in scopeData.queryParameters.entries) {
+      if (currentData.queryParameters[entry.key] != entry.value) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   WorkingRouterData _buildData({

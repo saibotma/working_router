@@ -63,6 +63,29 @@ final class BaseAppendedRouteTarget extends RouteTarget {
   });
 }
 
+/// Routes to [fallback] unless the current route is already inside [base].
+///
+/// This lets callers enter a route scope without replacing an already active
+/// descendant of that same scope.
+final class ScopedRouteTarget extends RouteTarget {
+  final IdRouteBase base;
+  final RouteTarget fallback;
+
+  const ScopedRouteTarget({
+    required this.base,
+    required this.fallback,
+  });
+}
+
+extension IdRouteBaseScope on IdRouteBase {
+  RouteTarget scope({required RouteTarget fallback}) {
+    return ScopedRouteTarget(
+      base: this,
+      fallback: fallback,
+    );
+  }
+}
+
 /// Routes to a fixed serialized route.
 ///
 /// Hidden path segments and hidden query parameters are included for route
@@ -132,6 +155,19 @@ base class IdRouteTarget extends RouteTarget {
     this.writePathParameters,
     this.writeQueryParameters,
   });
+}
+
+extension IdRouteTargetScope on IdRouteTarget {
+  RouteTarget get scope {
+    return ScopedRouteTarget(
+      base: IdRouteBase(
+        id,
+        writePathParameters: writePathParameters,
+        writeQueryParameters: writeQueryParameters,
+      ),
+      fallback: this,
+    );
+  }
 }
 
 /// A safe child route target anchored at a concrete start location instance.

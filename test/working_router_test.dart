@@ -3457,6 +3457,145 @@ void main() {
     );
 
     testWidgets(
+      'location target scope keeps active child for matching target',
+      (tester) async {
+        final router = _buildParamRouter();
+
+        IdRouteTarget itemTarget(String itemId) {
+          return IdRouteTarget(
+            _ParamId.item,
+            writePathParameters: (node, path) {
+              if (node is _ItemLocation) {
+                path(node.boundIdParameter, itemId);
+              }
+            },
+            writeQueryParameters: (node, query) {
+              if (node is _ItemLocation) {
+                query(node.boundKeep, 'yes');
+              }
+            },
+          );
+        }
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(
+          Uri.parse('/item/123/details?keep=yes&detail=open'),
+        );
+        await tester.pumpAndSettle();
+
+        router.routeTo(itemTarget('123').scope);
+        await tester.pumpAndSettle();
+
+        expect(
+          router.nullableData!.uri,
+          Uri.parse('/item/123/details?keep=yes&detail=open'),
+        );
+
+        router.routeTo(itemTarget('456').scope);
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData!.uri, Uri.parse('/item/456?keep=yes'));
+      },
+    );
+
+    testWidgets(
+      'route base scope keeps active child or routes to fallback',
+      (tester) async {
+        final accountShellId = RouteNodeId<Shell>();
+
+        IdRouteBase accountBase(String accountId) {
+          return IdRouteBase(
+            accountShellId,
+            writePathParameters: (node, path) {
+              if (node.id == accountShellId) {
+                final accountIdParam =
+                    node.pathParameters.single as PathParam<String>;
+                path(accountIdParam, accountId);
+              }
+            },
+          );
+        }
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  Shell(
+                    id: accountShellId,
+                    build: (builder, shell, routerKey) {
+                      builder.pathLiteral('accounts');
+                      builder.stringPathParam();
+                      builder.children = [
+                        _BuilderLocation(
+                          id: _Id.a,
+                          build: (builder, location) {
+                            builder.pathLiteral('dashboard');
+                            builder.content = Content.widget(
+                              const Text('dashboard'),
+                            );
+                            builder.children = [
+                              _BuilderLocation(
+                                id: _Id.b,
+                                build: (builder, location) {
+                                  builder.pathLiteral('details');
+                                  builder.content = Content.widget(
+                                    const Text('details'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                  _BuilderLocation(
+                    id: _Id.c,
+                    build: (builder, location) {
+                      builder.pathLiteral('settings');
+                      builder.content = Content.widget(const Text('settings'));
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri.parse('/accounts/123/dashboard/details'));
+        await tester.pumpAndSettle();
+
+        router.routeTo(
+          accountBase('123').scope(
+            fallback: accountBase('123').append(Uri(path: '/dashboard')),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          router.nullableData!.uri,
+          Uri.parse('/accounts/123/dashboard/details'),
+        );
+
+        router.routeToStatic(Uri(path: '/settings'));
+        await tester.pumpAndSettle();
+
+        router.routeTo(
+          accountBase('123').scope(
+            fallback: accountBase('123').append(Uri(path: '/dashboard')),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData!.uri, Uri.parse('/accounts/123/dashboard'));
+      },
+    );
+
+    testWidgets(
       'constrainToNavigator trims to deepest route still rendered inside target navigator',
       (tester) async {
         var desktop = true;
