@@ -82,9 +82,9 @@ RouteNode get appLocationTree => _appLocationTree;
               ),
               allOf(
                 contains('void routeToRoot()'),
-                contains(
-                  'void routeToItem({required String itemId, required String keep}) {',
-                ),
+                contains('void routeToItem({'),
+                contains('required String itemId,'),
+                contains('required QueryParamValue<String> keep,'),
               ),
               allOf(
                 contains(
@@ -102,8 +102,8 @@ RouteNode get appLocationTree => _appLocationTree;
                 contains(
                   'void routeToItemDetails({\n'
                   '    required String itemId,\n'
-                  '    required String keep,\n'
-                  '    required String detail,\n'
+                  '    required QueryParamValue<String> keep,\n'
+                  '    required QueryParamValue<String> detail,\n'
                   '  }) {',
                 ),
                 isNot(contains('final class ChildItemDetailsRouteTarget')),
@@ -316,10 +316,10 @@ RouteNode get appLocationTree => RootLocation(id: rootId);
             ),
             allOf(
               contains('ChildRouteTarget childChannelTarget({'),
-              contains('bool? search'),
+              contains('OptionalQueryParamValue<bool> search'),
               contains('identical(node, this)'),
               contains("it.name == 'search'"),
-              contains('if (search case final value?)'),
+              contains('case SetQueryParamValue(:final value):'),
             ),
           ),
         ),
@@ -522,12 +522,10 @@ RouteNode get appLocationTree => RootLocation();
         'working_router|lib/dsl_field_params_routes.working_router.g.part':
             decodedMatches(
               allOf(
-                contains(
-                  'void routeToItem({required String itemId, required String keep}) {',
-                ),
-                contains(
-                  'ItemRouteTarget({required String itemId, required String keep})',
-                ),
+                contains('void routeToItem({'),
+                contains('required String itemId,'),
+                contains('required QueryParamValue<String> keep,'),
+                contains('ItemRouteTarget({'),
                 contains(
                   'path(node.pathParameters[0] as PathParam<String>, itemId);',
                 ),
@@ -797,8 +795,8 @@ final RouteNode appLocationTree =
             decodedMatches(
               allOf(
                 contains('void routeToLesson({'),
-                contains("required String coursePeriodId,"),
-                contains("required String sourceDateTime,"),
+                contains("required QueryParamValue<String> coursePeriodId,"),
+                contains("required QueryParamValue<String> sourceDateTime,"),
               ),
             ),
       },
@@ -854,8 +852,8 @@ final RouteNode appLocationTree =
                 allOf(
                   allOf(
                     contains('required int itemId,'),
-                    contains('required ItemFilter filter,'),
-                    contains('int? page,'),
+                    contains('required QueryParamValue<ItemFilter> filter,'),
+                    contains('OptionalQueryParamValue<int> page'),
                   ),
                   allOf(
                     contains(
@@ -868,7 +866,10 @@ final RouteNode appLocationTree =
                     contains('writeQueryParameters: (() {'),
                     contains("it.name == 'filter'"),
                     contains("it.name == 'page'"),
-                    contains('if (page case final value?)'),
+                    allOf(
+                      contains('case SetQueryParamValue(:final value):'),
+                      contains('case AbsentQueryParamValue():'),
+                    ),
                   ),
                 ),
               ),
@@ -936,10 +937,10 @@ final RouteNode appLocationTree =
                 allOf(
                   contains('void routeToItem({'),
                   contains('required int itemId,'),
-                  contains('required ItemFilter filter,'),
-                  contains('int? page,'),
-                  contains('DateTime? startDateTime,'),
-                  contains('as QueryParam<DateTime?>'),
+                  contains('required QueryParamValue<ItemFilter> filter,'),
+                  contains('OptionalQueryParamValue<int> page'),
+                  contains('OptionalQueryParamValue<DateTime?> startDateTime'),
+                  contains('as DefaultQueryParam<DateTime?>'),
                   isNot(contains('ItemLocationGenerated')),
                 ),
               ),
@@ -1003,12 +1004,13 @@ List<RouteNode> buildRouteNodes() => [
                 allOf(
                   contains('void routeToItem({'),
                   contains('required Uri itemUri,'),
-                  contains('required ItemFilter filter,'),
-                  contains('Uri? from,'),
+                  contains('required QueryParamValue<ItemFilter> filter,'),
+                  contains('OptionalQueryParamValue<Uri> from'),
                   allOf(
                     contains("it.name == 'filter'"),
                     contains("it.name == 'from'"),
-                    contains('if (from case final value?)'),
+                    contains('case SetQueryParamValue(:final value):'),
+                    contains('case AbsentQueryParamValue():'),
                   ),
                   allOf(
                     contains(
@@ -1078,11 +1080,11 @@ List<RouteNode> buildRouteNodes() => [
           'working_router|lib/nullable_query_param_routes.working_router.g.part':
               decodedMatches(
                 allOf(
-                  contains('ItemRouteTarget({String? filter, Uri? from})'),
-                  contains('void routeToItem({String? filter, Uri? from})'),
-                  contains('if (filter case final value?)'),
+                  contains('OptionalQueryParamValue<String?> filter'),
+                  contains('OptionalQueryParamValue<Uri?> from'),
+                  contains('case SetQueryParamValue(:final value):'),
                   contains("it.name == 'filter'"),
-                  contains('if (from case final value?)'),
+                  contains('case AbsentQueryParamValue():'),
                   contains("it.name == 'from'"),
                   allOf(
                     isNot(contains('String??')),
@@ -1143,15 +1145,11 @@ List<RouteNode> buildRouteNodes() => [
           'working_router|lib/nullable_query_shortcuts_routes.working_router.g.part':
               decodedMatches(
                 allOf(
-                  contains(
-                    'ItemRouteTarget({bool? enabled, DateTime? endDateTime})',
-                  ),
-                  contains(
-                    'void routeToItem({bool? enabled, DateTime? endDateTime})',
-                  ),
-                  contains('if (enabled case final value?)'),
+                  contains('OptionalQueryParamValue<bool?> enabled'),
+                  contains('OptionalQueryParamValue<DateTime?> endDateTime'),
+                  contains('case SetQueryParamValue(:final value):'),
                   contains("it.name == 'enabled'"),
-                  contains('if (endDateTime case final value?)'),
+                  contains('case AbsentQueryParamValue():'),
                   contains("it.name == 'endDateTime'"),
                 ),
               ),
@@ -1216,8 +1214,9 @@ List<RouteNode> buildRouteNodes() => [
           'working_router|lib/group_query_routes.working_router.g.part':
               decodedMatches(
                 allOf(
-                  contains('void routeToPrivacy({String? languageCode})'),
-                  contains('if (languageCode case final value?)'),
+                  contains('void routeToPrivacy({'),
+                  contains('OptionalQueryParamValue<String> languageCode'),
+                  contains('case SetQueryParamValue(:final value):'),
                   contains("it.name == 'languageCode'"),
                 ),
               ),
@@ -1908,25 +1907,22 @@ RouteNode get appLocationTree => RootLocation();
 ''',
       },
       outputs: {
-        'working_router|lib/bind_param_routes.working_router.g.part': decodedMatches(
-          allOf(
-            contains(
-              'void routeToChannel({required String channelId, required String keep}) {',
+        'working_router|lib/bind_param_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains('void routeToChannel({'),
+                contains('void routeToSend({'),
+                contains('required String channelId,'),
+                contains('required QueryParamValue<String> keep,'),
+                contains('ChannelRouteTarget({'),
+                contains(
+                  "it.name == 'keep'",
+                ),
+                contains(
+                  'node.pathParameters[0] as PathParam<String>',
+                ),
+              ),
             ),
-            contains(
-              'ChannelRouteTarget({required String channelId, required String keep})',
-            ),
-            contains(
-              'void routeToSend({required String channelId, required String keep}) {',
-            ),
-            contains(
-              "it.name == 'keep'",
-            ),
-            contains(
-              'node.pathParameters[0] as PathParam<String>',
-            ),
-          ),
-        ),
       },
       readerWriter: readerWriter,
     );
@@ -2771,9 +2767,8 @@ List<RouteNode> buildRouteNodes() => [
                     contains(
                       '(node) => node is PrivacyLocation,',
                     ),
-                    contains(
-                      'void routeToChildPrivacy(BuildContext context, {',
-                    ),
+                    contains('void routeToChildPrivacy('),
+                    contains('OptionalQueryParamValue<String> languageCode'),
                   ),
                   allOf(
                     contains(
@@ -4190,18 +4185,18 @@ RouteNode get appLocationTree =>
               decodedMatches(
                 allOf(
                   contains(
-                    'LessonRouteTarget({required String coursePeriodId})',
+                    'LessonRouteTarget({required QueryParamValue<String> coursePeriodId})',
                   ),
                   contains(
                     'ChildRouteTarget childLessonTarget({',
                   ),
                   contains(
-                    'required String coursePeriodId,',
+                    'required QueryParamValue<String> coursePeriodId,',
                   ),
                   isNot(
                     contains(
                       'ChildRouteTarget childLessonTarget({\n'
-                      '    String? coursePeriodId,',
+                      '    QueryParamValue<String>? coursePeriodId,',
                     ),
                   ),
                 ),
@@ -4256,26 +4251,25 @@ RouteNode get appLocationTree => Shell(
 ''',
       },
       outputs: {
-        'working_router|lib/shell_params_routes.working_router.g.part': decodedMatches(
-          allOf(
-            contains(
-              'void routeToDashboard({required String accountId, required String tab}) {',
+        'working_router|lib/shell_params_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains('void routeToDashboard({'),
+                contains('required String accountId,'),
+                contains('required QueryParamValue<String> tab,'),
+                contains('DashboardRouteTarget({'),
+                contains(
+                  'node.pathParameters[0] as PathParam<String>,',
+                ),
+                contains(
+                  'accountId,',
+                ),
+                allOf(
+                  contains('writeQueryParameters: (() {'),
+                  contains("it.name == 'tab'"),
+                ),
+              ),
             ),
-            contains(
-              'DashboardRouteTarget({required String accountId, required String tab})',
-            ),
-            contains(
-              'node.pathParameters[0] as PathParam<String>,',
-            ),
-            contains(
-              'accountId,',
-            ),
-            contains(
-              'writeQueryParameters: (() {',
-            ),
-            contains("it.name == 'tab'"),
-          ),
-        ),
       },
       readerWriter: readerWriter,
     );
@@ -4332,22 +4326,21 @@ RouteNode get appLocationTree =>
 ''',
       },
       outputs: {
-        'working_router|lib/shell_location_routes.working_router.g.part': decodedMatches(
-          allOf(
-            contains(
-              'void routeToSettings({required String accountId, required String tab}) {',
+        'working_router|lib/shell_location_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                contains('void routeToSettings({'),
+                contains('void routeToTheme({'),
+                contains('required String accountId,'),
+                contains('required QueryParamValue<String> tab,'),
+                contains(
+                  'extension SettingsLocationGeneratedChildTargets on SettingsLocation {',
+                ),
+                contains(
+                  'ChildRouteTarget get childThemeTarget',
+                ),
+              ),
             ),
-            contains(
-              'void routeToTheme({required String accountId, required String tab}) {',
-            ),
-            contains(
-              'extension SettingsLocationGeneratedChildTargets on SettingsLocation {',
-            ),
-            contains(
-              'ChildRouteTarget get childThemeTarget',
-            ),
-          ),
-        ),
       },
       readerWriter: readerWriter,
     );

@@ -110,6 +110,11 @@ Important details:
   when a query param has a default.
   Reusable defaults can be declared with `DefaultUnboundQueryParam<T>` and
   bound with `builder.bindDefaultQueryParam(...)`.
+- Generated route helpers wrap query-parameter arguments so the target can
+  distinguish value writes from inherited and absent query state. Pass required
+  query parameters with `.value(value)`. Default-bearing query parameters can
+  be omitted to inherit the current value, passed as `.value(value)`, or passed
+  as `.absent` to remove the query entry from the target route state.
 - For nullable query params with a default `null`, use the nullable shortcuts
   like `nullableStringQueryParam('filter')`,
   `nullableBoolQueryParam('enabled')`, or
@@ -817,19 +822,21 @@ extra path/query parameters or incompatible parameter metadata.
 That means you can navigate either with:
 
 ```dart
-router.routeToAbc(id: 'test', b: 'bee', c: 'see');
+router.routeToAbc(id: 'test', b: .value('bee'), c: .value('see'));
 ```
 
 or:
 
 ```dart
-router.routeTo(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'));
+router.routeTo(AbcRouteTarget(id: 'test', b: .value('bee'), c: .value('see')));
 ```
 
 Redirects can use the same targets:
 
 ```dart
-return RedirectTransition(AbcRouteTarget(id: 'test', b: 'bee', c: 'see'));
+return RedirectTransition(
+  AbcRouteTarget(id: 'test', b: .value('bee'), c: .value('see')),
+);
 ```
 
 ## Running The Generator

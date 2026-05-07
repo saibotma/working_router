@@ -81,14 +81,54 @@ typedef WritePathParameters =
 ///
 /// The router verifies that the parameter is declared by [node], encodes the
 /// value with the parameter's codec, and omits the URL query entry when the
-/// value equals the parameter's default value. A `null` default therefore still
-/// behaves as "omit when no value is written"; writing `null` is not supported
-/// because the writer receives a typed value, not absence.
+/// value equals the parameter's default value.
 typedef WriteQueryParameters =
     void Function(
       PathRouteNode node,
       void Function<T>(QueryParam<T> parameter, T value) query,
     );
+
+/// A value for a required query parameter during programmatic navigation.
+///
+/// Required query parameters can only be set to a concrete value.
+sealed class QueryParamValue<T> {
+  const QueryParamValue();
+
+  static QueryParamValue<T> value<T>(T value) => SetQueryParamValue<T>(value);
+}
+
+/// A value for an optional/default query parameter during programmatic
+/// navigation.
+///
+/// Optional query parameters can be set to a concrete value, inherited from the
+/// current route state, or made absent from the target route state.
+sealed class OptionalQueryParamValue<T> {
+  const OptionalQueryParamValue();
+
+  static OptionalQueryParamValue<T> value<T>(T value) =>
+      SetQueryParamValue<T>(value);
+
+  static const OptionalQueryParamValue<Never> inherit =
+      InheritedQueryParamValue<Never>();
+
+  static const OptionalQueryParamValue<Never> absent =
+      AbsentQueryParamValue<Never>();
+}
+
+final class SetQueryParamValue<T>
+    implements QueryParamValue<T>, OptionalQueryParamValue<T> {
+  final T value;
+
+  const SetQueryParamValue(this.value);
+}
+
+final class InheritedQueryParamValue<T> implements OptionalQueryParamValue<T> {
+  const InheritedQueryParamValue();
+}
+
+final class AbsentQueryParamValue<T> implements OptionalQueryParamValue<T> {
+  const AbsentQueryParamValue();
+}
 
 class LiteralPathSegment extends PathSegment {
   final String value;

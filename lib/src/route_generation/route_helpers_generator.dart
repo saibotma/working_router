@@ -923,6 +923,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
               dartTypeSource: segment.dartTypeSource,
               codecExpressionSource: segment.codecExpressionSource,
               optional: false,
+              canBeAbsent: false,
               sourceNode: segment.sourceNode,
               sourceElement: segment.sourceElement,
             ),
@@ -940,6 +941,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             dartTypeSource: queryParameter.dartTypeSource,
             codecExpressionSource: queryParameter.codecExpressionSource,
             optional: queryParameter.optional,
+            canBeAbsent: queryParameter.optional,
             sourceNode: queryParameter.sourceNode,
             sourceElement: queryParameter.sourceElement,
           ),
@@ -966,6 +968,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         dartTypeSource: queryParameter.dartTypeSource,
         codecExpressionSource: queryParameter.codecExpressionSource,
         optional: true,
+        canBeAbsent: queryParameter.optional,
         sourceNode: queryParameter.sourceNode,
         sourceElement: queryParameter.sourceElement,
       );
@@ -1081,6 +1084,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     return existing.copyWith(
       dartTypeSource: _nonNullableTypeSource(existing.dartTypeSource),
       optional: mergedOptional,
+      canBeAbsent: existing.canBeAbsent && incoming.canBeAbsent,
       sourceNode: preferIncomingSource ? incoming.sourceNode : null,
       sourceElement: preferIncomingSource ? incoming.sourceElement : null,
     );
@@ -1154,6 +1158,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           continue;
         }
 
+        final queryParamTypeSource = queryParameter.optional
+            ? 'DefaultQueryParam<${queryParameter.dartTypeSource}>'
+            : 'QueryParam<${queryParameter.dartTypeSource}>';
         writes.add(
           _GeneratedPathWrite(
             locationMatchDiscriminator: matchDiscriminator,
@@ -1162,8 +1169,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             parameterAccessorSource:
                 'node.queryParameters.firstWhere((it) => '
                 'it.name == ${_quotedDartString(queryParameter.key)}) '
-                'as QueryParam<${queryParameter.dartTypeSource}>',
+                'as $queryParamTypeSource',
             parameterIsOptional: generatedParameter.optional,
+            parameterCanBeAbsent: queryParameter.optional,
             parameterName: generatedParameter.parameterName,
           ),
         );
@@ -1185,6 +1193,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         continue;
       }
 
+      final queryParamTypeSource = queryParameter.optional
+          ? 'DefaultQueryParam<${queryParameter.dartTypeSource}>'
+          : 'QueryParam<${queryParameter.dartTypeSource}>';
       writes.add(
         _GeneratedPathWrite(
           locationMatchDiscriminator:
@@ -1194,8 +1205,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
           parameterAccessorSource:
               'node.queryParameters.firstWhere((it) => '
               'it.name == ${_quotedDartString(queryParameter.key)}) '
-              'as QueryParam<${queryParameter.dartTypeSource}>',
+              'as $queryParamTypeSource',
           parameterIsOptional: true,
+          parameterCanBeAbsent: queryParameter.optional,
           parameterName: generatedParameter.parameterName,
         ),
       );
@@ -6103,15 +6115,11 @@ class _GeneratedRouteMethod {
     }
 
     buffer.writeln('  void $name({');
-    for (final parameter in parameters) {
-      final generatedParameter = parameter.value;
-      final typeSource = generatedParameter.optional
-          ? _nullableTypeSource(generatedParameter.dartTypeSource)
-          : generatedParameter.dartTypeSource;
-      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-      buffer.writeln(
-        '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
-      );
+    for (final parameter in pathParameters.entries) {
+      _writeGeneratedPathParameterDeclaration(buffer, '    ', parameter.value);
+    }
+    for (final parameter in queryParameters.entries) {
+      _writeGeneratedQueryParameterDeclaration(buffer, '    ', parameter.value);
     }
     buffer.writeln('  }) {');
     buffer.writeln('    routeTo(');
@@ -6148,14 +6156,18 @@ class _GeneratedRouteMethod {
       buffer.writeln('  $targetClassName()');
     } else {
       buffer.writeln('  $targetClassName({');
-      for (final parameter in parameters) {
-        final generatedParameter = parameter.value;
-        final typeSource = generatedParameter.optional
-            ? _nullableTypeSource(generatedParameter.dartTypeSource)
-            : generatedParameter.dartTypeSource;
-        final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-        buffer.writeln(
-          '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      for (final parameter in pathParameters.entries) {
+        _writeGeneratedPathParameterDeclaration(
+          buffer,
+          '    ',
+          parameter.value,
+        );
+      }
+      for (final parameter in queryParameters.entries) {
+        _writeGeneratedQueryParameterDeclaration(
+          buffer,
+          '    ',
+          parameter.value,
         );
       }
       buffer.writeln('  })');
@@ -6277,14 +6289,18 @@ class _GeneratedRouteBase {
       buffer.writeln('  $name()');
     } else {
       buffer.writeln('  $name({');
-      for (final parameter in parameters) {
-        final generatedParameter = parameter.value;
-        final typeSource = generatedParameter.optional
-            ? _nullableTypeSource(generatedParameter.dartTypeSource)
-            : generatedParameter.dartTypeSource;
-        final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-        buffer.writeln(
-          '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+      for (final parameter in pathParameters.entries) {
+        _writeGeneratedPathParameterDeclaration(
+          buffer,
+          '    ',
+          parameter.value,
+        );
+      }
+      for (final parameter in queryParameters.entries) {
+        _writeGeneratedQueryParameterDeclaration(
+          buffer,
+          '    ',
+          parameter.value,
         );
       }
       buffer.writeln('  })');
@@ -6408,15 +6424,11 @@ class _GeneratedLocationChildTargetMethod {
     }
 
     buffer.writeln('  $targetRouteTypeSource ${first.name}({');
-    for (final parameter in parameters) {
-      final generatedParameter = parameter.value;
-      final typeSource = generatedParameter.optional
-          ? _nullableTypeSource(generatedParameter.dartTypeSource)
-          : generatedParameter.dartTypeSource;
-      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-      buffer.writeln(
-        '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
-      );
+    for (final parameter in first.pathParameters.entries) {
+      _writeGeneratedPathParameterDeclaration(buffer, '    ', parameter.value);
+    }
+    for (final parameter in first.queryParameters.entries) {
+      _writeGeneratedQueryParameterDeclaration(buffer, '    ', parameter.value);
     }
     buffer.writeln('  }) {');
     _writeOwnerDispatch(buffer, first, indent: '    ');
@@ -6443,14 +6455,18 @@ class _GeneratedLocationChildTargetMethod {
 
     buffer.writeln('  void $routeMethodName(');
     buffer.writeln('    BuildContext context, {');
-    for (final parameter in parameters) {
-      final generatedParameter = parameter.value;
-      final typeSource = generatedParameter.optional
-          ? _nullableTypeSource(generatedParameter.dartTypeSource)
-          : generatedParameter.dartTypeSource;
-      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-      buffer.writeln(
-        '      $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+    for (final parameter in first.pathParameters.entries) {
+      _writeGeneratedPathParameterDeclaration(
+        buffer,
+        '      ',
+        parameter.value,
+      );
+    }
+    for (final parameter in first.queryParameters.entries) {
+      _writeGeneratedQueryParameterDeclaration(
+        buffer,
+        '      ',
+        parameter.value,
       );
     }
     buffer.writeln('    }');
@@ -6525,14 +6541,18 @@ class _GeneratedFirstLocationChildRouteMethod {
 
     buffer.writeln('  void $routeMethodName(');
     buffer.writeln('    BuildContext context, {');
-    for (final parameter in parameters) {
-      final generatedParameter = parameter.value;
-      final typeSource = generatedParameter.optional
-          ? _nullableTypeSource(generatedParameter.dartTypeSource)
-          : generatedParameter.dartTypeSource;
-      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-      buffer.writeln(
-        '      $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+    for (final parameter in first.pathParameters.entries) {
+      _writeGeneratedPathParameterDeclaration(
+        buffer,
+        '      ',
+        parameter.value,
+      );
+    }
+    for (final parameter in first.queryParameters.entries) {
+      _writeGeneratedQueryParameterDeclaration(
+        buffer,
+        '      ',
+        parameter.value,
       );
     }
     buffer.writeln('    }');
@@ -6685,15 +6705,11 @@ class _GeneratedLocationChildTargetMethodVariant {
 
     final returnType = isOverlay ? 'OverlayRouteTarget' : 'ChildRouteTarget';
     buffer.writeln('  $returnType $name({');
-    for (final parameter in parameters) {
-      final generatedParameter = parameter.value;
-      final typeSource = generatedParameter.optional
-          ? _nullableTypeSource(generatedParameter.dartTypeSource)
-          : generatedParameter.dartTypeSource;
-      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-      buffer.writeln(
-        '    $requiredKeyword$typeSource ${generatedParameter.parameterName},',
-      );
+    for (final parameter in pathParameters.entries) {
+      _writeGeneratedPathParameterDeclaration(buffer, '    ', parameter.value);
+    }
+    for (final parameter in queryParameters.entries) {
+      _writeGeneratedQueryParameterDeclaration(buffer, '    ', parameter.value);
     }
     buffer.writeln('  }) {');
     writeReturnStatement(buffer, '    ');
@@ -6719,14 +6735,18 @@ class _GeneratedLocationChildTargetMethodVariant {
 
     buffer.writeln('  void $routeMethodName(');
     buffer.writeln('    BuildContext context, {');
-    for (final parameter in parameters) {
-      final generatedParameter = parameter.value;
-      final typeSource = generatedParameter.optional
-          ? _nullableTypeSource(generatedParameter.dartTypeSource)
-          : generatedParameter.dartTypeSource;
-      final requiredKeyword = generatedParameter.optional ? '' : 'required ';
-      buffer.writeln(
-        '      $requiredKeyword$typeSource ${generatedParameter.parameterName},',
+    for (final parameter in pathParameters.entries) {
+      _writeGeneratedPathParameterDeclaration(
+        buffer,
+        '      ',
+        parameter.value,
+      );
+    }
+    for (final parameter in queryParameters.entries) {
+      _writeGeneratedQueryParameterDeclaration(
+        buffer,
+        '      ',
+        parameter.value,
       );
     }
     buffer.writeln('    }');
@@ -6841,6 +6861,37 @@ class _GeneratedLocationChildTargetMethodsResult {
   });
 }
 
+void _writeGeneratedPathParameterDeclaration(
+  StringBuffer buffer,
+  String indent,
+  _GeneratedRouteParameter parameter,
+) {
+  buffer.writeln(
+    '$indent'
+    'required ${parameter.dartTypeSource} ${parameter.parameterName},',
+  );
+}
+
+void _writeGeneratedQueryParameterDeclaration(
+  StringBuffer buffer,
+  String indent,
+  _GeneratedRouteParameter parameter,
+) {
+  final typeSource = switch ((parameter.optional, parameter.canBeAbsent)) {
+    (true, true) => 'OptionalQueryParamValue<${parameter.dartTypeSource}>',
+    (true, false) => 'QueryParamValue<${parameter.dartTypeSource}>?',
+    (false, _) => 'QueryParamValue<${parameter.dartTypeSource}>',
+  };
+  final requiredKeyword = parameter.optional ? '' : 'required ';
+  final defaultValue = parameter.optional && parameter.canBeAbsent
+      ? ' = OptionalQueryParamValue.inherit'
+      : '';
+  buffer.writeln(
+    '$indent'
+    '$requiredKeyword$typeSource ${parameter.parameterName}$defaultValue,',
+  );
+}
+
 void _writeQueryWrites(
   StringBuffer buffer,
   String indent,
@@ -6880,18 +6931,53 @@ void _writeQueryWrites(
       buffer.writeln('$indent        case ${occurrence.key}:');
       for (final queryWrite in occurrence.value) {
         if (queryWrite.parameterIsOptional) {
-          buffer.writeln(
-            '$indent          if (${queryWrite.parameterName} case final value?) {',
-          );
-          buffer.writeln(
-            '$indent            query(${queryWrite.parameterAccessorSource}, value);',
-          );
-          buffer.writeln('$indent          }');
+          if (queryWrite.parameterCanBeAbsent) {
+            buffer.writeln(
+              '$indent          switch (${queryWrite.parameterName}) {',
+            );
+            buffer.writeln(
+              '$indent            case SetQueryParamValue(:final value):',
+            );
+            buffer.writeln(
+              '$indent              query(${queryWrite.parameterAccessorSource}, value);',
+            );
+            buffer.writeln(
+              '$indent            case InheritedQueryParamValue():',
+            );
+            buffer.writeln('$indent              break;');
+            buffer.writeln('$indent            case AbsentQueryParamValue():');
+            buffer.writeln(
+              '$indent              final parameter = ${queryWrite.parameterAccessorSource};',
+            );
+            buffer.writeln(
+              '$indent              query(parameter, parameter.defaultValue);',
+            );
+            buffer.writeln('$indent          }');
+          } else {
+            buffer.writeln(
+              '$indent          if (${queryWrite.parameterName} case final queryParamValue?) {',
+            );
+            buffer.writeln('$indent            switch (queryParamValue) {');
+            buffer.writeln(
+              '$indent              case SetQueryParamValue(:final value):',
+            );
+            buffer.writeln(
+              '$indent                query(${queryWrite.parameterAccessorSource}, value);',
+            );
+            buffer.writeln('$indent            }');
+            buffer.writeln('$indent          }');
+          }
         } else {
           buffer.writeln(
-            '$indent          query(${queryWrite.parameterAccessorSource}, '
-            '${queryWrite.parameterName});',
+            '$indent          switch (${queryWrite.parameterName}) {',
           );
+          buffer.writeln(
+            '$indent            case SetQueryParamValue(:final value):',
+          );
+          buffer.writeln(
+            '$indent              query(${queryWrite.parameterAccessorSource}, value);',
+          );
+          buffer.writeln('$indent          }');
         }
       }
       buffer.writeln('$indent          break;');
@@ -6946,6 +7032,7 @@ bool _pathWritesEquivalent(
         left.locationMatchSource != right.locationMatchSource ||
         left.parameterAccessorSource != right.parameterAccessorSource ||
         left.parameterIsOptional != right.parameterIsOptional ||
+        left.parameterCanBeAbsent != right.parameterCanBeAbsent ||
         left.parameterName != right.parameterName) {
       return false;
     }
@@ -6968,7 +7055,8 @@ bool _parametersEquivalent(
         other.parameterName != entry.value.parameterName ||
         other.dartTypeSource != entry.value.dartTypeSource ||
         other.codecExpressionSource != entry.value.codecExpressionSource ||
-        other.optional != entry.value.optional) {
+        other.optional != entry.value.optional ||
+        other.canBeAbsent != entry.value.canBeAbsent) {
       return false;
     }
   }
@@ -7092,6 +7180,7 @@ class _GeneratedPathWrite {
   final int occurrenceIndex;
   final String parameterAccessorSource;
   final bool parameterIsOptional;
+  final bool parameterCanBeAbsent;
   final String parameterName;
 
   const _GeneratedPathWrite({
@@ -7100,6 +7189,7 @@ class _GeneratedPathWrite {
     required this.occurrenceIndex,
     required this.parameterAccessorSource,
     required this.parameterIsOptional,
+    this.parameterCanBeAbsent = false,
     required this.parameterName,
   });
 }
@@ -7110,6 +7200,7 @@ class _GeneratedRouteParameter {
   final String dartTypeSource;
   final String codecExpressionSource;
   final bool optional;
+  final bool canBeAbsent;
   final AstNode? sourceNode;
   final Element? sourceElement;
 
@@ -7119,6 +7210,7 @@ class _GeneratedRouteParameter {
     required this.dartTypeSource,
     required this.codecExpressionSource,
     required this.optional,
+    this.canBeAbsent = false,
     this.sourceNode,
     this.sourceElement,
   });
@@ -7129,6 +7221,7 @@ class _GeneratedRouteParameter {
     String? dartTypeSource,
     String? codecExpressionSource,
     bool? optional,
+    bool? canBeAbsent,
     AstNode? sourceNode,
     Element? sourceElement,
   }) {
@@ -7139,6 +7232,7 @@ class _GeneratedRouteParameter {
       codecExpressionSource:
           codecExpressionSource ?? this.codecExpressionSource,
       optional: optional ?? this.optional,
+      canBeAbsent: canBeAbsent ?? this.canBeAbsent,
       sourceNode: sourceNode ?? this.sourceNode,
       sourceElement: sourceElement ?? this.sourceElement,
     );
