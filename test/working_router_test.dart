@@ -3479,17 +3479,18 @@ void main() {
 
         await _pumpRouterApp(tester, router);
         router.routeToStatic(
-          Uri.parse('/item/123/details?keep=yes&detail=open'),
+          Uri.parse('/item/123/details?keep=no&detail=open'),
         );
         await tester.pumpAndSettle();
 
         router.routeTo(itemTarget('123').scope);
         await tester.pumpAndSettle();
 
-        expect(
-          router.nullableData!.uri,
-          Uri.parse('/item/123/details?keep=yes&detail=open'),
-        );
+        expect(router.nullableData!.uri.path, '/item/123/details');
+        expect(router.nullableData!.queryParameters.unlock, {
+          'detail': 'open',
+          'keep': 'yes',
+        });
 
         router.routeTo(itemTarget('456').scope);
         await tester.pumpAndSettle();
@@ -3502,15 +3503,21 @@ void main() {
       'route base scope keeps active child or routes to fallback',
       (tester) async {
         final accountShellId = RouteNodeId<Shell>();
+        late DefaultQueryParam<String> mode;
 
-        IdRouteBase accountBase(String accountId) {
+        IdRouteBase accountDashboardBase(String accountId) {
           return IdRouteBase(
-            accountShellId,
+            _Id.a,
             writePathParameters: (node, path) {
               if (node.id == accountShellId) {
                 final accountIdParam =
                     node.pathParameters.single as PathParam<String>;
                 path(accountIdParam, accountId);
+              }
+            },
+            writeQueryParameters: (node, query) {
+              if (node.id == _Id.a) {
+                query(mode, mode.defaultValue);
               }
             },
           );
@@ -3532,6 +3539,10 @@ void main() {
                           id: _Id.a,
                           build: (builder, location) {
                             builder.pathLiteral('dashboard');
+                            mode = builder.defaultStringQueryParam(
+                              'mode',
+                              defaultValue: 'absent',
+                            );
                             builder.content = Content.widget(
                               const Text('dashboard'),
                             );
@@ -3566,12 +3577,14 @@ void main() {
         );
 
         await _pumpRouterApp(tester, router);
-        router.routeToStatic(Uri.parse('/accounts/123/dashboard/details'));
+        router.routeToStatic(
+          Uri.parse('/accounts/123/dashboard/details?mode=present'),
+        );
         await tester.pumpAndSettle();
 
         router.routeTo(
-          accountBase('123').scope(
-            fallback: accountBase('123').append(Uri(path: '/dashboard')),
+          accountDashboardBase('123').scope(
+            fallback: accountDashboardBase('123').append(Uri()),
           ),
         );
         await tester.pumpAndSettle();
@@ -3580,13 +3593,14 @@ void main() {
           router.nullableData!.uri,
           Uri.parse('/accounts/123/dashboard/details'),
         );
+        expect(router.nullableData!.queryParameters.containsKey('mode'), false);
 
         router.routeToStatic(Uri(path: '/settings'));
         await tester.pumpAndSettle();
 
         router.routeTo(
-          accountBase('123').scope(
-            fallback: accountBase('123').append(Uri(path: '/dashboard')),
+          accountDashboardBase('123').scope(
+            fallback: accountDashboardBase('123').append(Uri()),
           ),
         );
         await tester.pumpAndSettle();

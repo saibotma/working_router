@@ -724,9 +724,22 @@ class WorkingRouter extends ChangeNotifier
           relativeUri: relativeUri,
         );
       case ScopedRouteTarget(:final base, :final fallback):
-        final baseData = _buildDataForRouteBase(base);
-        if (currentData != null && _isInsideScope(currentData, baseData)) {
-          return currentData;
+        final (:routeNodes, :pathParameters) = _resolveRouteBasePrefix(base);
+        if (currentData != null &&
+            _isInsideScope(
+              currentData,
+              scopeRouteNodes: routeNodes,
+              scopePathParameters: pathParameters,
+            )) {
+          return _buildData(
+            routeNodes: currentData.routeNodes,
+            pathParameters: currentData.pathParameters.addAll(pathParameters),
+            queryParameters: _mergeQueryParameterWrites(
+              initialQueryParameters: currentData.queryParameters,
+              nodes: routeNodes.pathRouteNodes,
+              writeQueryParameters: base.writeQueryParameters,
+            ),
+          );
         }
         return _buildDataForTarget(
           fallback,
@@ -933,10 +946,27 @@ class WorkingRouter extends ChangeNotifier
   }
 
   WorkingRouterData _buildDataForRouteBase(IdRouteBase base) {
+    final (:routeNodes, :pathParameters) = _resolveRouteBasePrefix(base);
+    final baseQueryParameters = _mergeQueryParameterWrites(
+      initialQueryParameters: null,
+      nodes: routeNodes.pathRouteNodes,
+      writeQueryParameters: base.writeQueryParameters,
+    );
+    return _buildData(
+      routeNodes: routeNodes,
+      pathParameters: pathParameters,
+      queryParameters: baseQueryParameters,
+    );
+  }
+
+  ({
+    IList<RouteNode> routeNodes,
+    IMap<UnboundPathParam<dynamic>, String> pathParameters,
+  })
+  _resolveRouteBasePrefix(IdRouteBase base) {
     final IdRouteBase(
       :id,
       :writePathParameters,
-      :writeQueryParameters,
     ) = base;
     final matchedNodes = _routeNodeTree.matchId(id);
     final baseNode = matchedNodes.lastOrNull;
@@ -957,40 +987,29 @@ class WorkingRouter extends ChangeNotifier
       nodes: matchedPathRouteNodes,
       writePathParameters: writePathParameters,
     ).toIMap();
-    final baseQueryParameters = _mergeQueryParameterWrites(
-      initialQueryParameters: null,
-      nodes: matchedPathRouteNodes,
-      writeQueryParameters: writeQueryParameters,
-    );
-    return _buildData(
+    return (
       routeNodes: matchedNodes,
       pathParameters: basePathParameters,
-      queryParameters: baseQueryParameters,
     );
   }
 
   bool _isInsideScope(
-    WorkingRouterData currentData,
-    WorkingRouterData scopeData,
-  ) {
-    if (scopeData.routeNodes.length > currentData.routeNodes.length) {
+    WorkingRouterData currentData, {
+    required IList<RouteNode> scopeRouteNodes,
+    required IMap<UnboundPathParam<dynamic>, String> scopePathParameters,
+  }) {
+    if (scopeRouteNodes.length > currentData.routeNodes.length) {
       return false;
     }
 
-    for (var i = 0; i < scopeData.routeNodes.length; i++) {
-      if (!identical(scopeData.routeNodes[i], currentData.routeNodes[i])) {
+    for (var i = 0; i < scopeRouteNodes.length; i++) {
+      if (!identical(scopeRouteNodes[i], currentData.routeNodes[i])) {
         return false;
       }
     }
 
-    for (final entry in scopeData.pathParameters.entries) {
+    for (final entry in scopePathParameters.entries) {
       if (currentData.pathParameters[entry.key] != entry.value) {
-        return false;
-      }
-    }
-
-    for (final entry in scopeData.queryParameters.entries) {
-      if (currentData.queryParameters[entry.key] != entry.value) {
         return false;
       }
     }

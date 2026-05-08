@@ -66,7 +66,11 @@ final class BaseAppendedRouteTarget extends RouteTarget {
 /// Routes to [fallback] unless the current route is already inside [base].
 ///
 /// This lets callers enter a route scope without replacing an already active
-/// descendant of that same scope.
+/// descendant of that same scope. When the current route is already inside
+/// [base], the current descendant route is preserved, but [base]'s query
+/// parameter writes are still applied to the current route state. For default
+/// query parameters, this means `.absent` removes the query entry even when the
+/// scoped route is already active.
 final class ScopedRouteTarget extends RouteTarget {
   final IdRouteBase base;
   final RouteTarget fallback;
@@ -78,6 +82,11 @@ final class ScopedRouteTarget extends RouteTarget {
 }
 
 extension IdRouteBaseScope on IdRouteBase {
+  /// Routes to [fallback] unless the current route is already inside this base.
+  ///
+  /// If the current route is already inside this base, the active descendant is
+  /// kept and this base's query parameter writes are applied to the current
+  /// route state.
   RouteTarget scope({required RouteTarget fallback}) {
     return ScopedRouteTarget(
       base: this,
@@ -158,6 +167,11 @@ base class IdRouteTarget extends RouteTarget {
 }
 
 extension IdRouteTargetScope on IdRouteTarget {
+  /// Routes to this target unless the current route is already inside it.
+  ///
+  /// If the current route is already inside this target, the active descendant
+  /// is kept and this target's query parameter writes are applied to the current
+  /// route state.
   RouteTarget get scope {
     return ScopedRouteTarget(
       base: IdRouteBase(
