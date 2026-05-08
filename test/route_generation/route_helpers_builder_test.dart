@@ -1227,6 +1227,166 @@ List<RouteNode> buildRouteNodes() => [
   );
 
   test(
+    'uses annotated inherited query parameter route target defaults',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/annotated_query_default_routes.dart': '''
+library annotated_query_default_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'annotated_query_default_routes.g.dart';
+
+enum AnnotatedQueryRouteId { account, details }
+
+class AccountLocation extends Location<AccountLocation> {
+  late final DefaultQueryParam<String> tab;
+
+  AccountLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('account');
+    tab = builder.defaultStringQueryParam(
+      'tab',
+      defaultValue: 'overview',
+    );
+    builder.children = [
+      DetailsLocation(
+        id: AnnotatedQueryRouteId.details,
+        tab: tab,
+      ),
+    ];
+  }
+}
+
+class DetailsLocation extends Location<DetailsLocation> {
+  final DefaultQueryParam<String> tab;
+
+  DetailsLocation({
+    required super.id,
+    @RouteTargetDefault(OptionalQueryParamRouteTargetDefault.absent)
+    required this.tab,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('details');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree =>
+    AccountLocation(id: AnnotatedQueryRouteId.account);
+''',
+        },
+        outputs: {
+          'working_router|lib/annotated_query_default_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToDetails({'),
+                  contains(
+                    'OptionalQueryParamValue<String> tab = OptionalQueryParamValue.absent,',
+                  ),
+                  contains(
+                    'final class DetailsRouteTarget extends IdRouteTarget',
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
+    'reports route target default annotations on non-default query params',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      final logs = <String>[];
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/invalid_annotated_query_default_routes.dart': '''
+library invalid_annotated_query_default_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'invalid_annotated_query_default_routes.g.dart';
+
+enum InvalidAnnotatedQueryRouteId { account, details }
+
+class AccountLocation extends Location<AccountLocation> {
+  late final RequiredQueryParam<String> tab;
+
+  AccountLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('account');
+    tab = builder.stringQueryParam('tab');
+    builder.children = [
+      DetailsLocation(
+        id: InvalidAnnotatedQueryRouteId.details,
+        tab: tab,
+      ),
+    ];
+  }
+}
+
+class DetailsLocation extends Location<DetailsLocation> {
+  final RequiredQueryParam<String> tab;
+
+  DetailsLocation({
+    required super.id,
+    @RouteTargetDefault(OptionalQueryParamRouteTargetDefault.absent)
+    required this.tab,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('details');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree =>
+    AccountLocation(id: InvalidAnnotatedQueryRouteId.account);
+''',
+        },
+        outputs: const {},
+        onLog: (log) => logs.add(log.message),
+        readerWriter: readerWriter,
+      );
+
+      expect(
+        logs.join('\n'),
+        contains(
+          '@RouteTargetDefault can only be applied to non-nullable '
+          'DefaultQueryParam<T> constructor parameters.',
+        ),
+      );
+    },
+  );
+
+  test(
     'supports child ids derived from whether the parent id is null',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

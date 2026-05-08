@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:collection/collection.dart';
@@ -852,6 +853,7 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     required Element element,
     required String errorContext,
   }) {
+    final routeTargetDefaults = _routeTargetDefaultsFor(nodes);
     final pathParameters = <String, _GeneratedRouteParameter>{};
     final queryParameters = <String, _GeneratedRouteParameter>{};
     final usedParameterNames = <String, String>{};
@@ -945,6 +947,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
             codecExpressionSource: queryParameter.codecExpressionSource,
             optional: queryParameter.optional,
             canBeAbsent: queryParameter.optional,
+            routeTargetDefault:
+                routeTargetDefaults[queryParameter.key] ??
+                _OptionalQueryParamRouteTargetDefault.inherit,
             sourceNode: queryParameter.sourceNode,
             sourceElement: queryParameter.sourceElement,
           ),
@@ -955,6 +960,16 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     }
 
     return (pathParameters, queryParameters);
+  }
+
+  Map<String, _OptionalQueryParamRouteTargetDefault> _routeTargetDefaultsFor(
+    Iterable<_RouteNode> nodes,
+  ) {
+    final result = <String, _OptionalQueryParamRouteTargetDefault>{};
+    for (final node in nodes) {
+      result.addAll(node.queryParameterRouteTargetDefaults);
+    }
+    return result;
   }
 
   void _addOptionalOwnerQueryParameters({
@@ -972,6 +987,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
         codecExpressionSource: queryParameter.codecExpressionSource,
         optional: true,
         canBeAbsent: queryParameter.optional,
+        routeTargetDefault:
+            owner.queryParameterRouteTargetDefaults[queryParameter.key] ??
+            _OptionalQueryParamRouteTargetDefault.inherit,
         sourceNode: queryParameter.sourceNode,
         sourceElement: queryParameter.sourceElement,
       );
@@ -1088,6 +1106,11 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       dartTypeSource: _nonNullableTypeSource(existing.dartTypeSource),
       optional: mergedOptional,
       canBeAbsent: existing.canBeAbsent && incoming.canBeAbsent,
+      routeTargetDefault:
+          incoming.routeTargetDefault !=
+              _OptionalQueryParamRouteTargetDefault.inherit
+          ? incoming.routeTargetDefault
+          : existing.routeTargetDefault,
       sourceNode: preferIncomingSource ? incoming.sourceNode : null,
       sourceElement: preferIncomingSource ? incoming.sourceElement : null,
     );
@@ -1692,6 +1715,9 @@ class _StaticRouteTreeExtractor {
       isLocation: isLocation,
       supportsPathAndQuery: supportsPathAndQuery,
     );
+    final queryParameterRouteTargetDefaults = context is _InstanceStringContext
+        ? await _routeTargetDefaultOverrides(context)
+        : const <String, _OptionalQueryParamRouteTargetDefault>{};
     final pathSegments =
         dslDefinition?.pathSegments ??
         (supportsPathAndQuery
@@ -1745,9 +1771,112 @@ class _StaticRouteTreeExtractor {
       locationTypeSource: classElement.displayName,
       pathSegments: pathSegments,
       queryParameters: queryParameters,
+      queryParameterRouteTargetDefaults: queryParameterRouteTargetDefaults,
       overlays: overlays,
       children: children,
     );
+  }
+
+  Future<Map<String, _OptionalQueryParamRouteTargetDefault>>
+  _routeTargetDefaultOverrides(_InstanceStringContext context) async {
+    final result = <String, _OptionalQueryParamRouteTargetDefault>{};
+    for (final parameter in context._constructorParameters) {
+      final routeTargetDefault = _routeTargetDefaultAnnotationValue(parameter);
+      if (routeTargetDefault == null) {
+        continue;
+      }
+
+      final parameterName = _formalParameterName(parameter);
+      if (parameterName == null) {
+        throw InvalidGenerationSourceError(
+          '@RouteTargetDefault can only be applied to named '
+          'DefaultQueryParam<T> constructor parameters.',
+          element: context.constructor,
+        );
+      }
+
+      final parameterType = _routeTargetDefaultParameterType(
+        context,
+        parameter,
+        parameterName,
+      );
+      if (!_isNonNullableDefaultQueryParam(parameterType)) {
+        throw InvalidGenerationSourceError(
+          '@RouteTargetDefault can only be applied to non-nullable '
+          'DefaultQueryParam<T> constructor parameters.',
+          node: parameter,
+        );
+      }
+
+      final expression = await context._fieldExpression(parameterName);
+      if (expression == null) {
+        throw InvalidGenerationSourceError(
+          '@RouteTargetDefault on `$parameterName` must resolve to a '
+          'DefaultQueryParam<T> passed to this route node.',
+          node: parameter,
+        );
+      }
+
+      final queryParameterMetadata = await _routeTargetDefaultQueryMetadata(
+        expression,
+        _unwrapFormalParameter(parameter).declaredFragment?.element ??
+            context.constructor,
+        evaluationContext: context,
+      );
+      if (queryParameterMetadata == null || !queryParameterMetadata.optional) {
+        throw InvalidGenerationSourceError(
+          '@RouteTargetDefault on `$parameterName` must resolve to a '
+          'DefaultQueryParam<T>.',
+          node: parameter,
+        );
+      }
+
+      result[queryParameterMetadata.key] = routeTargetDefault;
+    }
+    return result;
+  }
+
+  Future<_RouteQueryParameterMetadata?> _routeTargetDefaultQueryMetadata(
+    Expression expression,
+    Element element, {
+    required _ExpressionContext evaluationContext,
+  }) async {
+    final normalizedExpression = _unwrapExpression(expression);
+    if (_canResolveThroughContext(normalizedExpression)) {
+      final boundExpression = await evaluationContext.resolveExpression(
+        normalizedExpression,
+      );
+      if (boundExpression != null &&
+          boundExpression.toSource() != normalizedExpression.toSource()) {
+        return _routeTargetDefaultQueryMetadata(
+          boundExpression,
+          element,
+          evaluationContext: evaluationContext,
+        );
+      }
+    }
+
+    if (normalizedExpression is MethodInvocation) {
+      return _dslQueryParamMetadata(normalizedExpression, element);
+    }
+
+    final boundParamMetadata = await _dslBoundParamMetadata(
+      normalizedExpression,
+      element,
+      evaluationContext: evaluationContext,
+    );
+    if (boundParamMetadata != null && !boundParamMetadata.isPath) {
+      return _RouteQueryParameterMetadata(
+        key: boundParamMetadata.queryKey!,
+        dartTypeSource: boundParamMetadata.dartTypeSource,
+        codecExpressionSource: boundParamMetadata.codecExpressionSource,
+        optional: boundParamMetadata.optional,
+        sourceNode: boundParamMetadata.sourceNode,
+        sourceElement: boundParamMetadata.sourceElement,
+      );
+    }
+
+    return null;
   }
 
   Future<_ResolvedDslDefinition?> _resolveDslDefinition({
@@ -2571,6 +2700,8 @@ class _StaticRouteTreeExtractor {
       queryParameters: supportsPathAndQuery
           ? dslDefinition.queryParameters
           : const <String, _RouteQueryParameterMetadata>{},
+      queryParameterRouteTargetDefaults:
+          const <String, _OptionalQueryParamRouteTargetDefault>{},
       overlays: dslDefinition.overlays,
       children: dslDefinition.children,
     );
@@ -5908,6 +6039,62 @@ FormalParameter _unwrapFormalParameter(FormalParameter parameter) {
   return current;
 }
 
+_OptionalQueryParamRouteTargetDefault? _routeTargetDefaultAnnotationValue(
+  FormalParameter parameter,
+) {
+  for (final annotation in [
+    ...parameter.metadata,
+    ..._unwrapFormalParameter(parameter).metadata,
+  ]) {
+    final annotationName = annotation.name.toSource().split('.').last;
+    if (annotationName != 'RouteTargetDefault') {
+      continue;
+    }
+
+    final argumentSource = annotation.arguments?.arguments
+        .whereType<Expression>()
+        .firstOrNull
+        ?.toSource()
+        .split('.')
+        .last;
+    return switch (argumentSource) {
+      'inherit' => _OptionalQueryParamRouteTargetDefault.inherit,
+      'absent' => _OptionalQueryParamRouteTargetDefault.absent,
+      _ => throw InvalidGenerationSourceError(
+        '@RouteTargetDefault requires OptionalQueryParamRouteTargetDefault.'
+        ' inherit or OptionalQueryParamRouteTargetDefault.absent.',
+        node: annotation,
+      ),
+    };
+  }
+  return null;
+}
+
+DartType? _routeTargetDefaultParameterType(
+  _InstanceStringContext context,
+  FormalParameter parameter,
+  String parameterName,
+) {
+  final field = context.classElement.getField(parameterName);
+  if (field != null) {
+    return field.type;
+  }
+
+  final parameterElement = _unwrapFormalParameter(
+    parameter,
+  ).declaredFragment?.element;
+  return switch (parameterElement) {
+    VariableElement(:final type) => type,
+    _ => null,
+  };
+}
+
+bool _isNonNullableDefaultQueryParam(DartType? type) {
+  return type is InterfaceType &&
+      type.element.displayName == 'DefaultQueryParam' &&
+      type.nullabilitySuffix == NullabilitySuffix.none;
+}
+
 String? _formalParameterName(FormalParameter parameter) {
   final unwrapped = _unwrapFormalParameter(parameter);
   final elementName = unwrapped.declaredFragment?.element.name;
@@ -5995,6 +6182,8 @@ class _RouteNode {
   final Map<int, int> exclusiveBranchSelections;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
+  final Map<String, _OptionalQueryParamRouteTargetDefault>
+  queryParameterRouteTargetDefaults;
   final List<_RouteNode> overlays;
   final List<_RouteNode> children;
 
@@ -6009,6 +6198,7 @@ class _RouteNode {
     this.exclusiveBranchSelections = const {},
     required this.pathSegments,
     required this.queryParameters,
+    required this.queryParameterRouteTargetDefaults,
     required this.overlays,
     required this.children,
   });
@@ -6028,6 +6218,7 @@ class _RouteNode {
       },
       pathSegments: pathSegments,
       queryParameters: queryParameters,
+      queryParameterRouteTargetDefaults: queryParameterRouteTargetDefaults,
       overlays: [
         for (final overlay in overlays)
           overlay.withExclusiveBranch(groupId, branchId),
@@ -6887,7 +7078,7 @@ void _writeGeneratedQueryParameterDeclaration(
   };
   final requiredKeyword = parameter.optional ? '' : 'required ';
   final defaultValue = parameter.optional && parameter.canBeAbsent
-      ? ' = OptionalQueryParamValue.inherit'
+      ? ' = OptionalQueryParamValue.${parameter.routeTargetDefault.name}'
       : '';
   buffer.writeln(
     '$indent'
@@ -7059,7 +7250,8 @@ bool _parametersEquivalent(
         other.dartTypeSource != entry.value.dartTypeSource ||
         other.codecExpressionSource != entry.value.codecExpressionSource ||
         other.optional != entry.value.optional ||
-        other.canBeAbsent != entry.value.canBeAbsent) {
+        other.canBeAbsent != entry.value.canBeAbsent ||
+        other.routeTargetDefault != entry.value.routeTargetDefault) {
       return false;
     }
   }
@@ -7177,6 +7369,8 @@ class _RouteQueryParameterMetadata {
   }
 }
 
+enum _OptionalQueryParamRouteTargetDefault { inherit, absent }
+
 class _GeneratedPathWrite {
   final String locationMatchDiscriminator;
   final String locationMatchSource;
@@ -7204,6 +7398,7 @@ class _GeneratedRouteParameter {
   final String codecExpressionSource;
   final bool optional;
   final bool canBeAbsent;
+  final _OptionalQueryParamRouteTargetDefault routeTargetDefault;
   final AstNode? sourceNode;
   final Element? sourceElement;
 
@@ -7214,6 +7409,7 @@ class _GeneratedRouteParameter {
     required this.codecExpressionSource,
     required this.optional,
     this.canBeAbsent = false,
+    this.routeTargetDefault = _OptionalQueryParamRouteTargetDefault.inherit,
     this.sourceNode,
     this.sourceElement,
   });
@@ -7225,6 +7421,7 @@ class _GeneratedRouteParameter {
     String? codecExpressionSource,
     bool? optional,
     bool? canBeAbsent,
+    _OptionalQueryParamRouteTargetDefault? routeTargetDefault,
     AstNode? sourceNode,
     Element? sourceElement,
   }) {
@@ -7236,6 +7433,7 @@ class _GeneratedRouteParameter {
           codecExpressionSource ?? this.codecExpressionSource,
       optional: optional ?? this.optional,
       canBeAbsent: canBeAbsent ?? this.canBeAbsent,
+      routeTargetDefault: routeTargetDefault ?? this.routeTargetDefault,
       sourceNode: sourceNode ?? this.sourceNode,
       sourceElement: sourceElement ?? this.sourceElement,
     );

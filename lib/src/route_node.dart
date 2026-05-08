@@ -1,6 +1,7 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
+import 'package:meta/meta_meta.dart';
 import 'package:working_router/src/location.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_param_codec.dart';
@@ -128,6 +129,20 @@ final class InheritedQueryParamValue<T> implements OptionalQueryParamValue<T> {
 
 final class AbsentQueryParamValue<T> implements OptionalQueryParamValue<T> {
   const AbsentQueryParamValue();
+}
+
+enum OptionalQueryParamRouteTargetDefault { inherit, absent }
+
+/// Overrides the generated route-target default for an inherited
+/// [DefaultQueryParam] constructor parameter.
+///
+/// This is a generator hint. It does not change the query parameter's runtime
+/// default value, codec, name, or visibility.
+@Target({TargetKind.parameter})
+final class RouteTargetDefault {
+  final OptionalQueryParamRouteTargetDefault value;
+
+  const RouteTargetDefault(this.value);
 }
 
 class LiteralPathSegment extends PathSegment {
