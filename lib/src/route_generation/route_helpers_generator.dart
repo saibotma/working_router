@@ -1857,7 +1857,40 @@ class _StaticRouteTreeExtractor {
     }
 
     if (normalizedExpression is MethodInvocation) {
-      return _dslQueryParamMetadata(normalizedExpression, element);
+      final queryParameterMetadata = _dslQueryParamMetadata(
+        normalizedExpression,
+        element,
+      );
+      if (queryParameterMetadata != null) {
+        return queryParameterMetadata;
+      }
+
+      final methodName = normalizedExpression.methodName.name;
+      if (methodName == 'bindQueryParam' ||
+          methodName == 'bindDefaultQueryParam') {
+        final parameterExpression = normalizedExpression.argumentList.arguments
+            .whereType<Expression>()
+            .firstOrNull;
+        if (parameterExpression == null) {
+          return null;
+        }
+
+        final boundParamMetadata = await _dslBoundParamMetadata(
+          parameterExpression,
+          element,
+          evaluationContext: evaluationContext,
+        );
+        if (boundParamMetadata != null && !boundParamMetadata.isPath) {
+          return _RouteQueryParameterMetadata(
+            key: boundParamMetadata.queryKey!,
+            dartTypeSource: boundParamMetadata.dartTypeSource,
+            codecExpressionSource: boundParamMetadata.codecExpressionSource,
+            optional: boundParamMetadata.optional,
+            sourceNode: boundParamMetadata.sourceNode,
+            sourceElement: boundParamMetadata.sourceElement,
+          );
+        }
+      }
     }
 
     final boundParamMetadata = await _dslBoundParamMetadata(

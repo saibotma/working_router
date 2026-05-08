@@ -1248,6 +1248,12 @@ part 'annotated_query_default_routes.g.dart';
 
 enum AnnotatedQueryRouteId { account, details }
 
+const tabParam = DefaultUnboundQueryParam(
+  'tab',
+  StringRouteParamCodec(),
+  defaultValue: 'overview',
+);
+
 class AccountLocation extends Location<AccountLocation> {
   late final DefaultQueryParam<String> tab;
 
@@ -1256,10 +1262,7 @@ class AccountLocation extends Location<AccountLocation> {
   @override
   void build(LocationBuilder builder) {
     builder.pathLiteral('account');
-    tab = builder.defaultStringQueryParam(
-      'tab',
-      defaultValue: 'overview',
-    );
+    tab = builder.bindDefaultQueryParam(tabParam);
     builder.children = [
       DetailsLocation(
         id: AnnotatedQueryRouteId.details,
