@@ -4759,8 +4759,9 @@ class _DslStatementContext implements _ExpressionContext {
     while (normalizedExpression is ParenthesizedExpression) {
       normalizedExpression = normalizedExpression.expression;
     }
-    if (normalizedExpression is SimpleIdentifier) {
-      final binding = _bindings[normalizedExpression.name];
+    final bindingName = _statementContextBindingName(normalizedExpression);
+    if (bindingName != null) {
+      final binding = _bindings[bindingName];
       if (binding != null) {
         return binding;
       }
@@ -4777,14 +4778,28 @@ class _DslStatementContext implements _ExpressionContext {
     if (normalizedExpression is ConditionalExpression) {
       return null;
     }
-    if (normalizedExpression is SimpleIdentifier) {
-      final binding = _bindings[normalizedExpression.name];
+    final bindingName = _statementContextBindingName(normalizedExpression);
+    if (bindingName != null) {
+      final binding = _bindings[bindingName];
       if (binding != null) {
         return binding;
       }
     }
     return parent?.resolveIdExpression(expression);
   }
+}
+
+String? _statementContextBindingName(Expression expression) {
+  return switch (expression) {
+    SimpleIdentifier() => expression.name,
+    PrefixedIdentifier(:final prefix, :final identifier)
+        when prefix.name == 'this' =>
+      identifier.name,
+    PropertyAccess(:final realTarget, :final propertyName)
+        when realTarget is ThisExpression =>
+      propertyName.name,
+    _ => null,
+  };
 }
 
 class _InstanceStringContext implements _ExpressionContext {

@@ -1263,7 +1263,7 @@ class AccountLocation extends Location<AccountLocation> {
     builder.children = [
       DetailsLocation(
         id: AnnotatedQueryRouteId.details,
-        tab: tab,
+        tab: this.tab,
       ),
     ];
   }
