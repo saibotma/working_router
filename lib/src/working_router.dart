@@ -307,7 +307,9 @@ class WorkingRouter extends ChangeNotifier
       return;
     }
 
-    final newNodes = data.routeNodes.take(locationIndex).toIList();
+    final newNodes = _trimTrailingScopes(
+      data.routeNodes.take(locationIndex).toIList(),
+    );
     if (newNodes.locations.length == data.routeNodes.locations.length) {
       return;
     }
@@ -1282,6 +1284,14 @@ class WorkingRouter extends ChangeNotifier
       (node) => identical(node, lastRemainingLocation),
     );
     return data.routeNodes.take(lastRemainingNodeIndex + 1).toIList();
+  }
+
+  IList<RouteNode> _trimTrailingScopes(IList<RouteNode> routeNodes) {
+    var end = routeNodes.length;
+    while (end > 0 && routeNodes[end - 1] is Scope) {
+      end -= 1;
+    }
+    return routeNodes.take(end).toIList();
   }
 
   WorkingRouterData? _dataConstrainedToNavigator(

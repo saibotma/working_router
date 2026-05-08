@@ -945,6 +945,89 @@ void main() {
       },
     );
 
+    testWidgets(
+      'navigator pop trims trailing scope and scope-owned path params',
+      (tester) async {
+        late PathParam<String> accountId;
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderShellLocation(
+                    build: (builder, location, routerKey) {
+                      builder.pathLiteral('accounts');
+                      builder.shellContent = const ShellContent.child();
+                      builder.defaultContent = DefaultContent.widget(
+                        const Text('accounts list'),
+                      );
+                      builder.children = [
+                        _BuilderScope(
+                          build: (builder, scope) {
+                            accountId = builder.stringPathParam();
+                            builder.children = [
+                              _BuilderLocation(
+                                id: _Id.a,
+                                build: (builder, location) {
+                                  builder.pathLiteral('login');
+                                  builder.defaultStringQueryParam(
+                                    'accountScopedTargetUri',
+                                    defaultValue: '',
+                                  );
+                                  builder.content = Content.widget(
+                                    const Text('login'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(
+          Uri(
+            path: '/accounts/a1/login',
+            queryParameters: {'accountScopedTargetUri': '/dashboard'},
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('login'), findsOneWidget);
+        expect(router.nullableData!.param(accountId), 'a1');
+
+        final loginNavigator = tester.state<NavigatorState>(
+          find
+              .ancestor(
+                of: find.text('login'),
+                matching: find.byType(Navigator),
+              )
+              .first,
+        );
+        final didPop = await loginNavigator.maybePop();
+        await tester.pumpAndSettle();
+
+        expect(didPop, true);
+        expect(find.text('accounts list'), findsOneWidget);
+        expect(router.nullableData!.routeNodes.last, isNot(isA<Scope>()));
+        expect(
+          router.nullableData!.paramOrNull(accountId.unboundParam),
+          isNull,
+        );
+        expect(router.nullableData!.uri, Uri(path: '/accounts'));
+      },
+    );
+
     testWidgets('typed query writes omit default values', (tester) async {
       late QueryParam<String> languageCode;
       final router = WorkingRouter(
