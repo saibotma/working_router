@@ -765,6 +765,66 @@ void main() {
       expect(pageKey, const ValueKey('dsl:/a'));
     });
 
+    testWidgets('path-like query identity resets the location child subtree', (
+      tester,
+    ) async {
+      var initCount = 0;
+      late DefaultQueryParam<String> mode;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('a');
+                    mode = builder.defaultStringQueryParam(
+                      'mode',
+                      defaultValue: 'list',
+                      identity: QueryParamIdentity.pathLike,
+                    );
+                    builder.page = (_, child) {
+                      return MaterialPage<dynamic>(
+                        key: const ValueKey('stable-page'),
+                        child: child,
+                      );
+                    };
+                    builder.content = Content.builder((context, data) {
+                      return _InitCounter(
+                        onInit: () => initCount += 1,
+                        child: Text(data.param(mode)),
+                      );
+                    });
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToStatic(
+        Uri(path: '/a', queryParameters: {'mode': 'grid'}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('grid'), findsOneWidget);
+      expect(initCount, 1);
+
+      router.routeToStatic(
+        Uri(path: '/a', queryParameters: {'mode': 'detail'}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('detail'), findsOneWidget);
+      expect(initCount, 2);
+    });
+
     testWidgets('wrapLocationChild receives the current router data', (
       tester,
     ) async {
@@ -3978,6 +4038,32 @@ abstract final class _MigratingId {
 }
 
 final _overlaySearchId = RouteNodeId<_BuilderOverlay>();
+
+class _InitCounter extends StatefulWidget {
+  final VoidCallback onInit;
+  final Widget child;
+
+  const _InitCounter({
+    required this.onInit,
+    required this.child,
+  });
+
+  @override
+  State<_InitCounter> createState() => _InitCounterState();
+}
+
+class _InitCounterState extends State<_InitCounter> {
+  @override
+  void initState() {
+    super.initState();
+    widget.onInit();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}
 
 class _PathLocation extends Location<_PathLocation> {
   final List<PathSegment> _segments;

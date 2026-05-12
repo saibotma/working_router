@@ -661,10 +661,15 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     buildChild,
     required Page<dynamic> Function(LocalKey? key, Widget child) buildPage,
   }) {
-    // Keep the widget subtree keyed by the fully hydrated matched path.
-    // This lets inner widget state reset when a path parameter changes, while
-    // still preserving the outer Page identity.
-    final childKey = ValueKey((node.runtimeType, data.pathUpToNode(node)));
+    // Keep the widget subtree keyed by the fully hydrated matched path and
+    // path-like query identity. This lets inner widget state reset when a
+    // route identity value changes, while still preserving the outer Page
+    // identity.
+    final childKey = ValueKey((
+      node.runtimeType,
+      data.pathUpToNode(node),
+      data.pathLikeQueryValuesUpToNode(node),
+    ));
     final builtChild = Builder(
       key: childKey,
       builder: (context) {

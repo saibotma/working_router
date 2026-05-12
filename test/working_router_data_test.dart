@@ -84,6 +84,99 @@ void main() {
     });
   });
 
+  group('PageKey', () {
+    test('path can include selected query parameter values', () {
+      const tab = DefaultUnboundQueryParam(
+        'tab',
+        StringRouteParamCodec(),
+        defaultValue: 'all',
+      );
+      final list = _TestLocation(id: _TestId.list, path: '/items');
+      final location = _DefaultQueryLocation(
+        id: _TestId.queryDefault,
+        parameter: tab,
+      );
+      final boundTab = location.boundParameter;
+      final dataWithDefault = _workingRouterData(
+        uri: Uri(path: '/items'),
+        routeNodes: <RouteNode>[list, location].toIList(),
+        activeOverlaysByOwner: IMap(),
+        pathParameters: IMap(),
+        queryParameters: IMap(),
+      );
+      final dataWithExplicitDefault = _workingRouterData(
+        uri: Uri(path: '/items', queryParameters: {'tab': 'all'}),
+        routeNodes: <RouteNode>[list, location].toIList(),
+        activeOverlaysByOwner: IMap(),
+        pathParameters: IMap(),
+        queryParameters: {'tab': 'all'}.lock,
+      );
+      final dataWithChangedTab = _workingRouterData(
+        uri: Uri(path: '/items', queryParameters: {'tab': 'archived'}),
+        routeNodes: <RouteNode>[list, location].toIList(),
+        activeOverlaysByOwner: IMap(),
+        pathParameters: IMap(),
+        queryParameters: {'tab': 'archived'}.lock,
+      );
+
+      const pathKey = PageKey.path();
+      expect(
+        pathKey.build(location, dataWithDefault),
+        pathKey.build(location, dataWithChangedTab),
+      );
+
+      final queryPathKey = PageKey.path(queryParameters: [boundTab]);
+      expect(
+        queryPathKey.build(location, dataWithDefault),
+        queryPathKey.build(location, dataWithExplicitDefault),
+      );
+      expect(
+        queryPathKey.build(location, dataWithDefault),
+        isNot(queryPathKey.build(location, dataWithChangedTab)),
+      );
+    });
+
+    test('path automatically includes ancestor identity query parameters', () {
+      const itemId = DefaultUnboundQueryParam(
+        'itemId',
+        StringRouteParamCodec(),
+        defaultValue: '',
+      );
+      final parent = _DefaultQueryLocation(
+        id: _TestId.queryDefault,
+        parameter: itemId,
+        identity: QueryParamIdentity.pathLike,
+      );
+      final child = _TestLocation(id: _TestId.child, path: '/details');
+      final dataWithFirstItem = _workingRouterData(
+        uri: Uri(path: '/details', queryParameters: {'itemId': 'first'}),
+        routeNodes: <RouteNode>[parent, child].toIList(),
+        activeOverlaysByOwner: IMap(),
+        pathParameters: IMap(),
+        queryParameters: {'itemId': 'first'}.lock,
+      );
+      final dataWithSecondItem = _workingRouterData(
+        uri: Uri(path: '/details', queryParameters: {'itemId': 'second'}),
+        routeNodes: <RouteNode>[parent, child].toIList(),
+        activeOverlaysByOwner: IMap(),
+        pathParameters: IMap(),
+        queryParameters: {'itemId': 'second'}.lock,
+      );
+
+      const pathKey = PageKey.path();
+      expect(
+        pathKey.build(child, dataWithFirstItem),
+        isNot(pathKey.build(child, dataWithSecondItem)),
+      );
+
+      const templatePathKey = PageKey.templatePath();
+      expect(
+        templatePathKey.build(child, dataWithFirstItem),
+        templatePathKey.build(child, dataWithSecondItem),
+      );
+    });
+  });
+
   group('WorkingRouterData query param helpers', () {
     test('queryParam returns the configured default for missing values', () {
       const tab = DefaultUnboundQueryParam(
@@ -528,17 +621,19 @@ class _NullableQueryLocation extends Location<_NullableQueryLocation> {
 
 class _DefaultQueryLocation extends Location<_DefaultQueryLocation> {
   final DefaultUnboundQueryParam<String> parameter;
+  final QueryParamIdentity identity;
   late final DefaultQueryParam<String> boundParameter =
       definition.queryParameters.single as DefaultQueryParam<String>;
 
   _DefaultQueryLocation({
     required RouteNodeId<_DefaultQueryLocation> id,
     required this.parameter,
+    this.identity = QueryParamIdentity.state,
   }) : super(id: id);
 
   @override
   void build(LocationBuilder builder) {
-    builder.bindDefaultQueryParam(parameter);
+    builder.bindDefaultQueryParam(parameter, identity: identity);
   }
 }
 

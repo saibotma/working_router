@@ -233,6 +233,27 @@ class WorkingRouterData {
     return pathRouteNodesUpToNode.buildPathTemplate();
   }
 
+  @internal
+  IList<(String, Object?)> pathLikeQueryValuesUpToNode(RouteNode node) {
+    final nodeIndex = _indexOfIdenticalNode(node);
+    if (nodeIndex == -1) {
+      return const IListConst([]);
+    }
+
+    final values = <(String, Object?)>[];
+    for (final pathNode in routeNodes.take(nodeIndex + 1).pathRouteNodes) {
+      for (final queryParameter in pathNode.queryParameters) {
+        if (queryParameter.identity == QueryParamIdentity.pathLike) {
+          values.add((
+            queryParameter.name,
+            param(queryParameter) as Object?,
+          ));
+        }
+      }
+    }
+    return values.toIList();
+  }
+
   int _indexOfIdenticalNode(RouteNode node) {
     for (var i = 0; i < routeNodes.length; i++) {
       if (identical(routeNodes[i], node)) {

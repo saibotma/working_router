@@ -213,6 +213,7 @@ final class DefaultUnboundQueryParam<T> extends UnboundQueryParam<T> {
 sealed class QueryParam<T> implements Param<T> {
   final UnboundQueryParam<T> _unboundParam;
   final UriVisibility uriVisibility;
+  final QueryParamIdentity identity;
   UnboundQueryParam<T> get unboundParam => _unboundParam;
   @override
   RouteParamCodec<T> get codec => unboundParam.codec;
@@ -222,7 +223,19 @@ sealed class QueryParam<T> implements Param<T> {
   QueryParam(
     this._unboundParam, {
     this.uriVisibility = UriVisibility.inherit,
+    this.identity = QueryParamIdentity.state,
   });
+}
+
+/// Describes whether a query parameter participates in route identity.
+///
+/// [state] is normal query-string state such as filters, tabs, and
+/// search terms. [pathLike] is for query parameters that identify the routed
+/// resource and should therefore participate in [PageKey.path] like hydrated
+/// path parameters.
+enum QueryParamIdentity {
+  state,
+  pathLike,
 }
 
 class RequiredQueryParam<T> extends QueryParam<T> {
@@ -230,6 +243,7 @@ class RequiredQueryParam<T> extends QueryParam<T> {
   RequiredQueryParam(
     RequiredUnboundQueryParam<T> super.unboundParam, {
     super.uriVisibility,
+    super.identity,
   });
 }
 
@@ -244,6 +258,7 @@ class DefaultQueryParam<T> extends QueryParam<T> {
   DefaultQueryParam(
     DefaultUnboundQueryParam<T> super.unboundParam, {
     super.uriVisibility,
+    super.identity,
   });
 }
 
@@ -259,8 +274,10 @@ typedef CustomPageKeyBuilder = LocalKey Function(WorkingRouterData data);
 ///
 /// Use [PageKey.path] when hydrated path parameter values should produce
 /// different pages, so `/lesson/1` and `/lesson/2` no longer reuse the same
-/// page identity. In practice this means navigating from lesson `1` to
-/// lesson `2` behaves like a page replacement and resets page-level state.
+/// page identity. Pass selected [QueryParam]s when query values are part of
+/// the page identity too, such as `/item?id=1` and `/item?id=2`.
+/// In practice this means navigating from lesson `1` to lesson `2` behaves
+/// like a page replacement and resets page-level state.
 ///
 /// Use [PageKey.custom] for fully custom behavior.
 sealed class PageKey {
@@ -280,7 +297,16 @@ sealed class PageKey {
   /// parameter values, such as when `/item/1` and `/item/2` should become
   /// distinct pages instead of reusing the same page. This is useful when the
   /// route parameter should reset page-level state or animate like a new page.
-  const factory PageKey.path() = _PathPageKey;
+  ///
+  /// When [queryParameters] is not empty, the key also includes the selected
+  /// typed query values.
+  ///
+  /// Query params declared with `identity: QueryParamIdentity.pathLike` are
+  /// included automatically when they are declared by this node or an active
+  /// ancestor path node.
+  const factory PageKey.path({
+    List<QueryParam<dynamic>> queryParameters,
+  }) = _PathPageKey;
 
   /// Builds the page key from custom router data.
   const factory PageKey.custom(CustomPageKeyBuilder build) = _CustomPageKey;
@@ -298,12 +324,60 @@ final class _TemplatePathPageKey extends PageKey {
 }
 
 final class _PathPageKey extends PageKey {
-  const _PathPageKey();
+  final List<QueryParam<dynamic>> queryParameters;
+
+  const _PathPageKey({
+    this.queryParameters = const [],
+  });
 
   @override
   LocalKey build(RouteNode node, WorkingRouterData data) {
-    return ValueKey((node.runtimeType, data.pathUpToNode(node)));
+    final queryValues = _queryValues(data, node, queryParameters);
+    return ValueKey((
+      node.runtimeType,
+      data.pathUpToNode(node),
+      queryValues,
+    ));
   }
+}
+
+IList<(String, Object?)> _queryValues(
+  WorkingRouterData data,
+  RouteNode node,
+  List<QueryParam<dynamic>> queryParameters,
+) {
+  final pathLikeQueryValues = data.pathLikeQueryValuesUpToNode(node);
+  if (queryParameters.isEmpty) {
+    return pathLikeQueryValues;
+  }
+
+  final explicitQueryParameters = queryParameters
+      .where(
+        (parameter) =>
+            !pathLikeQueryValues.any((value) => value.$1 == parameter.name),
+      )
+      .toList(growable: false);
+  if (explicitQueryParameters.isEmpty) {
+    return pathLikeQueryValues;
+  }
+
+  return [
+    ...pathLikeQueryValues,
+    ..._queryParameterValues(data, explicitQueryParameters),
+  ].toIList();
+}
+
+IList<(String, Object?)> _queryParameterValues(
+  WorkingRouterData data,
+  List<QueryParam<dynamic>> queryParameters,
+) {
+  if (queryParameters.isEmpty) {
+    return const IListConst([]);
+  }
+  return [
+    for (final parameter in queryParameters)
+      (parameter.name, data.param(parameter) as Object?),
+  ].toIList();
 }
 
 final class _CustomPageKey extends PageKey {
