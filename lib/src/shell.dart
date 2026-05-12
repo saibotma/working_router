@@ -132,7 +132,7 @@ class BuiltShellDefinition {
   final List<QueryParam<dynamic>> queryParameters;
   final List<AnyOverlay> overlays;
   final List<RouteNode> children;
-  final PageKey? pageKey;
+  final PageKey pageKey;
   final UriVisibility pathVisibility;
   final RouteBrowserHistory browserHistory;
   final ShellBuildResult render;
@@ -206,7 +206,7 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
       queryParameters: List.unmodifiable(builder.queryParameters),
       overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
-      pageKey: builder.configuredPageKey,
+      pageKey: builder.pageKey,
       pathVisibility: builder.pathVisibility,
       browserHistory: builder.browserHistory,
       render: render,
@@ -236,7 +236,7 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
 
   @override
   LocalKey buildPageKey(WorkingRouterData data) {
-    return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
+    return _definition.pageKey.build(this, data);
   }
 
   Widget buildContent(

@@ -208,7 +208,7 @@ class BuiltLocationDefinition {
   final List<QueryParam<dynamic>> queryParameters;
   final List<AnyOverlay> overlays;
   final List<RouteNode> children;
-  final PageKey? pageKey;
+  final PageKey pageKey;
   final UriVisibility pathVisibility;
   final RouteBrowserHistory browserHistory;
   final PathRouteNodeRenderResult? render;

@@ -75,16 +75,22 @@ abstract class PathRouteNodeBuilder {
   bool _overlaysAssigned = false;
   List<RouteNode> _children = const [];
   bool _childrenAssigned = false;
-  PageKey? _pageKey;
   UriVisibility pathVisibility = UriVisibility.inherit;
   RouteBrowserHistory browserHistory = RouteBrowserHistory.remember;
+
+  /// Configures how this route node builds its [Page] key.
+  ///
+  /// Defaults to [PageKey.templatePath], so page identity follows the route
+  /// shape and ignores hydrated path parameter values. Use [PageKey.path] when
+  /// path parameter values or path-like query parameters should create a new
+  /// page identity, or [PageKey.custom] for fully custom page identity.
+  PageKey pageKey = const PageKey.templatePath();
 
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
   List<AnyOverlay> get overlays => _overlays;
   List<RouteNode> get children => _children;
-  PageKey? get configuredPageKey => _pageKey;
 
   PathRouteNodeBuilder();
 
@@ -557,10 +563,6 @@ abstract class PathRouteNodeBuilder {
     _overlays = List.unmodifiable(overlays);
     _overlaysAssigned = true;
   }
-
-  set pageKey(PageKey pageKey) {
-    _pageKey = pageKey;
-  }
 }
 
 abstract class PathRouteNode<Self extends PathRouteNode<Self>>
@@ -649,7 +651,7 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       queryParameters: List.unmodifiable(builder.queryParameters),
       overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
-      pageKey: builder.configuredPageKey,
+      pageKey: builder.pageKey,
       pathVisibility: builder.pathVisibility,
       browserHistory: builder.browserHistory,
       render: render,
@@ -673,7 +675,7 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
 
   @override
   LocalKey buildPageKey(WorkingRouterData data) {
-    return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
+    return _definition.pageKey.build(this, data);
   }
 
   String _debugConfigurationContext(PathRouteNodeBuilder builder) {

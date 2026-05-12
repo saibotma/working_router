@@ -276,7 +276,7 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
       queryParameters: List.unmodifiable(builder.queryParameters),
       overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
-      pageKey: builder.configuredPageKey,
+      pageKey: builder.pageKey,
       pathVisibility: builder.pathVisibility,
       browserHistory: builder.browserHistory,
       render: render,
@@ -303,7 +303,7 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
 
   @override
   LocalKey buildPageKey(WorkingRouterData data) {
-    return _definition.pageKey?.build(this, data) ?? super.buildPageKey(data);
+    return _definition.pageKey.build(this, data);
   }
 
   MultiShellBuildResult get _multiShellRender {
