@@ -853,7 +853,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     required Element element,
     required String errorContext,
   }) {
-    final routeTargetDefaults = _routeTargetDefaultsFor(nodes);
+    final nodeList = nodes.toList(growable: false);
+    final routeTargetDefaults = _routeTargetDefaultsFor(nodeList);
     final pathParameters = <String, _GeneratedRouteParameter>{};
     final queryParameters = <String, _GeneratedRouteParameter>{};
     final usedParameterNames = <String, String>{};
@@ -918,7 +919,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       target[originalName] = parameter.copyWith(parameterName: parameterName);
     }
 
-    for (final node in nodes) {
+    for (var nodeIndex = 0; nodeIndex < nodeList.length; nodeIndex++) {
+      final node = nodeList[nodeIndex];
       for (final segment in node.pathSegments) {
         if (segment case _RoutePathParameterSegmentMetadata()) {
           registerParameter(
@@ -939,6 +941,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
       }
 
       for (final queryParameter in node.queryParameters.values) {
+        if (queryParameter.scope == _RouteQueryParameterScope.node &&
+            nodeIndex != nodeList.length - 1) {
+          continue;
+        }
         registerParameter(
           _GeneratedRouteParameter(
             routeKey: queryParameter.key,
@@ -980,6 +986,9 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     required String errorContext,
   }) {
     for (final queryParameter in owner.queryParameters.values) {
+      if (queryParameter.scope == _RouteQueryParameterScope.node) {
+        continue;
+      }
       final parameter = _GeneratedRouteParameter(
         routeKey: queryParameter.key,
         parameterName: '',
@@ -1881,11 +1890,18 @@ class _StaticRouteTreeExtractor {
           evaluationContext: evaluationContext,
         );
         if (boundParamMetadata != null && !boundParamMetadata.isPath) {
+          final scope = methodName == 'bindDefaultQueryParam'
+              ? _queryParameterScope(
+                  normalizedExpression.argumentList.arguments,
+                  element,
+                )
+              : _RouteQueryParameterScope.branch;
           return _RouteQueryParameterMetadata(
             key: boundParamMetadata.queryKey!,
             dartTypeSource: boundParamMetadata.dartTypeSource,
             codecExpressionSource: boundParamMetadata.codecExpressionSource,
             optional: boundParamMetadata.optional,
+            scope: scope,
             sourceNode: boundParamMetadata.sourceNode,
             sourceElement: boundParamMetadata.sourceElement,
           );
@@ -2593,6 +2609,13 @@ class _StaticRouteTreeExtractor {
             dartTypeSource: boundParameterMetadata.dartTypeSource,
             codecExpressionSource: boundParameterMetadata.codecExpressionSource,
             optional: boundParameterMetadata.optional,
+            scope:
+                normalizedExpression.methodName.name == 'bindDefaultQueryParam'
+                ? _queryParameterScope(
+                    normalizedExpression.argumentList.arguments,
+                    elementForErrors,
+                  )
+                : _RouteQueryParameterScope.branch,
             sourceNode: boundParameterMetadata.sourceNode,
             sourceElement: boundParameterMetadata.sourceElement,
           ),
@@ -2882,6 +2905,12 @@ class _StaticRouteTreeExtractor {
           ),
           codecExpressionSource: _expressionSource(arguments[1]),
           optional: methodName == 'defaultQueryParam',
+          scope: methodName == 'defaultQueryParam'
+              ? _queryParameterScope(
+                  invocation.argumentList.arguments,
+                  elementForErrors,
+                )
+              : _RouteQueryParameterScope.branch,
           sourceNode: invocation,
           sourceElement: elementForErrors,
         );
@@ -3047,6 +3076,10 @@ class _StaticRouteTreeExtractor {
         final defaultValueExpression = methodName.startsWith('default')
             ? namedArguments['defaultValue']
             : null;
+        final optional =
+            defaultValueExpression != null ||
+            methodName.startsWith('default') ||
+            methodName.startsWith('nullable');
         return _RouteQueryParameterMetadata(
           key: _stringLiteral(nameExpression, elementForErrors),
           dartTypeSource: _queryParameterTypeSource(
@@ -3054,10 +3087,13 @@ class _StaticRouteTreeExtractor {
             defaultValueExpression,
           ),
           codecExpressionSource: codecMetadata.codecExpressionSource,
-          optional:
-              defaultValueExpression != null ||
-              methodName.startsWith('default') ||
-              methodName.startsWith('nullable'),
+          optional: optional,
+          scope: optional
+              ? _queryParameterScope(
+                  invocation.argumentList.arguments,
+                  elementForErrors,
+                )
+              : _RouteQueryParameterScope.branch,
           sourceNode: invocation,
           sourceElement: elementForErrors,
         );
@@ -4298,7 +4334,8 @@ class _StaticRouteTreeExtractor {
 
     if (existing.dartTypeSource == metadata.dartTypeSource &&
         existing.codecExpressionSource == metadata.codecExpressionSource &&
-        existing.optional == metadata.optional) {
+        existing.optional == metadata.optional &&
+        existing.scope == metadata.scope) {
       return;
     }
 
@@ -4458,6 +4495,31 @@ class _StaticRouteTreeExtractor {
       }
     }
     return null;
+  }
+
+  _RouteQueryParameterScope _queryParameterScope(
+    List<Expression> arguments,
+    Element element,
+  ) {
+    final scopeExpression = _namedArgumentExpression(arguments, 'scope');
+    if (scopeExpression == null) {
+      return _RouteQueryParameterScope.branch;
+    }
+
+    final source = _expressionSource(scopeExpression);
+    if (source == 'QueryParamScope.branch' ||
+        source.endsWith('.QueryParamScope.branch')) {
+      return _RouteQueryParameterScope.branch;
+    }
+    if (source == 'QueryParamScope.node' ||
+        source.endsWith('.QueryParamScope.node')) {
+      return _RouteQueryParameterScope.node;
+    }
+
+    throw InvalidGenerationSourceError(
+      'scope must be QueryParamScope.branch or QueryParamScope.node.',
+      element: element,
+    );
   }
 
   Element? _expressionElement(
@@ -7385,6 +7447,7 @@ class _RouteQueryParameterMetadata {
   final String dartTypeSource;
   final String codecExpressionSource;
   final bool optional;
+  final _RouteQueryParameterScope scope;
   final AstNode? sourceNode;
   final Element? sourceElement;
 
@@ -7393,6 +7456,7 @@ class _RouteQueryParameterMetadata {
     required this.dartTypeSource,
     required this.codecExpressionSource,
     required this.optional,
+    this.scope = _RouteQueryParameterScope.branch,
     this.sourceNode,
     this.sourceElement,
   });
@@ -7402,6 +7466,7 @@ class _RouteQueryParameterMetadata {
     String? dartTypeSource,
     String? codecExpressionSource,
     bool? optional,
+    _RouteQueryParameterScope? scope,
     AstNode? sourceNode,
     Element? sourceElement,
   }) {
@@ -7411,6 +7476,7 @@ class _RouteQueryParameterMetadata {
       codecExpressionSource:
           codecExpressionSource ?? this.codecExpressionSource,
       optional: optional ?? this.optional,
+      scope: scope ?? this.scope,
       sourceNode: sourceNode ?? this.sourceNode,
       sourceElement: sourceElement ?? this.sourceElement,
     );
@@ -7418,6 +7484,8 @@ class _RouteQueryParameterMetadata {
 }
 
 enum _OptionalQueryParamRouteTargetDefault { inherit, absent }
+
+enum _RouteQueryParameterScope { branch, node }
 
 class _GeneratedPathWrite {
   final String locationMatchDiscriminator;

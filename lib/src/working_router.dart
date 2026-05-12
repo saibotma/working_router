@@ -1026,12 +1026,16 @@ class WorkingRouter extends ChangeNotifier
   }) {
     assert(routeNodes.pathRouteNodes.isNotEmpty);
 
-    final activeOverlaysByOwner = _activeOverlaysByOwner(
+    final scopedQueryParameters = _applyNodeScopedDefaultQueryParameters(
       routeNodes: routeNodes,
       queryParameters: queryParameters,
     );
+    final activeOverlaysByOwner = _activeOverlaysByOwner(
+      routeNodes: routeNodes,
+      queryParameters: scopedQueryParameters,
+    );
     final effectiveQueryParameters = _applyOverlayConditions(
-      queryParameters,
+      scopedQueryParameters,
       activeOverlaysByOwner.values.expand((it) => it),
     );
     final uri = _uriFromRouteNodes(
@@ -1047,6 +1051,35 @@ class WorkingRouter extends ChangeNotifier
       pathParameters: pathParameters,
       queryParameters: effectiveQueryParameters,
     );
+  }
+
+  IMap<String, String> _applyNodeScopedDefaultQueryParameters({
+    required IList<RouteNode> routeNodes,
+    required IMap<String, String> queryParameters,
+  }) {
+    final pathRouteNodes = routeNodes.pathRouteNodes;
+    var result = queryParameters;
+    for (var i = 0; i < pathRouteNodes.length - 1; i++) {
+      final node = pathRouteNodes[i];
+      final descendantQueryKeys = pathRouteNodes
+          .skip(i + 1)
+          .expand((node) => node.queryParameters.map((it) => it.name))
+          .toSet();
+      for (final queryParameter in node.queryParameters) {
+        if (queryParameter case final DefaultQueryParam<dynamic> parameter
+            when parameter.scope == QueryParamScope.node) {
+          if (descendantQueryKeys.contains(parameter.name)) {
+            continue;
+          }
+          result = _writeQueryValue(
+            result,
+            parameter,
+            parameter.defaultValue,
+          );
+        }
+      }
+    }
+    return result;
   }
 
   IMap<RouteNode, IList<AnyOverlay>> _activeOverlaysByOwner({

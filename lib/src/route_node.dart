@@ -238,6 +238,16 @@ enum QueryParamIdentity {
   pathLike,
 }
 
+/// Describes how far a default query parameter remains active.
+///
+/// [branch] keeps the parameter active for the declaring route node and its
+/// descendants. [node] keeps it active only while the declaring route node is
+/// the deepest matched path route node; descendants reset it to its default.
+enum QueryParamScope {
+  branch,
+  node,
+}
+
 class RequiredQueryParam<T> extends QueryParam<T> {
   @internal
   RequiredQueryParam(
@@ -248,6 +258,8 @@ class RequiredQueryParam<T> extends QueryParam<T> {
 }
 
 class DefaultQueryParam<T> extends QueryParam<T> {
+  final QueryParamScope scope;
+
   @override
   DefaultUnboundQueryParam<T> get unboundParam =>
       super.unboundParam as DefaultUnboundQueryParam<T>;
@@ -259,6 +271,7 @@ class DefaultQueryParam<T> extends QueryParam<T> {
     DefaultUnboundQueryParam<T> super.unboundParam, {
     super.uriVisibility,
     super.identity,
+    this.scope = QueryParamScope.branch,
   });
 }
 

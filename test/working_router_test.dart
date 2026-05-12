@@ -3320,6 +3320,88 @@ void main() {
       expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
     });
 
+    testWidgets('node-scoped query parameters reset on child routes', (
+      tester,
+    ) async {
+      late _BuilderLocation chat;
+      late _BuilderLocation channel;
+      late DefaultQueryParam<bool> search;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                chat = _BuilderLocation(
+                  id: _Id.a,
+                  build: (builder, location) {
+                    builder.pathLiteral('chat');
+                    search = builder.defaultBoolQueryParam(
+                      'search',
+                      defaultValue: false,
+                      scope: QueryParamScope.node,
+                    );
+                    builder.content = Content.builder(
+                      (context, data) => Text('chat:${data.param(search)}'),
+                    );
+                    builder.children = [
+                      channel = _BuilderLocation(
+                        id: _Id.b,
+                        build: (builder, location) {
+                          builder.pathLiteral('channel');
+                          builder.content = Content.widget(
+                            const Text('channel'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToStatic(
+        Uri(path: '/chat', queryParameters: {'search': 'true'}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('chat:true'), findsOneWidget);
+      expect(router.nullableData!.param(search), true);
+      expect(router.nullableData!.queryParameters.unlock, {'search': 'true'});
+      expect(
+        router.nullableData!.uri,
+        Uri(path: '/chat', queryParameters: {'search': 'true'}),
+      );
+
+      router.routeTo(
+        ChildRouteTarget(
+          start: chat,
+          resolveChildPathNodes: () => <RouteNode>[channel].toIList(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('channel'), findsOneWidget);
+      expect(router.nullableData!.param(search), false);
+      expect(router.nullableData!.queryParameters.unlock, isEmpty);
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+
+      router.routeToStatic(
+        Uri(path: '/chat/channel', queryParameters: {'search': 'true'}),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData!.param(search), false);
+      expect(router.nullableData!.queryParameters.unlock, isEmpty);
+      expect(router.nullableData!.uri, Uri(path: '/chat/channel'));
+    });
+
     testWidgets('hidden query state-only changes report browser navigation', (
       tester,
     ) async {

@@ -162,11 +162,13 @@ abstract class PathRouteNodeBuilder {
     DefaultUnboundQueryParam<T> parameter, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return _bindDefaultQueryParam(
       parameter,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -202,11 +204,13 @@ abstract class PathRouteNodeBuilder {
     DefaultUnboundQueryParam<T> parameter, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     final queryParameter = DefaultQueryParam<T>(
       parameter,
       uriVisibility: visibility,
       identity: identity,
+      scope: scope,
     );
     _queryParameters.add(queryParameter);
     return queryParameter;
@@ -233,6 +237,7 @@ abstract class PathRouteNodeBuilder {
     required T defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return _bindDefaultQueryParam(
       DefaultUnboundQueryParam<T>(
@@ -242,6 +247,7 @@ abstract class PathRouteNodeBuilder {
       ),
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -263,6 +269,7 @@ abstract class PathRouteNodeBuilder {
     required String defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam(
       name,
@@ -270,6 +277,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: defaultValue,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -277,6 +285,7 @@ abstract class PathRouteNodeBuilder {
     String name, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam<String?>(
       name,
@@ -284,6 +293,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: null,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -305,6 +315,7 @@ abstract class PathRouteNodeBuilder {
     required int defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam(
       name,
@@ -312,6 +323,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: defaultValue,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -319,6 +331,7 @@ abstract class PathRouteNodeBuilder {
     String name, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam<int?>(
       name,
@@ -326,6 +339,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: null,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -347,6 +361,7 @@ abstract class PathRouteNodeBuilder {
     required double defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam(
       name,
@@ -354,6 +369,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: defaultValue,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -361,6 +377,7 @@ abstract class PathRouteNodeBuilder {
     String name, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam<double?>(
       name,
@@ -368,6 +385,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: null,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -389,6 +407,7 @@ abstract class PathRouteNodeBuilder {
     required bool defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam(
       name,
@@ -396,6 +415,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: defaultValue,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -403,6 +423,7 @@ abstract class PathRouteNodeBuilder {
     String name, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam<bool?>(
       name,
@@ -410,6 +431,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: null,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -431,6 +453,7 @@ abstract class PathRouteNodeBuilder {
     required DateTime defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam(
       name,
@@ -438,6 +461,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: defaultValue,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -445,6 +469,7 @@ abstract class PathRouteNodeBuilder {
     String name, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam<DateTime?>(
       name,
@@ -452,6 +477,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: null,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -473,6 +499,7 @@ abstract class PathRouteNodeBuilder {
     required Uri defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam(
       name,
@@ -480,6 +507,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: defaultValue,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -487,6 +515,7 @@ abstract class PathRouteNodeBuilder {
     String name, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam<Uri?>(
       name,
@@ -494,6 +523,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: null,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -517,6 +547,7 @@ abstract class PathRouteNodeBuilder {
     required T defaultValue,
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam(
       name,
@@ -524,6 +555,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: defaultValue,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 
@@ -532,6 +564,7 @@ abstract class PathRouteNodeBuilder {
     List<T> values, {
     UriVisibility visibility = UriVisibility.inherit,
     QueryParamIdentity identity = QueryParamIdentity.state,
+    QueryParamScope scope = QueryParamScope.branch,
   }) {
     return defaultQueryParam<T?>(
       name,
@@ -539,6 +572,7 @@ abstract class PathRouteNodeBuilder {
       defaultValue: null,
       visibility: visibility,
       identity: identity,
+      scope: scope,
     );
   }
 

@@ -1227,6 +1227,76 @@ List<RouteNode> buildRouteNodes() => [
   );
 
   test(
+    'does not inherit node-scoped query parameters into child route helpers',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/node_scoped_query_routes.dart': '''
+library node_scoped_query_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'node_scoped_query_routes.g.dart';
+
+enum NodeScopedQueryRouteId { account, details }
+
+class AccountLocation extends Location<AccountLocation> {
+  AccountLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('account');
+    final view = builder.defaultStringQueryParam(
+      'view',
+      defaultValue: 'summary',
+      scope: QueryParamScope.node,
+    );
+    builder.content = Content.widget(const SizedBox.shrink());
+    builder.children = [
+      DetailsLocation(id: NodeScopedQueryRouteId.details),
+    ];
+  }
+}
+
+class DetailsLocation extends Location<DetailsLocation> {
+  DetailsLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('details');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree =>
+    AccountLocation(id: NodeScopedQueryRouteId.account);
+''',
+        },
+        outputs: {
+          'working_router|lib/node_scoped_query_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToAccount({'),
+                  contains('OptionalQueryParamValue<String> view'),
+                  contains('void routeToDetails()'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'uses annotated inherited query parameter route target defaults',
     () async {
       final builder = workingRouterRouteHelpersBuilder(
