@@ -1297,6 +1297,92 @@ RouteNode get appLocationTree =>
   );
 
   test(
+    'supports enum shorthand for query parameter scope',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/shorthand_query_scope_routes.dart': '''
+library shorthand_query_scope_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'shorthand_query_scope_routes.g.dart';
+
+enum ShorthandQueryScopeRouteId { account, details }
+
+class AccountLocation extends Location<AccountLocation> {
+  AccountLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('account');
+    builder.defaultStringQueryParam(
+      'view',
+      defaultValue: 'summary',
+      scope: .node,
+    );
+    builder.defaultStringQueryParam(
+      'tab',
+      defaultValue: 'overview',
+      scope: .branch,
+    );
+    builder.content = Content.widget(const SizedBox.shrink());
+    builder.children = [
+      DetailsLocation(id: ShorthandQueryScopeRouteId.details),
+    ];
+  }
+}
+
+class DetailsLocation extends Location<DetailsLocation> {
+  DetailsLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('details');
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree =>
+    AccountLocation(id: ShorthandQueryScopeRouteId.account);
+''',
+        },
+        outputs: {
+          'working_router|lib/shorthand_query_scope_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToAccount({'),
+                  contains('OptionalQueryParamValue<String> view'),
+                  contains('OptionalQueryParamValue<String> tab'),
+                  contains('void routeToDetails({'),
+                  contains(
+                    'void routeToDetails({\n    '
+                    'OptionalQueryParamValue<String> tab',
+                  ),
+                  isNot(
+                    contains(
+                      'void routeToDetails({\n    '
+                      'OptionalQueryParamValue<String> view',
+                    ),
+                  ),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'stops inheriting unbound query parameters into route helpers',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

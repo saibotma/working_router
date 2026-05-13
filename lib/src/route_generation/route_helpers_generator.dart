@@ -4556,11 +4556,13 @@ class _StaticRouteTreeExtractor {
     }
 
     final source = _expressionSource(scopeExpression);
-    if (source == 'QueryParamScope.branch' ||
+    if (source == '.branch' ||
+        source == 'QueryParamScope.branch' ||
         source.endsWith('.QueryParamScope.branch')) {
       return _RouteQueryParameterScope.branch;
     }
-    if (source == 'QueryParamScope.node' ||
+    if (source == '.node' ||
+        source == 'QueryParamScope.node' ||
         source.endsWith('.QueryParamScope.node')) {
       return _RouteQueryParameterScope.node;
     }
