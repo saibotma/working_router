@@ -1297,6 +1297,106 @@ RouteNode get appLocationTree =>
   );
 
   test(
+    'stops inheriting unbound query parameters into route helpers',
+    () async {
+      final builder = workingRouterRouteHelpersBuilder(
+        BuilderOptions.empty,
+      );
+      final readerWriter = TestReaderWriter(rootPackage: 'working_router');
+      await readerWriter.testing.loadIsolateSources();
+
+      await testBuilder(
+        builder,
+        {
+          'working_router|lib/unbound_query_routes.dart': '''
+library unbound_query_routes;
+
+import 'package:flutter/widgets.dart';
+import 'package:working_router/working_router.dart';
+
+part 'unbound_query_routes.g.dart';
+
+enum UnboundQueryRouteId { account, details, audit }
+
+class AccountLocation extends Location<AccountLocation> {
+  AccountLocation({required super.id});
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('account');
+    final view = builder.defaultStringQueryParam(
+      'view',
+      defaultValue: 'summary',
+    );
+    builder.content = Content.widget(const SizedBox.shrink());
+    builder.children = [
+      DetailsLocation(
+        id: UnboundQueryRouteId.details,
+        view: view,
+      ),
+    ];
+  }
+}
+
+class DetailsLocation extends Location<DetailsLocation> {
+  final DefaultQueryParam<String> view;
+
+  DetailsLocation({
+    required super.id,
+    required this.view,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('details');
+    builder.content = Content.widget(const SizedBox.shrink());
+    builder.children = [
+      AuditLocation(
+        id: UnboundQueryRouteId.audit,
+        view: view,
+      ),
+    ];
+  }
+}
+
+class AuditLocation extends Location<AuditLocation> {
+  final DefaultQueryParam<String> view;
+
+  AuditLocation({
+    required super.id,
+    required this.view,
+  });
+
+  @override
+  void build(LocationBuilder builder) {
+    builder.pathLiteral('audit');
+    builder.unbindQueryParam(view);
+    builder.content = Content.widget(const SizedBox.shrink());
+  }
+}
+
+@RouteNodes()
+RouteNode get appLocationTree =>
+    AccountLocation(id: UnboundQueryRouteId.account);
+''',
+        },
+        outputs: {
+          'working_router|lib/unbound_query_routes.working_router.g.part':
+              decodedMatches(
+                allOf(
+                  contains('void routeToAccount({'),
+                  contains('void routeToDetails({'),
+                  contains('OptionalQueryParamValue<String> view'),
+                  contains('void routeToAudit()'),
+                ),
+              ),
+        },
+        readerWriter: readerWriter,
+      );
+    },
+  );
+
+  test(
     'uses annotated inherited query parameter route target defaults',
     () async {
       final builder = workingRouterRouteHelpersBuilder(

@@ -274,6 +274,9 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
+      unboundQueryParameters: List.unmodifiable(
+        builder.unboundQueryParameters,
+      ),
       overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
       pageKey: builder.pageKey,
@@ -291,6 +294,10 @@ abstract class AbstractMultiShell<Self extends AbstractMultiShell<Self>>
 
   @override
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
+
+  @override
+  List<DefaultQueryParam<dynamic>> get unboundQueryParameters =>
+      _definition.unboundQueryParameters;
 
   @override
   UriVisibility get pathVisibility => _definition.pathVisibility;

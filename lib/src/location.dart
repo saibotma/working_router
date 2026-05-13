@@ -6,6 +6,7 @@ import 'package:working_router/src/overlay.dart';
 import 'package:working_router/src/path_route_node.dart';
 import 'package:working_router/src/route_node.dart'
     show
+        DefaultQueryParam,
         PageKey,
         PathParam,
         PathSegment,
@@ -206,6 +207,7 @@ class BuiltLocationDefinition {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
+  final List<DefaultQueryParam<dynamic>> unboundQueryParameters;
   final List<AnyOverlay> overlays;
   final List<RouteNode> children;
   final PageKey pageKey;
@@ -217,6 +219,7 @@ class BuiltLocationDefinition {
     required this.path,
     required this.pathParameters,
     required this.queryParameters,
+    required this.unboundQueryParameters,
     required this.overlays,
     required this.children,
     required this.pageKey,

@@ -71,6 +71,7 @@ abstract class PathRouteNodeBuilder {
   final List<PathSegment> _path = [];
   final List<PathParam<dynamic>> _pathParameters = [];
   final List<QueryParam<dynamic>> _queryParameters = [];
+  final List<DefaultQueryParam<dynamic>> _unboundQueryParameters = [];
   List<AnyOverlay> _overlays = const [];
   bool _overlaysAssigned = false;
   List<RouteNode> _children = const [];
@@ -89,6 +90,8 @@ abstract class PathRouteNodeBuilder {
   List<PathSegment> get path => _path;
   List<PathParam<dynamic>> get pathParameters => _pathParameters;
   List<QueryParam<dynamic>> get queryParameters => _queryParameters;
+  List<DefaultQueryParam<dynamic>> get unboundQueryParameters =>
+      _unboundQueryParameters;
   List<AnyOverlay> get overlays => _overlays;
   List<RouteNode> get children => _children;
 
@@ -576,6 +579,14 @@ abstract class PathRouteNodeBuilder {
     );
   }
 
+  /// Stops inheriting [parameter] from this route node downward.
+  ///
+  /// When this route is matched, the parameter is reset to its default value
+  /// and omitted from generated URIs for this route and its descendants.
+  void unbindQueryParam<T>(DefaultQueryParam<T> parameter) {
+    _unboundQueryParameters.add(parameter);
+  }
+
   set children(List<RouteNode> children) {
     if (_childrenAssigned) {
       throw StateError(
@@ -683,6 +694,9 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
+      unboundQueryParameters: List.unmodifiable(
+        builder.unboundQueryParameters,
+      ),
       overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
       pageKey: builder.pageKey,
@@ -697,6 +711,9 @@ abstract class PathRouteNode<Self extends PathRouteNode<Self>>
   List<PathParam<dynamic>> get pathParameters => _definition.pathParameters;
 
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
+
+  List<DefaultQueryParam<dynamic>> get unboundQueryParameters =>
+      _definition.unboundQueryParameters;
 
   List<AnyOverlay> get pathRouteOverlays => _definition.overlays;
 

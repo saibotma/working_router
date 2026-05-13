@@ -130,6 +130,7 @@ class BuiltShellDefinition {
   final List<PathSegment> path;
   final List<PathParam<dynamic>> pathParameters;
   final List<QueryParam<dynamic>> queryParameters;
+  final List<DefaultQueryParam<dynamic>> unboundQueryParameters;
   final List<AnyOverlay> overlays;
   final List<RouteNode> children;
   final PageKey pageKey;
@@ -141,6 +142,7 @@ class BuiltShellDefinition {
     required this.path,
     required this.pathParameters,
     required this.queryParameters,
+    required this.unboundQueryParameters,
     required this.overlays,
     required this.children,
     required this.pageKey,
@@ -204,6 +206,9 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
       path: List.unmodifiable(builder.path),
       pathParameters: List.unmodifiable(builder.pathParameters),
       queryParameters: List.unmodifiable(builder.queryParameters),
+      unboundQueryParameters: List.unmodifiable(
+        builder.unboundQueryParameters,
+      ),
       overlays: List.unmodifiable(builder.overlays),
       children: List.unmodifiable(builder.children),
       pageKey: builder.pageKey,
@@ -221,6 +226,10 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
 
   @override
   List<QueryParam<dynamic>> get queryParameters => _definition.queryParameters;
+
+  @override
+  List<DefaultQueryParam<dynamic>> get unboundQueryParameters =>
+      _definition.unboundQueryParameters;
 
   @override
   List<AnyOverlay> get pathRouteOverlays => _definition.overlays;

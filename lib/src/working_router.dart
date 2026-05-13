@@ -1067,7 +1067,12 @@ class WorkingRouter extends ChangeNotifier
           .toSet();
       for (final queryParameter in node.queryParameters) {
         if (queryParameter case final DefaultQueryParam<dynamic> parameter
-            when parameter.scope == QueryParamScope.node) {
+            when parameter.scope == QueryParamScope.node ||
+                _isQueryParameterUnboundBelow(
+                  pathRouteNodes,
+                  startIndex: i,
+                  parameter: parameter,
+                )) {
           if (descendantQueryKeys.contains(parameter.name)) {
             continue;
           }
@@ -1080,6 +1085,23 @@ class WorkingRouter extends ChangeNotifier
       }
     }
     return result;
+  }
+
+  bool _isQueryParameterUnboundBelow(
+    IList<PathRouteNode> pathRouteNodes, {
+    required int startIndex,
+    required DefaultQueryParam<dynamic> parameter,
+  }) {
+    return pathRouteNodes
+        .skip(startIndex + 1)
+        .any(
+          (node) => node.unboundQueryParameters.any(
+            (unboundParameter) => identical(
+              unboundParameter.unboundParam,
+              parameter.unboundParam,
+            ),
+          ),
+        );
   }
 
   IMap<RouteNode, IList<AnyOverlay>> _activeOverlaysByOwner({

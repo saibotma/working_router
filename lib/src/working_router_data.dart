@@ -240,18 +240,26 @@ class WorkingRouterData {
       return const IListConst([]);
     }
 
-    final values = <(String, Object?)>[];
+    final values = <QueryParam<dynamic>, (String, Object?)>{};
     for (final pathNode in routeNodes.take(nodeIndex + 1).pathRouteNodes) {
+      for (final unboundParameter in pathNode.unboundQueryParameters) {
+        values.removeWhere(
+          (parameter, value) => identical(
+            parameter.unboundParam,
+            unboundParameter.unboundParam,
+          ),
+        );
+      }
       for (final queryParameter in pathNode.queryParameters) {
         if (queryParameter.identity == QueryParamIdentity.pathLike) {
-          values.add((
+          values[queryParameter] = (
             queryParameter.name,
             param(queryParameter) as Object?,
-          ));
+          );
         }
       }
     }
-    return values.toIList();
+    return values.values.toIList();
   }
 
   int _indexOfIdenticalNode(RouteNode node) {

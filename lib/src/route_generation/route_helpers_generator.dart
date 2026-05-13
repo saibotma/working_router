@@ -859,6 +859,20 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
     final queryParameters = <String, _GeneratedRouteParameter>{};
     final usedParameterNames = <String, String>{};
 
+    void unregisterQueryParameter(String key) {
+      final removedParameter = queryParameters.remove(key);
+      if (removedParameter == null) {
+        return;
+      }
+      if (pathParameters.values.any(
+        (pathParameter) =>
+            pathParameter.parameterName == removedParameter.parameterName,
+      )) {
+        return;
+      }
+      usedParameterNames.remove(removedParameter.parameterName);
+    }
+
     void registerParameter(
       _GeneratedRouteParameter parameter,
       Map<String, _GeneratedRouteParameter> target,
@@ -921,6 +935,10 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
 
     for (var nodeIndex = 0; nodeIndex < nodeList.length; nodeIndex++) {
       final node = nodeList[nodeIndex];
+      for (final unboundQueryParameterKey in node.unboundQueryParameterKeys) {
+        unregisterQueryParameter(unboundQueryParameterKey);
+      }
+
       for (final segment in node.pathSegments) {
         if (segment case _RoutePathParameterSegmentMetadata()) {
           registerParameter(
@@ -1780,6 +1798,8 @@ class _StaticRouteTreeExtractor {
       locationTypeSource: classElement.displayName,
       pathSegments: pathSegments,
       queryParameters: queryParameters,
+      unboundQueryParameterKeys:
+          dslDefinition?.unboundQueryParameterKeys ?? const <String>{},
       queryParameterRouteTargetDefaults: queryParameterRouteTargetDefaults,
       overlays: overlays,
       children: children,
@@ -2622,6 +2642,32 @@ class _StaticRouteTreeExtractor {
           result.queryParameters,
           element: elementForErrors,
         );
+      case 'unbindQueryParam':
+        if (!supportsPathAndQuery) {
+          return;
+        }
+        final parameterExpression = normalizedExpression.argumentList.arguments
+            .whereType<Expression>()
+            .firstOrNull;
+        if (parameterExpression == null) {
+          throw InvalidGenerationSourceError(
+            'unbindQueryParam(...) requires a DefaultQueryParam.',
+            element: elementForErrors,
+          );
+        }
+        final queryParameterMetadata = await _routeTargetDefaultQueryMetadata(
+          parameterExpression,
+          elementForErrors,
+          evaluationContext: context,
+        );
+        if (queryParameterMetadata == null ||
+            !queryParameterMetadata.optional) {
+          throw InvalidGenerationSourceError(
+            'unbindQueryParam(...) requires a DefaultQueryParam.',
+            element: elementForErrors,
+          );
+        }
+        result.unboundQueryParameterKeys.add(queryParameterMetadata.key);
       case 'id':
         if (!isLocation) {
           return;
@@ -2756,6 +2802,9 @@ class _StaticRouteTreeExtractor {
       queryParameters: supportsPathAndQuery
           ? dslDefinition.queryParameters
           : const <String, _RouteQueryParameterMetadata>{},
+      unboundQueryParameterKeys: supportsPathAndQuery
+          ? dslDefinition.unboundQueryParameterKeys
+          : const <String>{},
       queryParameterRouteTargetDefaults:
           const <String, _OptionalQueryParamRouteTargetDefault>{},
       overlays: dslDefinition.overlays,
@@ -4775,6 +4824,7 @@ class _ResolvedDslDefinition {
   String? locationLocalIdExpression;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
+  final Set<String> unboundQueryParameterKeys;
   final List<_RouteNode> overlays;
   final List<_RouteNode> children;
   int pathParameterCount;
@@ -4784,6 +4834,7 @@ class _ResolvedDslDefinition {
     required this.locationLocalIdExpression,
     required this.pathSegments,
     required this.queryParameters,
+    required this.unboundQueryParameterKeys,
     required this.overlays,
     required this.children,
     required this.pathParameterCount,
@@ -4795,6 +4846,7 @@ class _ResolvedDslDefinition {
       locationLocalIdExpression: null,
       pathSegments: <_PathSegmentMetadata>[],
       queryParameters: <String, _RouteQueryParameterMetadata>{},
+      unboundQueryParameterKeys: <String>{},
       overlays: <_RouteNode>[],
       children: <_RouteNode>[],
       pathParameterCount: 0,
@@ -4807,6 +4859,7 @@ class _ResolvedDslDefinition {
       locationLocalIdExpression: locationLocalIdExpression,
       pathSegments: [...pathSegments],
       queryParameters: {...queryParameters},
+      unboundQueryParameterKeys: {...unboundQueryParameterKeys},
       overlays: [...overlays],
       children: [...children],
       pathParameterCount: pathParameterCount,
@@ -4820,6 +4873,7 @@ class _ResolvedDslDefinition {
       pathSegments.addAll(other.pathSegments);
     }
     queryParameters.addAll(other.queryParameters);
+    unboundQueryParameterKeys.addAll(other.unboundQueryParameterKeys);
     overlays.addAll(other.overlays);
     children.addAll(other.children);
     if (other.pathParameterCount > pathParameterCount) {
@@ -6292,6 +6346,7 @@ class _RouteNode {
   final Map<int, int> exclusiveBranchSelections;
   final List<_PathSegmentMetadata> pathSegments;
   final Map<String, _RouteQueryParameterMetadata> queryParameters;
+  final Set<String> unboundQueryParameterKeys;
   final Map<String, _OptionalQueryParamRouteTargetDefault>
   queryParameterRouteTargetDefaults;
   final List<_RouteNode> overlays;
@@ -6308,6 +6363,7 @@ class _RouteNode {
     this.exclusiveBranchSelections = const {},
     required this.pathSegments,
     required this.queryParameters,
+    required this.unboundQueryParameterKeys,
     required this.queryParameterRouteTargetDefaults,
     required this.overlays,
     required this.children,
@@ -6328,6 +6384,7 @@ class _RouteNode {
       },
       pathSegments: pathSegments,
       queryParameters: queryParameters,
+      unboundQueryParameterKeys: unboundQueryParameterKeys,
       queryParameterRouteTargetDefaults: queryParameterRouteTargetDefaults,
       overlays: [
         for (final overlay in overlays)
