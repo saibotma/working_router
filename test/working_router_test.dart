@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
+import 'package:working_router/src/logging.dart' as working_router_logging;
 import 'package:working_router/working_router.dart';
 
 void main() {
@@ -312,6 +314,51 @@ void main() {
         informationProvider.debugReportedTypes.last,
         RouteInformationReportingType.neglect,
       );
+    });
+
+    testWidgets('does not log diagnostics by default', (tester) async {
+      final logs = <LogRecord>[];
+      working_router_logging.testDeveloperLog = logs.add;
+      addTearDown(() {
+        working_router_logging.testDeveloperLog = null;
+        working_router_logging.setLogging();
+      });
+
+      final router = _buildRouter();
+
+      router.routeToStatic(Uri(path: '/a/b'));
+      await tester.pump();
+
+      expect(logs, isEmpty);
+    });
+
+    testWidgets('logs committed transitions when diagnostics are enabled', (
+      tester,
+    ) async {
+      final logs = <LogRecord>[];
+      working_router_logging.testDeveloperLog = logs.add;
+      addTearDown(() {
+        working_router_logging.testDeveloperLog = null;
+        working_router_logging.setLogging();
+      });
+
+      final router = _buildRouter(debugLogDiagnostics: true);
+
+      router.routeToStatic(Uri(path: '/a/b', queryParameters: {'q': '1'}));
+      await tester.pump();
+
+      expect(logs, hasLength(1));
+      expect(
+        logs.single.message,
+        contains('transition programmatic: <none> -> /a/b?q=1'),
+      );
+      expect(logs.single.message, contains('leaf: _PathLocation'));
+      expect(logs.single.message, contains('path template: /a/b'));
+      expect(
+        logs.single.message,
+        contains('route chain: _PathLocation > _PathLocation > _PathLocation'),
+      );
+      expect(logs.single.message, contains('query parameters: {q: 1}'));
     });
   });
 
@@ -4081,6 +4128,7 @@ WorkingRouter _buildRouter({
   RouteTransitionCommitted? onTransitionCommitted,
   Future<bool> Function()? beforeLeave,
   int redirectLimit = 5,
+  bool debugLogDiagnostics = false,
   Widget noContentWidget = const SizedBox.shrink(),
 }) {
   return WorkingRouter(
@@ -4119,6 +4167,7 @@ WorkingRouter _buildRouter({
     decideTransition: decideTransition,
     onTransitionCommitted: onTransitionCommitted,
     redirectLimit: redirectLimit,
+    debugLogDiagnostics: debugLogDiagnostics,
   );
 }
 

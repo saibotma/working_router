@@ -4,6 +4,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router.dart';
+import 'package:working_router/src/logging.dart' as diagnostics;
 import 'package:working_router/src/working_router_delegate.dart';
 import 'package:working_router/working_router.dart';
 
@@ -85,6 +86,7 @@ class WorkingRouter extends ChangeNotifier
     TransitionDecider? decideTransition,
     RouteTransitionCommitted? onTransitionCommitted,
     int redirectLimit = 5,
+    bool debugLogDiagnostics = false,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _rootNavigatorKey =
@@ -92,6 +94,7 @@ class WorkingRouter extends ChangeNotifier
        _decideTransition = decideTransition,
        _onTransitionCommitted = onTransitionCommitted,
        _redirectLimit = redirectLimit {
+    diagnostics.setLogging(enabled: debugLogDiagnostics);
     _routeNodeTree = _buildRouteNodeTree();
     _rootDelegate = WorkingRouterDelegate(
       debugLabel: "root",
@@ -475,6 +478,11 @@ class WorkingRouter extends ChangeNotifier
               to: resolvedData,
               reason: resolvedTransition.reason,
             ),
+          );
+          _logTransition(
+            from: oldData,
+            to: resolvedData,
+            reason: resolvedTransition.reason,
           );
           _updateData(resolvedData);
 
@@ -1517,6 +1525,50 @@ class WorkingRouter extends ChangeNotifier
     _data = data;
     _rootDelegate.updateData(data);
     notifyListeners();
+  }
+
+  void _logTransition({
+    required WorkingRouterData? from,
+    required WorkingRouterData to,
+    required RouteTransitionReason reason,
+  }) {
+    diagnostics.log(
+      'transition ${reason.name}: ${from?.uri ?? '<none>'} -> ${to.uri}\n'
+      '  leaf: ${_debugNodeName(to.leaf)}\n'
+      '  path template: ${_debugPathTemplate(to)}\n'
+      '  route chain: ${_debugRouteChain(to)}\n'
+      '  query parameters: ${_debugQueryParameters(to)}',
+    );
+  }
+
+  String _debugPathTemplate(WorkingRouterData data) {
+    if (data.routeNodes.isEmpty) {
+      return '<unmatched>';
+    }
+    return data.routeNodes.pathRouteNodes.buildPathTemplate();
+  }
+
+  String _debugRouteChain(WorkingRouterData data) {
+    if (data.routeNodesWithOverlays.isEmpty) {
+      return '<empty>';
+    }
+    return data.routeNodesWithOverlays.map(_debugNodeName).join(' > ');
+  }
+
+  String _debugNodeName(RouteNode? node) {
+    if (node == null) {
+      return '<none>';
+    }
+    return node.runtimeType.toString();
+  }
+
+  String _debugQueryParameters(WorkingRouterData data) {
+    if (data.queryParameters.isEmpty) {
+      return '{}';
+    }
+    final entries = data.queryParameters.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return '{${entries.map((it) => '${it.key}: ${it.value}').join(', ')}}';
   }
 
   void addNestedDelegate(WorkingRouterDelegate delegate) {
