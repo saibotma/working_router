@@ -362,6 +362,52 @@ void main() {
       expect(data.paramOrNull(itemId), '123');
       expect(data.paramOrNull(tab), 'all');
     });
+
+    test('bound params read values from router data', () {
+      const itemId = UnboundPathParam(StringRouteParamCodec());
+      const tab = DefaultUnboundQueryParam(
+        'tab',
+        StringRouteParamCodec(),
+        defaultValue: 'all',
+      );
+      final list = _TestLocation(id: _TestId.list, path: '/items');
+      final detail = _BoundParamLocation(
+        id: _TestId.bound,
+        pathParameter: itemId,
+        queryParameter: tab,
+      );
+      final data = _workingRouterData(
+        uri: Uri(path: '/items/123', queryParameters: {'tab': 'archived'}),
+        routeNodes: <RouteNode>[list, detail].toIList(),
+        activeOverlaysByOwner: IMap(),
+        pathParameters: {itemId: '123'}.lock,
+        queryParameters: {'tab': 'archived'}.lock,
+      );
+
+      expect(detail.boundPathParameter.read(data), '123');
+      expect(detail.boundQueryParameter.read(data), 'archived');
+    });
+
+    test('unbound params read nullable active values', () {
+      const itemId = UnboundPathParam(StringRouteParamCodec());
+      const tab = DefaultUnboundQueryParam(
+        'tab',
+        StringRouteParamCodec(),
+        defaultValue: 'all',
+      );
+      final data = _workingRouterData(
+        uri: Uri(path: '/items'),
+        routeNodes: <RouteNode>[
+          _TestLocation(id: _TestId.list, path: '/items'),
+        ].toIList(),
+        activeOverlaysByOwner: IMap(),
+        pathParameters: IMap(),
+        queryParameters: IMap(),
+      );
+
+      expect(itemId.readOrNull(data), isNull);
+      expect(tab.readOrNull(data), isNull);
+    });
   });
 
   group('WorkingRouterData.isChildOf', () {
@@ -687,6 +733,10 @@ class _NoIdSegmentLocation extends Location<_NoIdSegmentLocation> {
 class _BoundParamLocation extends Location<_BoundParamLocation> {
   final UnboundPathParam<String> pathParameter;
   final UnboundQueryParam<String> queryParameter;
+  late final PathParam<String> boundPathParameter =
+      definition.pathParameters.single as PathParam<String>;
+  late final QueryParam<String> boundQueryParameter =
+      definition.queryParameters.single as QueryParam<String>;
 
   _BoundParamLocation({
     required RouteNodeId<_BoundParamLocation> id,

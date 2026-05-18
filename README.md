@@ -154,8 +154,9 @@ Important details:
   content.
 - For rare cross-cutting cases, define reusable unbound params with
   `UnboundPathParam` / `UnboundQueryParam`, bind them with
-  `builder.bindParam(...)`, read the bound `Param` with `data.param(...)`, and
-  read the reusable unbound definition with `data.paramOrNull(...)`.
+  `builder.bindParam(...)`, read the bound `Param` with `param.read(data)` or
+  `data.param(param)`, and read reusable unbound definitions with
+  `param.readOrNull(data)` or `data.paramOrNull(param)`.
 - Query values should be read through `data.param(...)` or
   `data.paramOrNull(...)`, not by indexing the raw query parameter map. The
   typed helpers enforce active-route membership and apply codecs/defaults.
@@ -195,7 +196,7 @@ final account = AccountRouteNode(
 );
 
 // Somewhere outer in the widget tree:
-final activeAccountId = data.paramOrNull(accountId);
+final activeAccountId = accountId.readOrNull(data);
 ```
 
 If a route node itself should keep access to a bound param after `build(...)`,
@@ -216,7 +217,11 @@ class AccountRouteNode extends Location<AccountRouteNode> {
 ```
 
 This is useful when matched node instances should expose their bound params for
-safe reads later.
+safe reads later:
+
+```dart
+final activeAccountId = account.accountId.read(data);
+```
 
 The generator supports this assignment pattern when producing typed route
 helpers.
@@ -444,7 +449,7 @@ class LessonRouteNode extends Location<LessonRouteNode> {
   void build(LocationBuilder builder) {
     final lessonId = builder.stringPathParam();
     builder.content = Content.builder((context, data) {
-      return LessonScreen(lessonId: data.param(lessonId));
+      return LessonScreen(lessonId: lessonId.read(data));
     });
     builder.pageKey = const PageKey.templatePath();
   }

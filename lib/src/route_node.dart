@@ -155,6 +155,13 @@ sealed class Param<T> {
   const Param();
 
   RouteParamCodec<T> get codec;
+
+  /// Reads this bound parameter from [data].
+  ///
+  /// This is equivalent to `data.param(this)`.
+  T read(WorkingRouterData data) {
+    return data.param(this);
+  }
 }
 
 /// Reusable parameter definition that is not yet declared on a route node.
@@ -165,6 +172,17 @@ sealed class UnboundParam<T> {
   const UnboundParam();
 
   RouteParamCodec<T> get codec;
+
+  /// Reads this reusable parameter definition from [data] when it is active.
+  ///
+  /// Returns `null` when this parameter is not part of the current matched route
+  /// chain. For default-bearing query parameters, returns the default value
+  /// while the declaring route is active and no explicit query value is present.
+  ///
+  /// This is equivalent to `data.paramOrNull(this)`.
+  T? readOrNull(WorkingRouterData data) {
+    return data.paramOrNull(this);
+  }
 }
 
 final class UnboundPathParam<T> extends UnboundParam<T> {
@@ -179,7 +197,7 @@ final class UnboundPathParam<T> extends UnboundParam<T> {
 /// Path parameters are always matched from an existing URI segment, so this
 /// package intentionally models them as non-nullable values. If a segment is
 /// missing, the route does not match instead of producing `null`.
-class PathParam<T> extends PathSegment implements Param<T> {
+class PathParam<T> extends Param<T> implements PathSegment {
   final UnboundPathParam<T> unboundParam;
   @override
   RouteParamCodec<T> get codec => unboundParam.codec;
@@ -210,7 +228,7 @@ final class DefaultUnboundQueryParam<T> extends UnboundQueryParam<T> {
   });
 }
 
-sealed class QueryParam<T> implements Param<T> {
+sealed class QueryParam<T> extends Param<T> {
   final UnboundQueryParam<T> _unboundParam;
   final UriVisibility uriVisibility;
   final QueryParamIdentity identity;
