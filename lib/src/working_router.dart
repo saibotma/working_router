@@ -461,6 +461,9 @@ class WorkingRouter extends ChangeNotifier
       return;
     }
     final resolvedData = resolvedTransition.data;
+    if (oldData == resolvedData) {
+      return;
+    }
 
     unawaited(
       _guardBeforeLeave(

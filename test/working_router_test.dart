@@ -121,6 +121,35 @@ void main() {
       },
     );
 
+    testWidgets('does not commit when resolved route data is unchanged', (
+      tester,
+    ) async {
+      final calls = <String>[];
+      final router = _buildRouter(
+        decideTransition: (_, transition) {
+          calls.add('decide:${transition.to.uri.path}');
+          return const AllowTransition();
+        },
+        onTransitionCommitted: (transition) {
+          calls.add('committed:${transition.to.uri.path}');
+        },
+      );
+      router.addListener(() {
+        calls.add('listener:${router.nullableData!.uri.path}');
+      });
+
+      await _pumpRouterApp(tester, router);
+      router.routeToStatic(Uri(path: '/a'));
+      await tester.pumpAndSettle();
+      calls.clear();
+
+      router.routeToStatic(Uri(path: '/a'));
+      await tester.pumpAndSettle();
+
+      expect(calls, ['decide:/a']);
+      expect(router.nullableData!.uri.path, '/a');
+    });
+
     testWidgets(
       'calls TransitionDecider with null from after unmatched target',
       (

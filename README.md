@@ -752,6 +752,19 @@ nested routing widgets: a `routeBack()` call removes the last active location
 owned by that nested navigator. If that navigator has no active location left,
 the router falls back to the parent/global back behavior.
 
+## Transition Callbacks
+
+`decideTransition` runs while a route attempt is still speculative. It can
+allow, block, or redirect the target. Redirects are resolved before the router
+commits the final data, and redirected targets run through `decideTransition`
+again with `RouteTransitionReason.redirect`.
+
+`onTransitionCommitted` runs only after the final target has been accepted and
+the router is about to update its data. If the final resolved
+`WorkingRouterData` is equal to the current router data, the route attempt is a
+no-op: `decideTransition` may still have run, but `onTransitionCommitted`,
+`beforeLeave`, listeners, and route observer update callbacks are skipped.
+
 ## Generated API
 
 From `@RouteNodes()`, the generator emits:

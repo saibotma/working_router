@@ -31,7 +31,12 @@ class RouteTransition {
 ///
 /// The router invokes this after redirects have resolved and `beforeLeave`
 /// callbacks have allowed the transition, but before pages for the new route
-/// data are built. Keep this callback synchronous and fast.
+/// data are built.
+///
+/// If a route attempt resolves to data equal to the current
+/// [WorkingRouterData], the router treats it as a no-op: transition deciders
+/// may still have run, but no transition is committed and this callback is not
+/// invoked. Keep this callback synchronous and fast.
 typedef RouteTransitionCommitted = void Function(RouteTransition transition);
 
 /// The result of a transition callback.
