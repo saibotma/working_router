@@ -4,7 +4,7 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:working_router/src/inherited_working_router.dart';
-import 'package:working_router/src/logging.dart' as diagnostics;
+import 'package:working_router/src/logging.dart';
 import 'package:working_router/src/working_router_delegate.dart';
 import 'package:working_router/working_router.dart';
 
@@ -86,7 +86,6 @@ class WorkingRouter extends ChangeNotifier
     TransitionDecider? decideTransition,
     RouteTransitionCommitted? onTransitionCommitted,
     int redirectLimit = 5,
-    bool debugLogDiagnostics = false,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _rootNavigatorKey =
@@ -94,7 +93,6 @@ class WorkingRouter extends ChangeNotifier
        _decideTransition = decideTransition,
        _onTransitionCommitted = onTransitionCommitted,
        _redirectLimit = redirectLimit {
-    diagnostics.setLogging(enabled: debugLogDiagnostics);
     _routeNodeTree = _buildRouteNodeTree();
     _rootDelegate = WorkingRouterDelegate(
       debugLabel: "root",
@@ -1535,7 +1533,7 @@ class WorkingRouter extends ChangeNotifier
     required WorkingRouterData to,
     required RouteTransitionReason reason,
   }) {
-    diagnostics.log(
+    logger.info(
       'transition ${reason.name}: ${from?.uri ?? '<none>'} -> ${to.uri}\n'
       '  leaf: ${_debugNodeName(to.leaf)}\n'
       '  path template: ${_debugPathTemplate(to)}\n'

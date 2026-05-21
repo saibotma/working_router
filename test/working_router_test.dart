@@ -345,38 +345,25 @@ void main() {
       );
     });
 
-    testWidgets('does not log diagnostics by default', (tester) async {
+    testWidgets('logs committed transitions', (tester) async {
       final logs = <LogRecord>[];
-      working_router_logging.testDeveloperLog = logs.add;
-      addTearDown(() {
-        working_router_logging.testDeveloperLog = null;
-        working_router_logging.setLogging();
+      final previousHierarchicalLoggingEnabled = hierarchicalLoggingEnabled;
+      hierarchicalLoggingEnabled = true;
+      final subscription = working_router_logging.logger.onRecord.listen(
+        logs.add,
+      );
+      addTearDown(() async {
+        await subscription.cancel();
+        hierarchicalLoggingEnabled = previousHierarchicalLoggingEnabled;
       });
 
       final router = _buildRouter();
-
-      router.routeToStatic(Uri(path: '/a/b'));
-      await tester.pump();
-
-      expect(logs, isEmpty);
-    });
-
-    testWidgets('logs committed transitions when diagnostics are enabled', (
-      tester,
-    ) async {
-      final logs = <LogRecord>[];
-      working_router_logging.testDeveloperLog = logs.add;
-      addTearDown(() {
-        working_router_logging.testDeveloperLog = null;
-        working_router_logging.setLogging();
-      });
-
-      final router = _buildRouter(debugLogDiagnostics: true);
 
       router.routeToStatic(Uri(path: '/a/b', queryParameters: {'q': '1'}));
       await tester.pump();
 
       expect(logs, hasLength(1));
+      expect(logs.single.level, Level.INFO);
       expect(
         logs.single.message,
         contains('transition programmatic: <none> -> /a/b?q=1'),
@@ -4157,7 +4144,6 @@ WorkingRouter _buildRouter({
   RouteTransitionCommitted? onTransitionCommitted,
   Future<bool> Function()? beforeLeave,
   int redirectLimit = 5,
-  bool debugLogDiagnostics = false,
   Widget noContentWidget = const SizedBox.shrink(),
 }) {
   return WorkingRouter(
@@ -4196,7 +4182,6 @@ WorkingRouter _buildRouter({
     decideTransition: decideTransition,
     onTransitionCommitted: onTransitionCommitted,
     redirectLimit: redirectLimit,
-    debugLogDiagnostics: debugLogDiagnostics,
   );
 }
 
