@@ -1,5 +1,7 @@
 import 'dart:async';
 
+// ignore_for_file: avoid_classes_with_only_static_members
+
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -623,9 +625,11 @@ void main() {
 
         router.routeToId(
           _ParamId.item,
-          writePathParameters: (node, path) {
-            if (node is _ItemLocation) {
-              path(node.boundIdParameter, '42');
+          writePathParameters: (nodes, path) {
+            for (final node in nodes) {
+              if (node is _ItemLocation) {
+                path(node, node.boundIdParameter, '42');
+              }
             }
           },
         );
@@ -633,6 +637,51 @@ void main() {
 
         expect(router.nullableData!.uri.path, '/item/42');
         expect(router.nullableData!.queryParameters.unlock, {'keep': '1'});
+      },
+    );
+
+    testWidgets(
+      'route target parameter writes are reusable across routeTo calls',
+      (tester) async {
+        final router = _buildParamRouter();
+        final target = IdRouteTarget(
+          _ParamId.item,
+          writePathParameters: (nodes, path) {
+            var itemMatchIndex = 0;
+            for (final node in nodes) {
+              if (node is _ItemLocation) {
+                switch (itemMatchIndex++) {
+                  case 0:
+                    path(node, node.boundIdParameter, '42');
+                }
+              }
+            }
+          },
+          writeQueryParameters: (nodes, query) {
+            var itemMatchIndex = 0;
+            for (final node in nodes) {
+              if (node is _ItemLocation) {
+                switch (itemMatchIndex++) {
+                  case 0:
+                    query(node, node.boundKeep, 'yes');
+                }
+              }
+            }
+          },
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeTo(target);
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData!.uri, Uri.parse('/item/42?keep=yes'));
+
+        router.routeToStatic(Uri.parse('/item/99/details?keep=no&detail=open'));
+        await tester.pumpAndSettle();
+        router.routeTo(target);
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData!.uri, Uri.parse('/item/42?keep=yes'));
       },
     );
 
@@ -1188,11 +1237,13 @@ void main() {
       await _pumpRouterApp(tester, router);
       router.routeToId(
         _Id.a,
-        writeQueryParameters: (node, query) {
-          if (node.queryParameters.any(
-            (it) => identical(it, languageCode),
-          )) {
-            query(languageCode, 'en');
+        writeQueryParameters: (nodes, query) {
+          for (final node in nodes) {
+            if (node.queryParameters.any(
+              (it) => identical(it, languageCode),
+            )) {
+              query(node, languageCode, 'en');
+            }
           }
         },
       );
@@ -1204,11 +1255,13 @@ void main() {
 
       router.routeToId(
         _Id.a,
-        writeQueryParameters: (node, query) {
-          if (node.queryParameters.any(
-            (it) => identical(it, languageCode),
-          )) {
-            query(languageCode, 'de');
+        writeQueryParameters: (nodes, query) {
+          for (final node in nodes) {
+            if (node.queryParameters.any(
+              (it) => identical(it, languageCode),
+            )) {
+              query(node, languageCode, 'de');
+            }
           }
         },
       );
@@ -1225,11 +1278,13 @@ void main() {
 
       router.routeToId(
         _Id.a,
-        writeQueryParameters: (node, query) {
-          if (node.queryParameters.any(
-            (it) => identical(it, languageCode),
-          )) {
-            query(languageCode, 'en');
+        writeQueryParameters: (nodes, query) {
+          for (final node in nodes) {
+            if (node.queryParameters.any(
+              (it) => identical(it, languageCode),
+            )) {
+              query(node, languageCode, 'en');
+            }
           }
         },
       );
@@ -1565,9 +1620,11 @@ void main() {
       await _pumpRouterApp(tester, router);
       router.routeToId(
         _Id.b,
-        writePathParameters: (node, path) {
-          if (node is Shell) {
-            path(node.pathParameters.single as PathParam<String>, '42');
+        writePathParameters: (nodes, path) {
+          for (final node in nodes) {
+            if (node is Shell) {
+              path(node, node.pathParameters.single as PathParam<String>, '42');
+            }
           }
         },
       );
@@ -3369,9 +3426,11 @@ void main() {
         ChildRouteTarget(
           start: chat,
           resolveChildPathNodes: () => <RouteNode>[channel].toIList(),
-          writeQueryParameters: (node, query) {
-            if (identical(node, chat)) {
-              query(search, true);
+          writeQueryParameters: (nodes, query) {
+            for (final node in nodes) {
+              if (identical(node, chat)) {
+                query(node, search, true);
+              }
             }
           },
         ),
@@ -3804,11 +3863,13 @@ void main() {
         router.routeTo(
           IdRouteBase(
             accountShellId,
-            writePathParameters: (node, path) {
-              if (node.id == accountShellId) {
-                final accountId =
-                    node.pathParameters.single as PathParam<String>;
-                path(accountId, 'selected');
+            writePathParameters: (nodes, path) {
+              for (final node in nodes) {
+                if (node.id == accountShellId) {
+                  final accountId =
+                      node.pathParameters.single as PathParam<String>;
+                  path(node, accountId, 'selected');
+                }
               }
             },
           ).append(accountScopedTargetUri),
@@ -3843,14 +3904,18 @@ void main() {
         IdRouteTarget itemTarget(String itemId) {
           return IdRouteTarget(
             _ParamId.item,
-            writePathParameters: (node, path) {
-              if (node is _ItemLocation) {
-                path(node.boundIdParameter, itemId);
+            writePathParameters: (nodes, path) {
+              for (final node in nodes) {
+                if (node is _ItemLocation) {
+                  path(node, node.boundIdParameter, itemId);
+                }
               }
             },
-            writeQueryParameters: (node, query) {
-              if (node is _ItemLocation) {
-                query(node.boundKeep, 'yes');
+            writeQueryParameters: (nodes, query) {
+              for (final node in nodes) {
+                if (node is _ItemLocation) {
+                  query(node, node.boundKeep, 'yes');
+                }
               }
             },
           );
@@ -3887,16 +3952,20 @@ void main() {
         IdRouteBase accountDashboardBase(String accountId) {
           return IdRouteBase(
             _Id.a,
-            writePathParameters: (node, path) {
-              if (node.id == accountShellId) {
-                final accountIdParam =
-                    node.pathParameters.single as PathParam<String>;
-                path(accountIdParam, accountId);
+            writePathParameters: (nodes, path) {
+              for (final node in nodes) {
+                if (node.id == accountShellId) {
+                  final accountIdParam =
+                      node.pathParameters.single as PathParam<String>;
+                  path(node, accountIdParam, accountId);
+                }
               }
             },
-            writeQueryParameters: (node, query) {
-              if (node.id == _Id.a) {
-                query(mode, mode.defaultValue);
+            writeQueryParameters: (nodes, query) {
+              for (final node in nodes) {
+                if (node.id == _Id.a) {
+                  query(node, mode, mode.defaultValue);
+                }
               }
             },
           );

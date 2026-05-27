@@ -9,71 +9,103 @@ part of 'route_nodes.dart';
 // ignore_for_file: type=lint
 
 final class SplashRouteTarget extends IdRouteTarget {
-  SplashRouteTarget() : super(splashRouteNodeId);
+  SplashRouteTarget()
+      : super(
+          splashRouteNodeId,
+        );
 }
 
 final class ARouteTarget extends IdRouteTarget {
-  ARouteTarget() : super(aRouteNodeId);
+  ARouteTarget()
+      : super(
+          aRouteNodeId,
+        );
 }
 
 final class AbRouteTarget extends IdRouteTarget {
-  AbRouteTarget() : super(abRouteNodeId);
+  AbRouteTarget()
+      : super(
+          abRouteNodeId,
+        );
 }
 
 final class AbcRouteTarget extends IdRouteTarget {
-  AbcRouteTarget({required String id, required String b, required String c})
-      : super(
+  AbcRouteTarget({
+    required String id,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
+  }) : super(
           abcRouteNodeId,
-          writePathParameters: (() {
+          writePathParameters: (nodes, path) {
             var abcRouteNodeIdMatchIndex = 0;
-            return (node, path) {
+            for (final node in nodes) {
               if (node.id == abcRouteNodeId) {
                 switch (abcRouteNodeIdMatchIndex++) {
                   case 0:
-                    path(node.pathParameters[0] as PathParam<String>, id);
+                    path(node, node.pathParameters[0] as PathParam<String>, id);
                     break;
                 }
               }
-            };
-          })(),
-          writeQueryParameters: (() {
+            }
+          },
+          writeQueryParameters: (nodes, query) {
             var abcRouteNodeIdMatchIndex = 0;
-            return (node, query) {
+            for (final node in nodes) {
               if (node.id == abcRouteNodeId) {
                 switch (abcRouteNodeIdMatchIndex++) {
                   case 0:
-                    query(
-                      node.queryParameters.firstWhere((it) => it.name == 'b')
-                          as QueryParam<String>,
-                      b,
-                    );
-                    query(
-                      node.queryParameters.firstWhere((it) => it.name == 'c')
-                          as QueryParam<String>,
-                      c,
-                    );
+                    switch (b) {
+                      case SetQueryParamValue(:final value):
+                        query(
+                            node,
+                            node.queryParameters
+                                    .firstWhere((it) => it.name == 'b')
+                                as QueryParam<String>,
+                            value);
+                    }
+                    switch (c) {
+                      case SetQueryParamValue(:final value):
+                        query(
+                            node,
+                            node.queryParameters
+                                    .firstWhere((it) => it.name == 'c')
+                                as QueryParam<String>,
+                            value);
+                    }
                     break;
                 }
               }
-            };
-          })(),
+            }
+          },
         );
 }
 
 final class AdRouteTarget extends IdRouteTarget {
-  AdRouteTarget() : super(adRouteNodeId);
+  AdRouteTarget()
+      : super(
+          adRouteNodeId,
+        );
 }
 
 final class AdcRouteTarget extends IdRouteTarget {
-  AdcRouteTarget() : super(adcRouteNodeId);
+  AdcRouteTarget()
+      : super(
+          adcRouteNodeId,
+        );
 }
 
 final class AdShellRouteTarget extends IdRouteTarget {
-  AdShellRouteTarget() : super(adShellRouteNodeId);
+  AdShellRouteTarget()
+      : super(
+          adShellRouteNodeId,
+        );
 }
 
 final class AdeRouteTarget extends IdRouteTarget {
-  AdeRouteTarget() : super(adeRouteNodeId);
+  AdeRouteTarget()
+      : super(
+          adeRouteNodeId,
+        );
 }
 
 extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor {
@@ -89,8 +121,18 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor {
     routeTo(AbRouteTarget());
   }
 
-  void routeToAbc({required String id, required String b, required String c}) {
-    routeTo(AbcRouteTarget(id: id, b: b, c: c));
+  void routeToAbc({
+    required String id,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
+  }) {
+    routeTo(
+      AbcRouteTarget(
+        id: id,
+        b: b,
+        c: c,
+      ),
+    );
   }
 
   void routeToAd() {
@@ -113,8 +155,8 @@ extension BuildRouteNodesGeneratedRoutes on WorkingRouterSailor {
 extension ABRouteNodeGeneratedChildTargets on ABRouteNode {
   ChildRouteTarget childAbcTarget({
     required String id,
-    required String b,
-    required String c,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
   }) {
     return ChildRouteTarget(
       start: this,
@@ -123,49 +165,61 @@ extension ABRouteNodeGeneratedChildTargets on ABRouteNode {
           (node) => node.id == abcRouteNodeId,
         ]);
       },
-      writePathParameters: (() {
+      writePathParameters: (nodes, path) {
         var abcRouteNodeIdMatchIndex = 0;
-        return (node, path) {
+        for (final node in nodes) {
           if (node.id == abcRouteNodeId) {
             switch (abcRouteNodeIdMatchIndex++) {
               case 0:
-                path(node.pathParameters[0] as PathParam<String>, id);
+                path(node, node.pathParameters[0] as PathParam<String>, id);
                 break;
             }
           }
-        };
-      })(),
-      writeQueryParameters: (() {
+        }
+      },
+      writeQueryParameters: (nodes, query) {
         var abcRouteNodeIdMatchIndex = 0;
-        return (node, query) {
+        for (final node in nodes) {
           if (node.id == abcRouteNodeId) {
             switch (abcRouteNodeIdMatchIndex++) {
               case 0:
-                query(
-                  node.queryParameters.firstWhere((it) => it.name == 'b')
-                      as QueryParam<String>,
-                  b,
-                );
-                query(
-                  node.queryParameters.firstWhere((it) => it.name == 'c')
-                      as QueryParam<String>,
-                  c,
-                );
+                switch (b) {
+                  case SetQueryParamValue(:final value):
+                    query(
+                        node,
+                        node.queryParameters.firstWhere((it) => it.name == 'b')
+                            as QueryParam<String>,
+                        value);
+                }
+                switch (c) {
+                  case SetQueryParamValue(:final value):
+                    query(
+                        node,
+                        node.queryParameters.firstWhere((it) => it.name == 'c')
+                            as QueryParam<String>,
+                        value);
+                }
                 break;
             }
           }
-        };
-      })(),
+        }
+      },
     );
   }
 
   void routeToChildAbc(
     BuildContext context, {
     required String id,
-    required String b,
-    required String c,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
   }) {
-    WorkingRouter.of(context).routeTo(childAbcTarget(id: id, b: b, c: c));
+    WorkingRouter.of(context).routeTo(
+      childAbcTarget(
+        id: id,
+        b: b,
+        c: c,
+      ),
+    );
   }
 }
 
@@ -252,8 +306,8 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
 
   ChildRouteTarget childAbcTarget({
     required String id,
-    required String b,
-    required String c,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
   }) {
     return ChildRouteTarget(
       start: this,
@@ -263,49 +317,61 @@ extension ARouteNodeGeneratedChildTargets on ARouteNode {
           (node) => node.id == abcRouteNodeId,
         ]);
       },
-      writePathParameters: (() {
+      writePathParameters: (nodes, path) {
         var abcRouteNodeIdMatchIndex = 0;
-        return (node, path) {
+        for (final node in nodes) {
           if (node.id == abcRouteNodeId) {
             switch (abcRouteNodeIdMatchIndex++) {
               case 0:
-                path(node.pathParameters[0] as PathParam<String>, id);
+                path(node, node.pathParameters[0] as PathParam<String>, id);
                 break;
             }
           }
-        };
-      })(),
-      writeQueryParameters: (() {
+        }
+      },
+      writeQueryParameters: (nodes, query) {
         var abcRouteNodeIdMatchIndex = 0;
-        return (node, query) {
+        for (final node in nodes) {
           if (node.id == abcRouteNodeId) {
             switch (abcRouteNodeIdMatchIndex++) {
               case 0:
-                query(
-                  node.queryParameters.firstWhere((it) => it.name == 'b')
-                      as QueryParam<String>,
-                  b,
-                );
-                query(
-                  node.queryParameters.firstWhere((it) => it.name == 'c')
-                      as QueryParam<String>,
-                  c,
-                );
+                switch (b) {
+                  case SetQueryParamValue(:final value):
+                    query(
+                        node,
+                        node.queryParameters.firstWhere((it) => it.name == 'b')
+                            as QueryParam<String>,
+                        value);
+                }
+                switch (c) {
+                  case SetQueryParamValue(:final value):
+                    query(
+                        node,
+                        node.queryParameters.firstWhere((it) => it.name == 'c')
+                            as QueryParam<String>,
+                        value);
+                }
                 break;
             }
           }
-        };
-      })(),
+        }
+      },
     );
   }
 
   void routeToChildAbc(
     BuildContext context, {
     required String id,
-    required String b,
-    required String c,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
   }) {
-    WorkingRouter.of(context).routeTo(childAbcTarget(id: id, b: b, c: c));
+    WorkingRouter.of(context).routeTo(
+      childAbcTarget(
+        id: id,
+        b: b,
+        c: c,
+      ),
+    );
   }
 
   ChildRouteTarget get childAdTarget {
@@ -409,8 +475,8 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
 
   ChildRouteTarget childAbcTarget({
     required String id,
-    required String b,
-    required String c,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
   }) {
     return ChildRouteTarget(
       start: this,
@@ -422,49 +488,61 @@ extension SplashRouteNodeGeneratedChildTargets on SplashRouteNode {
           (node) => node.id == abcRouteNodeId,
         ]);
       },
-      writePathParameters: (() {
+      writePathParameters: (nodes, path) {
         var abcRouteNodeIdMatchIndex = 0;
-        return (node, path) {
+        for (final node in nodes) {
           if (node.id == abcRouteNodeId) {
             switch (abcRouteNodeIdMatchIndex++) {
               case 0:
-                path(node.pathParameters[0] as PathParam<String>, id);
+                path(node, node.pathParameters[0] as PathParam<String>, id);
                 break;
             }
           }
-        };
-      })(),
-      writeQueryParameters: (() {
+        }
+      },
+      writeQueryParameters: (nodes, query) {
         var abcRouteNodeIdMatchIndex = 0;
-        return (node, query) {
+        for (final node in nodes) {
           if (node.id == abcRouteNodeId) {
             switch (abcRouteNodeIdMatchIndex++) {
               case 0:
-                query(
-                  node.queryParameters.firstWhere((it) => it.name == 'b')
-                      as QueryParam<String>,
-                  b,
-                );
-                query(
-                  node.queryParameters.firstWhere((it) => it.name == 'c')
-                      as QueryParam<String>,
-                  c,
-                );
+                switch (b) {
+                  case SetQueryParamValue(:final value):
+                    query(
+                        node,
+                        node.queryParameters.firstWhere((it) => it.name == 'b')
+                            as QueryParam<String>,
+                        value);
+                }
+                switch (c) {
+                  case SetQueryParamValue(:final value):
+                    query(
+                        node,
+                        node.queryParameters.firstWhere((it) => it.name == 'c')
+                            as QueryParam<String>,
+                        value);
+                }
                 break;
             }
           }
-        };
-      })(),
+        }
+      },
     );
   }
 
   void routeToChildAbc(
     BuildContext context, {
     required String id,
-    required String b,
-    required String c,
+    required QueryParamValue<String> b,
+    required QueryParamValue<String> c,
   }) {
-    WorkingRouter.of(context).routeTo(childAbcTarget(id: id, b: b, c: c));
+    WorkingRouter.of(context).routeTo(
+      childAbcTarget(
+        id: id,
+        b: b,
+        c: c,
+      ),
+    );
   }
 
   ChildRouteTarget get childAdTarget {

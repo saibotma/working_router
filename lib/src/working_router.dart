@@ -1400,28 +1400,26 @@ class WorkingRouter extends ChangeNotifier
     }
 
     final resolved = <UnboundPathParam<dynamic>, String>{};
-    for (final node in nodes) {
-      writePathParameters(
-        node,
-        <T>(PathParam<T> parameter, T value) {
-          final isDeclared = node.path.any(
-            (segment) {
-              if (segment is! PathParam<dynamic>) {
-                return false;
-              }
-              return identical(segment.unboundParam, parameter.unboundParam);
-            },
+    writePathParameters(
+      nodes,
+      <T>(PathRouteNode node, PathParam<T> parameter, T value) {
+        final isDeclared = node.path.any(
+          (segment) {
+            if (segment is! PathParam<dynamic>) {
+              return false;
+            }
+            return identical(segment.unboundParam, parameter.unboundParam);
+          },
+        );
+        if (!isDeclared) {
+          throw StateError(
+            'The path parameter `$parameter` is not declared by '
+            '${node.runtimeType}.',
           );
-          if (!isDeclared) {
-            throw StateError(
-              'The path parameter `$parameter` is not declared by '
-              '${node.runtimeType}.',
-            );
-          }
-          resolved[parameter.unboundParam] = parameter.codec.encode(value);
-        },
-      );
-    }
+        }
+        resolved[parameter.unboundParam] = parameter.codec.encode(value);
+      },
+    );
     return resolved;
   }
 
@@ -1457,36 +1455,34 @@ class WorkingRouter extends ChangeNotifier
 
     final values = <String, String>{};
     final defaultValueKeys = <String>{};
-    for (final node in locations) {
-      writeQueryParameters(
-        node,
-        <T>(QueryParam<T> parameter, T value) {
-          final isDeclared = node.queryParameters.any(
-            (declaredParameter) => identical(
-              declaredParameter.unboundParam,
-              parameter.unboundParam,
-            ),
+    writeQueryParameters(
+      locations,
+      <T>(PathRouteNode node, QueryParam<T> parameter, T value) {
+        final isDeclared = node.queryParameters.any(
+          (declaredParameter) => identical(
+            declaredParameter.unboundParam,
+            parameter.unboundParam,
+          ),
+        );
+        if (!isDeclared) {
+          throw StateError(
+            'The query parameter `$parameter` is not declared by '
+            '${node.runtimeType}.',
           );
-          if (!isDeclared) {
-            throw StateError(
-              'The query parameter `$parameter` is not declared by '
-              '${node.runtimeType}.',
-            );
-          }
+        }
 
-          if (parameter case final DefaultQueryParam<T> defaultParameter) {
-            if (defaultParameter.defaultValue == value) {
-              values.remove(parameter.name);
-              defaultValueKeys.add(parameter.name);
-              return;
-            }
+        if (parameter case final DefaultQueryParam<T> defaultParameter) {
+          if (defaultParameter.defaultValue == value) {
+            values.remove(parameter.name);
+            defaultValueKeys.add(parameter.name);
+            return;
           }
+        }
 
-          defaultValueKeys.remove(parameter.name);
-          values[parameter.name] = parameter.codec.encode(value);
-        },
-      );
-    }
+        defaultValueKeys.remove(parameter.name);
+        values[parameter.name] = parameter.codec.encode(value);
+      },
+    );
     return (values: values, defaultValueKeys: defaultValueKeys);
   }
 

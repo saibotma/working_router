@@ -51,42 +51,43 @@ sealed class PathSegment {
 ///
 /// This is a low-level API for generated route helpers. Prefer the generated
 /// `routeTo...` and `...Target` helpers in application code; writing this
-/// callback by hand is discouraged because it requires manually finding the
-/// route node that owns each parameter.
+/// callback by hand is discouraged because it requires manually finding each
+/// route node that owns a parameter.
 ///
-/// The router calls this once for each matched [PathRouteNode] in the target
-/// route chain. Check [node] to decide whether it is the node that owns the
-/// parameter you want to write, then call [path] with that node's [PathParam]
-/// and the typed value. The router verifies that the parameter is declared by
-/// [node] and encodes the value with the parameter's codec.
+/// The router calls this once for each target resolution with the full matched
+/// route chain. Iterate [nodes], then call [path] with the matched node, that
+/// node's [PathParam], and the typed value. The router verifies that the
+/// parameter is declared by the supplied node and encodes the value with the
+/// parameter's codec.
 ///
-/// The callback receives the actual matched route node during navigation, so a
-/// route target can be created without holding a concrete location instance.
+/// The callback receives the actual matched route nodes during navigation, so a
+/// route target can be created without holding concrete location instances.
 typedef WritePathParameters =
     void Function(
-      PathRouteNode node,
-      void Function<T>(PathParam<T> parameter, T value) path,
+      Iterable<PathRouteNode> nodes,
+      void Function<T>(PathRouteNode node, PathParam<T> parameter, T value)
+      path,
     );
 
 /// Writes typed query parameter values for programmatic routing.
 ///
 /// This is a low-level API for generated route helpers. Prefer the generated
 /// `routeTo...` and `...Target` helpers in application code; writing this
-/// callback by hand is discouraged because it requires manually finding the
-/// route node that owns each parameter.
+/// callback by hand is discouraged because it requires manually finding each
+/// route node that owns a parameter.
 ///
-/// Like [WritePathParameters], the router calls this once for each matched
-/// [PathRouteNode] in the target route chain. Check [node] to decide whether
-/// it is the node that owns the query parameter, then call [query] with that
-/// node's [QueryParam] and the typed value.
+/// Like [WritePathParameters], the router calls this once for each target
+/// resolution with the full matched route chain. Iterate [nodes], then call
+/// [query] with the matched node, that node's [QueryParam], and the typed value.
 ///
-/// The router verifies that the parameter is declared by [node], encodes the
-/// value with the parameter's codec, and omits the URL query entry when the
-/// value equals the parameter's default value.
+/// The router verifies that the parameter is declared by the supplied node,
+/// encodes the value with the parameter's codec, and omits the URL query entry
+/// when the value equals the parameter's default value.
 typedef WriteQueryParameters =
     void Function(
-      PathRouteNode node,
-      void Function<T>(QueryParam<T> parameter, T value) query,
+      Iterable<PathRouteNode> nodes,
+      void Function<T>(PathRouteNode node, QueryParam<T> parameter, T value)
+      query,
     );
 
 /// A value for a required query parameter during programmatic navigation.

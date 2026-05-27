@@ -47,8 +47,8 @@ class AlphabetSidebar extends StatelessWidget {
                   router.routeTo(
                     AbcRouteTarget(
                       id: 'test',
-                      b: 'bee',
-                      c: 'see',
+                      b: .value('bee'),
+                      c: .value('see'),
                     ),
                   );
                 },

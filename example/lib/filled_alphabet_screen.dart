@@ -75,7 +75,7 @@ class FilledAlphabetScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   PageRouteBuilder(
-                    pageBuilder: (context, _, __) => const Placeholder(),
+                    pageBuilder: (context, _, _) => const Placeholder(),
                   ),
                 );
               },

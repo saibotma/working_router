@@ -91,9 +91,9 @@ RouteNode get appLocationTree => _appLocationTree;
                   'routeTo(ItemRouteTarget(itemId: itemId, keep: keep));',
                 ),
                 isNot(contains('routeTo(ChildItemRouteTarget(')),
-                contains('writePathParameters: (() {'),
+                contains('writePathParameters: (nodes, path) {'),
                 contains(
-                  'path(node.pathParameters[0] as PathParam<String>, itemId);',
+                  'node.pathParameters[0] as PathParam<String>,',
                 ),
               ),
             ),
@@ -110,7 +110,7 @@ RouteNode get appLocationTree => _appLocationTree;
                 isNot(contains('routeTo(ChildItemDetailsRouteTarget(')),
               ),
               allOf(
-                contains('writeQueryParameters: (() {'),
+                contains('writeQueryParameters: (nodes, query) {'),
                 contains("it.name == 'keep'"),
                 contains("it.name == 'detail'"),
               ),
@@ -194,27 +194,32 @@ RouteNode get accountRoutes => RootLocation(id: rootId);
 ''',
       },
       outputs: {
-        'working_router|lib/account_routes.working_router.g.part': decodedMatches(
-          allOf(
-            allOf(
-              contains('final class AccountRouteBase extends IdRouteBase {'),
-              contains('AccountRouteBase({'),
-              contains('required String accountId,'),
-              contains('accountRouteId,'),
-              contains(
-                'path(node.pathParameters[0] as PathParam<String>, accountId);',
+        'working_router|lib/account_routes.working_router.g.part':
+            decodedMatches(
+              allOf(
+                allOf(
+                  contains(
+                    'final class AccountRouteBase extends IdRouteBase {',
+                  ),
+                  contains('AccountRouteBase({'),
+                  contains('required String accountId,'),
+                  contains('accountRouteId,'),
+                  contains(
+                    'node.pathParameters[0] as PathParam<String>,',
+                  ),
+                ),
+                allOf(
+                  contains(
+                    'final class DashboardRouteTarget extends IdRouteTarget {',
+                  ),
+                  contains(
+                    'void routeToDashboard({required String accountId})',
+                  ),
+                  isNot(contains('void routeToAccount(')),
+                  isNot(contains('final class AccountRouteTarget')),
+                ),
               ),
             ),
-            allOf(
-              contains(
-                'final class DashboardRouteTarget extends IdRouteTarget {',
-              ),
-              contains('void routeToDashboard({required String accountId})'),
-              isNot(contains('void routeToAccount(')),
-              isNot(contains('final class AccountRouteTarget')),
-            ),
-          ),
-        ),
       },
       readerWriter: readerWriter,
     );
@@ -459,10 +464,10 @@ RouteNode get appLocationTree => RootLocation();
                   'DetailRouteTarget({required String id, required String slug})',
                 ),
                 contains(
-                  'path(node.pathParameters[0] as PathParam<String>, id);',
+                  'node.pathParameters[0] as PathParam<String>,',
                 ),
                 contains(
-                  'path(node.pathParameters[1] as PathParam<String>, slug);',
+                  'node.pathParameters[1] as PathParam<String>,',
                 ),
               ),
             ),
@@ -527,10 +532,10 @@ RouteNode get appLocationTree => RootLocation();
                 contains('required QueryParamValue<String> keep,'),
                 contains('ItemRouteTarget({'),
                 contains(
-                  'path(node.pathParameters[0] as PathParam<String>, itemId);',
+                  'node.pathParameters[0] as PathParam<String>,',
                 ),
                 contains(
-                  'writeQueryParameters: (() {',
+                  'writeQueryParameters: (nodes, query) {',
                 ),
                 contains("it.name == 'keep'"),
               ),
@@ -740,7 +745,7 @@ final RouteNode appLocationTree = RootLocation();
               decodedMatches(
                 allOf(
                   contains('void routeToLesson({'),
-                  contains('writeQueryParameters: (() {'),
+                  contains('writeQueryParameters: (nodes, query) {'),
                   contains("it.name == 'coursePeriodId'"),
                   contains("it.name == 'sourceDateTime'"),
                   contains('void routeToLessonEdit({'),
@@ -859,11 +864,11 @@ final RouteNode appLocationTree =
                     contains(
                       'final class ItemRouteTarget extends IdRouteTarget {',
                     ),
-                    contains('writePathParameters: (() {'),
+                    contains('writePathParameters: (nodes, path) {'),
                     contains(
-                      'path(node.pathParameters[0] as PathParam<int>, itemId);',
+                      'node.pathParameters[0] as PathParam<int>,',
                     ),
-                    contains('writeQueryParameters: (() {'),
+                    contains('writeQueryParameters: (nodes, query) {'),
                     contains("it.name == 'filter'"),
                     contains("it.name == 'page'"),
                     allOf(
@@ -1014,7 +1019,7 @@ List<RouteNode> buildRouteNodes() => [
                   ),
                   allOf(
                     contains(
-                      'path(node.pathParameters[0] as PathParam<Uri>, itemUri);',
+                      'node.pathParameters[0] as PathParam<Uri>,',
                     ),
                   ),
                 ),
@@ -2656,7 +2661,7 @@ RouteNode get appLocationTree => AccountShell();
                     'DashboardRouteTarget({required String accountId})',
                   ),
                   contains(
-                    'path(node.pathParameters[0] as PathParam<String>, accountId);',
+                    'node.pathParameters[0] as PathParam<String>,',
                   ),
                 ),
               ),
@@ -4684,7 +4689,7 @@ RouteNode get appLocationTree => Shell(
                   'accountId,',
                 ),
                 allOf(
-                  contains('writeQueryParameters: (() {'),
+                  contains('writeQueryParameters: (nodes, query) {'),
                   contains("it.name == 'tab'"),
                 ),
               ),

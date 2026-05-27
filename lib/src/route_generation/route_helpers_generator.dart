@@ -6300,8 +6300,8 @@ Future<ConstructorDeclaration?> _constructorDeclaration({
       classElement.firstFragment,
       resolve: true,
     );
-  } on TypeError {
     // ignore: avoid_catching_errors
+  } on TypeError {
     // `build_runner` may fail to materialize AST nodes for dependency sources.
     // Treat those constructors as unavailable so the caller can either fall
     // back or raise a normal generation error instead of crashing.
@@ -6565,12 +6565,12 @@ class _GeneratedRouteMethod {
     }
 
     if (pathWrites.isNotEmpty) {
-      buffer.writeln('          writePathParameters: (() {');
+      buffer.writeln('          writePathParameters: (nodes, path) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln('            var $counterName = 0;');
       }
-      buffer.writeln('            return (node, path) {');
+      buffer.writeln('            for (final node in nodes) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
@@ -6583,7 +6583,7 @@ class _GeneratedRouteMethod {
           buffer.writeln('                  case ${occurrence.key}:');
           for (final pathWrite in occurrence.value) {
             buffer.writeln(
-              '                    path(${pathWrite.parameterAccessorSource}, '
+              '                    path(node, ${pathWrite.parameterAccessorSource}, '
               '${pathWrite.parameterName});',
             );
           }
@@ -6592,8 +6592,8 @@ class _GeneratedRouteMethod {
         buffer.writeln('                }');
         buffer.writeln('              }');
       }
-      buffer.writeln('            };');
-      buffer.writeln('          })(),');
+      buffer.writeln('            }');
+      buffer.writeln('          },');
     }
 
     _writeQueryWrites(buffer, '          ', queryWrites);
@@ -6691,12 +6691,12 @@ class _GeneratedRouteBase {
     buffer.writeln('          $idExpression,');
 
     if (pathWrites.isNotEmpty) {
-      buffer.writeln('          writePathParameters: (() {');
+      buffer.writeln('          writePathParameters: (nodes, path) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln('            var $counterName = 0;');
       }
-      buffer.writeln('            return (node, path) {');
+      buffer.writeln('            for (final node in nodes) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
@@ -6709,7 +6709,7 @@ class _GeneratedRouteBase {
           buffer.writeln('                  case ${occurrence.key}:');
           for (final pathWrite in occurrence.value) {
             buffer.writeln(
-              '                    path(${pathWrite.parameterAccessorSource}, '
+              '                    path(node, ${pathWrite.parameterAccessorSource}, '
               '${pathWrite.parameterName});',
             );
           }
@@ -6718,8 +6718,8 @@ class _GeneratedRouteBase {
         buffer.writeln('                }');
         buffer.writeln('              }');
       }
-      buffer.writeln('            };');
-      buffer.writeln('          })(),');
+      buffer.writeln('            }');
+      buffer.writeln('          },');
     }
 
     _writeQueryWrites(buffer, '          ', queryWrites);
@@ -7178,12 +7178,12 @@ class _GeneratedLocationChildTargetMethodVariant {
             .add(pathWrite);
       }
 
-      buffer.writeln('$indent writePathParameters: (() {');
+      buffer.writeln('$indent writePathParameters: (nodes, path) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln('$indent   var $counterName = 0;');
       }
-      buffer.writeln('$indent   return (node, path) {');
+      buffer.writeln('$indent   for (final node in nodes) {');
       for (final entry in pathWritesByLocationType.entries) {
         final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
         buffer.writeln(
@@ -7197,7 +7197,7 @@ class _GeneratedLocationChildTargetMethodVariant {
           buffer.writeln('$indent         case ${occurrence.key}:');
           for (final pathWrite in occurrence.value) {
             buffer.writeln(
-              '$indent           path(${pathWrite.parameterAccessorSource}, '
+              '$indent           path(node, ${pathWrite.parameterAccessorSource}, '
               '${pathWrite.parameterName});',
             );
           }
@@ -7206,8 +7206,8 @@ class _GeneratedLocationChildTargetMethodVariant {
         buffer.writeln('$indent       }');
         buffer.writeln('$indent     }');
       }
-      buffer.writeln('$indent   };');
-      buffer.writeln('$indent })(),');
+      buffer.writeln('$indent   }');
+      buffer.writeln('$indent },');
     }
 
     _writeQueryWrites(buffer, indent, queryWrites);
@@ -7276,12 +7276,12 @@ void _writeQueryWrites(
         .add(queryWrite);
   }
 
-  buffer.writeln('${indent}writeQueryParameters: (() {');
+  buffer.writeln('${indent}writeQueryParameters: (nodes, query) {');
   for (final entry in queryWritesByLocationType.entries) {
     final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
     buffer.writeln('$indent  var $counterName = 0;');
   }
-  buffer.writeln('$indent  return (node, query) {');
+  buffer.writeln('$indent  for (final node in nodes) {');
   for (final entry in queryWritesByLocationType.entries) {
     final counterName = '${_toParameterIdentifier(entry.key)}MatchIndex';
     buffer.writeln(
@@ -7302,7 +7302,7 @@ void _writeQueryWrites(
               '$indent            case SetQueryParamValue(:final value):',
             );
             buffer.writeln(
-              '$indent              query(${queryWrite.parameterAccessorSource}, value);',
+              '$indent              query(node, ${queryWrite.parameterAccessorSource}, value);',
             );
             buffer.writeln(
               '$indent            case InheritedQueryParamValue():',
@@ -7313,7 +7313,7 @@ void _writeQueryWrites(
               '$indent              final parameter = ${queryWrite.parameterAccessorSource};',
             );
             buffer.writeln(
-              '$indent              query(parameter, parameter.defaultValue);',
+              '$indent              query(node, parameter, parameter.defaultValue);',
             );
             buffer.writeln('$indent          }');
           } else {
@@ -7325,7 +7325,7 @@ void _writeQueryWrites(
               '$indent              case SetQueryParamValue(:final value):',
             );
             buffer.writeln(
-              '$indent                query(${queryWrite.parameterAccessorSource}, value);',
+              '$indent                query(node, ${queryWrite.parameterAccessorSource}, value);',
             );
             buffer.writeln('$indent            }');
             buffer.writeln('$indent          }');
@@ -7338,7 +7338,7 @@ void _writeQueryWrites(
             '$indent            case SetQueryParamValue(:final value):',
           );
           buffer.writeln(
-            '$indent              query(${queryWrite.parameterAccessorSource}, value);',
+            '$indent              query(node, ${queryWrite.parameterAccessorSource}, value);',
           );
           buffer.writeln('$indent          }');
         }
@@ -7348,8 +7348,8 @@ void _writeQueryWrites(
     buffer.writeln('$indent      }');
     buffer.writeln('$indent    }');
   }
-  buffer.writeln('$indent  };');
-  buffer.writeln('$indent})(),');
+  buffer.writeln('$indent  }');
+  buffer.writeln('$indent},');
 }
 
 bool _generatedTargetDefinitionEquivalent({
