@@ -19,6 +19,7 @@ import 'package:working_router/src/working_router.dart';
 import 'package:working_router/src/working_router_data.dart';
 import 'package:working_router/src/working_router_information_parser.dart';
 import 'package:working_router/src/working_router_key.dart';
+import 'package:working_router/src/working_router_transition_delegate.dart';
 
 enum _MatchedNodeRenderKind {
   node,
@@ -101,6 +102,8 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           Navigator(
             key: navigatorKey,
             pages: _pages!,
+            transitionDelegate:
+                const WorkingRouterTransitionDelegate<dynamic>(),
             // ignore: deprecated_member_use
             onPopPage: (route, dynamic result) {
               // In case of Navigator 1 route.

@@ -153,6 +153,146 @@ void main() {
     });
 
     testWidgets(
+      'pops page route below a manually popped dialog when routing away',
+      (tester) async {
+        final routeEvents = <String>[];
+        late BuildContext dialogContext;
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderLocation(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('a');
+                      builder.content = Content.widget(const Text('a'));
+                      builder.page = (key, child) {
+                        return _RecordingPage(
+                          key: key,
+                          label: 'a',
+                          events: routeEvents,
+                          child: child,
+                        );
+                      };
+                    },
+                  ),
+                  _BuilderLocation(
+                    id: _Id.c,
+                    build: (builder, location) {
+                      builder.pathLiteral('c');
+                      builder.content = Content.widget(const Text('c'));
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/a'));
+        await tester.pumpAndSettle();
+
+        unawaited(
+          showDialog<void>(
+            context: tester.element(find.text('a')),
+            builder: (context) {
+              dialogContext = context;
+              return const AlertDialog(content: Text('dialog'));
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+        routeEvents.clear();
+
+        Navigator.of(dialogContext).pop();
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pumpAndSettle();
+
+        expect(routeEvents, contains('didPop:a'));
+        expect(find.text('c'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'keeps default transition decisions without pageless routes',
+      (tester) async {
+        final routeEvents = <String>[];
+
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.content = Content.widget(const Text('root'));
+                builder.children = [
+                  _BuilderLocation(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('a');
+                      builder.content = Content.widget(const Text('a'));
+                      builder.page = (key, child) {
+                        return _RecordingPage(
+                          key: key,
+                          label: 'a',
+                          events: routeEvents,
+                          child: child,
+                        );
+                      };
+                      builder.children = [
+                        _BuilderLocation(
+                          id: _Id.b,
+                          build: (builder, location) {
+                            builder.pathLiteral('b');
+                            builder.content = Content.widget(const Text('b'));
+                            builder.page = (key, child) {
+                              return _RecordingPage(
+                                key: key,
+                                label: 'b',
+                                events: routeEvents,
+                                child: child,
+                              );
+                            };
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                  _BuilderLocation(
+                    id: _Id.c,
+                    build: (builder, location) {
+                      builder.pathLiteral('c');
+                      builder.content = Content.widget(const Text('c'));
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/a/b'));
+        await tester.pumpAndSettle();
+        routeEvents.clear();
+
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pumpAndSettle();
+
+        expect(routeEvents, contains('didComplete:b'));
+        expect(routeEvents, contains('didComplete:a'));
+        expect(routeEvents, isNot(contains('didPop:b')));
+        expect(routeEvents, isNot(contains('didPop:a')));
+        expect(find.text('c'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
       'calls TransitionDecider with null from after unmatched target',
       (
         tester,
@@ -4367,6 +4507,47 @@ class _InitCounterState extends State<_InitCounter> {
   @override
   Widget build(BuildContext context) {
     return widget.child;
+  }
+}
+
+class _RecordingPage extends Page<dynamic> {
+  final Widget child;
+  final String label;
+  final List<String> events;
+
+  const _RecordingPage({
+    required this.child,
+    required this.label,
+    required this.events,
+    super.key,
+  });
+
+  @override
+  Route<dynamic> createRoute(BuildContext context) {
+    return _RecordingPageRoute(page: this);
+  }
+}
+
+class _RecordingPageRoute extends PageRouteBuilder<dynamic> {
+  final _RecordingPage page;
+
+  _RecordingPageRoute({
+    required this.page,
+  }) : super(
+         settings: page,
+         pageBuilder: (_, _, _) => page.child,
+       );
+
+  @override
+  bool didPop(dynamic result) {
+    page.events.add('didPop:${page.label}');
+    return super.didPop(result);
+  }
+
+  @override
+  void didComplete(dynamic result) {
+    page.events.add('didComplete:${page.label}');
+    super.didComplete(result);
   }
 }
 
