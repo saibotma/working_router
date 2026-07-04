@@ -1178,6 +1178,77 @@ void main() {
       expect(find.text('home'), findsOneWidget);
     });
 
+    testWidgets('system back closes ancestor drawer before nested route pop', (
+      tester,
+    ) async {
+      final scaffoldKey = GlobalKey<ScaffoldState>();
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderShellLocation(
+                  build: (builder, location, _) {
+                    builder.pathLiteral('shell');
+                    builder.shellContent = ShellContent.builder((
+                      context,
+                      data,
+                      child,
+                    ) {
+                      return Scaffold(
+                        key: scaffoldKey,
+                        drawer: const Drawer(child: Text('drawer')),
+                        body: SizedBox(height: 120, child: child),
+                      );
+                    });
+                    builder.content = Content.widget(const Text('shell-home'));
+                    builder.children = [
+                      _BuilderLocation(
+                        id: _Id.a,
+                        build: (builder, location) {
+                          builder.pathLiteral('details');
+                          builder.content = Content.widget(
+                            const Text('details'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/shell/details'));
+      await tester.pumpAndSettle();
+      expect(router.nullableData!.uri.path, '/shell/details');
+      expect(find.text('details'), findsOneWidget);
+
+      scaffoldKey.currentState!.openDrawer();
+      await tester.pumpAndSettle();
+      expect(scaffoldKey.currentState!.isDrawerOpen, isTrue);
+
+      final didCloseDrawer = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didCloseDrawer, isTrue);
+      expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
+      expect(router.nullableData!.uri.path, '/shell/details');
+      expect(find.text('details'), findsOneWidget);
+
+      final didPopNestedRoute = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPopNestedRoute, isTrue);
+      expect(router.nullableData!.uri.path, '/shell');
+      expect(find.text('details'), findsNothing);
+      expect(find.text('shell-home'), findsOneWidget);
+    });
+
     testWidgets(
       'refresh rebuilds the location tree and rematches the current uri',
       (

@@ -153,6 +153,43 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     return SynchronousFuture<void>(null);
   }
 
+  @override
+  Future<bool> popRoute() async {
+    // Nested routers have back-button priority, but route-internal ancestor
+    // state such as an open Scaffold drawer is visually above them.
+    if (!isRootDelegate && await _maybePopAncestorRouteInternally()) {
+      return true;
+    }
+
+    final navigator = navigatorKey.currentState;
+    return navigator?.maybePop() ?? SynchronousFuture<bool>(false);
+  }
+
+  Future<bool> _maybePopAncestorRouteInternally() async {
+    BuildContext? context = navigatorKey.currentContext;
+
+    while (context != null) {
+      final route = ModalRoute.of<dynamic>(context);
+      if (route != null && route.willHandlePopInternally) {
+        final navigator = context.findAncestorStateOfType<NavigatorState>();
+        return navigator?.maybePop() ?? SynchronousFuture<bool>(false);
+      }
+
+      final navigator = context.findAncestorStateOfType<NavigatorState>();
+      if (navigator == null) {
+        return false;
+      }
+
+      final nextContext = navigator.context;
+      if (identical(nextContext, context)) {
+        return false;
+      }
+      context = nextContext;
+    }
+
+    return false;
+  }
+
   void refresh() {
     final data = _data;
     if (data != null) {
