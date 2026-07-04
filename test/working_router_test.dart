@@ -1144,6 +1144,40 @@ void main() {
       expect(router.nullableData!.uri.path, '/a');
     });
 
+    testWidgets('system back closes root drawer before routing back', (
+      tester,
+    ) async {
+      final scaffoldKey = GlobalKey<ScaffoldState>();
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _PathLocation(
+            id: _PathId.root,
+            path: '',
+            child: Scaffold(
+              key: scaffoldKey,
+              drawer: const Drawer(child: Text('drawer')),
+              body: const Text('home'),
+            ),
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+      expect(router.nullableData!.uri.path, '/');
+
+      scaffoldKey.currentState!.openDrawer();
+      await tester.pumpAndSettle();
+      expect(scaffoldKey.currentState!.isDrawerOpen, isTrue);
+
+      final didPop = await router.routerDelegate.popRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPop, isTrue);
+      expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
+      expect(router.nullableData!.uri.path, '/');
+      expect(find.text('home'), findsOneWidget);
+    });
+
     testWidgets(
       'refresh rebuilds the location tree and rematches the current uri',
       (

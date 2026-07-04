@@ -111,6 +111,10 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
                 return route.didPop(result);
               }
 
+              if (route.willHandlePopInternally) {
+                return route.didPop(result);
+              }
+
               // Need to execute in new cycle, because otherwise would try
               // to push onto navigator while the pop is still running
               // causing debug lock in navigator pop to assert false.
