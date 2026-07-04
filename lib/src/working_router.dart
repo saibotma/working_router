@@ -268,21 +268,140 @@ class WorkingRouter extends ChangeNotifier
     _routeBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
   }
 
+  @internal
+  Future<bool> handlePopRoute() async {
+    final delegates = _mountedDelegatesRootToLeaf();
+
+    // System back has two different responsibilities here:
+    // 1. close route-internal/transient UI anywhere in the active router tree;
+    // 2. route back through page stacks from the deepest eligible navigator.
+    //
+    // Those cases cannot be separated with Navigator.canPop or by blindly
+    // calling Navigator.maybePop. Both would tell us whether a navigator can
+    // handle back, but not why it can handle back. We need the top Route to
+    // distinguish:
+    // - route-internal state such as LocalHistoryEntry, used by Scaffold drawer;
+    // - pageless/manual Navigator 1 routes such as dialogs;
+    // - page-level vetoes such as PopScope(canPop: false);
+    // - ordinary router Page routes that should update WorkingRouterData.
+    //
+    // The first pass intentionally walks ancestors first. A drawer belongs to
+    // the ModalRoute that owns the Scaffold, so a nested navigator must not pop
+    // a child page while that ancestor route still handles back internally.
+    for (final delegate in delegates) {
+      if (await _maybePopTransientRoute(delegate)) {
+        return true;
+      }
+    }
+
+    for (final delegate in delegates.reversed) {
+      if (await _maybeConsumePagePopVeto(delegate)) {
+        return true;
+      }
+    }
+
+    // Keep this as a separate pass from the veto scan. Some structural
+    // navigators can have router state to remove while their Navigator still
+    // reports that the top route wants to bubble, so maybePop may return false
+    // and the next ancestor navigator must still be tried.
+    for (final delegate in delegates.reversed) {
+      if (!canRouteBackInNavigator(delegate.routerKey)) {
+        continue;
+      }
+
+      final navigator = delegate.navigatorState;
+      if (navigator != null && await navigator.maybePop()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  List<WorkingRouterDelegate> _mountedDelegatesRootToLeaf() {
+    final delegates = <WorkingRouterDelegate>[
+      _rootDelegate,
+      ..._nestedDelegates,
+    ].where((delegate) => delegate.navigatorState != null).toList();
+
+    delegates.sort((a, b) => _delegateDepth(a).compareTo(_delegateDepth(b)));
+    return delegates;
+  }
+
+  int _delegateDepth(WorkingRouterDelegate delegate) {
+    final context = delegate.navigatorKey.currentContext;
+    if (context == null) {
+      return -1;
+    }
+
+    var depth = 0;
+    context.visitAncestorElements((_) {
+      depth++;
+      return true;
+    });
+    return depth;
+  }
+
+  Future<bool> _maybePopTransientRoute(
+    WorkingRouterDelegate delegate,
+  ) async {
+    final route = delegate.topRoute;
+    if (route == null) {
+      return false;
+    }
+
+    final routeCanHandleInternally = route.willHandlePopInternally;
+    final isRouterPageRoute = route.settings is Page;
+    if (!routeCanHandleInternally && isRouterPageRoute) {
+      return false;
+    }
+
+    // This is now known to be either route-internal state on the top route or a
+    // pageless/manual route. In both cases Flutter's own Route.didPop handling
+    // is the correct mechanism; working_router should not update its page stack.
+    final navigator = delegate.navigatorState;
+    if (navigator == null) {
+      return false;
+    }
+    return navigator.maybePop();
+  }
+
+  Future<bool> _maybeConsumePagePopVeto(
+    WorkingRouterDelegate delegate,
+  ) async {
+    final route = delegate.topRoute;
+    if (route == null || route.settings is! Page) {
+      return false;
+    }
+
+    // Preserve Flutter's normal system-back contract: a page can consume back
+    // without popping, for example through PopScope(canPop: false). This must
+    // be checked before parent router stacks are allowed to route back.
+    // ignore: deprecated_member_use
+    if (await route.willPop() == RoutePopDisposition.doNotPop) {
+      return true;
+    }
+    if (route.popDisposition == RoutePopDisposition.doNotPop) {
+      route.onPopInvokedWithResult(false, null);
+      return true;
+    }
+    return false;
+  }
+
   /// Routes back within the navigator identified by [routerKey].
   ///
   /// Nested routers expose this through [NestedWorkingRouterSailor.routeBack],
   /// so `WorkingRouter.of(context).routeBack()` naturally removes the last
   /// active location owned by the nearest nested navigator. If that navigator
   /// has no active location, this falls back to the normal global [routeBack].
-  void routeBackInNavigator(WorkingRouterKey routerKey) {
+  bool routeBackInNavigator(WorkingRouterKey routerKey) {
     final data = nullableData;
     if (data == null) {
-      return;
+      return false;
     }
     final node = _rootDelegate.lastNodeForRouterKey(data, routerKey);
     if (node == null) {
-      routeBack();
-      return;
+      return _routeBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
     }
 
     final overlay = _activeOverlayForNode(data, node);
@@ -298,25 +417,24 @@ class WorkingRouter extends ChangeNotifier
         ),
         reason: RouteTransitionReason.programmatic,
       );
-      return;
+      return true;
     }
 
     final locationIndex = data.routeNodes.indexWhere(
       (current) => identical(current, node),
     );
     if (locationIndex == -1) {
-      return;
+      return false;
     }
 
     final newNodes = _trimTrailingScopes(
       data.routeNodes.take(locationIndex).toIList(),
     );
     if (newNodes.locations.length == data.routeNodes.locations.length) {
-      return;
+      return false;
     }
     if (newNodes.locations.isEmpty) {
-      routeBack();
-      return;
+      return _routeBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
     }
 
     final newPathRouteNodes = newNodes.pathRouteNodes;
@@ -339,6 +457,42 @@ class WorkingRouter extends ChangeNotifier
       ),
       reason: RouteTransitionReason.programmatic,
     );
+    return true;
+  }
+
+  @internal
+  bool canRouteBackInNavigator(WorkingRouterKey routerKey) {
+    final data = nullableData;
+    if (data == null) {
+      return false;
+    }
+    final node = _rootDelegate.lastNodeForRouterKey(data, routerKey);
+    if (node == null) {
+      return _canRouteBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
+    }
+
+    if (_activeOverlayForNode(data, node) != null) {
+      return true;
+    }
+
+    final locationIndex = data.routeNodes.indexWhere(
+      (current) => identical(current, node),
+    );
+    if (locationIndex == -1) {
+      return false;
+    }
+
+    final newNodes = _trimTrailingScopes(
+      data.routeNodes.take(locationIndex).toIList(),
+    );
+    if (newNodes.locations.length == data.routeNodes.locations.length) {
+      return false;
+    }
+    if (newNodes.locations.isEmpty) {
+      return _canRouteBackUntil((it) => !it.shouldBeSkippedOnRouteBack);
+    }
+
+    return true;
   }
 
   @override
@@ -354,7 +508,7 @@ class WorkingRouter extends ChangeNotifier
     _routeBackUntil(match);
   }
 
-  void _routeBackUntil(
+  bool _routeBackUntil(
     bool Function(AnyLocation location) match, {
     AnyLocation? fromLocation,
   }) {
@@ -362,7 +516,7 @@ class WorkingRouter extends ChangeNotifier
     final locations = data.routeNodes.locations;
     if (locations.length <= 1) {
       // Nothing to go back to
-      return;
+      return false;
     }
 
     final startIndex = switch (fromLocation) {
@@ -374,7 +528,7 @@ class WorkingRouter extends ChangeNotifier
     };
     if (startIndex < 0) {
       // No ancestor remains to route back to from the requested location.
-      return;
+      return false;
     }
 
     // Start from the previous location relative to the requested back source.
@@ -388,7 +542,7 @@ class WorkingRouter extends ChangeNotifier
 
     if (matchIndex == -1) {
       // No matching location found
-      return;
+      return false;
     }
 
     // Keep everything up to and including the matched location
@@ -415,6 +569,39 @@ class WorkingRouter extends ChangeNotifier
       ),
       reason: RouteTransitionReason.programmatic,
     );
+    return true;
+  }
+
+  bool _canRouteBackUntil(
+    bool Function(AnyLocation location) match, {
+    AnyLocation? fromLocation,
+  }) {
+    final data = nullableData;
+    if (data == null) {
+      return false;
+    }
+    final locations = data.routeNodes.locations;
+    if (locations.length <= 1) {
+      return false;
+    }
+
+    final startIndex = switch (fromLocation) {
+      null => locations.length - 2,
+      _ => _routeBackStartIndex(
+        locations: locations,
+        fromLocation: fromLocation,
+      ),
+    };
+    if (startIndex < 0) {
+      return false;
+    }
+
+    for (var i = startIndex; i >= 0; i--) {
+      if (match(locations[i])) {
+        return true;
+      }
+    }
+    return false;
   }
 
   AnyOverlay? _activeOverlayForNode(

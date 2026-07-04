@@ -48,6 +48,16 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
   final Widget? navigatorInitializingWidget;
   final Widget Function(BuildContext context, Widget child)? wrapNavigator;
 
+  // NavigatorState intentionally does not expose its current top Route. The
+  // central pop coordinator needs that Route before it calls maybePop so it can
+  // prioritize drawers/local history, pageless routes, and PopScope vetoes
+  // without accidentally treating a normal page-stack pop as transient UI.
+  //
+  // This observer is only a read model for that decision. Navigator remains the
+  // source of truth and still performs every actual pop.
+  final _WorkingRouterNavigatorObserver _navigatorObserver =
+      _WorkingRouterNavigatorObserver();
+
   List<Page<dynamic>>? _pages;
 
   // Have an extra data property here and don't get it directly from router,
@@ -104,6 +114,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
             pages: _pages!,
             transitionDelegate:
                 const WorkingRouterTransitionDelegate<dynamic>(),
+            observers: [_navigatorObserver],
             // ignore: deprecated_member_use
             onPopPage: (route, dynamic result) {
               // In case of Navigator 1 route.
@@ -154,41 +165,15 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
   }
 
   @override
-  Future<bool> popRoute() async {
-    // Nested routers have back-button priority, but route-internal ancestor
-    // state such as an open Scaffold drawer is visually above them.
-    if (!isRootDelegate && await _maybePopAncestorRouteInternally()) {
-      return true;
-    }
-
-    final navigator = navigatorKey.currentState;
-    return navigator?.maybePop() ?? SynchronousFuture<bool>(false);
+  Future<bool> popRoute() {
+    return router.handlePopRoute();
   }
 
-  Future<bool> _maybePopAncestorRouteInternally() async {
-    BuildContext? context = navigatorKey.currentContext;
+  @internal
+  NavigatorState? get navigatorState => navigatorKey.currentState;
 
-    while (context != null) {
-      final route = ModalRoute.of<dynamic>(context);
-      if (route != null && route.willHandlePopInternally) {
-        final navigator = context.findAncestorStateOfType<NavigatorState>();
-        return navigator?.maybePop() ?? SynchronousFuture<bool>(false);
-      }
-
-      final navigator = context.findAncestorStateOfType<NavigatorState>();
-      if (navigator == null) {
-        return false;
-      }
-
-      final nextContext = navigator.context;
-      if (identical(nextContext, context)) {
-        return false;
-      }
-      context = nextContext;
-    }
-
-    return false;
-  }
+  @internal
+  Route<dynamic>? get topRoute => _navigatorObserver.topRoute;
 
   void refresh() {
     final data = _data;
@@ -879,5 +864,63 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     if (!isRootDelegate) {
       router.removeNestedDelegate(this);
     }
+  }
+}
+
+/// Maintains the active route order for one [Navigator].
+///
+/// Flutter's public [NavigatorState] API can tell callers whether a navigator
+/// can pop, but not which [Route] is currently on top. working_router needs the
+/// top route to decide whether system back should close route-internal state
+/// like [LocalHistoryEntry], close a pageless/manual route, honor a page veto,
+/// or route back through [WorkingRouterData].
+///
+/// The observer deliberately mirrors only route identity and order. It does not
+/// drive navigation and it is not used as an alternative source of truth for
+/// pages; all actual popping still goes through [NavigatorState.maybePop].
+class _WorkingRouterNavigatorObserver extends NavigatorObserver {
+  final List<Route<dynamic>> _routes = [];
+
+  Route<dynamic>? get topRoute => _routes.isEmpty ? null : _routes.last;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _routes.add(route);
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _routes.remove(route);
+    super.didPop(route, previousRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _routes.remove(route);
+    super.didRemove(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (oldRoute == null) {
+      if (newRoute != null) {
+        _routes.add(newRoute);
+      }
+      super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+      return;
+    }
+
+    final index = _routes.indexOf(oldRoute);
+    if (index == -1) {
+      if (newRoute != null) {
+        _routes.add(newRoute);
+      }
+    } else if (newRoute == null) {
+      _routes.removeAt(index);
+    } else {
+      _routes[index] = newRoute;
+    }
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
   }
 }

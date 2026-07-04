@@ -1249,6 +1249,352 @@ void main() {
       expect(find.text('shell-home'), findsOneWidget);
     });
 
+    testWidgets('system back closes structural shell drawer first', (
+      tester,
+    ) async {
+      final scaffoldKey = GlobalKey<ScaffoldState>();
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.content = Content.widget(const Text('root'));
+              builder.children = [
+                Shell(
+                  build: (builder, shell, _) {
+                    builder.pathLiteral('shell');
+                    builder.content = ShellContent.builder((
+                      context,
+                      data,
+                      child,
+                    ) {
+                      return Scaffold(
+                        key: scaffoldKey,
+                        drawer: const Drawer(child: Text('drawer')),
+                        body: SizedBox(height: 120, child: child),
+                      );
+                    });
+                    builder.children = [
+                      _BuilderLocation(
+                        id: _Id.a,
+                        build: (builder, location) {
+                          builder.pathLiteral('details');
+                          builder.content = Content.widget(
+                            const Text('details'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/shell/details'));
+      await tester.pumpAndSettle();
+      expect(router.nullableData!.uri.path, '/shell/details');
+
+      scaffoldKey.currentState!.openDrawer();
+      await tester.pumpAndSettle();
+      expect(scaffoldKey.currentState!.isDrawerOpen, isTrue);
+
+      final didCloseDrawer = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didCloseDrawer, isTrue);
+      expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
+      expect(router.nullableData!.uri.path, '/shell/details');
+      expect(find.text('details'), findsOneWidget);
+
+      final didPopNestedRoute = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPopNestedRoute, isTrue);
+      expect(router.nullableData!.uri.path, '/');
+      expect(find.text('details'), findsNothing);
+      expect(find.text('root'), findsOneWidget);
+    });
+
+    testWidgets('system back closes multi shell location drawer first', (
+      tester,
+    ) async {
+      final scaffoldKey = GlobalKey<ScaffoldState>();
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderMultiShellLocation(
+                  id: _Id.chat,
+                  build: (builder, location, contentSlot) {
+                    builder.pathLiteral('chat');
+                    builder.shellContent = MultiShellContent.builder((
+                      context,
+                      data,
+                      slots,
+                    ) {
+                      return Scaffold(
+                        key: scaffoldKey,
+                        drawer: const Drawer(child: Text('drawer')),
+                        body: SizedBox(
+                          height: 120,
+                          child: slots.child(contentSlot),
+                        ),
+                      );
+                    });
+                    builder.defaultContent = DefaultContent.widget(
+                      const Text('chat-home'),
+                    );
+                    builder.content = const Content.none();
+                    builder.children = [
+                      _BuilderLocation(
+                        id: _Id.a,
+                        parentRouterKey: contentSlot.routerKey,
+                        build: (builder, location) {
+                          builder.pathLiteral('details');
+                          builder.content = Content.widget(
+                            const Text('details'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/chat/details'));
+      await tester.pumpAndSettle();
+      expect(router.nullableData!.uri.path, '/chat/details');
+      expect(find.text('details'), findsOneWidget);
+
+      scaffoldKey.currentState!.openDrawer();
+      await tester.pumpAndSettle();
+      expect(scaffoldKey.currentState!.isDrawerOpen, isTrue);
+
+      final didCloseDrawer = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didCloseDrawer, isTrue);
+      expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
+      expect(router.nullableData!.uri.path, '/chat/details');
+      expect(find.text('details'), findsOneWidget);
+
+      final didPopNestedRoute = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPopNestedRoute, isTrue);
+      expect(router.nullableData!.uri.path, '/chat');
+      expect(find.text('details'), findsNothing);
+      expect(find.text('chat-home'), findsOneWidget);
+    });
+
+    testWidgets('system back closes nested drawer before nested route pop', (
+      tester,
+    ) async {
+      final scaffoldKey = GlobalKey<ScaffoldState>();
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderShellLocation(
+                  build: (builder, location, _) {
+                    builder.pathLiteral('shell');
+                    builder.shellContent = const ShellContent.child();
+                    builder.content = Content.widget(const Text('shell-home'));
+                    builder.children = [
+                      _BuilderLocation(
+                        id: _Id.a,
+                        build: (builder, location) {
+                          builder.pathLiteral('details');
+                          builder.content = Content.widget(
+                            Scaffold(
+                              key: scaffoldKey,
+                              drawer: const Drawer(child: Text('drawer')),
+                              body: const Text('details'),
+                            ),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/shell/details'));
+      await tester.pumpAndSettle();
+      expect(find.text('details'), findsOneWidget);
+
+      scaffoldKey.currentState!.openDrawer();
+      await tester.pumpAndSettle();
+      expect(scaffoldKey.currentState!.isDrawerOpen, isTrue);
+
+      final didCloseDrawer = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didCloseDrawer, isTrue);
+      expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
+      expect(router.nullableData!.uri.path, '/shell/details');
+      expect(find.text('details'), findsOneWidget);
+
+      final didPopNestedRoute = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPopNestedRoute, isTrue);
+      expect(router.nullableData!.uri.path, '/shell');
+      expect(find.text('details'), findsNothing);
+      expect(find.text('shell-home'), findsOneWidget);
+    });
+
+    testWidgets('system back closes dialog before nested route pop', (
+      tester,
+    ) async {
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                _BuilderShellLocation(
+                  build: (builder, location, _) {
+                    builder.pathLiteral('shell');
+                    builder.shellContent = const ShellContent.child();
+                    builder.content = Content.widget(const Text('shell-home'));
+                    builder.children = [
+                      _BuilderLocation(
+                        id: _Id.a,
+                        build: (builder, location) {
+                          builder.pathLiteral('details');
+                          builder.content = Content.widget(
+                            const Text('details'),
+                          );
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/shell/details'));
+      await tester.pumpAndSettle();
+
+      unawaited(
+        showDialog<void>(
+          context: tester.element(find.text('details')),
+          builder: (context) => const AlertDialog(content: Text('dialog')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('dialog'), findsOneWidget);
+
+      final didCloseDialog = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didCloseDialog, isTrue);
+      expect(find.text('dialog'), findsNothing);
+      expect(router.nullableData!.uri.path, '/shell/details');
+      expect(find.text('details'), findsOneWidget);
+
+      final didPopNestedRoute = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPopNestedRoute, isTrue);
+      expect(router.nullableData!.uri.path, '/shell');
+      expect(find.text('details'), findsNothing);
+      expect(find.text('shell-home'), findsOneWidget);
+    });
+
+    testWidgets('system back bubbles when nothing can handle pop', (
+      tester,
+    ) async {
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _PathLocation(
+            id: _PathId.root,
+            path: '',
+            child: const Text('home'),
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+
+      final didPop = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPop, isFalse);
+      expect(router.nullableData!.uri.path, '/');
+      expect(find.text('home'), findsOneWidget);
+    });
+
+    testWidgets('system back respects nested page veto before parent pop', (
+      tester,
+    ) async {
+      final popInvocations = <bool>[];
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.content = Content.widget(const Text('root'));
+              builder.children = [
+                _BuilderShellLocation(
+                  build: (builder, location, _) {
+                    builder.pathLiteral('shell');
+                    builder.shellContent = const ShellContent.child();
+                    builder.content = Content.widget(
+                      PopScope<void>(
+                        canPop: false,
+                        onPopInvokedWithResult: (didPop, result) {
+                          popInvocations.add(didPop);
+                        },
+                        child: const Text('shell-home'),
+                      ),
+                    );
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+      );
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/shell'));
+      await tester.pumpAndSettle();
+      expect(find.text('shell-home'), findsOneWidget);
+
+      final didPop = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(didPop, isTrue);
+      expect(popInvocations, [false]);
+      expect(router.nullableData!.uri.path, '/shell');
+      expect(find.text('shell-home'), findsOneWidget);
+      expect(find.text('root'), findsNothing);
+    });
+
     testWidgets(
       'refresh rebuilds the location tree and rematches the current uri',
       (
