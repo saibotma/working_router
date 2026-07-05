@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
 import 'package:working_router/src/logging.dart' as working_router_logging;
@@ -1144,6 +1145,15 @@ void main() {
       expect(router.nullableData!.uri.path, '/a');
     });
 
+    test('root back button dispatcher is stable', () {
+      final router = _buildRouter();
+
+      expect(
+        identical(router.backButtonDispatcher, router.backButtonDispatcher),
+        isTrue,
+      );
+    });
+
     testWidgets('system back closes root drawer before routing back', (
       tester,
     ) async {
@@ -1176,6 +1186,12 @@ void main() {
       expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
       expect(router.nullableData!.uri.path, '/');
       expect(find.text('home'), findsOneWidget);
+
+      final didBubble = await router.routerDelegate.popRoute();
+      await tester.pumpAndSettle();
+
+      expect(didBubble, isFalse);
+      expect(router.nullableData!.uri.path, '/');
     });
 
     testWidgets('system back closes ancestor drawer before nested route pop', (
@@ -1248,6 +1264,105 @@ void main() {
       expect(find.text('details'), findsNothing);
       expect(find.text('shell-home'), findsOneWidget);
     });
+
+    testWidgets(
+      'late root cannot-pop notification keeps nested back handling enabled',
+      (tester) async {
+        final frameworkHandlesBack = <bool>[];
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'SystemNavigator.setFrameworkHandlesBack') {
+              frameworkHandlesBack.add(call.arguments as bool);
+            }
+            return null;
+          },
+        );
+        addTearDown(() {
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          );
+        });
+        await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+          SystemChannels.lifecycle.name,
+          const StringCodec().encodeMessage(
+            'AppLifecycleState.resumed',
+          ),
+          (_) {},
+        );
+
+        final scaffoldKey = GlobalKey<ScaffoldState>();
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            Shell(
+              build: (builder, shell, _) {
+                builder.pathLiteral('accounts');
+                builder.content = ShellContent.builder((context, data, child) {
+                  return Scaffold(
+                    key: scaffoldKey,
+                    drawer: const Drawer(child: Text('drawer')),
+                    body: SizedBox(height: 120, child: child),
+                  );
+                });
+                builder.children = [
+                  _BuilderScope(
+                    build: (builder, scope) {
+                      builder.pathLiteral('account');
+                      builder.children = [
+                        Shell(
+                          build: (builder, shell, _) {
+                            builder.children = [
+                              _BuilderLocation(
+                                id: _Id.a,
+                                build: (builder, location) {
+                                  builder.pathLiteral('dashboard');
+                                  builder.content = Content.widget(
+                                    const Text('dashboard'),
+                                  );
+                                },
+                              ),
+                            ];
+                          },
+                        ),
+                      ];
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+        );
+        await _pumpApp(tester, router);
+        router.routeToStatic(Uri(path: '/accounts/account/dashboard'));
+        await tester.pumpAndSettle();
+        expect(frameworkHandlesBack.last, isTrue);
+
+        final rootNavigator = tester.state<NavigatorState>(
+          find.byType(Navigator).first,
+        );
+        const NavigationNotification(
+          canHandlePop: false,
+        ).dispatch(rootNavigator.context);
+        await tester.pumpAndSettle();
+
+        expect(frameworkHandlesBack.last, isTrue);
+
+        scaffoldKey.currentState!.openDrawer();
+        await tester.pumpAndSettle();
+
+        expect(scaffoldKey.currentState!.isDrawerOpen, isTrue);
+        expect(frameworkHandlesBack.last, isTrue);
+
+        final didCloseDrawer = await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        expect(didCloseDrawer, isTrue);
+        expect(scaffoldKey.currentState!.isDrawerOpen, isFalse);
+        expect(router.nullableData!.uri.path, '/accounts/account/dashboard');
+      },
+    );
 
     testWidgets(
       'refresh rebuilds the location tree and rematches the current uri',

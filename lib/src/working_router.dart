@@ -44,6 +44,8 @@ class WorkingRouter extends ChangeNotifier
         ),
         consumeReplaceBrowserHistory: _consumeReplaceBrowserHistoryReport,
       );
+  final RootBackButtonDispatcher _backButtonDispatcher =
+      RootBackButtonDispatcher();
   final GlobalKey<NavigatorState> _rootNavigatorKey;
   final WorkingRouterKey _rootRouterKey = WorkingRouterKey();
 
@@ -135,7 +137,7 @@ class WorkingRouter extends ChangeNotifier
   }
 
   @override
-  BackButtonDispatcher? get backButtonDispatcher => RootBackButtonDispatcher();
+  BackButtonDispatcher get backButtonDispatcher => _backButtonDispatcher;
 
   @override
   RouteInformationParser<WorkingRouteConfiguration>?
@@ -154,6 +156,9 @@ class WorkingRouter extends ChangeNotifier
 
   @internal
   WorkingRouterKey get rootRouterKey => _rootRouterKey;
+
+  @internal
+  bool get hasNestedDelegates => _nestedDelegates.isNotEmpty;
 
   /// Rebuilds the route node tree for this router instance.
   ///

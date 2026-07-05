@@ -88,7 +88,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           const Material(child: Center(child: CircularProgressIndicator()));
     }
 
-    final child = Builder(
+    Widget child = Builder(
       builder: (context) {
         if (_pages!.isEmpty) {
           assert(
@@ -131,6 +131,10 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     );
 
     if (isRootDelegate) {
+      child = _WorkingRouterNavigationNotificationScope(
+        router: router,
+        child: child,
+      );
       return InheritedWorkingRouter(
         sailor: router,
         child: InheritedWorkingRouterData(
@@ -879,5 +883,34 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
     if (!isRootDelegate) {
       router.removeNestedDelegate(this);
     }
+  }
+}
+
+class _WorkingRouterNavigationNotificationScope extends StatelessWidget {
+  final WorkingRouter router;
+  final Widget child;
+
+  const _WorkingRouterNavigationNotificationScope({
+    required this.router,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<NavigationNotification>(
+      onNotification: (notification) {
+        if (notification.canHandlePop || !router.hasNestedDelegates) {
+          return false;
+        }
+
+        // Android predictive back may finish in the system when the app last
+        // reported that Flutter cannot handle back. With nested routers, a
+        // late root notification can be false while a nested router still needs
+        // first chance to close an ancestor drawer or pop its own stack.
+        const NavigationNotification(canHandlePop: true).dispatch(context);
+        return true;
+      },
+      child: child,
+    );
   }
 }

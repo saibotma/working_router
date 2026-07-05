@@ -54,6 +54,8 @@ class _NestedRoutingState extends State<NestedRouting> {
     router: widget.router,
     routerKey: widget.routerKey,
   );
+  BackButtonDispatcher? _parentBackButtonDispatcher;
+  late ChildBackButtonDispatcher _childBackButtonDispatcher;
 
   @override
   void didUpdateWidget(covariant NestedRouting oldWidget) {
@@ -92,9 +94,14 @@ class _NestedRoutingState extends State<NestedRouting> {
 
     // Followed https://github.com/flutter/flutter/issues/55570#issuecomment-665330166
     // on how to connect this to the root back button dispatcher.
-    final parentRouter = Router.of(context);
-    final childBackButtonDispatcher = parentRouter.backButtonDispatcher!
-        .createChildBackButtonDispatcher();
+    final parentBackButtonDispatcher = Router.of(context).backButtonDispatcher!;
+    if (!identical(_parentBackButtonDispatcher, parentBackButtonDispatcher)) {
+      _parentBackButtonDispatcher = parentBackButtonDispatcher;
+      _childBackButtonDispatcher = parentBackButtonDispatcher
+          .createChildBackButtonDispatcher();
+    }
+
+    final childBackButtonDispatcher = _childBackButtonDispatcher;
     childBackButtonDispatcher.takePriority();
     return InheritedWorkingRouter(
       sailor: _sailor,
