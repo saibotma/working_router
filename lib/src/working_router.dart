@@ -78,13 +78,20 @@ class WorkingRouter extends ChangeNotifier
   /// When using `@RouteNodes`, pass a closure here that builds the same route
   /// tree shape as the annotated generator entrypoint.
   final BuildRouteNodes buildRouteNodes;
-  final LocationChildWrapper? wrapLocationChild;
+
+  /// Wraps the widget child of every page produced by a route node.
+  ///
+  /// This includes locations, shells, multi-shells, overlays, and default
+  /// shell or slot pages. A node that produces multiple pages, such as a shell
+  /// location with an inner default page, is passed to this callback once for
+  /// each page child.
+  final RoutePageChildWrapper? wrapPageChild;
 
   WorkingRouter({
     required this.buildRouteNodes,
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
-    this.wrapLocationChild,
+    this.wrapPageChild,
     TransitionDecider? decideTransition,
     RouteTransitionCommitted? onTransitionCommitted,
     int redirectLimit = 5,

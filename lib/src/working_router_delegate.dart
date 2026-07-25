@@ -532,7 +532,10 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
               final nested = NestedRouting(
                 router: router,
                 buildDefaultPages: shell.hasDefaultPage
-                    ? (data) => shell.buildDefaultPages(data)
+                    ? (data) => shell.buildDefaultPages(
+                        data,
+                        wrapChild: router.wrapPageChild,
+                      )
                     : null,
                 routerKey: shell.routerKey,
                 debugLabel: '$shell',
@@ -565,6 +568,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
               final slotChildren = MultiShellSlotChildren({
                 for (final resolvedSlot in resolvedSlots)
                   resolvedSlot.slot: _buildSlotChild(
+                    node: multiShell,
                     resolvedSlot: resolvedSlot,
                     debugLabel: '$multiShell',
                   ),
@@ -593,7 +597,10 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
               final nested = NestedRouting(
                 router: router,
                 buildDefaultPages: shellLocation.hasDefaultPage
-                    ? (data) => shellLocation.buildDefaultPages(data)
+                    ? (data) => shellLocation.buildDefaultPages(
+                        data,
+                        wrapChild: router.wrapPageChild,
+                      )
                     : null,
                 routerKey: shellLocation.routerKey,
                 debugLabel: '$shellLocation',
@@ -638,6 +645,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
                   ...resolvedExtraSlots,
                 ])
                   resolvedSlot.slot: _buildSlotChild(
+                    node: multiShellLocation,
                     resolvedSlot: resolvedSlot,
                     debugLabel: '$multiShellLocation',
                   ),
@@ -722,13 +730,13 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
       key: childKey,
       builder: (context) {
         final child = buildChild(context, data);
-        if (node case final AnyLocation location) {
-          final wrapChild = router.wrapLocationChild;
-          if (wrapChild != null) {
-            return wrapChild(context, location, data, child);
-          }
-        }
-        return child;
+        return router.wrapPageChild?.call(
+              context,
+              node,
+              data,
+              child,
+            ) ??
+            child;
       },
     );
     final wrappedChild = InheritedWorkingRouterData(
@@ -761,6 +769,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
   }
 
   MultiShellResolvedSlotChild _buildSlotChild({
+    required RouteNode node,
     required MultiShellResolvedSlot resolvedSlot,
     required String? debugLabel,
   }) {
@@ -786,6 +795,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
             ? null
             : (data) => [
                 _buildDefaultPage(
+                  node: node,
                   data: data,
                   resolvedSlot: resolvedSlot,
                 ),
@@ -798,6 +808,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
   }
 
   Page<dynamic> _buildDefaultPage({
+    required RouteNode node,
     required WorkingRouterData data,
     required MultiShellResolvedSlot resolvedSlot,
   }) {
@@ -806,7 +817,14 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
       data: data,
       child: Builder(
         builder: (context) {
-          return buildDefaultWidget(context, data);
+          final child = buildDefaultWidget(context, data);
+          return router.wrapPageChild?.call(
+                context,
+                node,
+                data,
+                child,
+              ) ??
+              child;
         },
       ),
     );

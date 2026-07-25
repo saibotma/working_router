@@ -263,12 +263,17 @@ abstract class AbstractShell<Self extends AbstractShell<Self>>
 
   bool get hasDefaultPage => _definition.render.buildDefaultWidget != null;
 
-  List<Page<dynamic>> buildDefaultPages(WorkingRouterData data) {
+  List<Page<dynamic>> buildDefaultPages(
+    WorkingRouterData data, {
+    RoutePageChildWrapper? wrapChild,
+  }) {
     return buildDefaultPagesForSlot(
+      node: this,
       data: data,
       routerKey: routerKey,
       buildDefaultWidget: _definition.render.buildDefaultWidget,
       buildDefaultPage: _definition.render.buildDefaultPage,
+      wrapChild: wrapChild,
     );
   }
 }

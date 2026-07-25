@@ -1078,7 +1078,7 @@ void main() {
       expect(initCount, 2);
     });
 
-    testWidgets('wrapLocationChild receives the current router data', (
+    testWidgets('wrapPageChild wraps a location with current router data', (
       tester,
     ) async {
       var sawExpectedData = false;
@@ -1105,8 +1105,8 @@ void main() {
           ),
         ],
         noContentWidget: const SizedBox.shrink(),
-        wrapLocationChild: (context, location, data, child) {
-          if (location.id == _PathId.b) {
+        wrapPageChild: (context, node, data, child) {
+          if (node.id == _PathId.b) {
             final inheritedData = WorkingRouterData.of(context);
             sawExpectedData =
                 identical(inheritedData, data) &&
@@ -1115,7 +1115,7 @@ void main() {
           }
           return Column(
             children: [
-              Text('wrapped ${location.id} at ${data.uri.path}'),
+              Text('wrapped ${node.id} at ${data.uri.path}'),
               child,
             ],
           );
@@ -1128,6 +1128,201 @@ void main() {
 
       expect(sawExpectedData, isTrue);
       expect(find.text('wrapped ${_PathId.b} at /a/b'), findsOneWidget);
+    });
+
+    testWidgets('wrapPageChild wraps shell and overlay page children', (
+      tester,
+    ) async {
+      late Shell shell;
+      late _BuilderLocation details;
+      late _BuilderOverlay overlay;
+      final wrappedNodes = <RouteNode>{};
+      var allWrappersSawCurrentData = true;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                shell = Shell(
+                  build: (builder, shell, _) {
+                    builder.pathLiteral('shell');
+                    builder.children = [
+                      details = _BuilderLocation(
+                        id: _Id.a,
+                        build: (builder, location) {
+                          builder.pathLiteral('details');
+                          final showOverlay = builder.defaultBoolQueryParam(
+                            'overlay',
+                            defaultValue: false,
+                          );
+                          builder.content = Content.widget(
+                            const Text('details'),
+                          );
+                          builder.overlays = [
+                            overlay = _BuilderOverlay(
+                              id: _overlaySearchId,
+                              build: (builder, overlay) {
+                                builder.conditions = [
+                                  showOverlay.matches(true),
+                                ];
+                                builder.content = Content.widget(
+                                  const Text('overlay'),
+                                );
+                              },
+                            ),
+                          ];
+                        },
+                      ),
+                    ];
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+        wrapPageChild: (context, node, data, child) {
+          wrappedNodes.add(node);
+          allWrappersSawCurrentData &=
+              identical(WorkingRouterData.of(context), data) &&
+              data.uri ==
+                  Uri(
+                    path: '/shell/details',
+                    queryParameters: {'overlay': 'true'},
+                  );
+          return _WrappedRoutePageChild(
+            node: node,
+            data: data,
+            child: child,
+          );
+        },
+      );
+
+      await _pumpApp(tester, router);
+      router.routeToStatic(
+        Uri(
+          path: '/shell/details',
+          queryParameters: {'overlay': 'true'},
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(allWrappersSawCurrentData, isTrue);
+      expect(wrappedNodes, containsAll(<RouteNode>[shell, details, overlay]));
+    });
+
+    testWidgets('wrapPageChild wraps a shell location default page', (
+      tester,
+    ) async {
+      late _BuilderShellLocation shellLocation;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                shellLocation = _BuilderShellLocation(
+                  build: (builder, location, _) {
+                    builder.pathLiteral('shell');
+                    builder.defaultContent = DefaultContent.widget(
+                      const Text('default'),
+                    );
+                    builder.content = const Content.none();
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+        wrapPageChild: (context, node, data, child) {
+          return _WrappedRoutePageChild(
+            node: node,
+            data: data,
+            child: child,
+          );
+        },
+      );
+
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/shell'));
+      await tester.pumpAndSettle();
+
+      final wrappers = tester
+          .widgetList<_WrappedRoutePageChild>(
+            find.byType(_WrappedRoutePageChild, skipOffstage: false),
+          )
+          .where((wrapper) => identical(wrapper.node, shellLocation));
+      expect(wrappers, hasLength(2));
+      expect(find.text('default'), findsOneWidget);
+    });
+
+    testWidgets('wrapPageChild wraps every multi-shell default page', (
+      tester,
+    ) async {
+      late _BuilderMultiShellLocation multiShellLocation;
+
+      final router = WorkingRouter(
+        buildRouteNodes: (_) => [
+          _BuilderLocation(
+            id: _Id.root,
+            build: (builder, location) {
+              builder.children = [
+                multiShellLocation = _BuilderMultiShellLocation(
+                  build: (builder, location, contentSlot) {
+                    builder.pathLiteral('dashboard');
+                    final sideSlot = builder.slot(
+                      defaultContent: DefaultContent.widget(
+                        const Text('side-default'),
+                      ),
+                    );
+                    builder.shellContent = MultiShellContent.builder((
+                      context,
+                      data,
+                      slots,
+                    ) {
+                      return Column(
+                        children: [
+                          Expanded(child: slots.child(sideSlot)),
+                          Expanded(child: slots.child(contentSlot)),
+                        ],
+                      );
+                    });
+                    builder.defaultContent = DefaultContent.widget(
+                      const Text('content-default'),
+                    );
+                    builder.content = const Content.none();
+                  },
+                ),
+              ];
+            },
+          ),
+        ],
+        noContentWidget: const SizedBox.shrink(),
+        wrapPageChild: (context, node, data, child) {
+          return _WrappedRoutePageChild(
+            node: node,
+            data: data,
+            child: child,
+          );
+        },
+      );
+
+      await _pumpApp(tester, router);
+      router.routeToStatic(Uri(path: '/dashboard'));
+      await tester.pumpAndSettle();
+
+      final wrappers = tester
+          .widgetList<_WrappedRoutePageChild>(
+            find.byType(_WrappedRoutePageChild, skipOffstage: false),
+          )
+          .where((wrapper) => identical(wrapper.node, multiShellLocation));
+      expect(wrappers, hasLength(3));
+      expect(find.text('side-default'), findsOneWidget);
+      expect(find.text('content-default'), findsOneWidget);
     });
 
     testWidgets('navigator maybePop syncs router back once', (tester) async {
@@ -4799,6 +4994,21 @@ class _PathLocation extends Location<_PathLocation> {
     }
     builder.children = children;
   }
+}
+
+class _WrappedRoutePageChild extends StatelessWidget {
+  final RouteNode node;
+  final WorkingRouterData data;
+  final Widget child;
+
+  const _WrappedRoutePageChild({
+    required this.node,
+    required this.data,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) => child;
 }
 
 abstract class _ParamPathLocation<Self extends _ParamPathLocation<Self>>

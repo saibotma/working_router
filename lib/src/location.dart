@@ -21,10 +21,10 @@ typedef LocationWidgetBuilder =
     Widget Function(BuildContext context, WorkingRouterData data);
 typedef SelfBuiltLocationPageBuilder =
     Page<dynamic> Function(LocalKey? key, Widget child);
-typedef LocationChildWrapper =
+typedef RoutePageChildWrapper =
     Widget Function(
       BuildContext context,
-      AnyLocation location,
+      RouteNode node,
       WorkingRouterData data,
       Widget child,
     );
@@ -346,10 +346,12 @@ abstract class Location<Self extends AnyLocation<Self>>
 }
 
 List<Page<dynamic>> buildDefaultPagesForSlot({
+  required RouteNode node,
   required WorkingRouterData data,
   required WorkingRouterKey routerKey,
   required LocationWidgetBuilder? buildDefaultWidget,
   required SelfBuiltLocationPageBuilder? buildDefaultPage,
+  required RoutePageChildWrapper? wrapChild,
 }) {
   if (buildDefaultWidget == null) {
     return const [];
@@ -359,7 +361,8 @@ List<Page<dynamic>> buildDefaultPagesForSlot({
     data: data,
     child: Builder(
       builder: (context) {
-        return buildDefaultWidget(context, data);
+        final child = buildDefaultWidget(context, data);
+        return wrapChild?.call(context, node, data, child) ?? child;
       },
     ),
   );

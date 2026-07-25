@@ -177,12 +177,17 @@ abstract class ShellLocation<Self extends AnyLocation<Self>>
 
   bool get hasDefaultPage => _shellLocationRender.buildDefaultWidget != null;
 
-  List<Page<dynamic>> buildDefaultPages(WorkingRouterData data) {
+  List<Page<dynamic>> buildDefaultPages(
+    WorkingRouterData data, {
+    RoutePageChildWrapper? wrapChild,
+  }) {
     return buildDefaultPagesForSlot(
+      node: this,
       data: data,
       routerKey: routerKey,
       buildDefaultWidget: _shellLocationRender.buildDefaultWidget,
       buildDefaultPage: _shellLocationRender.buildDefaultPage,
+      wrapChild: wrapChild,
     );
   }
 }
