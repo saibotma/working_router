@@ -490,14 +490,19 @@ delegate keeps its own navigator key and stack across
 makes dynamic route-tree refreshes practical here, because nested navigator
 state can survive tree changes that still keep the same shell alive.
 
-`WorkingRouter.refresh()` rebuilds the route-node tree and rematches the
-current route against that new tree. Any `RouteNode` objects from the old tree
-are no longer live after refresh. If a widget needs to route via a child target,
-it is safe to pass the route node from the current build/default-content
-callback to child widgets as a constructor argument. Do not keep route-node
-instances in widget state, controllers, providers, or memoized callbacks across
-refreshes. If a current build/default-content callback still receives an old
-route-node instance after refresh, that is likely a working_router bug.
+`WorkingRouter.refresh()` stages a rebuilt route-node tree, rematches the full
+current route configuration against it, and revalidates that candidate. The
+tree and resolved route are committed together only if the transition is
+accepted. A blocked or superseded refresh keeps the previously committed tree
+and route.
+
+After a successful refresh, `RouteNode` objects from the old tree are no longer
+live. If a widget needs to route via a child target, it is safe to pass the
+route node from the current build/default-content callback to child widgets as
+a constructor argument. Do not keep route-node instances in widget state,
+controllers, providers, or memoized callbacks across refreshes. If a current
+build/default-content callback still receives an old route-node instance after
+refresh, that is likely a working_router bug.
 
 This is shown in the package example in
 [`example/lib/route_nodes.dart`](example/lib/route_nodes.dart).
@@ -754,16 +759,69 @@ the router falls back to the parent/global back behavior.
 
 ## Transition Callbacks
 
-`decideTransition` runs while a route attempt is still speculative. It can
-allow, block, or redirect the target. Redirects are resolved before the router
-commits the final data, and redirected targets run through `decideTransition`
-again with `RouteTransitionReason.redirect`.
+`resolveTransition` is a synchronous, side-effect-free
+`TransitionResolver`. It runs while a route attempt is still speculative
+and can allow, block, or redirect matched and unmatched targets. Redirected
+targets run through the resolver again with
+`RouteTransitionReason.redirect`.
 
-`onTransitionCommitted` runs only after the final target has been accepted and
-the router is about to update its data. If the final resolved
-`WorkingRouterData` is equal to the current router data, the route attempt is a
-no-op: `decideTransition` may still have run, but `onTransitionCommitted`,
-`beforeLeave`, listeners, and route observer update callbacks are skipped.
+```dart
+final router = WorkingRouter(
+  buildRouteNodes: buildRouteNodes,
+  noContentWidget: const SizedBox.shrink(),
+  resolveTransition: (router, transition) {
+    if (mayOpen(transition.to)) {
+      return const AllowTransition();
+    }
+    return RedirectTransition.toUri(
+      Uri(path: '/'),
+      policy: transition.reason == RouteTransitionReason.revalidation
+          ? RouteTransitionPolicy.mandatory
+          : RouteTransitionPolicy.standard,
+    );
+  },
+);
+```
+
+Call `router.revalidate()` after externally resolved state such as
+authorization or required route data changes. Revalidation proposes the full
+current configuration as an X-to-X transition, preserving hidden path and query
+state. If it remains valid, the attempt is a no-op. If the resolver redirects
+it with `RouteTransitionPolicy.mandatory`, the router must leave the current
+route and does not consult its leave guards.
+
+`LocationObserver.canLeave` handles ordinary leave permission, such as an
+unsaved-changes confirmation. Keep it decision-only. Put cleanup in
+`afterLeave`, which starts only after the final route has committed:
+
+```dart
+LocationObserver(
+  canLeave: () async => confirmDiscardChanges(),
+  afterLeave: (transition) async {
+    await draftController.release();
+  },
+  child: const EditorScreen(),
+)
+```
+
+All leaving observers are processed innermost first. Asynchronous
+`afterLeave` callbacks do not delay navigation or one another, and failures are
+reported independently. They must capture required dependencies before their
+observer unmounts.
+
+Mandatory policy is sticky through redirect chains. Returning
+`BlockTransition` after a mandatory redirect is a resolver contradiction and
+throws `StateError`. A standard redirect remains guarded; this is important
+when a valid guarded route attempts to open an invalid destination and the
+resolver redirects somewhere else.
+
+If the final resolved `WorkingRouterData` equals the current data, the attempt
+is a no-op: the resolver may have run, but guards, cleanup, listeners, and
+observer update callbacks are skipped.
+
+The resolver deliberately remains synchronous. This keeps transition
+eligibility available ahead of time for future predictive-back integration;
+asynchronous confirmation remains the responsibility of `canLeave`.
 
 ## Generated API
 

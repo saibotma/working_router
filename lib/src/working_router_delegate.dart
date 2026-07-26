@@ -750,7 +750,7 @@ class WorkingRouterDelegate extends RouterDelegate<WorkingRouteConfiguration>
           child: NotificationListener(
             onNotification: (notification) {
               if (notification is AddLocationObserverMessage) {
-                router.addObserver(notification.state);
+                router.addObserver(notification.state, location);
                 return true;
               }
               if (notification is RemoveLocationObserverMessage) {

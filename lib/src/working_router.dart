@@ -50,12 +50,13 @@ class WorkingRouter extends ChangeNotifier
   final WorkingRouterKey _rootRouterKey = WorkingRouterKey();
 
   late IList<RouteNode> _routeNodeTree;
-  final List<LocationObserverState> _observers = [];
+  final Map<LocationObserverState, _LocationObserverRegistration> _observers =
+      {};
   final List<WorkingRouterDelegate> _nestedDelegates = [];
 
   /// Counter to track routing requests and prevent race conditions.
   /// Each routing request captures this value at start; if a newer request
-  /// starts before async `beforeLeave` checks complete, older requests
+  /// starts before async `canLeave` checks complete, older requests
   /// are discarded.
   int _routingVersion = 0;
   bool _replaceNextBrowserHistoryReport = false;
@@ -66,8 +67,7 @@ class WorkingRouter extends ChangeNotifier
   )
   WorkingRouterData? _data;
 
-  final TransitionDecider? _decideTransition;
-  final RouteTransitionCommitted? _onTransitionCommitted;
+  final TransitionResolver? _transitionResolver;
   final int _redirectLimit;
 
   /// Rebuilds the routing tree used by this router instance.
@@ -92,15 +92,13 @@ class WorkingRouter extends ChangeNotifier
     required Widget noContentWidget,
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     this.wrapPageChild,
-    TransitionDecider? decideTransition,
-    RouteTransitionCommitted? onTransitionCommitted,
+    TransitionResolver? resolveTransition,
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _rootNavigatorKey =
            navigatorKey ?? GlobalKey<NavigatorState>(debugLabel: 'root'),
-       _decideTransition = decideTransition,
-       _onTransitionCommitted = onTransitionCommitted,
+       _transitionResolver = resolveTransition,
        _redirectLimit = redirectLimit {
     _routeNodeTree = _buildRouteNodeTree();
     _rootDelegate = WorkingRouterDelegate(
@@ -167,29 +165,49 @@ class WorkingRouter extends ChangeNotifier
   @internal
   bool get hasNestedDelegates => _nestedDelegates.isNotEmpty;
 
-  /// Rebuilds the route node tree for this router instance.
+  /// Rebuilds the route node tree and revalidates the current route.
   ///
-  /// The current route is rematched against the rebuilt tree, so
-  /// [WorkingRouterData.routeNodes] is replaced with the new live route-node
-  /// instances. It is safe to pass a route node from the current build callback
-  /// to child widgets as a constructor argument. Avoid storing route-node
-  /// instances in widget state, controllers, providers, or memoized callbacks
-  /// across refreshes. If a current build callback still receives an old node,
-  /// that is likely a working_router bug.
+  /// The rebuilt tree remains speculative until the rematched route passes
+  /// transition resolution and any standard leave guards. The tree and route
+  /// data are then committed together.
   void refresh() {
-    _routeNodeTree = _buildRouteNodeTree();
+    final routeNodeTree = _buildRouteNodeTree();
     final currentData = nullableData;
-    if (currentData != null) {
-      // The route-node tree was rebuilt, so old matched node instances must be
-      // resolved again against the new tree. Use the full internal route state
-      // because data.uri may omit hidden path segments or query parameters.
-      _updateData(
-        _buildDataForConfiguration(_configurationFromData(currentData)),
-      );
+    if (currentData == null) {
+      ++_routingVersion;
+      _routeNodeTree = routeNodeTree;
+      for (final delegate in [_rootDelegate, ..._nestedDelegates]) {
+        delegate.refresh();
+      }
+      return;
     }
-    for (final it in [_rootDelegate, ..._nestedDelegates]) {
-      it.refresh();
+
+    _routeTo(
+      targetData: _buildDataForConfiguration(
+        _configurationFromData(currentData),
+        routeNodeTree: routeNodeTree,
+      ),
+      reason: RouteTransitionReason.revalidation,
+      stagedRouteNodeTree: routeNodeTree,
+    );
+  }
+
+  /// Rechecks the current route against the latest transition resolver state.
+  ///
+  /// The complete current route configuration is retained, including hidden
+  /// path segments and query parameters.
+  void revalidate() {
+    final currentData = nullableData;
+    if (currentData == null) {
+      ++_routingVersion;
+      return;
     }
+    _routeTo(
+      targetData: _buildDataForConfiguration(
+        _configurationFromData(currentData),
+      ),
+      reason: RouteTransitionReason.revalidation,
+    );
   }
 
   IList<RouteNode> _buildRouteNodeTree() {
@@ -458,54 +476,43 @@ class WorkingRouter extends ChangeNotifier
   void _routeTo({
     required WorkingRouterData targetData,
     required RouteTransitionReason reason,
+    IList<RouteNode>? stagedRouteNodeTree,
   }) {
     final myVersion = ++_routingVersion;
     final oldData = nullableData;
 
-    final resolvedTransition = _resolveTransitionDecision(
+    final resolvedTransition = _resolveTransition(
       oldData: oldData,
       initialData: targetData,
       initialReason: reason,
+      routeNodeTree: stagedRouteNodeTree ?? _routeNodeTree,
     );
     if (resolvedTransition == null) {
       return;
     }
     final resolvedData = resolvedTransition.data;
-    if (oldData == resolvedData) {
+    if (oldData == resolvedData && stagedRouteNodeTree == null) {
       return;
     }
 
-    unawaited(
-      _guardBeforeLeave(
-        routingVersion: myVersion,
-        newLocations: resolvedData.routeNodes.locations,
-        onAllowed: () {
-          final oldLocations = oldData?.routeNodes.locations;
-          _replaceNextBrowserHistoryReport = _shouldReplaceBrowserHistoryReport(
-            oldData,
-            resolvedData,
-          );
-          _onTransitionCommitted?.call(
-            RouteTransition(
-              from: oldData,
-              to: resolvedData,
-              reason: resolvedTransition.reason,
-            ),
-          );
-          _logTransition(
-            from: oldData,
-            to: resolvedData,
-            reason: resolvedTransition.reason,
-          );
-          _updateData(resolvedData);
+    final transition = RouteTransition(
+      from: oldData != null && oldData.routeNodes.isNotEmpty ? oldData : null,
+      to: resolvedData,
+      reason: resolvedTransition.reason,
+      policy: resolvedTransition.policy,
+    );
+    final leavingObservers = _snapshotLeavingObservers(
+      oldLocations: oldData?.routeNodes.locations,
+      newLocations: resolvedData.routeNodes.locations,
+    );
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _notifyObserversAfterRouteChange(
-              oldLocations: oldLocations,
-              newLocations: resolvedData.routeNodes.locations,
-            );
-          });
-        },
+    unawaited(
+      _runTransitionAttempt(
+        routingVersion: myVersion,
+        transition: transition,
+        oldData: oldData,
+        leavingObservers: leavingObservers,
+        stagedRouteNodeTree: stagedRouteNodeTree,
       ).catchError((Object error, StackTrace stackTrace) {
         FlutterError.reportError(
           FlutterErrorDetails(
@@ -513,7 +520,8 @@ class WorkingRouter extends ChangeNotifier
             stack: stackTrace,
             library: 'working_router',
             context: ErrorDescription(
-              'while resolving async LocationObserver.beforeLeave callbacks',
+              'while resolving a route transition and its '
+              'LocationObserver.canLeave callbacks',
             ),
           ),
         );
@@ -535,34 +543,25 @@ class WorkingRouter extends ChangeNotifier
     return replace;
   }
 
-  Future<void> _guardBeforeLeave({
+  Future<void> _runTransitionAttempt({
     required int routingVersion,
-    required IList<AnyLocation> newLocations,
-    required void Function() onAllowed,
+    required RouteTransition transition,
+    required WorkingRouterData? oldData,
+    required List<_LocationObserverSnapshot> leavingObservers,
+    required IList<RouteNode>? stagedRouteNodeTree,
   }) async {
-    final observers = _observers.reversed.toList(growable: false);
+    if (transition.policy == RouteTransitionPolicy.standard) {
+      for (final observer in leavingObservers) {
+        if (routingVersion != _routingVersion) {
+          return;
+        }
 
-    // Get observers in reverse order so that the last added one
-    // (i.e., the innermost LocationObserver) is called first.
-    for (final observer in observers) {
-      if (routingVersion != _routingVersion) {
-        return;
-      }
+        final canLeave = observer.canLeave;
+        if (canLeave != null && !await canLeave()) {
+          return;
+        }
 
-      final context = observer.context;
-      if (!context.mounted) {
-        continue;
-      }
-
-      final currentLocations = nullableData?.routeNodes.locations;
-      if (currentLocations == null) {
-        break;
-      }
-
-      final observedLocation = NearestLocation.of(context);
-      if (currentLocations.contains(observedLocation) &&
-          !newLocations.contains(observedLocation)) {
-        if (!(await observer.widget.beforeLeave?.call() ?? true)) {
+        if (routingVersion != _routingVersion) {
           return;
         }
       }
@@ -572,26 +571,137 @@ class WorkingRouter extends ChangeNotifier
       return;
     }
 
-    onAllowed();
+    _replaceNextBrowserHistoryReport = _shouldReplaceBrowserHistoryReport(
+      oldData,
+      transition.to,
+    );
+    if (stagedRouteNodeTree != null) {
+      _routeNodeTree = stagedRouteNodeTree;
+    }
+    _logTransition(
+      from: oldData,
+      to: transition.to,
+      reason: transition.reason,
+      policy: transition.policy,
+    );
+    _updateData(transition.to);
+
+    if (stagedRouteNodeTree != null) {
+      for (final delegate in [_rootDelegate, ..._nestedDelegates]) {
+        delegate.refresh();
+      }
+    }
+
+    _notifyObserversAfterLeave(
+      observers: leavingObservers,
+      transition: transition,
+    );
+
+    final oldLocations = oldData?.routeNodes.locations;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notifyObserversAfterRouteChange(
+        oldLocations: oldLocations,
+        newLocations: transition.to.routeNodes.locations,
+      );
+    });
   }
 
-  ({WorkingRouterData data, RouteTransitionReason reason})?
-  _resolveTransitionDecision({
+  List<_LocationObserverSnapshot> _snapshotLeavingObservers({
+    required IList<AnyLocation>? oldLocations,
+    required IList<AnyLocation> newLocations,
+  }) {
+    if (oldLocations == null || oldLocations.isEmpty) {
+      return const [];
+    }
+
+    final candidates =
+        <
+          ({int registrationOrder, _LocationObserverRegistration registration})
+        >[];
+    var registrationOrder = 0;
+    for (final registration in _observers.values) {
+      if (registration.state.mounted &&
+          oldLocations.contains(registration.location) &&
+          !newLocations.contains(registration.location)) {
+        candidates.add((
+          registrationOrder: registrationOrder,
+          registration: registration,
+        ));
+      }
+      registrationOrder += 1;
+    }
+    candidates.sort((left, right) {
+      final leftDepth = oldLocations.indexOf(left.registration.location);
+      final rightDepth = oldLocations.indexOf(right.registration.location);
+      final depthComparison = rightDepth.compareTo(leftDepth);
+      if (depthComparison != 0) {
+        return depthComparison;
+      }
+      return right.registrationOrder.compareTo(left.registrationOrder);
+    });
+
+    return candidates
+        .map(
+          (candidate) => _LocationObserverSnapshot(
+            canLeave: candidate.registration.state.widget.canLeave,
+            afterLeave: candidate.registration.state.widget.afterLeave,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  void _notifyObserversAfterLeave({
+    required List<_LocationObserverSnapshot> observers,
+    required RouteTransition transition,
+  }) {
+    for (final observer in observers) {
+      final afterLeave = observer.afterLeave;
+      if (afterLeave == null) {
+        continue;
+      }
+      unawaited(
+        Future<void>.sync(() => afterLeave(transition)).catchError((
+          Object error,
+          StackTrace stackTrace,
+        ) {
+          FlutterError.reportError(
+            FlutterErrorDetails(
+              exception: error,
+              stack: stackTrace,
+              library: 'working_router',
+              context: ErrorDescription(
+                'while running a LocationObserver.afterLeave callback',
+              ),
+            ),
+          );
+        }),
+      );
+    }
+  }
+
+  ({
+    WorkingRouterData data,
+    RouteTransitionReason reason,
+    RouteTransitionPolicy policy,
+  })?
+  _resolveTransition({
     required WorkingRouterData? oldData,
     required WorkingRouterData initialData,
     required RouteTransitionReason initialReason,
+    required IList<RouteNode> routeNodeTree,
   }) {
-    if (initialData.routeNodes.isEmpty) {
-      return (data: initialData, reason: initialReason);
-    }
-
-    final decideTransition = _decideTransition;
-    if (decideTransition == null) {
-      return (data: initialData, reason: initialReason);
+    final resolveTransition = _transitionResolver;
+    if (resolveTransition == null) {
+      return (
+        data: initialData,
+        reason: initialReason,
+        policy: RouteTransitionPolicy.standard,
+      );
     }
 
     var currentData = initialData;
     var currentReason = initialReason;
+    var currentPolicy = RouteTransitionPolicy.standard;
     var redirects = 0;
     final visitedUris = <Uri>{currentData.uri};
     final transitionFrom = oldData != null && oldData.routeNodes.isNotEmpty
@@ -599,22 +709,37 @@ class WorkingRouter extends ChangeNotifier
         : null;
 
     while (true) {
-      final decision = decideTransition(
+      final decision = resolveTransition(
         this,
         RouteTransition(
           from: transitionFrom,
           to: currentData,
           reason: currentReason,
+          policy: currentPolicy,
         ),
       );
 
       switch (decision) {
         case AllowTransition():
-          return (data: currentData, reason: currentReason);
+          return (
+            data: currentData,
+            reason: currentReason,
+            policy: currentPolicy,
+          );
         case BlockTransition():
+          if (currentPolicy == RouteTransitionPolicy.mandatory) {
+            throw StateError(
+              'A mandatory transition to ${currentData.uri} was blocked by '
+              'the route transition resolver.',
+            );
+          }
           return null;
-        case RedirectTransition(:final to):
-          // Re-run the decider for redirect targets so multi-hop redirects
+        case RedirectTransition(:final to, :final policy):
+          if (policy == RouteTransitionPolicy.mandatory) {
+            currentPolicy = RouteTransitionPolicy.mandatory;
+          }
+
+          // Re-run the resolver for redirect targets so multi-hop redirects
           // like `/a -> /b -> /c` can resolve step by step.
           redirects += 1;
           if (redirects > _redirectLimit) {
@@ -628,10 +753,15 @@ class WorkingRouter extends ChangeNotifier
             to,
             currentData: currentData,
             retainSharedQueryParameters: false,
+            routeNodeTree: routeNodeTree,
           );
 
           if (currentData.uri == previousUri) {
-            return (data: currentData, reason: currentReason);
+            return (
+              data: currentData,
+              reason: RouteTransitionReason.redirect,
+              policy: currentPolicy,
+            );
           }
 
           if (!visitedUris.add(currentData.uri)) {
@@ -645,9 +775,12 @@ class WorkingRouter extends ChangeNotifier
     }
   }
 
-  WorkingRouterData _buildDataForUri(Uri uri) {
+  WorkingRouterData _buildDataForUri(
+    Uri uri, {
+    IList<RouteNode>? routeNodeTree,
+  }) {
     final queryParameters = uri.queryParameters.toIMap();
-    final matchResult = _routeNodeTree.match(
+    final matchResult = (routeNodeTree ?? _routeNodeTree).match(
       uri.pathSegments.toIList(),
       queryParameters: queryParameters,
     );
@@ -669,9 +802,13 @@ class WorkingRouter extends ChangeNotifier
   }
 
   WorkingRouterData _buildDataForConfiguration(
-    WorkingRouteConfiguration configuration,
-  ) {
-    return _buildDataForUri(configuration.matchingUri);
+    WorkingRouteConfiguration configuration, {
+    IList<RouteNode>? routeNodeTree,
+  }) {
+    return _buildDataForUri(
+      configuration.matchingUri,
+      routeNodeTree: routeNodeTree,
+    );
   }
 
   Uri _matchingUri({
@@ -697,7 +834,9 @@ class WorkingRouter extends ChangeNotifier
     RouteTarget target, {
     required WorkingRouterData? currentData,
     bool retainSharedQueryParameters = true,
+    IList<RouteNode>? routeNodeTree,
   }) {
+    final effectiveRouteNodeTree = routeNodeTree ?? _routeNodeTree;
     switch (target) {
       case StaticRouteTarget(
         :final uri,
@@ -710,6 +849,7 @@ class WorkingRouter extends ChangeNotifier
             hiddenPathSegments: hiddenPathSegments,
             hiddenQueryParameters: hiddenQueryParameters,
           ),
+          routeNodeTree: effectiveRouteNodeTree,
         );
       case NavigatorConstrainedRouteTarget(
         :final target,
@@ -720,6 +860,7 @@ class WorkingRouter extends ChangeNotifier
           target,
           currentData: currentData,
           retainSharedQueryParameters: retainSharedQueryParameters,
+          routeNodeTree: effectiveRouteNodeTree,
         );
         return _dataConstrainedToNavigator(
               targetData,
@@ -729,6 +870,7 @@ class WorkingRouter extends ChangeNotifier
               fallback,
               currentData: currentData,
               retainSharedQueryParameters: retainSharedQueryParameters,
+              routeNodeTree: effectiveRouteNodeTree,
             );
       case BaseAppendedRouteTarget(
         base: IdRouteBase(
@@ -745,9 +887,13 @@ class WorkingRouter extends ChangeNotifier
             writeQueryParameters: writeQueryParameters,
           ),
           relativeUri: relativeUri,
+          routeNodeTree: effectiveRouteNodeTree,
         );
       case ScopedRouteTarget(:final base, :final fallback):
-        final (:routeNodes, :pathParameters) = _resolveRouteBasePrefix(base);
+        final (:routeNodes, :pathParameters) = _resolveRouteBasePrefix(
+          base,
+          routeNodeTree: effectiveRouteNodeTree,
+        );
         if (currentData != null &&
             _isInsideScope(
               currentData,
@@ -768,13 +914,14 @@ class WorkingRouter extends ChangeNotifier
           fallback,
           currentData: currentData,
           retainSharedQueryParameters: retainSharedQueryParameters,
+          routeNodeTree: effectiveRouteNodeTree,
         );
       case IdRouteTarget(
         :final id,
         :final writePathParameters,
         :final writeQueryParameters,
       ):
-        final matchedNodes = _routeNodeTree.matchId(id);
+        final matchedNodes = effectiveRouteNodeTree.matchId(id);
         final targetLocation = matchedNodes.locations.lastOrNull;
         if (targetLocation == null || targetLocation.id != id) {
           throw StateError(
@@ -828,7 +975,7 @@ class WorkingRouter extends ChangeNotifier
           (node) => identical(node, start),
         );
         if (startIndex == -1) {
-          final startIsInCurrentTree = _routeNodeTree.any(
+          final startIsInCurrentTree = effectiveRouteNodeTree.any(
             (node) => node.containsNode(start),
           );
           final reason = startIsInCurrentTree
@@ -938,6 +1085,7 @@ class WorkingRouter extends ChangeNotifier
   WorkingRouterData _buildDataForBaseAppendedUri({
     required IdRouteBase base,
     required Uri relativeUri,
+    required IList<RouteNode> routeNodeTree,
   }) {
     if (relativeUri.hasScheme || relativeUri.hasAuthority) {
       throw StateError(
@@ -946,7 +1094,10 @@ class WorkingRouter extends ChangeNotifier
       );
     }
 
-    final baseData = _buildDataForRouteBase(base);
+    final baseData = _buildDataForRouteBase(
+      base,
+      routeNodeTree: routeNodeTree,
+    );
     final queryParameters = {
       ...baseData.queryParameters.unlock,
       ...relativeUri.queryParameters,
@@ -965,11 +1116,18 @@ class WorkingRouter extends ChangeNotifier
         queryParameters: queryParameters.isEmpty ? null : queryParameters,
         fragment: relativeUri.fragment.isEmpty ? null : relativeUri.fragment,
       ),
+      routeNodeTree: routeNodeTree,
     );
   }
 
-  WorkingRouterData _buildDataForRouteBase(IdRouteBase base) {
-    final (:routeNodes, :pathParameters) = _resolveRouteBasePrefix(base);
+  WorkingRouterData _buildDataForRouteBase(
+    IdRouteBase base, {
+    required IList<RouteNode> routeNodeTree,
+  }) {
+    final (:routeNodes, :pathParameters) = _resolveRouteBasePrefix(
+      base,
+      routeNodeTree: routeNodeTree,
+    );
     final baseQueryParameters = _mergeQueryParameterWrites(
       initialQueryParameters: null,
       nodes: routeNodes.pathRouteNodes,
@@ -986,12 +1144,15 @@ class WorkingRouter extends ChangeNotifier
     IList<RouteNode> routeNodes,
     IMap<UnboundPathParam<dynamic>, String> pathParameters,
   })
-  _resolveRouteBasePrefix(IdRouteBase base) {
+  _resolveRouteBasePrefix(
+    IdRouteBase base, {
+    required IList<RouteNode> routeNodeTree,
+  }) {
     final IdRouteBase(
       :id,
       :writePathParameters,
     ) = base;
-    final matchedNodes = _routeNodeTree.matchId(id);
+    final matchedNodes = routeNodeTree.matchId(id);
     final baseNode = matchedNodes.lastOrNull;
     if (baseNode == null || baseNode.id != id) {
       throw StateError(
@@ -1194,8 +1355,14 @@ class WorkingRouter extends ChangeNotifier
     return queryParameters.add(parameter.name, parameter.codec.encode(value));
   }
 
-  void addObserver(LocationObserverState observer) {
-    _observers.add(observer);
+  void addObserver(
+    LocationObserverState observer,
+    AnyLocation location,
+  ) {
+    _observers[observer] = _LocationObserverRegistration(
+      state: observer,
+      location: location,
+    );
   }
 
   void removeObserver(LocationObserverState observer) {
@@ -1507,16 +1674,16 @@ class WorkingRouter extends ChangeNotifier
       return;
     }
 
-    final observers = _observers.reversed.toList(growable: false);
+    final observers = _observers.values.toList(growable: false).reversed;
 
     // Get observers in reverse order so that the last added one
     // (i.e., the innermost LocationObserver) is called first.
-    for (final observer in observers) {
-      final context = observer.context;
-      if (!context.mounted) {
+    for (final registration in observers) {
+      final observer = registration.state;
+      if (!observer.mounted) {
         continue;
       }
-      final observedLocation = NearestLocation.of(context);
+      final observedLocation = registration.location;
       if (oldLocations!.contains(observedLocation)) {
         if (newLocations.contains(observedLocation)) {
           observer.widget.afterUpdate?.call();
@@ -1540,9 +1707,11 @@ class WorkingRouter extends ChangeNotifier
     required WorkingRouterData? from,
     required WorkingRouterData to,
     required RouteTransitionReason reason,
+    required RouteTransitionPolicy policy,
   }) {
     logger.info(
       'transition ${reason.name}: ${from?.uri ?? '<none>'} -> ${to.uri}\n'
+      '  policy: ${policy.name}\n'
       '  leaf: ${_debugNodeName(to.leaf)}\n'
       '  path template: ${_debugPathTemplate(to)}\n'
       '  route chain: ${_debugRouteChain(to)}\n'
@@ -1700,11 +1869,32 @@ class NestedWorkingRouterSailor extends ChangeNotifier
   }
 }
 
-/// A synchronous callback that decides how to handle a route transition.
+/// A synchronous callback that resolves how to handle a route transition.
 ///
 /// Keep this callback fast and side-effect free.
-typedef TransitionDecider =
+typedef TransitionResolver =
     TransitionDecision Function(
       WorkingRouter router,
       RouteTransition transition,
     );
+
+final class _LocationObserverRegistration {
+  final LocationObserverState state;
+  final AnyLocation location;
+
+  const _LocationObserverRegistration({
+    required this.state,
+    required this.location,
+  });
+}
+
+final class _LocationObserverSnapshot {
+  final Future<bool> Function()? canLeave;
+  // ignore: avoid_futureor_void
+  final FutureOr<void> Function(RouteTransition transition)? afterLeave;
+
+  const _LocationObserverSnapshot({
+    required this.canLeave,
+    required this.afterLeave,
+  });
+}

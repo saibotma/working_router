@@ -7,6 +7,9 @@ enum RouteTransitionReason {
   /// Application code explicitly routed (e.g. routeToStatic, routeBack, routeToId).
   programmatic,
 
+  /// The currently mounted route was checked again against current state.
+  revalidation,
+
   /// A transition callback redirected to a new destination.
   redirect,
 
@@ -14,30 +17,29 @@ enum RouteTransitionReason {
   routeInformation,
 }
 
+/// Whether a transition may be rejected by a location leave guard.
+enum RouteTransitionPolicy {
+  /// Honor all leave guards for locations removed by the transition.
+  standard,
+
+  /// The current route must be left even if a leave guard would reject it.
+  mandatory,
+}
+
 /// Immutable transition context passed to transition callbacks.
 class RouteTransition {
   final WorkingRouterData? from;
   final WorkingRouterData to;
   final RouteTransitionReason reason;
+  final RouteTransitionPolicy policy;
 
   const RouteTransition({
     required this.from,
     required this.to,
     required this.reason,
+    required this.policy,
   });
 }
-
-/// Called once a route transition is accepted and no longer speculative.
-///
-/// The router invokes this after redirects have resolved and `beforeLeave`
-/// callbacks have allowed the transition, but before pages for the new route
-/// data are built.
-///
-/// If a route attempt resolves to data equal to the current
-/// [WorkingRouterData], the router treats it as a no-op: transition deciders
-/// may still have run, but no transition is committed and this callback is not
-/// invoked. Keep this callback synchronous and fast.
-typedef RouteTransitionCommitted = void Function(RouteTransition transition);
 
 /// The result of a transition callback.
 sealed class TransitionDecision {
@@ -55,26 +57,37 @@ final class BlockTransition extends TransitionDecision {
 /// Redirects to a new candidate destination.
 ///
 /// The router does not stop immediately after this decision. Instead it
-/// resolves the redirected target and runs the transition decider again with
+/// resolves the redirected target and runs the transition resolver again with
 /// [RouteTransition.reason] set to [RouteTransitionReason.redirect]. That
 /// second pass is required for chained redirects.
 final class RedirectTransition extends TransitionDecision {
   final RouteTarget to;
+  final RouteTransitionPolicy policy;
 
-  const RedirectTransition(this.to);
+  const RedirectTransition(
+    this.to, {
+    this.policy = RouteTransitionPolicy.standard,
+  });
 
-  factory RedirectTransition.toUriString(String uriString) {
-    return RedirectTransition.toUri(Uri.parse(uriString));
+  factory RedirectTransition.toUriString(
+    String uriString, {
+    RouteTransitionPolicy policy = RouteTransitionPolicy.standard,
+  }) {
+    return RedirectTransition.toUri(Uri.parse(uriString), policy: policy);
   }
 
-  factory RedirectTransition.toUri(Uri uri) {
-    return RedirectTransition(StaticRouteTarget(uri));
+  factory RedirectTransition.toUri(
+    Uri uri, {
+    RouteTransitionPolicy policy = RouteTransitionPolicy.standard,
+  }) {
+    return RedirectTransition(StaticRouteTarget(uri), policy: policy);
   }
 
   factory RedirectTransition.toId(
     AnyRouteNodeId id, {
     WritePathParameters? writePathParameters,
     WriteQueryParameters? writeQueryParameters,
+    RouteTransitionPolicy policy = RouteTransitionPolicy.standard,
   }) {
     return RedirectTransition(
       IdRouteTarget(
@@ -82,6 +95,7 @@ final class RedirectTransition extends TransitionDecision {
         writePathParameters: writePathParameters,
         writeQueryParameters: writeQueryParameters,
       ),
+      policy: policy,
     );
   }
 }

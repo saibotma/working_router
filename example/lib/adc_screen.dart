@@ -31,7 +31,7 @@ class ADCScreen extends StatelessWidget {
         width: 300,
         height: 300,
         child: LocationObserver(
-          beforeLeave: () async {
+          canLeave: () async {
             final result = await showDialog<bool>(
               context: context,
               builder: (context) {

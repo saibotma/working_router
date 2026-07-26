@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:working_router/src/transition_decision.dart';
 
 class LocationObserver extends StatefulWidget {
   final Widget child;
@@ -10,19 +13,26 @@ class LocationObserver extends StatefulWidget {
   /// already was and still is in the location list.
   final void Function()? afterUpdate;
 
-  /// Called before the location of this observer will be removed
-  /// from the location list.
+  /// Decides whether this observer's location may be removed.
   ///
   /// Keep this callback short. Routing is paused until it completes.
   /// Use it for quick UI decisions like confirmation dialogs, not for
-  /// long-running work like network requests or expensive I/O.
-  final Future<bool> Function()? beforeLeave;
+  /// cleanup or long-running work.
+  final Future<bool> Function()? canLeave;
+
+  /// Called after a committed transition removes this observer's location.
+  ///
+  /// Returned futures do not delay navigation or other observers. Capture any
+  /// dependencies needed by asynchronous work before the observer unmounts.
+  // ignore: avoid_futureor_void
+  final FutureOr<void> Function(RouteTransition transition)? afterLeave;
 
   const LocationObserver({
     required this.child,
     this.afterEnter,
     this.afterUpdate,
-    this.beforeLeave,
+    this.canLeave,
+    this.afterLeave,
     super.key,
   });
 
