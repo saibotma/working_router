@@ -146,13 +146,13 @@ final class RemoveLocationTreeElementEdit {
     }
 
     for (final argument in argumentList.arguments) {
-      if (argument is! NamedExpression) {
+      if (argument is! NamedArgument) {
         continue;
       }
-      if (argument.name.label.name != 'build') {
+      if (argument.name.lexeme != 'build') {
         continue;
       }
-      final callback = argument.expression;
+      final callback = argument.argumentExpression;
       if (callback is FunctionExpression) {
         return callback;
       }

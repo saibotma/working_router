@@ -6,12 +6,12 @@ repository: https://github.com/saibotma/working_router
 issue_tracker: https://github.com/saibotma/working_router/issues
 
 environment:
-  sdk: ^3.10.0
+  sdk: ^3.11.0
 
 dependencies:
-  analysis_server_plugin: ^0.3.9
-  analyzer: ^10.1.0
-  analyzer_plugin: ^0.14.3
+  analysis_server_plugin: ^0.3.20
+  analyzer: ^14.1.0
+  analyzer_plugin: ^0.14.14
 
 dev_dependencies:
   lints: ^6.0.0

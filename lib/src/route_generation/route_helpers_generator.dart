@@ -140,7 +140,8 @@ class RouteHelpersGenerator extends GeneratorForAnnotation<RouteNodes> {
   }
 
   Element _declarationElement(Element element) {
-    if (element is PropertyAccessorElement && element.isSynthetic) {
+    if (element is PropertyAccessorElement &&
+        _isSyntheticPropertyAccessor(element)) {
       return element.variable;
     }
     return element;
@@ -2919,11 +2920,14 @@ class _StaticRouteTreeExtractor {
     final arguments = invocation.argumentList.arguments
         .whereType<Expression>()
         .toList(growable: false);
-    final namedArguments = {
-      for (final argument
-          in invocation.argumentList.arguments.whereType<NamedExpression>())
-        argument.name.label.name: argument.expression,
-    };
+    final namedArguments = <String, Expression>{};
+    for (final argument in invocation.argumentList.arguments) {
+      final name = _namedArgumentName(argument);
+      final expression = _namedArgumentValue(argument);
+      if (name != null && expression != null) {
+        namedArguments[name] = expression;
+      }
+    }
     final methodName = invocation.methodName.name;
     switch (methodName) {
       case 'queryParam':
@@ -3190,7 +3194,7 @@ class _StaticRouteTreeExtractor {
         .split('<')
         .first;
     final positionalArguments = normalizedExpression.argumentList.arguments
-        .where((argument) => argument is! NamedExpression)
+        .where((argument) => !_isNamedArgument(argument))
         .whereType<Expression>()
         .toList(growable: false);
 
@@ -4311,7 +4315,7 @@ class _StaticRouteTreeExtractor {
     }
 
     final positionalArguments = normalizedExpression.argumentList.arguments
-        .where((argument) => argument is! NamedExpression)
+        .where((argument) => !_isNamedArgument(argument))
         .whereType<Expression>()
         .toList(growable: false);
     final keyExpression = positionalArguments.firstOrNull;
@@ -4535,19 +4539,19 @@ class _StaticRouteTreeExtractor {
   }
 
   Expression? _namedArgumentExpression(
-    List<Expression> arguments,
+    Iterable<AstNode> arguments,
     String name,
   ) {
     for (final argument in arguments) {
-      if (argument is NamedExpression && argument.name.label.name == name) {
-        return argument.expression;
+      if (_namedArgumentName(argument) == name) {
+        return _namedArgumentValue(argument);
       }
     }
     return null;
   }
 
   _RouteQueryParameterScope _queryParameterScope(
-    List<Expression> arguments,
+    Iterable<AstNode> arguments,
     Element element,
   ) {
     final scopeExpression = _namedArgumentExpression(arguments, 'scope');
@@ -4586,7 +4590,8 @@ class _StaticRouteTreeExtractor {
       _ => null,
     };
 
-    if (element is PropertyAccessorElement && element.isSynthetic) {
+    if (element is PropertyAccessorElement &&
+        _isSyntheticPropertyAccessor(element)) {
       element = element.variable;
     }
 
@@ -4617,7 +4622,8 @@ class _StaticRouteTreeExtractor {
       _ => null,
     };
 
-    if (element is PropertyAccessorElement && element.isSynthetic) {
+    if (element is PropertyAccessorElement &&
+        _isSyntheticPropertyAccessor(element)) {
       element = element.variable;
     }
 
@@ -4632,16 +4638,17 @@ class _StaticRouteTreeExtractor {
     return element is ExecutableElement ? element : null;
   }
 
-  List<Expression> _invocationArguments(Expression expression) {
+  Iterable<AstNode> _invocationArguments(Expression expression) {
     return switch (expression) {
       MethodInvocation() => expression.argumentList.arguments,
       FunctionExpressionInvocation() => expression.argumentList.arguments,
-      _ => const <Expression>[],
+      _ => const <AstNode>[],
     };
   }
 
   Element _normalizeDeclarationElement(Element element) {
-    if (element is PropertyAccessorElement && element.isSynthetic) {
+    if (element is PropertyAccessorElement &&
+        _isSyntheticPropertyAccessor(element)) {
       return element.variable;
     }
     return element;
@@ -4767,6 +4774,65 @@ class _StaticRouteTreeExtractor {
     }
     return false;
   }
+}
+
+bool _isSyntheticPropertyAccessor(PropertyAccessorElement element) {
+  final dynamic dynamicElement = element;
+  try {
+    // ignore: avoid_dynamic_calls
+    return !(dynamicElement.isOriginDeclaration as bool);
+    // ignore: avoid_catching_errors
+  } on NoSuchMethodError {
+    // ignore: avoid_dynamic_calls
+    return dynamicElement.isSynthetic as bool;
+  }
+}
+
+bool _isSyntheticConstructor(ConstructorElement element) {
+  final dynamic dynamicElement = element;
+  try {
+    // ignore: avoid_dynamic_calls
+    return !(dynamicElement.isOriginDeclaration as bool);
+    // ignore: avoid_catching_errors
+  } on NoSuchMethodError {
+    // ignore: avoid_dynamic_calls
+    return dynamicElement.isSynthetic as bool;
+  }
+}
+
+Iterable<ClassMember> _classMembers(ClassDeclaration declaration) {
+  final dynamic dynamicDeclaration = declaration;
+  try {
+    // ignore: avoid_dynamic_calls
+    return (dynamicDeclaration.members as Iterable).whereType<ClassMember>();
+    // ignore: avoid_catching_errors
+  } on NoSuchMethodError {
+    // ignore: avoid_dynamic_calls
+    return (dynamicDeclaration.body.members as Iterable)
+        .whereType<ClassMember>();
+  }
+}
+
+// Analyzer 14 replaced `NamedExpression` with `NamedArgument`. Using the
+// shared syntactic shape keeps this package compatible with both AST models.
+bool _isNamedArgument(AstNode argument) =>
+    argument.beginToken.next?.lexeme == ':';
+
+String? _namedArgumentName(AstNode argument) =>
+    _isNamedArgument(argument) ? argument.beginToken.lexeme : null;
+
+Expression? _namedArgumentValue(AstNode argument) {
+  if (!_isNamedArgument(argument)) {
+    return null;
+  }
+
+  Expression? result;
+  for (final child in argument.childEntities) {
+    if (child is Expression) {
+      result = child;
+    }
+  }
+  return result;
 }
 
 bool _isFrameworkRouteMemberOwner(Element? element) {
@@ -4995,7 +5061,7 @@ class _InstanceStringContext implements _ExpressionContext {
       constructor: constructor,
     );
     if (constructorNode == null) {
-      if (!constructor.isSynthetic ||
+      if (!_isSyntheticConstructor(constructor) ||
           creation.argumentList.arguments.isNotEmpty) {
         throw InvalidGenerationSourceError(
           'Unable to read the constructor source for `${classElement.name}`.',
@@ -5285,14 +5351,16 @@ class _InstanceStringContext implements _ExpressionContext {
 
   Map<String, _BoundStringExpression> _bindArguments({
     required FormalParameterList parameters,
-    required List<Expression> arguments,
+    required Iterable<AstNode> arguments,
   }) {
     final positionalArguments = <Expression>[];
     final namedArguments = <String, Expression>{};
     for (final argument in arguments) {
-      if (argument is NamedExpression) {
-        namedArguments[argument.name.label.name] = argument.expression;
-      } else {
+      final name = _namedArgumentName(argument);
+      final expression = _namedArgumentValue(argument);
+      if (name != null && expression != null) {
+        namedArguments[name] = expression;
+      } else if (argument is Expression) {
         positionalArguments.add(argument);
       }
     }
@@ -5306,18 +5374,16 @@ class _InstanceStringContext implements _ExpressionContext {
       }
 
       Expression? argument;
+      final defaultValue = _formalParameterDefaultValue(parameter);
       if (parameter.isNamed) {
         argument = namedArguments[parameterName];
-        if (argument == null &&
-            parameter is DefaultFormalParameter &&
-            parameter.defaultValue != null) {
-          argument = parameter.defaultValue;
+        if (argument == null && defaultValue != null) {
+          argument = defaultValue;
         }
       } else if (positionalIndex < positionalArguments.length) {
         argument = positionalArguments[positionalIndex++];
-      } else if (parameter is DefaultFormalParameter &&
-          parameter.defaultValue != null) {
-        argument = parameter.defaultValue;
+      } else if (defaultValue != null) {
+        argument = defaultValue;
       }
 
       if (argument != null) {
@@ -5359,7 +5425,7 @@ class _InstanceStringContext implements _ExpressionContext {
       constructor: superConstructor,
     );
     if (superConstructorNode == null) {
-      if (!superConstructor.isSynthetic ||
+      if (!_isSyntheticConstructor(superConstructor) ||
           (superInvocation?.argumentList.arguments.isNotEmpty ?? false)) {
         throw InvalidGenerationSourceError(
           _unreadableSuperConstructorMessage(
@@ -5519,9 +5585,9 @@ class _InstanceStringContext implements _ExpressionContext {
       if (binding != null) {
         return binding.evaluate();
       }
-      if (forwardingParameter is DefaultFormalParameter &&
-          forwardingParameter.defaultValue != null) {
-        return _evaluateStringExpression(forwardingParameter.defaultValue!);
+      final defaultValue = _formalParameterDefaultValue(forwardingParameter);
+      if (defaultValue != null) {
+        return _evaluateStringExpression(defaultValue);
       }
     }
 
@@ -5569,9 +5635,9 @@ class _InstanceStringContext implements _ExpressionContext {
       if (binding != null) {
         return binding.expression;
       }
-      if (forwardingParameter is DefaultFormalParameter &&
-          forwardingParameter.defaultValue != null) {
-        return forwardingParameter.defaultValue;
+      final defaultValue = _formalParameterDefaultValue(forwardingParameter);
+      if (defaultValue != null) {
+        return defaultValue;
       }
       return null;
     }
@@ -5588,9 +5654,11 @@ class _InstanceStringContext implements _ExpressionContext {
         if (binding != null) {
           return binding.expression;
         }
-        if (fieldFormalParameter is DefaultFormalParameter &&
-            fieldFormalParameter.defaultValue != null) {
-          return fieldFormalParameter.defaultValue;
+        final defaultValue = _formalParameterDefaultValue(
+          fieldFormalParameter,
+        );
+        if (defaultValue != null) {
+          return defaultValue;
         }
       }
 
@@ -5649,8 +5717,8 @@ class _InstanceStringContext implements _ExpressionContext {
       return _formalParameterName(parameter) == name;
     });
     if (parameter != null) {
-      if (parameter is DefaultFormalParameter) {
-        final defaultValue = parameter.defaultValue;
+      if (parameter.isOptional) {
+        final defaultValue = _formalParameterDefaultValue(parameter);
         if (defaultValue == null) {
           return true;
         }
@@ -5669,8 +5737,10 @@ class _InstanceStringContext implements _ExpressionContext {
       if (binding != null) {
         return binding.isNull();
       }
-      if (forwardingParameter is DefaultFormalParameter) {
-        final defaultValue = forwardingParameter.defaultValue;
+      if (forwardingParameter.isOptional) {
+        final defaultValue = _formalParameterDefaultValue(
+          forwardingParameter,
+        );
         if (defaultValue == null) {
           return true;
         }
@@ -5867,7 +5937,7 @@ class _FunctionExpressionContext implements _ExpressionContext {
     required BuildStep buildStep,
     required Element rootElement,
     required ExecutableElement executable,
-    required List<Expression> arguments,
+    required Iterable<AstNode> arguments,
     required _ExpressionContext? parentContext,
   }) async {
     final node = await buildStep.resolver.astNodeFor(
@@ -5997,14 +6067,16 @@ class _FunctionExpressionContext implements _ExpressionContext {
 
   static Map<String, Expression> _bindArguments({
     required FormalParameterList parameters,
-    required List<Expression> arguments,
+    required Iterable<AstNode> arguments,
   }) {
     final positionalArguments = <Expression>[];
     final namedArguments = <String, Expression>{};
     for (final argument in arguments) {
-      if (argument is NamedExpression) {
-        namedArguments[argument.name.label.name] = argument.expression;
-      } else {
+      final name = _namedArgumentName(argument);
+      final expression = _namedArgumentValue(argument);
+      if (name != null && expression != null) {
+        namedArguments[name] = expression;
+      } else if (argument is Expression) {
         positionalArguments.add(argument);
       }
     }
@@ -6018,18 +6090,16 @@ class _FunctionExpressionContext implements _ExpressionContext {
       }
 
       Expression? argument;
+      final defaultValue = _formalParameterDefaultValue(parameter);
       if (parameter.isNamed) {
         argument = namedArguments[parameterName];
-        if (argument == null &&
-            parameter is DefaultFormalParameter &&
-            parameter.defaultValue != null) {
-          argument = parameter.defaultValue;
+        if (argument == null && defaultValue != null) {
+          argument = defaultValue;
         }
       } else if (positionalIndex < positionalArguments.length) {
         argument = positionalArguments[positionalIndex++];
-      } else if (parameter is DefaultFormalParameter &&
-          parameter.defaultValue != null) {
-        argument = parameter.defaultValue;
+      } else if (defaultValue != null) {
+        argument = defaultValue;
       }
 
       if (argument != null) {
@@ -6174,7 +6244,8 @@ Element? _topLevelOrStaticDeclarationElement(Expression expression) {
     _ => null,
   };
 
-  if (element is PropertyAccessorElement && element.isSynthetic) {
+  if (element is PropertyAccessorElement &&
+      _isSyntheticPropertyAccessor(element)) {
     element = element.variable;
   }
 
@@ -6199,10 +6270,44 @@ Element? _topLevelOrStaticDeclarationElement(Expression expression) {
 
 FormalParameter _unwrapFormalParameter(FormalParameter parameter) {
   var current = parameter;
-  while (current is DefaultFormalParameter) {
-    current = current.parameter;
+  while (true) {
+    final dynamic dynamicParameter = current;
+    try {
+      // Analyzer <14 wraps optional parameters in `DefaultFormalParameter`.
+      // ignore: avoid_dynamic_calls
+      final nested = dynamicParameter.parameter;
+      if (nested is FormalParameter) {
+        current = nested;
+        continue;
+      }
+      // ignore: avoid_catching_errors
+    } on NoSuchMethodError {
+      // Analyzer 14 represents defaults compositionally on the parameter.
+    }
+    return current;
   }
-  return current;
+}
+
+Expression? _formalParameterDefaultValue(FormalParameter parameter) {
+  final dynamic dynamicParameter = parameter;
+  try {
+    // ignore: avoid_dynamic_calls
+    final dynamic clause = dynamicParameter.defaultClause;
+    if (clause == null) {
+      return null;
+    }
+    // ignore: avoid_dynamic_calls
+    return clause.value as Expression;
+    // ignore: avoid_catching_errors
+  } on NoSuchMethodError {
+    try {
+      // ignore: avoid_dynamic_calls
+      return dynamicParameter.defaultValue as Expression?;
+      // ignore: avoid_catching_errors
+    } on NoSuchMethodError {
+      return null;
+    }
+  }
 }
 
 _OptionalQueryParamRouteTargetDefault? _routeTargetDefaultAnnotationValue(
@@ -6267,14 +6372,7 @@ String? _formalParameterName(FormalParameter parameter) {
   if (elementName != null) {
     return elementName;
   }
-
-  return switch (unwrapped) {
-    SimpleFormalParameter() => unwrapped.name?.lexeme,
-    FieldFormalParameter() => unwrapped.name.lexeme,
-    SuperFormalParameter() => unwrapped.name.lexeme,
-    FunctionTypedFormalParameter() => unwrapped.name.lexeme,
-    _ => null,
-  };
+  return unwrapped.name?.lexeme;
 }
 
 String? _buildCallbackBuilderParameterName(
@@ -6312,7 +6410,9 @@ Future<ConstructorDeclaration?> _constructorDeclaration({
   }
 
   final constructorName = constructor.name;
-  return classNode.members.whereType<ConstructorDeclaration>().firstWhereOrNull(
+  return _classMembers(
+    classNode,
+  ).whereType<ConstructorDeclaration>().firstWhereOrNull(
     (member) {
       final memberElement = member.declaredFragment?.element;
       if (identical(memberElement, constructor)) {
