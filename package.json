@@ -1,0 +1,11 @@
+{
+  "name": "working-router-agent-tools",
+  "private": true,
+  "scripts": {
+    "check:agent-links": "remark --use remark-validate-links --frail --quiet --no-stdout \"**/AGENTS.md\" .agents"
+  },
+  "devDependencies": {
+    "remark-cli": "12.0.1",
+    "remark-validate-links": "13.1.0"
+  }
+}
