@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "skills": {
+    "address-pr-comments": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/address-pr-comments/SKILL.md",
+      "computedHash": "c60d64f9465c69c795fcd81c8f2ac69d6f7ec60a8458ec7de14719594eede793"
+    },
+    "agent-tooling": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/agent-tooling/SKILL.md",
+      "computedHash": "7cddfbd3ec6736d02f9503c8a378691ca6ad4a9054f75c306842d1e35e05108a"
+    },
+    "babysit-pipeline": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/babysit-pipeline/SKILL.md",
+      "computedHash": "44366e515d1e8f1045dfd7cc8926146bfe77df59aedf8fb3262cc7340daade12"
+    },
+    "babysit-pr": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/babysit-pr/SKILL.md",
+      "computedHash": "23a27539cc1166e003f8fc90ffa3a60ebdbd75238bcb35c543f28f245eb86669"
+    },
+    "coding": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/coding/SKILL.md",
+      "computedHash": "bfa30b4bb7737c008c9c1e69d82a34c9f0cc83d51cddf1cd140b5c3419fcf108"
+    },
+    "dart-coding": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/dart-coding/SKILL.md",
+      "computedHash": "c02f95208fca39acdfff433c9107932da562c67d799f1175c300e32b70e51ad1"
+    },
+    "dart-dependencies": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/dart-dependencies/SKILL.md",
+      "computedHash": "e0d2db1723998a3ad092c8b66ec9dc282de13a02e7501a077f0c9dad4a951066"
+    },
+    "dart-testing": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/dart-testing/SKILL.md",
+      "computedHash": "f760edfd54422779356a63c59bc1d44403a2768b40826b1326ddaded62bba42a"
+    },
+    "flutter-widgets": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/flutter-widgets/SKILL.md",
+      "computedHash": "2f3fd3126e47a69cbee7c3a73fdbccef444c7627fd02b2850836e37b12c3265f"
+    },
+    "git": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/git/SKILL.md",
+      "computedHash": "47920a9e73f609154d3e5676c74ace64368152fcb2c6b69adcf8a46e305a14b1"
+    },
+    "github-cli": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/github-cli/SKILL.md",
+      "computedHash": "2e7e00e591cb02477071acb3aa997767f44ba1bb05cca346015e79709181be3b"
+    },
+    "github-issue-writing": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/github-issue-writing/SKILL.md",
+      "computedHash": "b1e62fb0712926e9265384f49127ce7d51d359d3c0e1bae2165d9a4cc1a09024"
+    },
+    "gitignore": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/gitignore/SKILL.md",
+      "computedHash": "fa504383178ff155a8c8db9ba6e6d21010acf9a605b9948471963ad02ece8a53"
+    },
+    "markdown": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/markdown/SKILL.md",
+      "computedHash": "6ae21205d8e922580d0824df67160052a0a5b2f1d8ce607aa972316b35bd3659"
+    },
+    "orchestration": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/orchestration/SKILL.md",
+      "computedHash": "09c2362cfc858888c32f0796a129d24979e8ec646ebd8302edde12a92fbb4699"
+    },
+    "pr-description": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/pr-description/SKILL.md",
+      "computedHash": "c0983f57c7dd2cd787a1ed44abd2aed212e7f17eef142bbb7688ceed0154bc86"
+    },
+    "pr-monitoring": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/pr-monitoring/SKILL.md",
+      "computedHash": "fd36119ae3220e15072dfbcd1cf67be1d5c76a10ba277100a4352a0d67df8396"
+    },
+    "prepare-pr": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/prepare-pr/SKILL.md",
+      "computedHash": "8094fe664265ff15e990ce99ee4b038e6e5fb81fb3382d9ed427e4511728177e"
+    },
+    "review": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/review/SKILL.md",
+      "computedHash": "1401d0b8b55e27462d5f595da429bede221ff4bd567e4e321ae4fa568b08fee3"
+    },
+    "sync-pr": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/sync-pr/SKILL.md",
+      "computedHash": "a2cec9a875a5372a7fe7701e46631f692044bceca6e7ac08f388ef92a9b191f0"
+    },
+    "testing": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/testing/SKILL.md",
+      "computedHash": "8384f0bee810a4f14c4ef79fde77818c3a85d45b859fffd297e144f69c09b06a"
+    },
+    "todos": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/todos/SKILL.md",
+      "computedHash": "b4b9b34925b1c59324e22548afcae8ca9ab025d545f5ba71e0b50492449c63d2"
+    }
+  }
+}

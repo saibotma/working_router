@@ -1,0 +1,5 @@
+interface:
+  display_name: "Prepare PR"
+  short_description: "Prepare a reviewed PR and follow its CI"
+policy:
+  allow_implicit_invocation: true
