@@ -1,0 +1,12 @@
+name = "security_reviewer"
+description = "Read-only reviewer for security-sensitive changes."
+# Model: Pin Sol and xhigh effort so reviews use consistent settings
+# independent of the parent session. Other harnesses must apply the same
+# settings when they run this reviewer; see the `review` skill.
+model = "gpt-6.1-sol"
+model_reasoning_effort = "xhigh"
+sandbox_mode = "read-only"
+# The role itself is harness-neutral and shared with other agent harnesses.
+developer_instructions = """
+Read and follow `.agents/skills/review/references/reviewers/security.md` (relative to the repository root).
+"""
