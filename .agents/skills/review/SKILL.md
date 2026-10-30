@@ -97,7 +97,7 @@ candidate on every pass:
 - Run `dart_flutter_reviewer` when touched code affects Dart or Flutter source,
   configuration, dependencies, generated Dart code, or Flutter platform
   integration.
-- Run `intent_reviewer` when the candidate implements a Linear issue.
+- Run `intent_reviewer` when the candidate implements an issue.
 - Run `upstream_reviewer` when the candidate adds or changes dependency
   overrides, git dependencies, version pins, or patched or vendored code; adds
   code that works around behavior of a dependency; or implements functionality
@@ -144,8 +144,8 @@ For every general-reviewer pass after the initial pass, also include:
 Pass `intent_reviewer` a different packet, so that the implementing agent's
 understanding of the request cannot mask a misunderstanding of the intent:
 
-- the Linear issue's identifier, title, and current description, fetched from
-  Linear and copied verbatim, not summarized
+- the issue's identifier, title, and current description, fetched from the issue
+  tracker and copied verbatim, not summarized
 - the diff source and exact candidate file paths, as for the other reviewers
 - the current
   [declared deviations and decisions](#declared-deviations-and-decisions)
@@ -258,8 +258,7 @@ unrelated implementation change; critical adjacent findings require escalation.
 
 Treat `upstream_reviewer` findings about a missing, incomplete, or unverified
 workaround marker as blocking. Treat its other findings as advisory even though
-they concern the candidate, and also record them on the workaround's Linear
-issue.
+they concern the candidate, and also record them on the workaround's issue.
 
 Only blocking findings enter the automatic fix loop. An advisory-only reviewer
 result counts as passed for the candidate, but its advisories must remain in the
@@ -268,9 +267,9 @@ escalation is unresolved.
 
 ## Declared Deviations and Decisions
 
-When the candidate implements a Linear issue, the issue describes the approved
-intent. Keep a list of where the candidate knowingly departs from it, which the
-intent reviewer checks and `pr-description` presents to the human reviewer:
+When the candidate implements an issue, the issue describes the approved intent.
+Keep a list of where the candidate knowingly departs from it, which the intent
+reviewer checks and `pr-description` presents to the human reviewer:
 
 - **Deviations:** the issue specified an approach, but the candidate does
   something else because the plan did not hold. For each, record what the issue

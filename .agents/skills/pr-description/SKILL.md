@@ -18,13 +18,13 @@ the title, description, and risk label to the PR only after the
 [review loop](#review-loop) passes.
 
 The reviewer agreed to the plan but may return to the PR days later. When the PR
-implements a Linear issue, the issue is the spec: the reviewer agreed to it, and
-the `review` skill's intent reviewer has checked the changes against it. Beyond
-a short TL;DR that brings the reviewer back into context, never restate the
-spec. Write only what the author knows and the reviewer cannot get from the
-issue: the merge risk, what needs a human, and evidence that the critical
-behavior works. Keep every section and item as short as its content allows, so a
-human can read and reason about it quickly.
+implements an issue, the issue is the spec: the reviewer agreed to it, and the
+`review` skill's intent reviewer has checked the changes against it. Beyond a
+short TL;DR that brings the reviewer back into context, never restate the spec.
+Write only what the author knows and the reviewer cannot get from the issue: the
+merge risk, what needs a human, and evidence that the critical behavior works.
+Keep every section and item as short as its content allows, so a human can read
+and reason about it quickly.
 
 Preserve manually authored context and useful existing structure. Add or update
 equivalent sections instead of replacing the whole description. Remove stale
@@ -53,10 +53,10 @@ section when it would be empty. Do not write `None` placeholders.
 ### Visible part
 
 - **TL;DR:** two or three plain sentences on what changes for whom, written for
-  a reviewer who has forgotten the plan, not as a summary of the diff. Without a
-  Linear issue, also say why, and add a short before/after table only when
-  concrete cases explain the change better than prose.
-- **Spec:** a link to the Linear issue the PR implements, such as
+  a reviewer who has forgotten the plan, not as a summary of the diff. Without
+  an issue, also say why, and add a short before/after table only when concrete
+  cases explain the change better than prose.
+- **Spec:** a link to the issue the PR implements, such as
   `[APL-123](<issue URL>)`. Omit it without an issue.
 - **Risk:** the main reason for the [risk class](#risk-class) in one line. Then:
   - `#### Reach`: who and what the change affects in production, such as every
@@ -106,8 +106,8 @@ section when it would be empty. Do not write `None` placeholders.
 - **To-dos:** outward-facing actions the agent must leave to a human and that do
   not block the merge, such as posting an upstream issue drafted under the
   `todos` skill. Write each as a task list item, `- [ ]`, with what to do,
-  where, and a link to the draft, such as the Linear issue that holds it. Keep
-  existing ticks. To-dos do not change the risk class.
+  where, and a link to the draft, such as the issue that holds it. Keep existing
+  ticks. To-dos do not change the risk class.
 
 - **Proof:** evidence the reviewer cannot get from the diff or the pipeline that
   the changed behavior works:
@@ -157,8 +157,8 @@ renders the Markdown inside. Omit the block when all its sections are empty.
 
 The class says what a human has to do before merging and follows from **Needs
 your attention**: a 🔴 Review item makes it 🔴 Red, 🟡 Decide or Try items alone
-make it 🟡 Yellow, and an empty list makes it 🟢 Green. The issue's Linear
-`Risk` label is only a planning hint; do not mention it in the description.
+make it 🟡 Yellow, and an empty list makes it 🟢 Green. A risk label on the
+issue is only a planning hint; do not mention it in the description.
 
 ### Sorting
 
@@ -172,17 +172,19 @@ risk.
    `node tools/merge-risk/merge-risk.mjs --base origin/<target branch>` from the
    PR's checkout, so stacked PRs are judged against their own target.
 2. **Visible changes:** 🟡 Try, always, because tests do not show whether
-   something looks right. Visible changes are UI, texts and translations,
-   behavior that users notice, messages to customers such as emails and
-   notifications, the look of the website or documentation site, a client
+   something looks or reads right. Visible changes are UI, texts and
+   translations, the content and look of messages to customers such as emails
+   and notifications, the look of the website or documentation site, a client
    showing, hiding, or locking controls by permissions that the server enforces,
-   and a consumer adopting an already deployed interface contract.
+   and a consumer adopting an already deployed interface contract. Behavior that
+   a test can prove exactly, such as who receives a message, when, or whether it
+   is sent, is not a visible change; the later rules sort it.
 3. **Settled or unchanged, and proven:** no item, even when rule 5 would apply,
    such as permission and ownership checks the issue specifies. A point is
-   settled when a human specified or decided it: the approved Linear issue
-   specifies it, or the user decided it explicitly, in a PR, an issue comment,
-   or the conversation, or by ticking a 🟡 Decide item. Notes the agent adds to
-   the issue itself settle nothing, and neither do an orchestrating agent's
+   settled when a human specified or decided it: the approved issue specifies
+   it, or the user decided it explicitly, in a PR, an issue comment, or the
+   conversation, or by ticking a 🟡 Decide item. Notes the agent adds to the
+   issue itself settle nothing, and neither do an orchestrating agent's
    decisions: in a delegated task, the answers to your questions come from the
    delegating agent, not the user, unless they quote the user's words. It is
    proven when a targeted test proves each settled rule; name the tests under
@@ -264,7 +266,7 @@ Update it whenever the class changes.
 - State every claim once, in the section where the reviewer needs it.
 - Record concise conclusions, evidence, and rationale, not private scratch
   reasoning.
-- When the PR implements a Linear issue, take deviations and implementation-time
+- When the PR implements an issue, take deviations and implementation-time
   decisions from the list declared during `review`, which the intent reviewer
   checked against the issue. Without an issue, take the material decisions. Sort
   each one the user did not settle like any other change, as
@@ -281,8 +283,8 @@ skill's Running Reviewers section describes. Pass it:
 
 - the draft, and the PR's URL once the PR exists;
 - the source and target branches with the exact head and base of the net diff;
-- the Linear issue's identifier, title, and current description, copied
-  verbatim, when the PR implements one;
+- the issue's identifier, title, and current description, copied verbatim, when
+  the PR implements one;
 - the declared deviations and decisions and the findings left unfixed, from
   `review`;
 - the evidence behind **Proof**, such as test names and manual or device checks;

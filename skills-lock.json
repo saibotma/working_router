@@ -92,6 +92,13 @@
       "skillPath": "skills/gitignore/SKILL.md",
       "computedHash": "fa504383178ff155a8c8db9ba6e6d21010acf9a605b9948471963ad02ece8a53"
     },
+    "issues": {
+      "source": "git@gitlab.com:appella/agent-stack.git",
+      "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
+      "sourceType": "git",
+      "skillPath": "skills/issues/SKILL.md",
+      "computedHash": "efb8b41fce300f053e5013def1abd0689c7d52f16f9d3cacdecff1d411065da6"
+    },
     "markdown": {
       "source": "git@gitlab.com:appella/agent-stack.git",
       "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
@@ -111,7 +118,7 @@
       "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
       "sourceType": "git",
       "skillPath": "skills/pr-description/SKILL.md",
-      "computedHash": "c0983f57c7dd2cd787a1ed44abd2aed212e7f17eef142bbb7688ceed0154bc86"
+      "computedHash": "f01a8899282938b1f4c8457f7c195c75d7c4182802b993440bd84f77cdf8b06e"
     },
     "pr-monitoring": {
       "source": "git@gitlab.com:appella/agent-stack.git",
@@ -125,14 +132,14 @@
       "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
       "sourceType": "git",
       "skillPath": "skills/prepare-pr/SKILL.md",
-      "computedHash": "8094fe664265ff15e990ce99ee4b038e6e5fb81fb3382d9ed427e4511728177e"
+      "computedHash": "8c124fd7256b9b5ff9cf1192eeade749dadf19b94f277aaeeeeb875da4c65964"
     },
     "review": {
       "source": "git@gitlab.com:appella/agent-stack.git",
       "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
       "sourceType": "git",
       "skillPath": "skills/review/SKILL.md",
-      "computedHash": "1401d0b8b55e27462d5f595da429bede221ff4bd567e4e321ae4fa568b08fee3"
+      "computedHash": "34171c198824caed5a8f7f16ea7b81542e23625160e2e9bae42caf0dd9f192cf"
     },
     "sync-pr": {
       "source": "git@gitlab.com:appella/agent-stack.git",
@@ -153,7 +160,7 @@
       "sourceUrl": "git@gitlab.com:appella/agent-stack.git",
       "sourceType": "git",
       "skillPath": "skills/todos/SKILL.md",
-      "computedHash": "b4b9b34925b1c59324e22548afcae8ca9ab025d545f5ba71e0b50492449c63d2"
+      "computedHash": "b03d3b1e2bbd80ba7744ca00dc6b0637d88775e54a6d18ae750aca1a476fb7a3"
     }
   }
 }

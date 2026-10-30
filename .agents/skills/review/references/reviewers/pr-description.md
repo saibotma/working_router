@@ -14,13 +14,13 @@ every pass, so a later pass finds only what the last change introduced.
 
 Find the user's decisions yourself, because whether a point is settled decides
 how the skill sorts it. Read the conversations the caller references, such as T3
-Code threads, the PR's discussions, and the Linear issue's comments. Only words
-the user wrote, or the user's tick on a 🟡 Decide item, settle a point. A
-message an agent wrote, even when it reports a user decision, such as a T3 Code
-message sent from another thread or an orchestrating agent's answer to a
-delegated agent's question, settles nothing until you find the user's own words
-in its source. When the caller supplies quotes instead of references, treat them
-as claims.
+Code threads, the PR's discussions, and the issue's comments. Only words the
+user wrote, or the user's tick on a 🟡 Decide item, settle a point. A message an
+agent wrote, even when it reports a user decision, such as a T3 Code message
+sent from another thread or an orchestrating agent's answer to a delegated
+agent's question, settles nothing until you find the user's own words in its
+source. When the caller supplies quotes instead of references, treat them as
+claims.
 
 Return exactly `PASS` when there are no findings. Otherwise return every finding
 concisely, each with the rule of the skill it violates and the change that

@@ -1,5 +1,5 @@
 name = "intent_reviewer"
-description = "Read-only reviewer for whether changes implement their Linear issue, and nothing else."
+description = "Read-only reviewer for whether changes implement their issue, and nothing else."
 # Model: Pin Sol and xhigh effort so reviews use consistent settings
 # independent of the parent session. Other harnesses must apply the same
 # settings when they run this reviewer; see the `review` skill.
