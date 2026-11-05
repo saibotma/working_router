@@ -103,6 +103,9 @@ skills:
   dart-testing:
     source: agent-stack
     hash: sha256-e337602c8aaf60256e875b8b05effae151dc864362073eff43b73ebd1492cb27
+  flutter-routing:
+    source: agent-stack
+    hash: sha256-674bf5bbf628b1a1425e43a85f24a321c4eaeafda8b1fbd1f1770f5fb63ce93a
   flutter-widgets:
     source: agent-stack
     hash: sha256-b25179043161b0b6499f55eded26cd4c71bfb2b31d16bae26acaec9220cb8420
@@ -139,6 +142,9 @@ skills:
   review:
     source: agent-stack
     hash: sha256-d1cd64c641c596abaa8c10dc86ea99e8186eb96c83f88c2556b1beb3f862e909
+  simulators:
+    source: agent-stack
+    hash: sha256-7a7c193c402c9d799180e72ff7f9d670ad0e18a848701dd13788523bee61806a
   sync-pr:
     source: agent-stack
     hash: sha256-acb44919446ff4f42e1d892ce056408364d7ae8065119804420d13fea5ac4442

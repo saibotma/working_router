@@ -8,6 +8,7 @@
 /.agents/skills/dart-coding/** gitlab-generated linguist-generated
 /.agents/skills/dart-dependencies/** gitlab-generated linguist-generated
 /.agents/skills/dart-testing/** gitlab-generated linguist-generated
+/.agents/skills/flutter-routing/** gitlab-generated linguist-generated
 /.agents/skills/flutter-widgets/** gitlab-generated linguist-generated
 /.agents/skills/git/** gitlab-generated linguist-generated
 /.agents/skills/github-cli/** gitlab-generated linguist-generated
@@ -20,6 +21,7 @@
 /.agents/skills/pr-monitoring/** gitlab-generated linguist-generated
 /.agents/skills/prepare-pr/** gitlab-generated linguist-generated
 /.agents/skills/review/** gitlab-generated linguist-generated
+/.agents/skills/simulators/** gitlab-generated linguist-generated
 /.agents/skills/sync-pr/** gitlab-generated linguist-generated
 /.agents/skills/testing/** gitlab-generated linguist-generated
 /.agents/skills/todos/** gitlab-generated linguist-generated
