@@ -1,0 +1,6 @@
+sources:
+  agent-stack:
+    url: git@gitlab.com:appella/agent-stack.git
+    tags: [github, dart, flutter, working-router, mobile]
+    # working_router has no translated text.
+    exclude: [flutter-internationalization-conventions]

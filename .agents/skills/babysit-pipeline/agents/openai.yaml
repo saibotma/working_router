@@ -1,0 +1,5 @@
+interface:
+  display_name: "Babysit Pipeline"
+  short_description: "Follow current PR pipelines until green or blocked"
+policy:
+  allow_implicit_invocation: true

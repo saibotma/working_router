@@ -1,0 +1,27 @@
+name: Agent checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  agent-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Installs the pnpm and Node.js versions that devEngines in package.json
+      # pins, then the dependencies.
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+        with:
+          cache: true
+          require-lockfile: true
+      - name: Installed skills match .agents/skills.lock
+        run: pnpm exec skills check
+      - name: Links in agent files resolve
+        run: pnpm run check:agent-links

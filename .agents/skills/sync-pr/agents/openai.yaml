@@ -1,0 +1,5 @@
+interface:
+  display_name: "Sync PR"
+  short_description: "Integrate the target branch and refresh PR metadata"
+policy:
+  allow_implicit_invocation: true

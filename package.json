@@ -1,0 +1,25 @@
+{
+  "name": "working-router-agent-tools",
+  "private": true,
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.28.9",
+      "onFail": "download"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "24.22.2",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "check:agent-links": "node .agents/skills/agent-tooling/scripts/check-agent-links.mjs"
+  },
+  "devDependencies": {
+    "@appella/skills-cli": "0.2.0",
+    "ignore": "7.0.14",
+    "remark-cli": "12.0.1",
+    "remark-validate-links": "13.1.0"
+  }
+}

@@ -1,0 +1,5 @@
+interface:
+  display_name: "PR Description"
+  short_description: "Write accurate PR titles and engineering descriptions"
+policy:
+  allow_implicit_invocation: true

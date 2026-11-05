@@ -1,0 +1,5 @@
+interface:
+  display_name: "Review"
+  short_description: "Review completed changes and verify findings"
+policy:
+  allow_implicit_invocation: true

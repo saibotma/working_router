@@ -1,0 +1,5 @@
+interface:
+  display_name: "Babysit PR"
+  short_description: "Monitor feedback and target changes through merge"
+policy:
+  allow_implicit_invocation: true
