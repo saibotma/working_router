@@ -29,5 +29,10 @@ Review:
 - Whether each test's behavior is understandable from its displayed name and
   enclosing test context without reading its implementation.
 
+Rate a finding P1 when a changed behavior has no test that would fail if it
+broke, or a test protects the wrong contract. Rate behavior covered only through
+a caller, missing edge cases, and misplaced tests P2, and test names and
+structure P3.
+
 Return exactly `PASS` when there are no findings. Otherwise return every finding
 concisely with file and line references where possible, including minor issues.

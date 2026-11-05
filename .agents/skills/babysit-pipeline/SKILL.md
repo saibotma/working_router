@@ -15,7 +15,7 @@ review comments or wait for a human merge.
 Follow `pr-monitoring` when creating or changing monitors or handling automated
 passes. When invoked by `babysit-pr`, run one pipeline pass and return its
 result; the parent keeps the sole monitor. Otherwise maintain one CI-only
-monitor while pending; a heartbeat runs about every five minutes.
+monitor while pending.
 
 ## Pass
 

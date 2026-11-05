@@ -29,5 +29,11 @@ Review:
 Report only Convex convention violations and incorrect Convex usage introduced
 or exposed by the supplied changes.
 
+Rate a finding P0 when it exposes protected or tenant-owned data or can lose
+data, and P1 when it breaks behavior under realistic conditions, such as
+exceeding a transaction limit with realistic data, non-deterministic queries or
+mutations, or a public function without validators. Rate a guideline violation
+without a concrete failure P2, and minor convention issues P3.
+
 Return exactly `PASS` when there are no findings. Otherwise return every finding
 concisely with file and line references where possible, including minor issues.

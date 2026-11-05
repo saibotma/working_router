@@ -20,5 +20,9 @@ Review:
 - Violations of applicable customer-content guidance caused or exposed by the
   supplied changes.
 
+Rate a finding P1 when customer content would state something false that
+customers act on, such as wrong instructions or a removed feature. Rate
+incomplete or outdated content that does not mislead P2, and wording P3.
+
 Return exactly `PASS` when there are no findings. Otherwise return every finding
 concisely with file and line references where possible, including minor issues.

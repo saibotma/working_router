@@ -27,8 +27,9 @@ CI follow-up.
    other comments await a decision; report those remaining discussions. For
    content changes, read
    [Publishing changes](../prepare-pr/references/publishing-changes.md),
-   implement, validate, run `review`, and commit coherent fixes with discussion
-   links. Preserve material review advisories for the caller and PR follow-up.
+   implement, validate, verify again the checks of `verification` whose behavior
+   a fix changes, run `review`, and commit coherent fixes with discussion links.
+   Preserve material review advisories for the caller and PR follow-up.
 3. Invoke `sync-pr` to publish committed fixes and refresh metadata. Confirm
    addressed feedback only after the fix is pushed and validated. For an
    already-applied fix, verify that evidence before confirming it. Questions or

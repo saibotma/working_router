@@ -3,6 +3,8 @@ name: dart-coding
 description:
   Use when writing, changing, or reviewing Dart or Flutter code or
   configuration.
+metadata:
+  tags: dart
 ---
 
 # Dart Coding

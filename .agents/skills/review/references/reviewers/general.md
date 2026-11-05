@@ -30,5 +30,11 @@ Allow harmless typo, wording, and formatting improvements, and removal of
 obsolete, equivalently preserved, commented-out, or explicitly requested text.
 Report concrete issues introduced or exposed by the changes, not preferences.
 
+Rate a finding P0 when it can lose or corrupt data, expose data, or take down a
+main path, and P1 when it causes wrong behavior on a main path or for a likely
+edge case, breaks the build, or regresses existing behavior. Rate rare edge
+cases, concrete performance or maintenance problems, unnecessary complexity, and
+lost contracts or rationale P2, and minor concrete issues P3.
+
 Return exactly `PASS` or concise findings with file/line references where
 possible, including minor concrete issues.

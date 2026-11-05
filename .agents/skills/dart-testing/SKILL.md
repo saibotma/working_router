@@ -3,6 +3,8 @@ name: dart-testing
 description:
   Use when handling Dart or Flutter tests, including writing tests, updating
   tests, deciding test scope, and choosing test helpers.
+metadata:
+  tags: dart
 ---
 
 - For small web-only branches like `isWeb`/`kIsWeb`, prefer injecting the

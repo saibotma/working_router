@@ -1,7 +1,6 @@
 # Reviewer Procedure
 
-Every reviewer role in `reviewers/` follows this procedure, regardless of which
-agent harness runs it.
+Every reviewer role in `reviewers/` follows this procedure.
 
 - Stay read-only. Do not create, edit, delete, stage, or commit files, and do
   not run commands that change the working tree, git state, or local
@@ -19,7 +18,21 @@ agent harness runs it.
   function or related hunks instead of loading the whole candidate at once.
   Continue truncated reads until every changed section has been inspected; read
   surrounding code and related files as needed to assess interactions.
+- When the caller assigns you the fix diff as your scope, judge the changes in
+  it: whether each fix resolves the finding it addresses and whether it
+  introduces new problems. Read the rest of the candidate only for context. When
+  it assigns you the complete candidate, judge all of it, including the fixes.
+- Do not report again advisories that the packet lists as already recorded or
+  findings that it lists as decided by the user, unless the changes affect them.
+- Rate every finding P0, P1, P2, or P3, from most to least severe, by the
+  severity scale in your definition. Without one, rate a finding P0 or P1 when,
+  by your role's standard, the change must not be merged as it is, and P2 or P3
+  otherwise. Keep P0 and P1 for concrete problems and violations of binding
+  guidance, not preferences. When the caller asks for only P0 and P1 findings
+  and regressions, report only those; a regression is behavior that worked
+  before a fix and that the fix broke, of any severity.
 - Before returning, reconcile coverage with the candidate list and finish any
   unreviewed sections. Return `PASS` only when the review is complete and there
-  are no findings. If a blocker prevents completion, report it and the remaining
-  scope instead. Keep coverage tracking internal; no coverage report is needed.
+  are no findings to report. If a blocker prevents completion, report it and the
+  remaining scope instead. Keep coverage tracking internal; no coverage report
+  is needed.

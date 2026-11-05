@@ -1,0 +1,8 @@
+# Links every checkout's and worktree's node_modules into one store per machine
+# instead of giving each its own copy.
+enableGlobalVirtualStore: true
+
+# Our own package, which pnpm would otherwise hold back for a day after each
+# release.
+minimumReleaseAgeExclude:
+  - "@appella/skills-cli@0.2.0"

@@ -21,5 +21,10 @@ Review:
 Report only Dart, Flutter, and applicable stack convention violations introduced
 or exposed by the supplied changes.
 
+Rate a finding P1 when it causes a crash, wrong behavior, or source, generated
+code, or configuration that are out of sync, or violates binding guidance, and
+P0 when it also loses user data. Rate incorrect API use without a visible
+failure P2, and style conventions P3.
+
 Return exactly `PASS` when there are no findings. Otherwise return every finding
 concisely with file and line references where possible, including minor issues.

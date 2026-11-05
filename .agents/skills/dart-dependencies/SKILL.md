@@ -4,6 +4,8 @@ description:
   Use when adding or updating dependencies in a Dart or Flutter pubspec, or when
   inspecting package source or behavior, especially packages from pub.dev or git
   dependencies in .pub-cache.
+metadata:
+  tags: dart
 ---
 
 - Before using a caret constraint (`^`) in `pubspec.yaml`, inspect the package's

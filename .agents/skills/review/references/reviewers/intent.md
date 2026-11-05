@@ -34,6 +34,10 @@ Review:
 Do not review general correctness, architecture rules, or code quality; other
 reviewers cover them.
 
+Rate every finding P1, because each one means the changes do not match the
+issue, except missing test evidence for a criterion that the changes implement,
+which is P2.
+
 Return exactly `PASS` when there are no findings. Otherwise return every finding
 concisely with file and line references where possible, and label each finding
 as one of: `MISSING`, `UNPLANNED`, `UNDECLARED_DEVIATION`,

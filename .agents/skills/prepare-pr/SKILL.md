@@ -23,11 +23,13 @@ never merge PRs; a human merges every PR.
    ambiguous.
 3. If the change implements an issue, first make sure the issue reflects the
    agreed plan, following `issues`. Plan the change as one or more PRs following
-   [Sizing changes](references/sizing-changes.md). Implement the requested
-   change and validate it, including tests for reasonably testable behavior.
-   Record deviations from the issue and implementation-time decisions as
-   `review` describes. Run `review` for the candidate; reuse current validation
-   and review coverage when available.
+   [Sizing changes](references/sizing-changes.md). Plan its checks and capture
+   what it changes as `verification` describes. Implement the requested change
+   and validate it, including tests for reasonably testable behavior, then
+   verify it in the running product as `verification` describes. Record
+   deviations from the issue and implementation-time decisions as `review`
+   describes. Run `review` for the candidate; reuse current validation and
+   review coverage when available.
 4. Read [Publishing changes](references/publishing-changes.md). Commit coherent
    reviewed packets, then invoke `sync-pr` to integrate the target and push.
    Create or adopt the PR using `pr-description`; enable squash and

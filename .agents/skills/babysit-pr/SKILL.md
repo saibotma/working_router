@@ -19,12 +19,9 @@ PR's host, `gitlab-cli` or `github-cli`. Never merge the PR yourself. Follow
    feedback pass. Preserve its pending decisions and material review advisories.
 3. Invoke `sync-pr` if the feedback pass did not already synchronize the source,
    then invoke `babysit-pipeline` for one pass under this monitor.
-4. Pause and report when a decision is needed. Otherwise continue monitoring. A
-   T3 watch needs no intervals; pace a heartbeat at about five minutes for
-   pending CI; start around fifteen minutes awaiting review and back off on
-   unchanged checks to at most one hour; hourly after approval until merge.
-   Reset backoff on state changes or explicit rechecks. Green CI ends pipeline
-   work, not this PR monitoring.
+4. Pause and report when a decision is needed. Otherwise continue monitoring
+   until the PR merges or closes. Green CI ends pipeline work, not this PR
+   monitoring.
 
 ## Cleanup After Merge
 

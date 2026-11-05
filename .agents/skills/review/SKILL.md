@@ -33,12 +33,15 @@ path-scoped unstaged changes and identify new untracked files explicitly. For an
 existing commit or commit range, identify the exact base and head. Do not
 include unrelated file paths.
 
-For the initial pass, retain the original candidate file paths, diff, and base
-or an equivalent stable description. This defines the review loop's scope. Every
-subsequent pass reviews that complete original candidate as updated by all
-changes made during the loop, including fixes in additional files. Do not narrow
-a later pass to the latest fixes or reset the baseline after a commit or
-restaging. This is a review of the candidate diff, not the entire repository.
+For the first pass, retain the original candidate file paths, diff, and base or
+an equivalent stable description. This defines the review loop's scope. The
+complete candidate is that original candidate as updated by all changes made
+during the loop, including fixes in additional files; do not reset it after a
+commit or restaging. Before every pass, record the candidate's state, such as a
+commit or a saved diff, so that the next pass can identify its fix diff: the
+changes made since that state. Which of them a reviewer judges depends on the
+pass, as [Review Passes](#review-passes) describes. This is a review of the
+candidate diff, not the entire repository.
 
 Maintain a reviewer-driven change log throughout the review loop. For every
 implemented review finding, record:
@@ -50,23 +53,22 @@ implemented review finding, record:
 - why the remedy was considered necessary and proportionate
 - any materially simpler remedy considered and why it was insufficient
 
-Pass the candidate file paths and diff source to every selected reviewer. The
-supplied file list is the authoritative review boundary. Keep the candidate
-files unchanged while reviewers are running. Reviewers must inspect the changes
-for those files themselves. They may inspect nearby code for context, but they
-must not widen the review to changes in files absent from the supplied list. The
-file list limits what a pass reviews; it does not authorize unrelated work. Any
-file changed to address a finding becomes part of the complete candidate and
-must appear in every subsequent applicable review packet.
+Pass every selected reviewer the file paths and diff source of the scope it
+judges: the complete candidate or the fix diff. The supplied file list is the
+authoritative review boundary. Keep the candidate files unchanged while
+reviewers are running. Reviewers must inspect the changes for those files
+themselves. They may inspect nearby code for context, but they must not widen
+the review to changes in files absent from the supplied list. The file list
+limits what a pass reviews; it does not authorize unrelated work. Any file
+changed to address a finding becomes part of the complete candidate.
 
-On every review pass for a candidate packet, run the always-on reviewers:
-`validation_reviewer` and `general_reviewer`. The general reviewer covers
-correctness and solution proportionality, including reviewer-driven scope
-expansion. Run every reviewer as described under
+The always-on reviewers are `validation_reviewer` and `general_reviewer`. The
+general reviewer covers correctness and solution proportionality, including
+reviewer-driven scope expansion. Run every reviewer as described under
 [Running Reviewers](#running-reviewers).
 
-Reassess which conditional specialist reviewers apply to the complete current
-candidate on every pass:
+Select the conditional specialist reviewers whose trigger the scope they would
+judge meets, as [Review Passes](#review-passes) describes:
 
 - Run `architecture_reviewer` when the candidate changes production source code.
   Do not run it for test-only, documentation-only, generated-only, or
@@ -112,11 +114,6 @@ candidate on every pass:
 
 If uncertain whether a conditional specialist applies, run it.
 
-Also run every reviewer whose finding was addressed earlier in this loop, even
-if its specialist trigger no longer applies. Keep those reviewers in every
-remaining pass so removing or changing the triggering code cannot bypass their
-review of the remedy.
-
 Pass a compact review packet with:
 
 - the user request, including relevant later instructions and approvals
@@ -132,14 +129,23 @@ Pass a compact review packet with:
 - selected conditional reviewers and the trigger reason, or why no conditional
   reviewer was selected
 
-For every general-reviewer pass after the initial pass, also include:
+For every pass after the first, also include in every packet except the intent
+reviewer's:
 
+- the pass number, whether the reviewer judges the complete candidate or the fix
+  diff, and from pass 3 on, that it reports only P0 and P1 findings and
+  regressions
 - the original candidate file paths and diff or stable description
 - the complete current candidate file paths and diff source
+- the fix diff source and its file paths
 - the reviewer-driven change log
 - every finding that caused the candidate to change, including its evidence and
   classification
-- any files added to or removed from the candidate since the initial pass
+- the reviewer's own findings from earlier passes and how each was resolved:
+  fixed, rejected with its evidence, or kept as an advisory
+- advisories already recorded and findings the user decided, which reviewers do
+  not report again
+- any files added to or removed from the candidate since the first pass
 
 Pass `intent_reviewer` a different packet, so that the implementing agent's
 understanding of the request cannot mask a misunderstanding of the intent:
@@ -150,9 +156,13 @@ understanding of the request cannot mask a misunderstanding of the intent:
 - the current
   [declared deviations and decisions](#declared-deviations-and-decisions)
 - validation already performed
+- for every pass after the first, the pass number, whether it judges the
+  complete candidate or the fix diff, the fix diff source and its file paths,
+  its own findings from earlier passes and whether each was fixed or rejected,
+  and from pass 3 on, that it reports only P0 and P1 findings and regressions
 
-Do not pass it the user request, the conversation, or explanations of the
-implementation.
+Do not pass it the user request, the conversation, the change log, or
+explanations of the implementation.
 
 Ask subagents to inspect the changes for the supplied candidate files themselves
 and to judge only those changes. They may inspect nearby code for context, but
@@ -166,9 +176,37 @@ subagents toward approval.
 
 Collect each reviewer's result using the response contract in its definition.
 
+## Review Passes
+
+Each pass selects its reviewers and the scope they judge:
+
+- **Pass 1:** every reviewer judges the complete candidate: the always-on
+  reviewers and every conditional reviewer whose trigger the candidate meets.
+  Reviewers report findings of every severity.
+- **Pass 2**, when pass 1 changed the candidate: `general_reviewer`, and
+  `security_reviewer` when its trigger applies to the complete candidate, judge
+  the complete current candidate again, so that problems pass 1 missed still
+  surface. The other reviewers judge the fix diff: `validation_reviewer`, every
+  conditional reviewer whose trigger the fix diff meets, and every reviewer
+  whose finding a fix addresses, even if its trigger no longer applies.
+  Reviewers report findings of every severity.
+- **Pass 3 and later**, when the previous pass changed the candidate: every
+  reviewer judges the fix diff: the always-on reviewers, every conditional
+  reviewer whose trigger the fix diff meets, and every reviewer whose finding a
+  fix addresses. Reviewers report only P0 and P1 findings and regressions of any
+  severity, where a fix broke behavior that worked before it.
+
+Reviewers rate the severity of their findings by their own definition, as the
+reviewer procedure describes. Severity decides only what a reviewer reports from
+pass 3 on; whether a reported finding is fixed follows from
+[Finding Classification](#finding-classification).
+
+Start every pass with a new task for every reviewer, also when a reviewer judged
+an earlier pass; never continue an earlier reviewer's task.
+
 ## Running Reviewers
 
-Each reviewer role is defined once, independent of the agent harness, in
+Each reviewer role is defined once in
 `.agents/skills/review/references/reviewers/`, or for project reviewers in the
 definition file that the `Project reviewers` table names. Every reviewer runs on
 `gpt-6.1-sol` with `xhigh` reasoning effort, regardless of the main agent's
@@ -191,23 +229,16 @@ model, in a fresh subagent context; do not fork the main agent's full context.
 The review gate does not run `pr_description_reviewer`; the `pr-description`
 skill runs it in its review loop.
 
-Run them with the mechanism of the current harness:
-
-- **Codex:** Spawn the project custom agent by name. Its `.codex/agents/`
-  configuration pins the model, reasoning effort, and read-only sandbox; the
-  `agent-tooling` skill describes these wrappers.
-- **T3 Code:** Use the `t3-code` MCP `delegate_task` tool with one task per
-  reviewer: `target.providerInstanceId` `codex`, `target.model` `gpt-6.1-sol`,
-  `target.options.reasoningEffort` `xhigh`, `role` `review`, and `mode` `async`.
-  Always set the reasoning effort explicitly; delegated tasks do not apply the
-  Codex agent configuration, and the model's default effort is lower. Name the
-  reviewer in the task title. Begin the task prompt with an instruction to read
-  and follow the reviewer's definition file, then add the review packet, inline
-  or as a file the reviewer can read. Start all reviewers of a pass before
-  collecting their results.
-- **Otherwise:** If no mechanism can run the reviewers on `gpt-6.1-sol`, do not
-  report the review complete; ask the user whether to proceed with a local-only
-  review fallback.
+Run them with the `t3-code` MCP `delegate_task` tool, one task per reviewer:
+`target.providerInstanceId` `codex`, `target.model` `gpt-6.1-sol`,
+`target.options.reasoningEffort` `xhigh`, `role` `review`, and `mode` `async`.
+Always set the reasoning effort explicitly, because the model's default effort
+is lower. Name the reviewer in the task title. Begin the task prompt with an
+instruction to read and follow the reviewer's definition file, then add the
+review packet, inline or as a file the reviewer can read. Start all reviewers of
+a pass before collecting their results. If a reviewer cannot run on
+`gpt-6.1-sol`, do not report the review complete; ask the user whether to
+proceed with a local-only review fallback.
 
 ## Finding Verification
 
@@ -227,8 +258,9 @@ When an automated test is not practical, reproduce the finding with a focused
 command or establish a concrete failing execution path or authoritative
 contract. Do not implement a change solely because a reviewer asserted the
 problem. Return the evidence and rejection rationale for an unsupported finding
-to the reporting reviewer for reconsideration. If disagreement remains, ask the
-user rather than silently counting the finding as resolved.
+to a new task of the reporting reviewer for reconsideration, together with the
+finding and the scope it judged. If disagreement remains, ask the user rather
+than silently counting the finding as resolved.
 
 ## Finding Classification
 
@@ -301,15 +333,15 @@ reviewers; rerun only the intent reviewer.
 ## Repeat and Complete
 
 If the candidate changes after a review pass, update the complete candidate and
-change log, perform relevant validation, and restart the review gate with all
-required reviewers. This includes test-only changes, formatting, and exact
-removals or reversions. Do not retain individual reviewer approvals across
-candidate changes.
+change log, perform relevant validation, and run the next pass as
+[Review Passes](#review-passes) describes. This includes test-only changes,
+formatting, and exact removals or reversions. An approval covers only the
+candidate state its reviewer judged; the next pass judges the changes since.
 
-Complete the loop only when every reviewer required for the current pass has
-approved the same unchanged candidate, relevant validation passes, and no
-blocking findings or escalations remain. Verified advisory-only results count as
-approval; preserve the advisories in the result and caller handoff.
+Complete the loop only when every reviewer of the latest pass has approved the
+unchanged candidate, relevant validation passes, and no blocking findings or
+escalations remain. Verified advisory-only results count as approval; preserve
+the advisories in the result and caller handoff.
 
 ## Workflow
 
@@ -319,7 +351,7 @@ approval; preserve the advisories in the result and caller handoff.
 4. Verify and classify reported findings. Return unsupported findings to the
    reporting reviewer, preserve advisories, and escalate unresolved or
    materially scope-expanding findings.
-5. Fix blocking issues and repeat validation and the full review gate whenever
+5. Fix blocking issues, repeat validation, and run the next review pass whenever
    the candidate changes.
 6. Return the successful review result, any preserved advisories, and the
    declared deviations and decisions, or report the blocker preventing

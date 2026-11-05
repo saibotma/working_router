@@ -43,6 +43,11 @@ Classify findings as:
   safe remedy would materially expand the requested work. Explain why the user
   must decide how to proceed.
 
+Rate a finding P0 when an attacker can exploit it without special access, such
+as to read or change other users' data or take over accounts, and P1 when
+exploiting it needs further preconditions or it weakens a security boundary.
+Rate defense-in-depth gaps P2 and hardening suggestions P3.
+
 Return exactly `PASS` when there are no findings. Otherwise group every finding
 under the applicable classification, concisely and with file and line references
 where possible.

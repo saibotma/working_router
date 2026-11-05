@@ -4,6 +4,8 @@ description:
   Use when working with GitHub via the gh CLI for issues, pull requests,
   Actions, or other repository metadata. It is the forge CLI skill for GitHub
   that the PR workflow skills name.
+metadata:
+  tags: github
 ---
 
 # GitHub CLI

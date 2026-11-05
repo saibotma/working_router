@@ -58,6 +58,12 @@ section when it would be empty. Do not write `None` placeholders.
   cases explain the change better than prose.
 - **Spec:** a link to the issue the PR implements, such as
   `[APL-123](<issue URL>)`. Omit it without an issue.
+- **Demo:** for a change that users can see or use, a few captioned screenshots
+  or one short recording from `verification` that show what changed as a user
+  experiences it, so the reviewer gets a feel for it without running the branch,
+  even when nothing about it needs a human. For changed existing UI and for bug
+  fixes, show before and after side by side in a table. Leave out captures that
+  a 🟡 Look item shows.
 - **Risk:** the main reason for the [risk class](#risk-class) in one line. Then:
   - `#### Reach`: who and what the change affects in production, such as every
     customer, a background integration, or only new endpoints that nothing calls
@@ -80,11 +86,12 @@ section when it would be empty. Do not write `None` placeholders.
 
 - **Needs your attention:** every item that needs a human, phrased so they can
   confirm or reject it, as a task list item, `- [ ]`, under `#### 🟡 Decide`, as
-  a question the description alone answers, `#### 🟡 Try`, with what to try and
-  where, and `#### 🔴 Review`, with the files to read and what to check there.
-  Every item keeps its checkbox, and only a human's tick marks it done; never
-  mark an item as decided in its text. Under 🟡 Decide, list the open decisions
-  first, then the decisions an orchestrating agent made under
+  a question the description alone answers, `#### 🟡 Look`, with the captures to
+  judge and the question about them, `#### 🟡 Try`, with what to try, where, and
+  why the agent could not, and `#### 🔴 Review`, with the files to read and what
+  to check there. Every item keeps its checkbox, and only a human's tick marks
+  it done; never mark an item as decided in its text. Under 🟡 Decide, list the
+  open decisions first, then the decisions an orchestrating agent made under
   `##### Orchestrator decided`, each naming where it decided, such as a T3 Code
   thread ID, or quoting the decision when no such reference exists. Under 🔴
   Review, group the items under `#####` headings that say why they need review,
@@ -111,9 +118,11 @@ section when it would be empty. Do not write `None` placeholders.
 
 - **Proof:** evidence the reviewer cannot get from the diff or the pipeline that
   the changed behavior works:
-  - for visible UI changes, screenshots or recordings of the changed states,
-    uploaded as the forge CLI skill's `Uploads` describes; when the agent cannot
-    capture them, say which states the reviewer should check;
+  - the checks from `verification`, one line each with its result, what it
+    covered, and where it ran, such as
+    `Passed: a teacher archives a course and it leaves the list (web, phone width)`,
+    with the captures that the Demo or an item does not already show; an
+    inconclusive check says what could not be observed and has a 🟡 Try item;
   - targeted tests for the critical case and the risks they prove, including a
     test for each rule of a settled point, mutation checks, manual or device
     checks, benchmarks, and production queries;
@@ -142,6 +151,10 @@ renders the Markdown inside. Omit the block when all its sections are empty.
   each with the decision, so later readers still see what was decided and why.
   Write them as plain list items without a checkbox, because nothing is left to
   tick.
+- **Agent decisions:** the material decisions the agent made that
+  [Sorting](#sorting) gives no item, one line each with the decision, the
+  rejected alternative, and why, as plain list items without a checkbox. A
+  reader who disagrees can still raise one, but nobody has to confirm them.
 - **Problems encountered:** only material problems actually encountered during
   implementation, validation, or integration that revealed a defect or risk,
   forced a substantive change to the resulting implementation, or left an
@@ -156,9 +169,9 @@ renders the Markdown inside. Omit the block when all its sections are empty.
 ## Risk Class
 
 The class says what a human has to do before merging and follows from **Needs
-your attention**: a 🔴 Review item makes it 🔴 Red, 🟡 Decide or Try items alone
-make it 🟡 Yellow, and an empty list makes it 🟢 Green. A risk label on the
-issue is only a planning hint; do not mention it in the description.
+your attention**: a 🔴 Review item makes it 🔴 Red, 🟡 Decide, Look, or Try
+items alone make it 🟡 Yellow, and an empty list makes it 🟢 Green. A risk label
+on the issue is only a planning hint; do not mention it in the description.
 
 ### Sorting
 
@@ -166,20 +179,44 @@ Sort every change, deviation, and decision by the first rule that applies. Judge
 the concrete diff, because two changes of the same kind can carry very different
 risk.
 
-1. **Files the merge risk script reports:** 🔴 Review under `Script`, always.
-   When the repository has `tools/merge-risk/merge-risk.mjs`, fetch the PR's
-   target branch and run
-   `node tools/merge-risk/merge-risk.mjs --base origin/<target branch>` from the
-   PR's checkout, so stacked PRs are judged against their own target.
-2. **Visible changes:** 🟡 Try, always, because tests do not show whether
-   something looks or reads right. Visible changes are UI, texts and
+1. **Updates of installed skills:** no item, even when the merge risk script
+   reports them or rule 6 would apply. The project trusts a skill's source once
+   it installs from it: `agent-stack` reviews its changes itself, and the
+   project accepted a third-party source when it installed it. This covers the
+   installed copies that `.agents/skills.lock` records. Name the update in the
+   TL;DR. The later rules still sort what the project decides itself, such as
+   installing or removing a skill, a skill from a source the project did not use
+   before, a deviation from the update procedure in the `agent-tooling` skill,
+   and changes to the project's own files, such as skill extensions or
+   `AGENTS.md`.
+2. **Files the merge risk script reports:** 🔴 Review under `Script`, always.
+   Fetch the PR's target branch and run
+   `pnpm exec node .agents/skills/pr-description/scripts/merge-risk.mjs --base origin/<target branch>`
+   from the root of the PR's checkout, so stacked PRs are judged against their
+   own target. It reports the files that the project's `.merge-risk` lists, as
+   [Merge risk rules](references/merge-risk.md) describes, and a changed
+   `.merge-risk` itself. When it says that the project has no `.merge-risk`, the
+   later rules sort every other change.
+3. **Visible changes:** verified as the `verification` skill describes, then
+   sorted by what remains for a human. Visible changes are UI, texts and
    translations, the content and look of messages to customers such as emails
    and notifications, the look of the website or documentation site, a client
    showing, hiding, or locking controls by permissions that the server enforces,
-   and a consumer adopting an already deployed interface contract. Behavior that
-   a test can prove exactly, such as who receives a message, when, or whether it
-   is sent, is not a visible change; the later rules sort it.
-3. **Settled or unchanged, and proven:** no item, even when rule 5 would apply,
+   and a consumer adopting an already deployed interface contract.
+   - **Verified behavior,** such as a control that shows for one role and not
+     another, or a text that appears where it should: no item; its check goes
+     under **Proof**.
+   - **How it looks or reads,** for new or changed UI, texts, and messages: 🟡
+     Look, always, with the captures to judge it, because neither tests nor the
+     agent can judge taste.
+   - **What the agent could not verify,** such as an inconclusive check, or how
+     a gesture or animation feels: 🟡 Try, with what to try, where, and why the
+     agent could not.
+
+   Behavior that a test can prove exactly, such as who receives a message, when,
+   or whether it is sent, is not a visible change; the later rules sort it.
+
+4. **Settled or unchanged, and proven:** no item, even when rule 6 would apply,
    such as permission and ownership checks the issue specifies. A point is
    settled when a human specified or decided it: the approved issue specifies
    it, or the user decided it explicitly, in a PR, an issue comment, or the
@@ -194,10 +231,13 @@ risk.
    one. Only when a test is not reasonably possible, such as for delivery by an
    external system or platform behavior the test setup cannot reach, add a 🔴
    Review item under `Not testable` for that rule, saying why.
-4. **Open product decisions the description answers:** 🟡 Decide, such as
+5. **Open product decisions the description answers:** 🟡 Decide, such as
    leaving out a push notification the issue does not mention; under
    `Orchestrator decided` when an orchestrating agent made the decision.
-5. **Sensitive changes:** 🔴 Review under `Agent decided`:
+6. **Sensitive changes:** 🔴 Review under `Agent decided`, for decisions where a
+   wrong choice is hard to undo or stays silent and judging it needs what only a
+   human knows, such as product intent, team conventions, or costs outside the
+   repository. These are decisions in the following areas:
    - API surface whose details the agent decided, such as field names, model
      structure, or error types: new or changed routes, methods, paths, public
      functions, request or response models, argument and return types, and error
@@ -212,21 +252,33 @@ risk.
    - a producer changing an interface contract whose consumers are not deployed
      together with it, such as installed apps or external systems;
    - concurrency, synchronization, or lifecycles;
-   - architecture, new dependencies, or a pattern or technology the repository
-     does not use yet; agent instructions or skills;
-   - a large blast radius or failures that would stay silent, such as wrong
-     data;
-   - other decisions on architecture, interfaces, or persistence, and risks that
-     no targeted test proves.
+   - an architecture, pattern, or technology the repository does not use yet;
+   - what changed agent instructions tell agents to do, but not the scripts or
+     other tooling that skills ship with;
+   - likely failures that would stay silent in production, such as wrong data,
+     or that would reach many users at once.
 
-   When unsure whether a change is sensitive, add the item. Before adding the
-   item, prove what a test can prove, such as that a check agrees with the code
-   it guards, and name the tests under **Proof**. The item then asks only what a
-   human can judge from the description and the linked lines: whether the
-   decision is right and whether the remaining risk is acceptable. Never ask the
-   reviewer to verify by reading code what a test could show.
+   Ask only about the decision that puts the change into one of these areas, not
+   about every choice the agent made along the way. Add no item for:
+   - details of an approach that a human settled, such as the syntax or error
+     handling of a format the user approved;
+   - choices whose wrong outcome is loud, such as an error or a failing test or
+     pipeline, and that a follow-up PR fixes;
+   - development tooling and CI internals, unless they handle secrets or weaken
+     a check that guards merges or production.
 
-6. **Everything else:** no item, for example refactorings, test-only changes,
+   When unsure, add no item if a follow-up PR would fix a wrong choice at little
+   cost before it does harm. List the material decisions that get no item under
+   **Agent decisions** in the collapsed part.
+
+   Before adding an item, prove what a test can prove, such as that a check
+   agrees with the code it guards, and name the tests under **Proof**. The item
+   then asks only what a human can judge from the description and the linked
+   lines: whether the decision is right and whether the remaining risk is
+   acceptable. Never ask the reviewer to verify by reading code what a test
+   could show.
+
+7. **Everything else:** no item, for example refactorings, test-only changes,
    documentation text, internal tooling, logging and metrics, and backend bug
    fixes that restore specified behavior under a regression test.
 
@@ -238,15 +290,16 @@ under **Risk** or **Limitations and follow-up** instead.
 
 ### Ticks
 
-A tick on a 🟡 Try or 🔴 Review item records only what a human has looked at; it
-does not change the class. A tick on a 🟡 Decide item is the user's decision: it
-settles the point, so move the item to **Decided** in the collapsed part,
-without its checkbox, and the class follows from the remaining items.
+A tick on a 🟡 Look, 🟡 Try, or 🔴 Review item records only what a human has
+looked at; it does not change the class. A tick on a 🟡 Decide item is the
+user's decision: it settles the point, so move the item to **Decided** in the
+collapsed part, without its checkbox, and the class follows from the remaining
+items.
 
-Read the live description right before writing it. Keep each unchanged Try and
-Review item verbatim with its tick, write an item unticked when its content or
-the files behind it changed after it was ticked, and drop items that no longer
-apply. To find those changes, end **Needs your attention** with
+Read the live description right before writing it. Keep each unchanged Look,
+Try, and Review item verbatim with its tick, write an item unticked when its
+content or the files behind it changed after it was ticked, and drop items that
+no longer apply. To find those changes, end **Needs your attention** with
 `<!-- checklist-revision: <sha> -->`, the source `HEAD` the checklist describes.
 
 ### Risk Label
@@ -264,13 +317,18 @@ Update it whenever the class changes.
   - use short sentences and plain words, and name internal identifiers only when
     the reader needs them to find something.
 - State every claim once, in the section where the reviewer needs it.
+- Put each screenshot or recording next to the claim or item it supports, such
+  as a 🟡 Decide option or a 🔴 Review risk, with a caption that says what it
+  shows, and upload it as the forge CLI skill's `Uploads` describes. Put more
+  than a few captures for one area into a `<details>` block.
 - Record concise conclusions, evidence, and rationale, not private scratch
   reasoning.
 - When the PR implements an issue, take deviations and implementation-time
   decisions from the list declared during `review`, which the intent reviewer
   checked against the issue. Without an issue, take the material decisions. Sort
   each one the user did not settle like any other change, as
-  [Risk Class](#risk-class) describes.
+  [Risk Class](#risk-class) describes; a declared decision is not an item by
+  itself.
 - Update the description when a material decision is made, a meaningful problem
   is resolved or left open, validation changes, or scope changes.
 
@@ -287,7 +345,8 @@ skill's Running Reviewers section describes. Pass it:
   the PR implements one;
 - the declared deviations and decisions and the findings left unfixed, from
   `review`;
-- the evidence behind **Proof**, such as test names and manual or device checks;
+- the evidence behind **Demo** and **Proof**, such as test names and the
+  verification record from `verification`;
 - where the user or an orchestrating agent decided: references the reviewer can
   read itself, such as the T3 Code thread IDs of every conversation about this
   work, including the one that started or delegated it. Quote the user's
@@ -295,6 +354,19 @@ skill's Running Reviewers section describes. Pass it:
 
 Do not pass arguments for why the draft is right. Treat findings as hypotheses:
 check each against the diff and the user's decisions, fix the verified ones, and
-return the evidence for a rejected one to the reviewer. If disagreement remains,
-ask the user. Review the complete new draft after every change until the
-reviewer returns `PASS`.
+return the evidence for a rejected one to a new task of the reviewer. If
+disagreement remains, ask the user.
+
+Review the draft again after every change until the reviewer returns `PASS`,
+each round in a new task. Tell the reviewer whether the round is a full or a
+scoped review:
+
+- **Full review:** the first round, and every round after the net diff's head or
+  base changed. The reviewer checks the whole draft and reports findings of
+  every severity.
+- **Scoped review:** a round after only the draft changed. Also pass the
+  previous draft, the reviewer's earlier findings, and how each was resolved.
+  The reviewer judges only the changed text and reports only P0 and P1 findings.
+
+When neither the net diff nor the draft changed since the reviewer last returned
+`PASS`, reuse that result instead of starting a round.

@@ -1,6 +1,8 @@
 ---
 name: flutter-widgets
 description: Use when working on Flutter widgets.
+metadata:
+  tags: flutter
 ---
 
 Rules that name a shared helper, such as a widget, Riverpod extension, or

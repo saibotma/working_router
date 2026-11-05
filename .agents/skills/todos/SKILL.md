@@ -17,11 +17,15 @@ workaround too, and so are git dependencies, version pins, and patched or
 vendored copies of a dependency that serve such a purpose.
 
 Workarounds tend to stay long after upstream fixed the cause, so route them to
-an upstream fix. Before committing a workaround:
+an upstream fix, or to the dependency's capability once it exists. Before
+committing a workaround:
 
-1. Check whether an existing capability of a dependency makes the custom code
-   unnecessary, and whether fixing it upstream, or in a fork the repository
-   already maintains, would be better than the workaround.
+1. Check whether an existing capability of a dependency, also in a newer
+   version, makes the custom code unnecessary. When one does, use it instead of
+   the workaround. Keep the workaround only when moving to the capability would
+   materially expand the requested work, and continue with step 4. Otherwise,
+   check whether fixing it upstream, or in a fork the repository already
+   maintains, would be better than the workaround.
 2. Search the dependency's issue tracker and pull requests for an issue, pull
    request, or feature request that covers the problem.
 3. When none exists, draft one following the `github-issue-writing` skill and
@@ -32,16 +36,25 @@ an upstream fix. Before committing a workaround:
    condition; the PR description lists it under **To-dos**, as the
    `pr-description` skill describes.
 4. Mark the workaround with a todo in the comment syntax of its file, including
-   dependency manifests:
+   dependency manifests. While upstream has yet to fix or release the cause,
+   use:
 
    ```text
    TODO(<person who requested the change>): Remove once <upstream issue or PR URL> is fixed or released. <issue URL>
    ```
 
-   The issue follows the rule above. When no upstream issue exists yet, write
-   "upstream issue pending" instead of the upstream URL; the issue then holds
-   the draft. When the file's format has no comments, such as JSON, put the todo
-   in the closest file that can hold one, such as a README next to it, and name
-   the workaround's file and entry in it.
+   When a released version of a dependency already provides the replacement,
+   use:
+
+   ```text
+   TODO(<person who requested the change>): Replace with <capability> from <dependency> <version>. <issue URL>
+   ```
+
+   The issue follows the rule above; for the second form, it tracks moving to
+   the capability. When no upstream issue exists yet, write "upstream issue
+   pending" instead of the upstream URL; the issue then holds the draft. When
+   the file's format has no comments, such as JSON, put the todo in the closest
+   file that can hold one, such as a README next to it, and name the
+   workaround's file and entry in it.
 
 The `review` skill's `upstream_reviewer` checks this work.
