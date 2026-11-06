@@ -491,10 +491,18 @@ makes dynamic route-tree refreshes practical here, because nested navigator
 state can survive tree changes that still keep the same shell alive.
 
 `WorkingRouter.refresh()` stages a rebuilt route-node tree, rematches the full
-current route configuration against it, and revalidates that candidate. The
-tree and resolved route are committed together only if the transition is
-accepted. A blocked or superseded refresh keeps the previously committed tree
-and route.
+current route configuration against it, and revalidates that candidate as a
+mandatory transition. The tree and resolved route are committed together once
+the transition resolver allows or redirects the candidate. Leave guards are not
+consulted, and a resolver that blocks a refresh throws `StateError`, as
+[Transition Callbacks](#transition-callbacks) describes. A refresh superseded by
+a newer route attempt keeps the previously committed tree and route.
+
+Refreshes driven by layout, such as a screen size change, must not remove
+locations that hold state, such as an editor with unsaved changes. Keep the
+type, `id`, and `localId` of such locations stable across layouts. The rebuilt
+tree then still contains the current location, so the refresh does not leave
+it and runs no leave callbacks.
 
 After a successful refresh, `RouteNode` objects from the old tree are no longer
 live. If a widget needs to route via a child target, it is safe to pass the
@@ -790,6 +798,15 @@ state. If it remains valid, the attempt is a no-op. If the resolver redirects
 it with `RouteTransitionPolicy.mandatory`, the router must leave the current
 route and does not consult its leave guards.
 
+`router.refresh()` also revalidates the current route, but against a rebuilt
+route-node tree and always with `RouteTransitionPolicy.mandatory`. The rebuilt
+tree reflects application state that has already changed, so a refresh cannot
+be vetoed: leave guards of removed locations are not consulted, and their
+`afterLeave` callbacks still run after the commit. The resolver sees
+`RouteTransitionReason.revalidation` and `RouteTransitionPolicy.mandatory`. It
+must allow the rematched route or redirect it, for example to `/`, because
+returning `BlockTransition` throws `StateError`.
+
 `LocationObserver.canLeave` handles ordinary leave permission, such as an
 unsaved-changes confirmation. Keep it decision-only. Put cleanup in
 `afterLeave`, which starts only after the final route has committed:
@@ -810,10 +827,10 @@ reported independently. They must capture required dependencies before their
 observer unmounts.
 
 Mandatory policy is sticky through redirect chains. Returning
-`BlockTransition` after a mandatory redirect is a resolver contradiction and
-throws `StateError`. A standard redirect remains guarded; this is important
-when a valid guarded route attempts to open an invalid destination and the
-resolver redirects somewhere else.
+`BlockTransition` after a mandatory redirect or during a refresh is a resolver
+contradiction and throws `StateError`. A standard redirect remains guarded; this
+is important when a valid guarded route attempts to open an invalid destination
+and the resolver redirects somewhere else.
 
 If the final resolved `WorkingRouterData` equals the current data, the attempt
 is a no-op: the resolver may have run, but guards, cleanup, listeners, and
