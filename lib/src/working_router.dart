@@ -167,9 +167,22 @@ class WorkingRouter extends ChangeNotifier
 
   /// Rebuilds the route node tree and revalidates the current route.
   ///
-  /// The rebuilt tree remains speculative until the rematched route passes
-  /// transition resolution and any standard leave guards. The tree and route
-  /// data are then committed together.
+  /// The rebuilt tree remains speculative until the rematched route has passed
+  /// transition resolution. The tree and route data are then committed
+  /// together.
+  ///
+  /// A refresh is a [RouteTransitionPolicy.mandatory] transition, because the
+  /// rebuilt tree reflects application state that has already changed.
+  /// Keeping the old tree would leave the router out of sync with that state.
+  /// [LocationObserver.canLeave] is therefore not consulted for removed
+  /// locations, while [LocationObserver.afterLeave] still runs after the
+  /// commit. The transition resolver may allow the rematched route or redirect
+  /// it, but returning [BlockTransition] throws a [StateError].
+  ///
+  /// Refreshes that only change the layout, such as for a new screen size,
+  /// must not remove locations that hold state. Keep the type, `id`, and
+  /// `localId` of such locations stable across layouts so that they survive
+  /// the refresh.
   void refresh() {
     final routeNodeTree = _buildRouteNodeTree();
     final currentData = nullableData;
@@ -188,6 +201,7 @@ class WorkingRouter extends ChangeNotifier
         routeNodeTree: routeNodeTree,
       ),
       reason: RouteTransitionReason.revalidation,
+      policy: .mandatory,
       stagedRouteNodeTree: routeNodeTree,
     );
   }
@@ -476,6 +490,7 @@ class WorkingRouter extends ChangeNotifier
   void _routeTo({
     required WorkingRouterData targetData,
     required RouteTransitionReason reason,
+    RouteTransitionPolicy policy = .standard,
     IList<RouteNode>? stagedRouteNodeTree,
   }) {
     final myVersion = ++_routingVersion;
@@ -485,6 +500,7 @@ class WorkingRouter extends ChangeNotifier
       oldData: oldData,
       initialData: targetData,
       initialReason: reason,
+      initialPolicy: policy,
       routeNodeTree: stagedRouteNodeTree ?? _routeNodeTree,
     );
     if (resolvedTransition == null) {
@@ -688,6 +704,7 @@ class WorkingRouter extends ChangeNotifier
     required WorkingRouterData? oldData,
     required WorkingRouterData initialData,
     required RouteTransitionReason initialReason,
+    required RouteTransitionPolicy initialPolicy,
     required IList<RouteNode> routeNodeTree,
   }) {
     final resolveTransition = _transitionResolver;
@@ -695,13 +712,13 @@ class WorkingRouter extends ChangeNotifier
       return (
         data: initialData,
         reason: initialReason,
-        policy: RouteTransitionPolicy.standard,
+        policy: initialPolicy,
       );
     }
 
     var currentData = initialData;
     var currentReason = initialReason;
-    var currentPolicy = RouteTransitionPolicy.standard;
+    var currentPolicy = initialPolicy;
     var redirects = 0;
     final visitedUris = <Uri>{currentData.uri};
     final transitionFrom = oldData != null && oldData.routeNodes.isNotEmpty
