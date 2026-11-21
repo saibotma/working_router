@@ -7,11 +7,11 @@ description:
 
 # Address PR Comments
 
-Handle the current feedback on one PR once. Use the forge CLI skill of the PR's
-host, `gitlab-cli` or `github-cli`. A request to address comments includes
-implementing eligible fixes, publishing them, and replying in their discussions
-under the rules below. Honor any narrower user scope, such as analysis only or
-local changes only.
+Handle the current feedback on one PR once. Use the forge skill of the PR's
+host, `gitlab` or `github`. A request to address comments includes implementing
+eligible fixes, publishing them, and replying in their discussions under the
+rules below. Honor any narrower user scope, such as analysis only or local
+changes only.
 
 Do not wait for new feedback, merge the PR, or perform post-merge cleanup. When
 called by `babysit-pr`, return to that workflow; it owns ongoing monitoring and
@@ -41,7 +41,7 @@ CI follow-up.
 
 ## Feedback Rules
 
-Load all feedback with full pagination, as the forge CLI skill's `Feedback`
+Load all feedback with full pagination, as the forge skill's `Feedback`
 describes, and inspect every new human comment, not only unresolved threads,
 before treating feedback as complete. A discussion is a comment together with
 its replies.

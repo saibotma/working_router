@@ -8,7 +8,7 @@ description:
 # Issues
 
 The repository's `AGENTS.md` names its issue tracker and the skill that works
-with it, such as `linear` for Linear or `github-cli` for GitHub issues. Use that
+with it, such as `linear` for Linear or `github` for GitHub issues. Use that
 skill for every issue operation. When `AGENTS.md` names no tracker, do not
 create or change issues; ask the user where the work is tracked.
 
@@ -33,12 +33,17 @@ therefore treated as unplanned.
 - Describe:
   - **Context:** the problem and why it matters.
   - **Scope** and **non-goals**.
-  - **Decisions:** the settled approach, especially architecture, components,
-    interfaces between systems, and data handling, as precisely as the
-    discussion established it.
+  - **Decisions:** everything the user explicitly decided, and every decision in
+    the `Contracts` and `Sensitive changes` areas of the `change-risk` skill, as
+    precisely as the discussion established it.
   - **Acceptance criteria:** observable behavior that can be checked against the
     changes.
-  - **Open decisions:** points the implementing agent must not decide alone.
+  - **Open decisions:** points the implementing agent must not decide alone,
+    including decisions in those areas that the discussion left open.
+- Leave out other implementation details, such as files, classes, components, or
+  which tests to write; the implementing agent decides those. Name a test only
+  when it is part of the agreed intent, such as a regression to pin or an issue
+  that is about tests.
 - Scale the detail to the risk and uncertainty of the change; a small, clear
   change needs only a few lines. Leave out what the discussion did not settle
   instead of inventing precision.

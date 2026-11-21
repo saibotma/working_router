@@ -4,6 +4,7 @@
 /.agents/skills/agent-tooling/** gitlab-generated linguist-generated
 /.agents/skills/babysit-pipeline/** gitlab-generated linguist-generated
 /.agents/skills/babysit-pr/** gitlab-generated linguist-generated
+/.agents/skills/change-risk/** gitlab-generated linguist-generated
 /.agents/skills/coding/** gitlab-generated linguist-generated
 /.agents/skills/dart-coding/** gitlab-generated linguist-generated
 /.agents/skills/dart-dependencies/** gitlab-generated linguist-generated
@@ -11,10 +12,11 @@
 /.agents/skills/flutter-routing/** gitlab-generated linguist-generated
 /.agents/skills/flutter-widgets/** gitlab-generated linguist-generated
 /.agents/skills/git/** gitlab-generated linguist-generated
-/.agents/skills/github-cli/** gitlab-generated linguist-generated
+/.agents/skills/github/** gitlab-generated linguist-generated
 /.agents/skills/github-issue-writing/** gitlab-generated linguist-generated
 /.agents/skills/gitignore/** gitlab-generated linguist-generated
 /.agents/skills/issues/** gitlab-generated linguist-generated
+/.agents/skills/links/** gitlab-generated linguist-generated
 /.agents/skills/markdown/** gitlab-generated linguist-generated
 /.agents/skills/orchestration/** gitlab-generated linguist-generated
 /.agents/skills/pr-description/** gitlab-generated linguist-generated
