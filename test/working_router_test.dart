@@ -77,7 +77,7 @@ void main() {
           },
           resolveTransition: (_, transition) {
             calls.add(
-              'decide:${transition.to.uri.path}:${transition.reason.name}',
+              'decide:${transition.to.uri.path}:${transition.trigger.name}',
             );
             if (transition.to.uri.path == '/a') {
               return RedirectTransition.toUri(Uri(path: '/c'));
@@ -88,7 +88,7 @@ void main() {
             final currentPath = router.nullableData?.uri.path ?? '<null>';
             calls.add(
               'afterLeave:$currentPath:'
-              '${transition.to.uri.path}:${transition.reason.name}',
+              '${transition.to.uri.path}:${transition.trigger.name}',
             );
           },
         );
@@ -119,7 +119,7 @@ void main() {
           'decide:/c:redirect',
           'canLeave:/a/b',
           'listener:/c',
-          'afterLeave:/c:/c:redirect',
+          'afterLeave:/c:/c:programmatic',
         ]);
       },
     );
@@ -155,7 +155,7 @@ void main() {
       (
         tester,
       ) async {
-        final transitions = <RouteTransition>[];
+        final transitions = <TransitionRequest>[];
         var canLeaveCalls = 0;
         var afterLeaveCalls = 0;
         final router = _buildRouter(
@@ -184,8 +184,8 @@ void main() {
         expect(transitions.single.from!.uri.path, '/a/b');
         expect(transitions.single.to.uri.path, '/a/b');
         expect(
-          transitions.single.reason,
-          RouteTransitionReason.revalidation,
+          transitions.single.trigger,
+          RouteTransitionTrigger.revalidation,
         );
         expect(transitions.single.policy, RouteTransitionPolicy.standard);
         expect(canLeaveCalls, 0);
@@ -203,7 +203,7 @@ void main() {
         final router = _buildRouter(
           resolveTransition: (_, transition) {
             if (routeIsInvalid &&
-                transition.reason == RouteTransitionReason.revalidation &&
+                transition.trigger == RouteTransitionTrigger.revalidation &&
                 transition.to.uri.path == '/a/b') {
               return RedirectTransition.toUri(
                 Uri(path: '/c'),
@@ -476,7 +476,7 @@ void main() {
       final calls = <String>[];
       final router = _buildRouter(
         resolveTransition: (_, transition) {
-          calls.add('${transition.reason}:${transition.to.uri.path}');
+          calls.add('${transition.trigger}:${transition.to.uri.path}');
           if (transition.to.uri.path == '/a') {
             return RedirectTransition.toUri(Uri(path: '/b'));
           }
@@ -492,9 +492,9 @@ void main() {
 
       expect(router.nullableData!.uri.path, '/c');
       expect(calls, [
-        'RouteTransitionReason.programmatic:/a',
-        'RouteTransitionReason.redirect:/b',
-        'RouteTransitionReason.redirect:/c',
+        'RouteTransitionTrigger.programmatic:/a',
+        'RouteTransitionTrigger.redirect:/b',
+        'RouteTransitionTrigger.redirect:/c',
       ]);
     });
 
@@ -549,18 +549,26 @@ void main() {
     });
 
     testWidgets('allows immediate self redirect as no-op', (tester) async {
+      final completed = <RouteTransition>[];
       final router = _buildRouter(
         resolveTransition: (_, transition) {
           if (transition.to.uri.path == '/a') {
-            return RedirectTransition.toUri(Uri(path: '/a'));
+            return RedirectTransition.toUri(Uri(path: '/a'), cause: #self);
           }
           return const AllowTransition();
         },
+        onTransitionCompleted: (_, transition) => completed.add(transition),
       );
 
       expect(() => router.routeToStatic(Uri(path: '/a')), returnsNormally);
       await tester.pump();
       expect(router.nullableData!.uri.path, '/a');
+      expect(
+        completed.single.redirects.map(
+          (it) => (it.from.uri.path, it.to.uri.path, it.cause),
+        ),
+        [('/a', '/a', #self)],
+      );
     });
 
     testWidgets('throws on multi-step redirect loop', (tester) async {
@@ -689,6 +697,343 @@ void main() {
       );
       expect(logs.single.message, contains('query parameters: {q: 1}'));
     });
+
+    testWidgets('logs the redirect chain of a committed transition', (
+      tester,
+    ) async {
+      final logs = <LogRecord>[];
+      final previousHierarchicalLoggingEnabled = hierarchicalLoggingEnabled;
+      hierarchicalLoggingEnabled = true;
+      final subscription = working_router_logging.logger.onRecord.listen(
+        logs.add,
+      );
+      addTearDown(() async {
+        await subscription.cancel();
+        hierarchicalLoggingEnabled = previousHierarchicalLoggingEnabled;
+      });
+
+      final router = _buildRouter(
+        resolveTransition: (_, request) {
+          return switch (request.to.uri.path) {
+            '/a' => RedirectTransition.toUri(Uri(path: '/a/b')),
+            '/a/b' => RedirectTransition.toUri(Uri(path: '/c')),
+            _ => const AllowTransition(),
+          };
+        },
+      );
+
+      router.routeToStatic(Uri(path: '/does-not-exist'));
+      await tester.pump();
+      logs.clear();
+
+      router.routeToStatic(Uri(path: '/a'));
+      await tester.pump();
+
+      expect(
+        logs.single.message,
+        contains('transition programmatic: /does-not-exist -> /c'),
+      );
+      expect(
+        logs.single.message,
+        contains('redirects: /a -> /a/b, /a/b -> /c'),
+      );
+    });
+  });
+
+  group('WorkingRouter onTransitionCompleted', () {
+    testWidgets(
+      'reports every redirect of a chain in order with its cause',
+      (tester) async {
+        final completed = <RouteTransition>[];
+        final router = _buildRouter(
+          resolveTransition: (_, request) {
+            return switch (request.to.uri.path) {
+              '/a' => RedirectTransition.toUriString('/a/b', cause: #first),
+              '/a/b' => RedirectTransition.toUri(Uri(path: '/')),
+              '/' => RedirectTransition.toId(_PathId.c, cause: #third),
+              _ => const AllowTransition(),
+            };
+          },
+          onTransitionCompleted: (_, transition) => completed.add(transition),
+        );
+
+        router.routeToStatic(Uri(path: '/a'));
+        await tester.pump();
+
+        expect(router.nullableData?.uri.path, '/c');
+        final transition = completed.single;
+        expect(transition.trigger, RouteTransitionTrigger.programmatic);
+        expect(transition.to.uri.path, '/c');
+        expect(transition.changed, isTrue);
+        expect(
+          transition.redirects.map(
+            (it) => (it.from.uri.path, it.to.uri.path, it.cause),
+          ),
+          [
+            ('/a', '/a/b', #first),
+            ('/a/b', '/', null),
+            ('/', '/c', #third),
+          ],
+        );
+      },
+    );
+
+    testWidgets(
+      'reports a committed attempt once, after listeners and afterLeave',
+      (tester) async {
+        final calls = <String>[];
+        final afterLeaveTransitions = <RouteTransition>[];
+        final completed = <RouteTransition>[];
+        late final WorkingRouter router;
+        router = _buildRouter(
+          resolveTransition: (_, request) {
+            if (request.to.uri.path == '/a') {
+              return RedirectTransition.toUri(
+                Uri(path: '/c'),
+                cause: 'forbidden',
+              );
+            }
+            return const AllowTransition();
+          },
+          afterLeave: (transition) {
+            calls.add('afterLeave');
+            afterLeaveTransitions.add(transition);
+          },
+          onTransitionCompleted: (completedRouter, transition) {
+            expect(completedRouter, same(router));
+            calls.add('completed:${router.nullableData?.uri.path}');
+            completed.add(transition);
+          },
+        );
+        router.addListener(() => calls.add('listener'));
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/a/b'));
+        await tester.pumpAndSettle();
+        calls.clear();
+        completed.clear();
+
+        router.routeToStatic(Uri(path: '/a'));
+        await tester.pumpAndSettle();
+
+        expect(calls, ['listener', 'afterLeave', 'completed:/c']);
+        expect(completed, hasLength(1));
+        expect(afterLeaveTransitions.single, same(completed.single));
+        final transition = completed.single;
+        expect(transition.from?.uri.path, '/a/b');
+        expect(transition.to.uri.path, '/c');
+        expect(transition.redirects.single.cause, 'forbidden');
+      },
+    );
+
+    testWidgets(
+      'reports a redirect back to the current route as unchanged',
+      (tester) async {
+        var listenerCalls = 0;
+        final completed = <RouteTransition>[];
+        final router = _buildRouter(
+          resolveTransition: (_, request) {
+            if (request.to.uri.path == '/a') {
+              return RedirectTransition.toUri(
+                Uri(path: '/c'),
+                cause: 'forbidden',
+              );
+            }
+            return const AllowTransition();
+          },
+          onTransitionCompleted: (_, transition) => completed.add(transition),
+        );
+        router.addListener(() => listenerCalls += 1);
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pumpAndSettle();
+        listenerCalls = 0;
+        completed.clear();
+
+        router.routeToStatic(Uri(path: '/a'));
+        await tester.pumpAndSettle();
+
+        expect(listenerCalls, 0);
+        expect(router.nullableData?.uri.path, '/c');
+        final transition = completed.single;
+        expect(transition.changed, isFalse);
+        expect(transition.from?.uri.path, '/c');
+        expect(transition.to.uri.path, '/c');
+        expect(transition.redirects.single.cause, 'forbidden');
+      },
+    );
+
+    testWidgets('does not report an attempt that the resolver blocks', (
+      tester,
+    ) async {
+      final completed = <RouteTransition>[];
+      final router = _buildRouter(
+        resolveTransition: (_, request) {
+          if (request.to.uri.path == '/a') {
+            return const BlockTransition();
+          }
+          return const AllowTransition();
+        },
+        onTransitionCompleted: (_, transition) => completed.add(transition),
+      );
+
+      router.routeToStatic(Uri(path: '/c'));
+      await tester.pump();
+      completed.clear();
+
+      router.routeToStatic(Uri(path: '/a'));
+      await tester.pump();
+
+      expect(router.nullableData?.uri.path, '/c');
+      expect(completed, isEmpty);
+    });
+
+    testWidgets('does not report an attempt that canLeave declines', (
+      tester,
+    ) async {
+      final completed = <RouteTransition>[];
+      final router = _buildRouter(
+        resolveTransition: (_, request) {
+          if (request.to.uri.path == '/a') {
+            return RedirectTransition.toUri(Uri(path: '/c'), cause: 'cause');
+          }
+          return const AllowTransition();
+        },
+        canLeave: () async => false,
+        onTransitionCompleted: (_, transition) => completed.add(transition),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToStatic(Uri(path: '/a/b'));
+      await tester.pumpAndSettle();
+      completed.clear();
+
+      router.routeToStatic(Uri(path: '/a'));
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData?.uri.path, '/a/b');
+      expect(completed, isEmpty);
+    });
+
+    testWidgets('does not report a superseded attempt', (tester) async {
+      final firstLeave = Completer<bool>();
+      var canLeaveCalls = 0;
+      final completed = <RouteTransition>[];
+      final router = _buildRouter(
+        canLeave: () {
+          canLeaveCalls += 1;
+          if (canLeaveCalls == 1) {
+            return firstLeave.future;
+          }
+          return Future.value(true);
+        },
+        onTransitionCompleted: (_, transition) => completed.add(transition),
+      );
+
+      await _pumpRouterApp(tester, router);
+      router.routeToStatic(Uri(path: '/a/b'));
+      await tester.pumpAndSettle();
+      completed.clear();
+
+      router.routeToStatic(Uri(path: '/a'));
+      router.routeToStatic(Uri(path: '/c'));
+      await tester.pumpAndSettle();
+      firstLeave.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData?.uri.path, '/c');
+      expect(completed.map((it) => it.to.uri.path), ['/c']);
+    });
+
+    testWidgets(
+      'reports a mandatory revalidation redirect with its cause',
+      (tester) async {
+        var routeIsInvalid = false;
+        final completed = <RouteTransition>[];
+        final router = _buildRouter(
+          resolveTransition: (_, request) {
+            if (routeIsInvalid &&
+                request.trigger == RouteTransitionTrigger.revalidation) {
+              return RedirectTransition.toUri(
+                Uri(path: '/c'),
+                policy: .mandatory,
+                cause: 'revoked',
+              );
+            }
+            return const AllowTransition();
+          },
+          canLeave: () async => false,
+          onTransitionCompleted: (_, transition) => completed.add(transition),
+        );
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/a/b'));
+        await tester.pumpAndSettle();
+        completed.clear();
+
+        routeIsInvalid = true;
+        router.revalidate();
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData?.uri.path, '/c');
+        final transition = completed.single;
+        expect(transition.trigger, RouteTransitionTrigger.revalidation);
+        expect(transition.policy, RouteTransitionPolicy.mandatory);
+        expect(transition.redirects.single.cause, 'revoked');
+      },
+    );
+
+    testWidgets(
+      'reports an unchanged attempt without redirects as unchanged',
+      (tester) async {
+        final completed = <RouteTransition>[];
+        final router = _buildRouter(
+          onTransitionCompleted: (_, transition) => completed.add(transition),
+        );
+
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pump();
+        completed.clear();
+
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pump();
+
+        final transition = completed.single;
+        expect(transition.changed, isFalse);
+        expect(transition.redirects, isEmpty);
+        expect(transition.to.uri.path, '/c');
+      },
+    );
+
+    testWidgets(
+      'reports a failing callback without affecting the attempt',
+      (tester) async {
+        final reportedContexts = <String>[];
+        final router = _buildRouter(
+          onTransitionCompleted: (_, _) => throw Exception('callback failed'),
+        );
+        final previousOnError = FlutterError.onError;
+        FlutterError.onError = (details) {
+          reportedContexts.add(details.context.toString());
+        };
+
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pump();
+        // An unchanged attempt completes synchronously inside the routing
+        // call, which must not rethrow the callback's error.
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pump();
+
+        // flutter_test requires the original handler before any expect.
+        FlutterError.onError = previousOnError;
+        expect(router.nullableData?.uri.path, '/c');
+        expect(reportedContexts, [
+          contains('WorkingRouter.onTransitionCompleted'),
+          contains('WorkingRouter.onTransitionCompleted'),
+        ]);
+      },
+    );
   });
 
   group('WorkingRouter canLeave', () {
@@ -777,7 +1122,7 @@ void main() {
         final router = _buildRouter(
           resolveTransition: (_, transition) {
             if (routeIsInvalid &&
-                transition.reason == RouteTransitionReason.revalidation) {
+                transition.trigger == RouteTransitionTrigger.revalidation) {
               return RedirectTransition.toUri(
                 Uri(path: '/c'),
                 policy: RouteTransitionPolicy.mandatory,
@@ -1908,7 +2253,7 @@ void main() {
           ],
           noContentWidget: const SizedBox.shrink(),
           resolveTransition: (_, transition) {
-            if (transition.reason == RouteTransitionReason.revalidation) {
+            if (transition.trigger == RouteTransitionTrigger.revalidation) {
               seenCandidates.add(transition.to.routeNodes);
               if (transition.to.routeNodes.isEmpty) {
                 return RedirectTransition.toUri(
@@ -5155,7 +5500,8 @@ void main() {
         var includeB = true;
         var canLeaveCalls = 0;
         var afterLeaveCalls = 0;
-        final refreshTransitions = <RouteTransition>[];
+        final refreshTransitions = <TransitionRequest>[];
+        final completed = <RouteTransition>[];
         final router = _buildRefreshRouter(
           buildChildrenOfA: () => [
             if (includeB)
@@ -5175,15 +5521,19 @@ void main() {
                 child: const Text('c'),
               ),
           ],
+          onTransitionCompleted: (_, transition) => completed.add(transition),
           resolveTransition: (_, transition) {
-            if (transition.reason == RouteTransitionReason.revalidation ||
-                transition.reason == RouteTransitionReason.redirect) {
+            if (transition.trigger == RouteTransitionTrigger.revalidation ||
+                transition.trigger == RouteTransitionTrigger.redirect) {
               refreshTransitions.add(transition);
             }
-            if (transition.reason == RouteTransitionReason.revalidation &&
+            if (transition.trigger == RouteTransitionTrigger.revalidation &&
                 transition.to.routeNodes.isEmpty) {
               // `/a/c` only exists in the rebuilt tree.
-              return RedirectTransition.toUri(Uri(path: '/a/c'));
+              return RedirectTransition.toUri(
+                Uri(path: '/a/c'),
+                cause: 'removed',
+              );
             }
             return const AllowTransition();
           },
@@ -5192,24 +5542,29 @@ void main() {
         await _pumpRouterApp(tester, router);
         router.routeToStatic(Uri(path: '/a/b'));
         await tester.pumpAndSettle();
+        completed.clear();
 
         includeB = false;
         router.refresh();
         await tester.pumpAndSettle();
 
         expect(router.nullableData?.uri.path, '/a/c');
+        expect(completed, hasLength(1));
+        expect(completed.single.trigger, RouteTransitionTrigger.revalidation);
+        expect(completed.single.policy, RouteTransitionPolicy.mandatory);
+        expect(completed.single.redirects.single.cause, 'removed');
         expect(router.nullableData?.leaf?.id, _PathId.c);
         expect(find.text('c'), findsOneWidget);
         expect(canLeaveCalls, 0);
         expect(afterLeaveCalls, 1);
         expect(
-          refreshTransitions.map((it) => (it.reason, it.policy)),
+          refreshTransitions.map((it) => (it.trigger, it.policy)),
           [
             (
-              RouteTransitionReason.revalidation,
+              RouteTransitionTrigger.revalidation,
               RouteTransitionPolicy.mandatory,
             ),
-            (RouteTransitionReason.redirect, RouteTransitionPolicy.mandatory),
+            (RouteTransitionTrigger.redirect, RouteTransitionPolicy.mandatory),
           ],
         );
       },
@@ -5225,7 +5580,7 @@ void main() {
             if (includeB) _PathLocation(id: _PathId.b, path: 'b'),
           ],
           resolveTransition: (_, transition) {
-            if (transition.reason == RouteTransitionReason.revalidation) {
+            if (transition.trigger == RouteTransitionTrigger.revalidation) {
               return const BlockTransition();
             }
             return const AllowTransition();
@@ -5266,7 +5621,7 @@ void main() {
         var includeC = false;
         var canLeaveCalls = 0;
         var afterLeaveCalls = 0;
-        final refreshTransitions = <RouteTransition>[];
+        final refreshTransitions = <TransitionRequest>[];
         final router = _buildRefreshRouter(
           buildChildrenOfA: () => [
             _guardedRefreshLocation(
@@ -5281,7 +5636,7 @@ void main() {
             if (includeC) _PathLocation(id: _PathId.c, path: 'c'),
           ],
           resolveTransition: (_, transition) {
-            if (transition.reason == RouteTransitionReason.revalidation) {
+            if (transition.trigger == RouteTransitionTrigger.revalidation) {
               refreshTransitions.add(transition);
             }
             return const AllowTransition();
@@ -5326,7 +5681,7 @@ void main() {
         final router = _buildRouter(
           resolveTransition: (_, transition) {
             if (routeIsInvalid &&
-                transition.reason == RouteTransitionReason.revalidation) {
+                transition.trigger == RouteTransitionTrigger.revalidation) {
               return RedirectTransition.toUri(Uri(path: '/c'));
             }
             return const AllowTransition();
@@ -5372,6 +5727,7 @@ WorkingRouter _buildRouter({
   TransitionResolver? resolveTransition,
   Future<bool> Function()? canLeave,
   FutureOr<void> Function(RouteTransition transition)? afterLeave,
+  TransitionCompletedCallback? onTransitionCompleted,
   int redirectLimit = 5,
   Widget noContentWidget = const SizedBox.shrink(),
 }) {
@@ -5410,6 +5766,7 @@ WorkingRouter _buildRouter({
     ],
     noContentWidget: noContentWidget,
     resolveTransition: resolveTransition,
+    onTransitionCompleted: onTransitionCompleted,
     redirectLimit: redirectLimit,
   );
 }
@@ -5418,6 +5775,7 @@ WorkingRouter _buildRouter({
 WorkingRouter _buildRefreshRouter({
   required List<RouteNode> Function() buildChildrenOfA,
   TransitionResolver? resolveTransition,
+  TransitionCompletedCallback? onTransitionCompleted,
 }) {
   return WorkingRouter(
     buildRouteNodes: (_) => [
@@ -5435,6 +5793,7 @@ WorkingRouter _buildRefreshRouter({
     ],
     noContentWidget: const SizedBox.shrink(),
     resolveTransition: resolveTransition,
+    onTransitionCompleted: onTransitionCompleted,
   );
 }
 

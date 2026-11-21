@@ -768,28 +768,67 @@ the router falls back to the parent/global back behavior.
 ## Transition Callbacks
 
 `resolveTransition` is a synchronous, side-effect-free
-`TransitionResolver`. It runs while a route attempt is still speculative
-and can allow, block, or redirect matched and unmatched targets. Redirected
-targets run through the resolver again with
-`RouteTransitionReason.redirect`.
+`TransitionResolver`. It receives a `TransitionRequest` while a route attempt
+is still speculative and can allow, block, or redirect matched and unmatched
+targets. Redirected targets run through the resolver again with
+`RouteTransitionTrigger.redirect`.
+
+A redirect can carry a `cause` that explains why the resolver redirected.
+working_router never interprets it. The cause is not part of the route data or
+the URI, it is not delivered to the target page, and it is lost on a reload.
+The router only hands it back once the attempt has completed, so do not use it
+to pass data to a page; put such data into the route target instead.
 
 ```dart
 final router = WorkingRouter(
   buildRouteNodes: buildRouteNodes,
   noContentWidget: const SizedBox.shrink(),
-  resolveTransition: (router, transition) {
-    if (mayOpen(transition.to)) {
+  resolveTransition: (router, request) {
+    if (mayOpen(request.to)) {
       return const AllowTransition();
     }
     return RedirectTransition.toUri(
       Uri(path: '/'),
-      policy: transition.reason == RouteTransitionReason.revalidation
+      policy: request.trigger == RouteTransitionTrigger.revalidation
           ? RouteTransitionPolicy.mandatory
           : RouteTransitionPolicy.standard,
+      cause: const RouteNotPermitted(),
     );
+  },
+  onTransitionCompleted: (router, transition) {
+    final notPermitted = transition.redirects.any(
+      (it) => it.cause is RouteNotPermitted,
+    );
+    if (notPermitted) {
+      showNotPermittedNotice();
+    }
   },
 );
 ```
+
+`onTransitionCompleted` runs once for every navigation attempt that went
+through. It receives a `RouteTransition` that describes what happened:
+
+- `trigger` is what started the attempt: `programmatic`, `revalidation`, or
+  `routeInformation`. A redirect does not change it.
+- `redirects` lists every redirect the resolver applied, in order, each with
+  the candidate it redirected away from, the candidate it produced, and its
+  `cause`. Redirects without a cause are included.
+- `to` is the final destination and `policy` the final policy, including
+  mandatory redirects.
+- `changed` says whether the attempt committed new route state. It is false
+  when the attempt resolved to the current route data. The attempt is still
+  reported, for example when a link to a forbidden route is redirected back to
+  the page the user is already on. A `refresh()` always commits its rebuilt
+  route-node tree, so it reports `changed` as true even then.
+
+`trigger` is what started an attempt, while `cause` is why a resolver
+redirected it. The callback runs after a commit, including commits of
+`revalidate()` and `refresh()`, and for attempts that resolve to the current
+route. It does not run when the resolver blocks, a `canLeave` declines, or a
+newer attempt supersedes the attempt. After a commit, it runs after the router
+has notified its listeners and after the `afterLeave` callbacks of removed
+locations have started. Failures are reported and do not affect navigation.
 
 Call `router.revalidate()` after externally resolved state such as
 authorization or required route data changes. Revalidation proposes the full
@@ -803,13 +842,14 @@ route-node tree and always with `RouteTransitionPolicy.mandatory`. The rebuilt
 tree reflects application state that has already changed, so a refresh cannot
 be vetoed: leave guards of removed locations are not consulted, and their
 `afterLeave` callbacks still run after the commit. The resolver sees
-`RouteTransitionReason.revalidation` and `RouteTransitionPolicy.mandatory`. It
+`RouteTransitionTrigger.revalidation` and `RouteTransitionPolicy.mandatory`. It
 must allow the rematched route or redirect it, for example to `/`, because
 returning `BlockTransition` throws `StateError`.
 
 `LocationObserver.canLeave` handles ordinary leave permission, such as an
 unsaved-changes confirmation. Keep it decision-only. Put cleanup in
-`afterLeave`, which starts only after the final route has committed:
+`afterLeave`, which starts only after the final route has committed. It
+receives the same `RouteTransition` as `onTransitionCompleted`:
 
 ```dart
 LocationObserver(
@@ -833,8 +873,9 @@ is important when a valid guarded route attempts to open an invalid destination
 and the resolver redirects somewhere else.
 
 If the final resolved `WorkingRouterData` equals the current data, the attempt
-is a no-op: the resolver may have run, but guards, cleanup, listeners, and
-observer update callbacks are skipped.
+is a no-op, unless it is a `refresh()`, which always commits its rebuilt tree: the resolver may have run, but guards, cleanup, listeners, and
+observer update callbacks are skipped. `onTransitionCompleted` still runs, with
+`RouteTransition.changed` set to false.
 
 The resolver deliberately remains synchronous. This keeps transition
 eligibility available ahead of time for future predictive-back integration;

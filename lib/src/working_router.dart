@@ -68,6 +68,7 @@ class WorkingRouter extends ChangeNotifier
   WorkingRouterData? _data;
 
   final TransitionResolver? _transitionResolver;
+  final TransitionCompletedCallback? _onTransitionCompleted;
   final int _redirectLimit;
 
   /// Rebuilds the routing tree used by this router instance.
@@ -93,12 +94,14 @@ class WorkingRouter extends ChangeNotifier
     Widget Function(BuildContext context, Widget child)? wrapNavigator,
     this.wrapPageChild,
     TransitionResolver? resolveTransition,
+    TransitionCompletedCallback? onTransitionCompleted,
     int redirectLimit = 5,
     GlobalKey<NavigatorState>? navigatorKey,
   }) : assert(redirectLimit > 0, 'redirectLimit must be greater than 0.'),
        _rootNavigatorKey =
            navigatorKey ?? GlobalKey<NavigatorState>(debugLabel: 'root'),
        _transitionResolver = resolveTransition,
+       _onTransitionCompleted = onTransitionCompleted,
        _redirectLimit = redirectLimit {
     _routeNodeTree = _buildRouteNodeTree();
     _rootDelegate = WorkingRouterDelegate(
@@ -200,7 +203,7 @@ class WorkingRouter extends ChangeNotifier
         _configurationFromData(currentData),
         routeNodeTree: routeNodeTree,
       ),
-      reason: RouteTransitionReason.revalidation,
+      trigger: .revalidation,
       policy: .mandatory,
       stagedRouteNodeTree: routeNodeTree,
     );
@@ -220,7 +223,7 @@ class WorkingRouter extends ChangeNotifier
       targetData: _buildDataForConfiguration(
         _configurationFromData(currentData),
       ),
-      reason: RouteTransitionReason.revalidation,
+      trigger: .revalidation,
     );
   }
 
@@ -251,7 +254,7 @@ class WorkingRouter extends ChangeNotifier
         target,
         currentData: nullableData,
       ),
-      reason: RouteTransitionReason.programmatic,
+      trigger: .programmatic,
     );
   }
 
@@ -261,7 +264,7 @@ class WorkingRouter extends ChangeNotifier
   ) {
     _routeTo(
       targetData: _buildDataForConfiguration(configuration),
-      reason: RouteTransitionReason.routeInformation,
+      trigger: .routeInformation,
     );
   }
 
@@ -340,7 +343,7 @@ class WorkingRouter extends ChangeNotifier
             overlay: overlay,
           ),
         ),
-        reason: RouteTransitionReason.programmatic,
+        trigger: .programmatic,
       );
       return;
     }
@@ -381,7 +384,7 @@ class WorkingRouter extends ChangeNotifier
         pathParameters: newPathParameters,
         queryParameters: retainedQueryParameters,
       ),
-      reason: RouteTransitionReason.programmatic,
+      trigger: .programmatic,
     );
   }
 
@@ -457,7 +460,7 @@ class WorkingRouter extends ChangeNotifier
         pathParameters: newPathParameters,
         queryParameters: retainedQueryParameters,
       ),
-      reason: RouteTransitionReason.programmatic,
+      trigger: .programmatic,
     );
   }
 
@@ -487,9 +490,16 @@ class WorkingRouter extends ChangeNotifier
     return -1;
   }
 
+  /// Runs one navigation attempt.
+  ///
+  /// The attempt resolves its destination synchronously, then waits for the
+  /// leave guards of a standard transition, and finally commits. It completes
+  /// either when it commits or, without a commit, when its resolved data
+  /// equals the current data. Only completed attempts are reported to
+  /// [_onTransitionCompleted].
   void _routeTo({
     required WorkingRouterData targetData,
-    required RouteTransitionReason reason,
+    required RouteTransitionTrigger trigger,
     RouteTransitionPolicy policy = .standard,
     IList<RouteNode>? stagedRouteNodeTree,
   }) {
@@ -499,7 +509,7 @@ class WorkingRouter extends ChangeNotifier
     final resolvedTransition = _resolveTransition(
       oldData: oldData,
       initialData: targetData,
-      initialReason: reason,
+      initialTrigger: trigger,
       initialPolicy: policy,
       routeNodeTree: stagedRouteNodeTree ?? _routeNodeTree,
     );
@@ -507,16 +517,20 @@ class WorkingRouter extends ChangeNotifier
       return;
     }
     final resolvedData = resolvedTransition.data;
-    if (oldData == resolvedData && stagedRouteNodeTree == null) {
-      return;
-    }
-
+    final changed = oldData != resolvedData || stagedRouteNodeTree != null;
     final transition = RouteTransition(
       from: oldData != null && oldData.routeNodes.isNotEmpty ? oldData : null,
       to: resolvedData,
-      reason: resolvedTransition.reason,
+      trigger: trigger,
       policy: resolvedTransition.policy,
+      redirects: resolvedTransition.redirects,
+      changed: changed,
     );
+    if (!changed) {
+      _notifyTransitionCompleted(transition);
+      return;
+    }
+
     final leavingObservers = _snapshotLeavingObservers(
       oldLocations: oldData?.routeNodes.locations,
       newLocations: resolvedData.routeNodes.locations,
@@ -594,12 +608,7 @@ class WorkingRouter extends ChangeNotifier
     if (stagedRouteNodeTree != null) {
       _routeNodeTree = stagedRouteNodeTree;
     }
-    _logTransition(
-      from: oldData,
-      to: transition.to,
-      reason: transition.reason,
-      policy: transition.policy,
-    );
+    _logTransition(transition, from: oldData);
     _updateData(transition.to);
 
     if (stagedRouteNodeTree != null) {
@@ -612,6 +621,7 @@ class WorkingRouter extends ChangeNotifier
       observers: leavingObservers,
       transition: transition,
     );
+    _notifyTransitionCompleted(transition);
 
     final oldLocations = oldData?.routeNodes.locations;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -675,35 +685,58 @@ class WorkingRouter extends ChangeNotifier
       if (afterLeave == null) {
         continue;
       }
-      unawaited(
-        Future<void>.sync(() => afterLeave(transition)).catchError((
-          Object error,
-          StackTrace stackTrace,
-        ) {
-          FlutterError.reportError(
-            FlutterErrorDetails(
-              exception: error,
-              stack: stackTrace,
-              library: 'working_router',
-              context: ErrorDescription(
-                'while running a LocationObserver.afterLeave callback',
-              ),
-            ),
-          );
-        }),
+      _runReportingErrors(
+        () => afterLeave(transition),
+        context: 'while running a LocationObserver.afterLeave callback',
       );
     }
   }
 
+  void _notifyTransitionCompleted(RouteTransition transition) {
+    final onTransitionCompleted = _onTransitionCompleted;
+    if (onTransitionCompleted == null) {
+      return;
+    }
+    _runReportingErrors(
+      () => onTransitionCompleted(this, transition),
+      context: 'while running WorkingRouter.onTransitionCompleted',
+    );
+  }
+
+  /// Starts [callback] synchronously and reports its errors instead of
+  /// propagating them, because the attempt that triggered it has already
+  /// completed and must not be affected by a failing application callback.
+  void _runReportingErrors(
+    // ignore: avoid_futureor_void
+    FutureOr<void> Function() callback, {
+    required String context,
+  }) {
+    unawaited(
+      Future<void>.sync(callback).catchError((
+        Object error,
+        StackTrace stackTrace,
+      ) {
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: error,
+            stack: stackTrace,
+            library: 'working_router',
+            context: ErrorDescription(context),
+          ),
+        );
+      }),
+    );
+  }
+
   ({
     WorkingRouterData data,
-    RouteTransitionReason reason,
     RouteTransitionPolicy policy,
+    IList<RouteRedirect> redirects,
   })?
   _resolveTransition({
     required WorkingRouterData? oldData,
     required WorkingRouterData initialData,
-    required RouteTransitionReason initialReason,
+    required RouteTransitionTrigger initialTrigger,
     required RouteTransitionPolicy initialPolicy,
     required IList<RouteNode> routeNodeTree,
   }) {
@@ -711,15 +744,15 @@ class WorkingRouter extends ChangeNotifier
     if (resolveTransition == null) {
       return (
         data: initialData,
-        reason: initialReason,
         policy: initialPolicy,
+        redirects: const IListConst([]),
       );
     }
 
     var currentData = initialData;
-    var currentReason = initialReason;
+    var currentTrigger = initialTrigger;
     var currentPolicy = initialPolicy;
-    var redirects = 0;
+    final redirects = <RouteRedirect>[];
     final visitedUris = <Uri>{currentData.uri};
     final transitionFrom = oldData != null && oldData.routeNodes.isNotEmpty
         ? oldData
@@ -728,10 +761,10 @@ class WorkingRouter extends ChangeNotifier
     while (true) {
       final decision = resolveTransition(
         this,
-        RouteTransition(
+        TransitionRequest(
           from: transitionFrom,
           to: currentData,
-          reason: currentReason,
+          trigger: currentTrigger,
           policy: currentPolicy,
         ),
       );
@@ -740,8 +773,8 @@ class WorkingRouter extends ChangeNotifier
         case AllowTransition():
           return (
             data: currentData,
-            reason: currentReason,
             policy: currentPolicy,
+            redirects: redirects.toIList(),
           );
         case BlockTransition():
           if (currentPolicy == RouteTransitionPolicy.mandatory) {
@@ -751,33 +784,35 @@ class WorkingRouter extends ChangeNotifier
             );
           }
           return null;
-        case RedirectTransition(:final to, :final policy):
+        case RedirectTransition(:final to, :final policy, :final cause):
           if (policy == RouteTransitionPolicy.mandatory) {
             currentPolicy = RouteTransitionPolicy.mandatory;
           }
 
           // Re-run the resolver for redirect targets so multi-hop redirects
           // like `/a -> /b -> /c` can resolve step by step.
-          redirects += 1;
-          if (redirects > _redirectLimit) {
+          if (redirects.length >= _redirectLimit) {
             throw StateError(
               'Redirect limit of $_redirectLimit exceeded while resolving '
               'transition to ${initialData.uri}.',
             );
           }
-          final previousUri = currentData.uri;
+          final previousData = currentData;
           currentData = _buildDataForTarget(
             to,
             currentData: currentData,
             retainSharedQueryParameters: false,
             routeNodeTree: routeNodeTree,
           );
+          redirects.add(
+            RouteRedirect(from: previousData, to: currentData, cause: cause),
+          );
 
-          if (currentData.uri == previousUri) {
+          if (currentData.uri == previousData.uri) {
             return (
               data: currentData,
-              reason: RouteTransitionReason.redirect,
               policy: currentPolicy,
+              redirects: redirects.toIList(),
             );
           }
 
@@ -787,7 +822,7 @@ class WorkingRouter extends ChangeNotifier
               '${initialData.uri}. Looping URI: ${currentData.uri}',
             );
           }
-          currentReason = RouteTransitionReason.redirect;
+          currentTrigger = RouteTransitionTrigger.redirect;
       }
     }
   }
@@ -1720,15 +1755,22 @@ class WorkingRouter extends ChangeNotifier
     notifyListeners();
   }
 
-  void _logTransition({
+  /// Logs a committed [transition].
+  ///
+  /// [from] is the data the router left. Unlike [RouteTransition.from], it is
+  /// kept for unmatched routes, so the log still shows their URI.
+  void _logTransition(
+    RouteTransition transition, {
     required WorkingRouterData? from,
-    required WorkingRouterData to,
-    required RouteTransitionReason reason,
-    required RouteTransitionPolicy policy,
   }) {
+    final RouteTransition(:to, :trigger, :policy, :redirects) = transition;
+    final redirectChain = redirects.isEmpty
+        ? '<none>'
+        : redirects.map((it) => '${it.from.uri} -> ${it.to.uri}').join(', ');
     logger.info(
-      'transition ${reason.name}: ${from?.uri ?? '<none>'} -> ${to.uri}\n'
+      'transition ${trigger.name}: ${from?.uri ?? '<none>'} -> ${to.uri}\n'
       '  policy: ${policy.name}\n'
+      '  redirects: $redirectChain\n'
       '  leaf: ${_debugNodeName(to.leaf)}\n'
       '  path template: ${_debugPathTemplate(to)}\n'
       '  route chain: ${_debugRouteChain(to)}\n'
@@ -1888,12 +1930,32 @@ class NestedWorkingRouterSailor extends ChangeNotifier
 
 /// A synchronous callback that resolves how to handle a route transition.
 ///
-/// Keep this callback fast and side-effect free.
+/// Keep this callback fast and side-effect free. It runs for every candidate of
+/// an attempt, including attempts that are later blocked, declined by a leave
+/// guard, or superseded. Use [TransitionCompletedCallback] to react to
+/// attempts that went through.
 typedef TransitionResolver =
     TransitionDecision Function(
       WorkingRouter router,
-      RouteTransition transition,
+      TransitionRequest request,
     );
+
+/// Called once for every navigation attempt that went through.
+///
+/// An attempt goes through when it commits, or when it resolves to the
+/// current route data without a commit; [RouteTransition.changed] tells the
+/// two apart. Attempts that the resolver blocks, that a
+/// [LocationObserver.canLeave] declines, or that a newer attempt supersedes
+/// are not reported.
+///
+/// For a commit, the callback runs after the router has updated its data and
+/// notified its listeners, and after the [LocationObserver.afterLeave]
+/// callbacks of removed locations have started. [LocationObserver.afterEnter]
+/// and [LocationObserver.afterUpdate] run later, after the next frame. Errors
+/// are reported through [FlutterError.reportError] and do not affect the
+/// attempt.
+typedef TransitionCompletedCallback =
+    void Function(WorkingRouter router, RouteTransition transition);
 
 final class _LocationObserverRegistration {
   final LocationObserverState state;
