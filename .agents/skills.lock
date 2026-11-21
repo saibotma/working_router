@@ -2,8 +2,8 @@
 version: 1
 sources:
   agent-stack:
-    url: git@gitlab.com:appella/agent-stack.git
-    commit: 125d0445ae65d80c51cc9b1ae5aad199ff08abc6
+    url: https://github.com/appelladev/agent-stack.git
+    commit: 592477813d255a818f41856e2ccdc888b5511416
     skills:
       address-pr-comments: []
       agent-tooling: []
@@ -11,6 +11,7 @@ sources:
       babysit-pr: []
       business-logic-layer:
         - layers
+      change-risk: []
       coding: []
       dart-coding:
         - dart
@@ -39,11 +40,11 @@ sources:
       flutter-widgets:
         - flutter
       git: []
-      github-cli:
+      github:
         - github
       github-issue-writing: []
       gitignore: []
-      gitlab-cli:
+      gitlab:
         - gitlab
       graphql:
         - graphql
@@ -58,6 +59,7 @@ sources:
         - ktor
       linear:
         - linear
+      links: []
       markdown: []
       orchestration: []
       postgres:
@@ -81,16 +83,19 @@ sources:
 skills:
   address-pr-comments:
     source: agent-stack
-    hash: sha256-7b22acd53f80c97bb931d12c043650af6ea09ffed7d018957d300893ff1a0549
+    hash: sha256-0e6c3703638b91d87daeb4d2baa91f5857ff598f50cfe226fca8fd6519c7e96c
   agent-tooling:
     source: agent-stack
-    hash: sha256-95d02d7e4b2b6541f43659e12273d7a7327d86d052a0286fe024626885588bd8
+    hash: sha256-0b11c6c59b47858a69b54fb81abaac90b58c553deaa4653961d557b8bbc8f972
   babysit-pipeline:
     source: agent-stack
-    hash: sha256-fd4ea4efe51f868c37ebfeb69a21847f61cf28d4388d7c6b8f422f8f5e06710a
+    hash: sha256-1657b91ebf394eeb0cde31c62f7a0a8ad610dc787dc7a10e3e66ff832784e2de
   babysit-pr:
     source: agent-stack
-    hash: sha256-2f6f9399a8a18f98aab94432e18c63b7e0071e77465b4f545127aa19f04e4c9d
+    hash: sha256-0a6746608a1c47739d6ff2754150503990580c8790196890382151e44992aceb
+  change-risk:
+    source: agent-stack
+    hash: sha256-457d063c236460bb78a6e489f5ee159d089aedcc35f228ca7abaa649fd9ebbb8
   coding:
     source: agent-stack
     hash: sha256-e6ae5dfc9733fa66d8c53fbc557eeea92ed5233e78a163a819b7686fef5b18f5
@@ -112,9 +117,9 @@ skills:
   git:
     source: agent-stack
     hash: sha256-0c1ad10831a77822289071e5b58b722679d6190a3987fca9999c689d3b5a386d
-  github-cli:
+  github:
     source: agent-stack
-    hash: sha256-8a42fea366a367708b1f7a93490cddc3b4554a3137e8d59c4ad86b2396055f4e
+    hash: sha256-0153a00caef7417f729718773716984769fe41e21baebf954dd4b6a2c112d0ce
   github-issue-writing:
     source: agent-stack
     hash: sha256-a4f5f9eb1c13075e2ee03b26575ba7c7418caa9c0b197c866357e21d92f74b4f
@@ -123,31 +128,34 @@ skills:
     hash: sha256-bcd01787d5cafbc552eea9fe5cf2d9f311451172d33f821cc531d6b86708630e
   issues:
     source: agent-stack
-    hash: sha256-a1dac67b666cbce4ca0cb79570bf28c0c05e46f64944b38e83005914880336ed
+    hash: sha256-f1bd9752a116b1aff405a0db892ba5edb8b8c82d332015eb037865d4cb16c310
+  links:
+    source: agent-stack
+    hash: sha256-1a44e142d19d4f961a059fae06bcc9d58c8814b0f5154b864a303e96bb13f8b9
   markdown:
     source: agent-stack
     hash: sha256-2493b4e6c59fea5d0332c3790704e2b8e8060512a94fa3b3a212f9383f33ccda
   orchestration:
     source: agent-stack
-    hash: sha256-992df2ac31d920045838c70ee56d505e7db8c1b57fbb9ed5e090600ec3b97456
+    hash: sha256-1a4eee2226c1d21dabfe408af0beb628770a68ae75547d9dd16b0e70b000bbb6
   pr-description:
     source: agent-stack
-    hash: sha256-e366c8882f20d2462c2b13ae85ad6d9bebeee4afc9d537cc2de06d1cc2d14b41
+    hash: sha256-92da0837eb157fb6d2ab6d2457017e3cddabc2c0fc550b801fbec3251fef2a6b
   pr-monitoring:
     source: agent-stack
     hash: sha256-70444fa06940f81fe0fa251a9f29b63e4f532312c29c321e56ff8840d3940f24
   prepare-pr:
     source: agent-stack
-    hash: sha256-1876c89e26a7b5683d90cf677b80f6003e0c500af645fc0778fd3fdc0765884d
+    hash: sha256-0ae4b7c8c91e5368177d4a1811878c3cde09bc8ed47ec0f3dd97816c3fb2f55b
   review:
     source: agent-stack
-    hash: sha256-d1cd64c641c596abaa8c10dc86ea99e8186eb96c83f88c2556b1beb3f862e909
+    hash: sha256-bfac096dc8de18d4b0b7cab4ebf113c968646d213d949ea8040d8b2dca1379f1
   simulators:
     source: agent-stack
-    hash: sha256-7a7c193c402c9d799180e72ff7f9d670ad0e18a848701dd13788523bee61806a
+    hash: sha256-efc9c88d5441c47a2c900f78d6ac4996f5394218bde814299a4d06aeca7bcffc
   sync-pr:
     source: agent-stack
-    hash: sha256-acb44919446ff4f42e1d892ce056408364d7ae8065119804420d13fea5ac4442
+    hash: sha256-63001cec45e8a57f4f143ab3f822f0df67db2b5fce16e2f5488d79dee3200492
   testing:
     source: agent-stack
     hash: sha256-ac1983bf9264583ee3342db20346bf28daf4325826b23f49957a57e1844aed5e
@@ -156,4 +164,4 @@ skills:
     hash: sha256-0be0a0e22b57bdae7b566d56d2f9b7046486ed12b181bb825a318d1647a3269f
   verification:
     source: agent-stack
-    hash: sha256-d31635a9f278ad2231782aa0968748e6a04a6260356618847bd8f8f5b1bf7d18
+    hash: sha256-02f7775a6f94b40d57b19e3535cf6b322c028d067175d9bfd8eb51e8f0708440

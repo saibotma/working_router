@@ -1,9 +1,12 @@
 # Merge Risk Rules
 
 The merge risk script, [`scripts/merge-risk.mjs`](../scripts/merge-risk.mjs),
-reports the changed files that always need a human code review, and
-`pr-description` sorts them under 🔴 Review in `Script`. Each project lists
-those files in a top-level `.merge-risk` file.
+reports the changed files that a project lists in an optional top-level
+`.merge-risk` file, and `pr-description` sorts them under 🔴 Review in the group
+of the `change-risk` area they back up, `Contracts` or `Dependencies`.
+`pr-description` finds the changes in these areas by their content; the file
+backs that up for paths where a missed judgement must not drop a change, such as
+migrations.
 
 ## Running the Script
 
@@ -49,55 +52,32 @@ repeated category, and for a category without patterns.
 
 ## Choosing Rules
 
-List only clearly delimited areas: dedicated directories and file types whose
-purpose is unambiguous, such as migrations, the authentication core, CI and
-deployment configuration, and dependency manifests. Whether ordinary code checks
-permissions, separates tenants, changes the API surface, or needs a human to try
-it is a property of its content, not its path, so the author judges it from the
-diff. Do not add patterns that guess a file's purpose from words in its name;
-they never become complete and only blur what the script guarantees. Leave out
-files that change with every feature, such as a route registry, and generated
-lockfiles.
+List only paths whose every change belongs to the `Contracts` or `Dependencies`
+area of `change-risk`, typically database schemas and migrations. Leave out
+paths where only some changes need a human, because each listed path turns every
+change, even a comment, into a 🔴 item:
+
+- dependency manifests, which also change for comments, formatting, and
+  reordering; `pr-description` judges dependency changes by content;
+- CI, deployment, and application configuration, authentication code, shared
+  libraries, and agent files, which `pr-description` judges by content;
+- API contracts and billing code, which `pr-description` already always reviews
+  by content.
+
+Do not add patterns that guess a file's purpose from words in its name, such as
+`config/`; they match ordinary code and tests and only blur what the script
+guarantees.
 
 ## Example
 
 ```gitignore
-# Changes to these files always need a human code review. The merge risk
-# script of the pr-description skill reports them by category.
+# Every change to these files changes stored data, so it always needs a human
+# code review. The merge risk script of the pr-description skill reports them.
 
 [database schema or migration]
 /db/schema.sql
 /db/migrations/
-
-[authentication core]
-# The sign-in setup and the client adapter that stores and refreshes its
-# tokens. Code that only checks the signed-in user lives elsewhere.
-/server/auth/
-/app/lib/auth/
-
-[agent instructions or skills]
-/.agents/
-/.claude/
-/.codex/
-/.mcp.json
-AGENTS.md
-
-[CI, deployment, or configuration]
-.gitlab-ci.yml
-.env*
-Dockerfile*
-*.sh
-# Resources also hold email templates and fonts, so only the configuration
-# file types count.
-/server/resources/**/*.json
-/server/resources/**/*.properties
-# Test data is not configuration.
-!/server/resources/**/fixtures/**
-
-[dependencies or shared libraries]
-package.json
-pubspec.yaml
-/packages/
+/app/lib/database/migrations/
 ```
 
 ## Testing the Rules

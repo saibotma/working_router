@@ -8,10 +8,10 @@ description:
 
 # Sync PR
 
-Run one target-branch synchronization using `git` and the forge CLI skill of the
-PR's host, `gitlab-cli` or `github-cli`. An initial `prepare-pr` handoff may
-supply source and target before a PR exists. Do not handle comments or merge the
-PR yourself.
+Run one target-branch synchronization using `git` and the forge skill of the
+PR's host, `gitlab` or `github`. An initial `prepare-pr` handoff may supply
+source and target before a PR exists. Do not handle comments or merge the PR
+yourself.
 
 1. Inspect live PR state when present. Return immediately if closed or merged.
    Work on its actual source branch, distinct from the target; before PR
@@ -35,8 +35,8 @@ PR yourself.
    skill instructions, reread them before continuing.
 5. For an existing PR, refresh its title and description using `pr-description`,
    even when no integration was needed but metadata is stale. Preserve live
-   draft status and enabled squash/source-deletion options, as the forge CLI
-   skill's `Merge Options` describes; only change merge strategy or mark a draft
-   ready on explicit user direction. Return the source revision, validation, PR
+   draft status and enabled squash/source-deletion options, as the forge skill's
+   `Merge Options` describes; only change merge strategy or mark a draft ready
+   on explicit user direction. Return the source revision, validation, PR
    status, and whether a new pipeline needs checking to the caller. Do not wait
    for CI or claim pipeline readiness.

@@ -7,12 +7,12 @@ description:
 
 # Prepare PR
 
-Prepare a PR and follow its CI to completion through `babysit-pipeline`. Agents
-never merge PRs; a human merges every PR.
+Prepare a PR and follow its CI to completion through `babysit-pipeline`, which
+merges a 🟢 Green PR. A human merges every other PR.
 
-1. Use `git` and the forge CLI skill of the PR's host, `gitlab-cli` or
-   `github-cli`. Inspect the request, working tree, branch, and any existing PR;
-   establish the target branch.
+1. Use `git` and the forge skill of the PR's host, `gitlab` or `github`. Inspect
+   the request, working tree, branch, and any existing PR; establish the target
+   branch.
 2. Before implementation or commits, check out a dedicated source branch for the
    requested change, distinct from the target. Reuse an open PR's actual source
    branch. Otherwise create or reuse a meaningful feature/fix branch; do not
@@ -33,9 +33,9 @@ never merge PRs; a human merges every PR.
 4. Read [Publishing changes](references/publishing-changes.md). Commit coherent
    reviewed packets, then invoke `sync-pr` to integrate the target and push.
    Create or adopt the PR using `pr-description`; enable squash and
-   source-branch deletion as the forge CLI skill's `Merge Options` describes,
-   and preserve an existing PR's draft status.
+   source-branch deletion as the forge skill's `Merge Options` describes, and
+   preserve an existing PR's draft status.
 5. Invoke `babysit-pipeline` with the PR URL and review/validation evidence. It
-   reports readiness when the current revision is green, or keeps a CI-only
-   monitor while pending. Return the PR URL and actual status; pending is not
-   ready.
+   merges a 🟢 Green PR or reports readiness when the current revision is green,
+   or keeps a CI-only monitor while pending. Return the PR URL and actual
+   status; pending is not ready.
