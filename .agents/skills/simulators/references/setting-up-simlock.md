@@ -6,9 +6,11 @@ check in the simulators skill points to a missing step. Each step changes the
 machine for every project, so show the user the steps you plan to run and run
 them only after they agree.
 
-1. Install Simlock and `agent-device` globally, such as with
-   `npm i -g simlock agent-device`. Simlock runs `agent-device` from `PATH`, and
-   opening a device fails without it.
+1. Install Simlock 0.7 or newer and `agent-device` 0.21.28 or newer globally,
+   such as with `npm i -g simlock agent-device`. Simlock runs `agent-device`
+   from `PATH`, and opening a device fails without it. Update an installed
+   Simlock with `simlock update`, which waits until no device is leased,
+   installs the newest release, and restarts Simlock.
 2. Turn on the capabilities that harnesses need to drive and show a device:
 
    ```sh
@@ -24,17 +26,15 @@ them only after they agree.
    agents get no hot reload. Tell the user that leased simulators then appear in
    Xcode and in their own simulator lists, and that commands such as
    `xcrun simctl shutdown all` also stop them. Switch only while no agent uses a
-   device, and remove Simlock's own simulators first, while the setting is still
-   `simlock`: `simlock nuke --delete-devices --yes` ends every lease and deletes
-   the simulators Simlock tracks, and `simlock doctor --purge-orphans --yes`
-   deletes the ones it no longer tracks. Then change the setting and restart
-   Simlock. When Simlock restarts with `default` while its own set still holds
-   simulators, it turns iOS off and `simlock doctor` names them; set the setting
-   back to `simlock`, restart, remove them, and switch again.
-4. Keep the Android Emulator current, such as with
-   `sdkmanager --install emulator`. Simlock 0.5 starts emulators with an option
-   that Android Emulator 36.1 rejects, and every Android lease then times out
-   with "Timed out waiting for device to boot".
+   device, and remove Simlock's own simulators first, as Simlock's
+   [Switch the device set](https://callstackincubator.github.io/simlock/docs/using-devices/build-and-run/#switch-the-device-set)
+   describes.
+4. Keep Simlock's warm pool on a machine that only runs agents. It keeps booted
+   devices ready for the models agents lease, so a lease starts faster. Turn it
+   off with `simlock config set warmPool.enabled false` on a machine that
+   someone also works on, such as a laptop, because each warm device costs
+   memory and disk while nobody uses it. Ask the user which kind of machine it
+   is when you can't tell.
 5. Start Simlock at login with `simlock daemon install`. Harnesses that connect
    over HTTP, such as T3 Code, can't start it themselves and find no devices
    after a reboot otherwise. The launch agent keeps the Node path from when it

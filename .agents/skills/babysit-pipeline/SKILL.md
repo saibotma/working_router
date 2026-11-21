@@ -8,9 +8,9 @@ description:
 # Babysit Pipeline
 
 Follow CI for the PR's current source revision, including replacement pipelines
-created by fixes. Use the forge CLI skill of the PR's host, `gitlab-cli` or
-`github-cli`, and read CI as the forge CLI skill's `CI` describes. Do not handle
-review comments or wait for a human merge.
+created by fixes. Use the forge skill of the PR's host, `gitlab` or `github`,
+and read CI as the forge skill's `CI` describes. Do not handle review comments
+or wait for a human merge.
 
 Follow `pr-monitoring` when creating or changing monitors or handling automated
 passes. When invoked by `babysit-pr`, run one pipeline pass and return its
@@ -34,12 +34,19 @@ monitor while pending.
 4. On green, fetch the target and invoke `sync-pr` if the source is behind. If
    it pushes a new revision, follow its pipeline. Otherwise verify current
    pipeline success, local review coverage, draft state, approval, and merge
-   options. Obtain missing `review` coverage before declaring readiness. Assign
-   the authenticated user as reviewer, as the forge CLI skill's `Reviewers`
-   describes, only when synchronized, green, and reviewed. Preserve draft state
-   and enabled merge options; report an intentional draft as such. Delete the
-   CI-only monitor and report readiness. When called by `babysit-pr`, return
-   green without deleting the parent's monitor.
+   options. Obtain missing `review` coverage before declaring readiness. When
+   the PR is synchronized, green, reviewed, not a draft, and labeled
+   `risk: green` by `pr-description` for its current revision, merge that
+   revision as the forge skill's `Merge` describes and read the PR's live state.
+   Once it is merged, delete the CI-only monitor and report the merge; when
+   called by `babysit-pr`, return merged instead. While it is queued, treat it
+   as pending. Otherwise, or when the forge refuses the merge, such as for a
+   missing approval, assign the authenticated user as reviewer, as the forge
+   skill's `Reviewers` describes, only when synchronized, green, and reviewed.
+   Preserve draft state and enabled merge options; report an intentional draft
+   as such. Delete the CI-only monitor and report readiness, with the reason for
+   a refused merge. When called by `babysit-pr`, return green without deleting
+   the parent's monitor.
 5. If progress requires user input, pause the CI monitor and report the blocker,
    or return blocked to the parent so it pauses its monitor. Missing, canceled,
    skipped, or manually blocked required pipelines/jobs are not green: inspect

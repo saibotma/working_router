@@ -7,10 +7,14 @@ Read and follow `.agents/skills/review/references/reviewer-procedure.md` before
 reviewing. Its candidate is the PR's net diff, which you inspect yourself to
 judge the draft.
 
-Read and apply `.agents/skills/pr-description/SKILL.md`. Its rules are the
-standard of this review. On a full review, check the whole draft against all of
-them and verify every factual claim in it against the diff, the tests, or the
-cited evidence. On a scoped review, which the caller requests when only the
+Read and apply `.agents/skills/pr-description/SKILL.md` and the
+`.agents/skills/change-risk/SKILL.md` it uses. Their rules are the standard of
+this review. On a full review, check the whole draft against all of them and
+verify every factual claim in it against the diff, the tests, or the cited
+evidence. Also go through the net diff for changes in the `Contracts` and
+`Dependencies` areas of `change-risk` yourself, and report each one without its
+item as well as each item for a change the areas exclude, such as a comment in a
+dependency manifest. On a scoped review, which the caller requests when only the
 draft changed since the last round, judge only the text changed since then,
 claims that the change affects, and whether your earlier findings are resolved,
 and report only P0 and P1 findings.

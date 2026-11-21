@@ -11,8 +11,13 @@ Agents run in T3 Code, with Codex or Claude Code as the provider. Keep agent
 configuration usable from both providers: provider-specific files under
 `.codex/` and `.claude/` only configure or point to the shared sources below.
 
-- Put instructions in `AGENTS.md` files. Claude Code loads root and nested
-  `AGENTS.md` files natively, so do not add `CLAUDE.md` files.
+- Put instructions in `AGENTS.md` files and add no `CLAUDE.md` files. Without a
+  `CLAUDE.md`, Claude Code loads the root `AGENTS.md`, and a nested one when it
+  reads files in its directory.
+- When a tool insists on writing `CLAUDE.md`, such as Convex's `ai-files`,
+  commit `CLAUDE.md` as a symlink to `AGENTS.md` instead of a separate file.
+  Once a `CLAUDE.md` exists, Claude Code stops loading nested `AGENTS.md` files,
+  so then add such a link next to every `AGENTS.md` in the repository.
 - Put skills in `.agents/skills/`. `.claude/skills` is a symlink to that
   directory.
 - Keep the MCP servers in `.mcp.json` and `.codex/config.toml` in sync, and list
@@ -24,7 +29,7 @@ configuration usable from both providers: provider-specific files under
 
 ## Shared Skills
 
-Skills shared across projects live in the `appella/agent-stack` repository.
+Skills shared across projects live in the `appelladev/agent-stack` repository.
 Projects install them into `.agents/skills/` with `@appella/skills-cli`, a
 pinned dev dependency, and commit the installed copies together with
 `.agents/skills.lock`, which records the source commits and every installed
@@ -38,8 +43,8 @@ skill's hash.
   ```yaml
   sources:
     agent-stack:
-      url: git@gitlab.com:appella/agent-stack.git
-      tags: [gitlab, linear, dart, flutter]
+      url: https://github.com/appelladev/agent-stack.git
+      tags: [github, linear, dart, flutter]
       include: [graphql]
   ```
 

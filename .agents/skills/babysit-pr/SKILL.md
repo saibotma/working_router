@@ -7,9 +7,10 @@ description:
 
 # Babysit PR
 
-Monitor one PR through human review and merge. Use the forge CLI skill of the
-PR's host, `gitlab-cli` or `github-cli`. Never merge the PR yourself. Follow
-`pr-monitoring` when creating or changing monitors or handling automated passes.
+Monitor one PR through review and merge. Use the forge skill of the PR's host,
+`gitlab` or `github`. Merge the PR only as `babysit-pipeline` describes for a 🟢
+Green PR; a human merges every other PR. Follow `pr-monitoring` when creating or
+changing monitors or handling automated passes.
 
 ## Pass
 
@@ -18,7 +19,8 @@ PR's host, `gitlab-cli` or `github-cli`. Never merge the PR yourself. Follow
 2. Invoke [address-pr-comments](../address-pr-comments/SKILL.md) for one
    feedback pass. Preserve its pending decisions and material review advisories.
 3. Invoke `sync-pr` if the feedback pass did not already synchronize the source,
-   then invoke `babysit-pipeline` for one pass under this monitor.
+   then invoke `babysit-pipeline` for one pass under this monitor. If it returns
+   merged, continue as step 1 describes for a merged PR.
 4. Pause and report when a decision is needed. Otherwise continue monitoring
    until the PR merges or closes. Green CI ends pipeline work, not this PR
    monitoring.

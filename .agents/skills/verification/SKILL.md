@@ -24,9 +24,9 @@ that the running product works as a whole, on a real platform, and how it looks.
 List the checks before you change the code, so that you can capture the states
 the change replaces, as [Evidence](#evidence) describes: for each behavior the
 request or issue changes, who does it, such as the account or role when the
-product has several, on which surface and platform, in which state, and the
-expected result. Add one check of the flow around the change, so that a break
-next to it shows up.
+product has several, on which surface and platform, in which
+[UI setup](#ui-setups), in which state, and the expected result. Add one check
+of the flow around the change, so that a break next to it shows up.
 
 Cover each check with the first of these that fits:
 
@@ -42,8 +42,9 @@ Cover each check with the first of these that fits:
 The extension's sections say how this project runs: `Environment` names the
 instances and how to start them, `Accounts and data` how to sign in and create
 data, `Isolation` how to keep your instances apart from other threads',
-`Safety rules` what is allowed on each instance, and `Doctor` the check that an
-instance is usable.
+`Safety rules` what is allowed on each instance, `Doctor` the check that an
+instance is usable, and `UI setups` how this project's setups differ from
+[UI Setups](#ui-setups).
 
 - Run each check on an instance of your own: one that you start in your own
   worktree, or a deployed one that the extension's `Environment` section says
@@ -65,10 +66,25 @@ instance is usable.
   in, stop and report what failed with its error output. Do not repair the
   environment, such as by installing or updating tools or changing system
   settings, and do not change the product to work around it. The affected checks
-  are inconclusive.
+  are inconclusive. Changing the display or text size of your own device or tab
+  for a [UI setup](#ui-setups) is part of a check, not a repair.
 - When something missing blocks a check, such as a way to run a component
   locally or to reach a state, name it under **Limitations and follow-up** in
   the PR description instead of building a workaround.
+
+When the extension or one of its sections is missing, verify anyway. Work out
+what it would say from the project's documentation, scripts, and run
+configurations, such as its README, `AGENTS.md` files, and compose files. The
+rules above still apply, and until the extension covers it, these as well:
+
+- Run only instances that you start in your own worktree, never a deployed one.
+- Before you start an instance, read its configuration for services that reach
+  beyond this machine, such as ones that send messages, take payments, or write
+  to shared storage. When starting the instance or its background jobs would use
+  them, do not start it; otherwise leave out the checks that would. The checks
+  you leave out are inconclusive.
+- Name under **Limitations and follow-up** that the extension or section is
+  missing, with the facts you had to work out, so that someone can add them.
 
 ## Surfaces
 
@@ -87,20 +103,59 @@ instance is usable.
   inconclusive. On your own instances, sign in, and confirm the signed-in
   account before and after each check that depends on it; when the account
   changed or the session ended, the check is inconclusive, so run it once more.
-  Size the tab with `preview_resize` for each width the change affects. With
-  Flutter web, start the app with `fvm flutter run -d web-server`. Its
-  accessibility tree stays empty until the app turns on semantics, so start it
-  with the entry file that the extension's `Environment` section names, such as
-  one that calls `SemanticsBinding.instance.ensureSemantics()` before it runs
-  the app. Without such an entry file, drive the app by coordinates from
-  screenshots, and name the missing entry file under **Limitations and
-  follow-up**.
+  Size the tab with `preview_resize` for each width the change affects and for
+  the [UI setups](#ui-setups). With Flutter web, start the app with
+  `fvm flutter run -d web-server`. Its accessibility tree stays empty until the
+  app turns on semantics, so start it with the entry file that the extension's
+  `Environment` section names, such as one that calls
+  `SemanticsBinding.instance.ensureSemantics()` before it runs the app. Without
+  such an entry file, drive the app by coordinates from screenshots, and name
+  the missing entry file under **Limitations and follow-up**.
 - **APIs:** send real requests to the running instance, and keep the request and
   the response.
 - **CLIs, jobs, and scripts:** run them as a user or the scheduler would, and
   keep the output, the exit code, and the side effects.
 - **Messages,** such as emails and push notifications: capture them where the
   extension says they arrive, and never send them to real people.
+
+## UI Setups
+
+Check a change to UI in two setups, unless the extension's `UI setups` section
+changes them, such as for an app that caps its text size or runs only on
+tablets:
+
+- **Default:** a common phone, or the widths the change targets, such as a
+  desktop browser, at the default text size. Run every check here.
+- **Narrow with large text:** a window 320 wide, in points on iOS, dp on
+  Android, and CSS pixels on the web, with text about 1.5 times the default
+  size. Users reach it on current phones by enlarging the display and the text,
+  and it puts about as much pressure on a layout as twice the default text on a
+  common phone. On iOS, use Display Zoom and the text size AX1; on Android, a
+  display size that makes the screen 320 dp wide and the font scale 1.5; on the
+  web, a tab 320 pixels wide, which is what browser zoom does to a page, and the
+  browser's font size at 150%. `simulators` says how to set them on a device.
+  The browser preview has no font size setting, so after each page load, set the
+  font size of the page's root element to 1.5 times its computed size with
+  `preview_evaluate`, which is what the browser setting does. It stands in for
+  that setting and does not count as changing the product. When the app sets the
+  root font size in pixels, the browser setting has no effect, so leave the font
+  size and say so in the check. Media queries in `em` or `rem` still use the
+  browser's default size, not the page's, so when the app's breakpoints use
+  them, the page may show another layout than the browser setting would; say so
+  in the check.
+
+In the narrow setup with large text, open each screen and state that the change
+adds or changes, check that nothing in it overlaps, is cut off, or cannot be
+reached, such as behind the keyboard, and capture it. Run flows and other
+behavior only in the default setup.
+
+- A break in what the change adds or changes is a defect, as [Judging](#judging)
+  describes. When the layout needs a choice in this setup, such as wrapping or
+  truncating a title, or stacking buttons that sit side by side by default, make
+  it, and `pr-description` shows it for a human to judge.
+- A break in what the change does not touch is not part of the change. Name it
+  under **Limitations and follow-up** in the PR description instead of fixing
+  it.
 
 ## Proof Standards
 
@@ -129,6 +184,10 @@ record, which `pr-description` and its reviewer use.
   check again.
 - An inconclusive check states what could not be observed and why. It goes to a
   human, as `pr-description` describes.
+- When nothing could be verified, such as because the product did not start,
+  every planned check that needs the running product is inconclusive. List each
+  one with what blocked it, and name the blocker under **Limitations and
+  follow-up**. A single "not verified" line does not replace them.
 
 ## Evidence
 
@@ -138,17 +197,19 @@ the change:
 - screenshots of each changed state, and short recordings of flows and
   animations;
 - for changed existing UI and for bug fixes, the same state before the change,
-  captured before you change the code, so that the human can compare;
+  captured before you change the code, so that the human can compare, in the
+  default setup unless the change fixes a break in the narrow setup with large
+  text;
 - for other surfaces, the request and response, the command output, or the
   rendered message.
 
 Caption each capture with what it shows: the state, the account or role when the
-product has several, and the platform and size. Leave out unchanged screens and
-captures that show the same thing as another. Before you share or upload a
-capture, remove secrets, such as passwords, tokens, cookies, and authorization
-headers, and data of real people from it. `pr-description` says where each
-capture goes in the description; upload them as the forge CLI skill's `Uploads`
-describes.
+product has several, the platform, and the size and text size, such as
+`iPhone, 320×693, AX1`. Leave out unchanged screens and captures that show the
+same thing as another. Before you share or upload a capture, remove secrets,
+such as passwords, tokens, cookies, and authorization headers, and data of real
+people from it. `pr-description` says where each capture goes in the
+description; upload them as the forge skill's `Uploads` describes.
 
 Evidence holds for the revision it was captured on. When a later change, such as
 a review fix or an addressed comment, affects a verified behavior, run its

@@ -1,28 +1,49 @@
 ---
-name: github-cli
+name: github
 description:
-  Use when working with GitHub via the gh CLI for issues, pull requests,
-  Actions, or other repository metadata. It is the forge CLI skill for GitHub
-  that the PR workflow skills name.
+  Use when working with GitHub, including the gh CLI, issues, pull requests,
+  Actions workflows and their secrets and variables, and other repository
+  metadata. It is the forge skill for GitHub that the PR workflow skills name.
 metadata:
   tags: github
 ---
 
-# GitHub CLI
+# GitHub
 
 On GitHub, a PR is a pull request, addressed by its number.
 
-- If `gh` is missing or not authenticated, prompt the user to install it and log
-  in before continuing.
+- When a task needs `gh` and it is missing or not authenticated, prompt the user
+  to install it and log in before continuing.
 - Read PR state with `gh pr view <number> --json <fields>`, and load lists from
   the API with full pagination, `gh api --paginate <endpoint>`.
 
 ## Merge Options
 
-Squash merging and head-branch deletion are repository settings, not options of
-a PR. Check `allow_squash_merge` and `delete_branch_on_merge` from
-`gh api repos/{owner}/{repo}` and report either one that is off instead of
-changing repository settings.
+The merge methods and head-branch deletion are repository settings and rules of
+the base branch, not options of a PR. The base branch allows a method when
+`gh api repos/{owner}/{repo}` turns on `allow_squash_merge` or
+`allow_merge_commit`, and every `pull_request` rule in
+`gh api repos/{owner}/{repo}/rules/branches/<base>` lists it, as `squash` or
+`merge`, in `parameters.allowed_merge_methods`. A `required_linear_history` rule
+there, or `required_linear_history.enabled` in
+`gh api repos/{owner}/{repo}/branches/<base>/protection`, blocks merge commits.
+Report a method that a merge needs but the base branch blocks, or a
+`delete_branch_on_merge` that is off, instead of changing repository settings or
+rules.
+
+## Merge
+
+Squash by default, with
+`gh pr merge <number> --squash --match-head-commit <revision>`. Use a merge
+commit, with `--merge` instead of `--squash`, when the base branch allows it and
+there is a reason for one: the user asks for it, or the PR brings a long-running
+branch into another or syncs one with its base, whose individual commits should
+stay. The command refuses when the head has moved past the revision you checked.
+Do not pass `--auto`, `--admin`, or `--delete-branch`; the repository setting
+deletes the head branch. On a branch with a merge queue, the queue merges with
+its `merge_queue` rule's `parameters.merge_method`, whatever method you pass, so
+report a method that differs from the chosen one instead of running the command.
+Otherwise the command queues the PR, so report it as queued, not merged.
 
 ## Labels
 
@@ -77,6 +98,22 @@ required ones with `--required`. A required check that has not reported yet is
 missing, not green. Read the failed steps of a run with
 `gh run view <run id> --log-failed`, and find comparable target branch runs with
 `gh run list --branch <target> --workflow <workflow>`.
+
+## Secrets and Variables
+
+GitHub Actions masks every occurrence of a secret's value in logs, so a short or
+common value stored as a secret, such as `2` or a user name, makes logs
+unreadable.
+
+- Store credentials as secrets, and everything else that configures a workflow
+  as variables: hosts, ports, the user names of SSH targets, `known_hosts` lines
+  with public host keys, the IDs and audiences of OIDC identities, feature IDs,
+  and flags.
+- Store both parts of a login as secrets, such as an access key ID together with
+  its secret key, or a basic auth user name together with its password.
+- Scope a deployment's secrets and variables to its environment, with a branch
+  or tag policy, not to the repository: repository secrets reach every workflow
+  run on any branch, including pull requests from the repository's own branches.
 
 ## Diff Links
 
