@@ -1036,6 +1036,256 @@ void main() {
     );
   });
 
+  group('routeToConfigurationFromRouteInformation', () {
+    testWidgets('replaces the history entry of a redirected typed URL', (
+      tester,
+    ) async {
+      tester.platformDispatcher.defaultRouteNameTestValue = '/a';
+      addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+      final router = _buildRouter(resolveTransition: _redirectAToC);
+
+      await _pumpRouterApp(tester, router);
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData?.uri.path, '/c');
+      expect(
+        _informationProviderOf(router).debugReportedTypes.last,
+        RouteInformationReportingType.neglect,
+      );
+    });
+
+    testWidgets('replaces the history entry of redirected route information', (
+      tester,
+    ) async {
+      final router = _buildRouter(resolveTransition: _redirectAToC);
+      final informationProvider = _informationProviderOf(router);
+
+      await _pumpRouterApp(tester, router);
+      router.routeToStatic(Uri(path: '/a/b'));
+      await tester.pumpAndSettle();
+      informationProvider.debugReportedTypes.clear();
+
+      await informationProvider.didPushRouteInformation(
+        RouteInformation(uri: Uri(path: '/a')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData?.uri.path, '/c');
+      expect(
+        informationProvider.debugReportedTypes.last,
+        RouteInformationReportingType.neglect,
+      );
+    });
+
+    testWidgets(
+      'replaces the history entry of redirected route information while a '
+      'leave guard is pending',
+      (tester) async {
+        final leave = Completer<bool>();
+        final router = _buildRouter(
+          resolveTransition: _redirectAToC,
+          canLeave: () => leave.future,
+        );
+        final informationProvider = _informationProviderOf(router);
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/a/b'));
+        await tester.pumpAndSettle();
+        informationProvider.debugReportedTypes.clear();
+
+        await informationProvider.didPushRouteInformation(
+          RouteInformation(uri: Uri(path: '/a')),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        // Flutter's Router reports the still committed route while the guard
+        // is pending. That report must replace the entry of the redirected
+        // URI instead of pushing a new one above it.
+        expect(router.nullableData?.uri.path, '/a/b');
+        expect(informationProvider.debugReportedTypes, isNotEmpty);
+
+        leave.complete(true);
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData?.uri.path, '/c');
+        expect(
+          informationProvider.debugReportedTypes,
+          everyElement(RouteInformationReportingType.neglect),
+        );
+      },
+    );
+
+    testWidgets(
+      'replaces the history entry of route information redirected back to the '
+      'current route',
+      (tester) async {
+        final completed = <RouteTransition>[];
+        final router = _buildRouter(
+          resolveTransition: _redirectAToC,
+          onTransitionCompleted: (_, transition) => completed.add(transition),
+        );
+        final informationProvider = _informationProviderOf(router);
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pumpAndSettle();
+        informationProvider.debugReportedTypes.clear();
+        completed.clear();
+
+        await informationProvider.didPushRouteInformation(
+          RouteInformation(uri: Uri(path: '/a')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(completed.single.changed, isFalse);
+        expect(router.nullableData?.uri.path, '/c');
+        expect(
+          informationProvider.debugReportedTypes.last,
+          RouteInformationReportingType.neglect,
+        );
+      },
+    );
+
+    testWidgets(
+      'keeps the report type of route information without a redirect',
+      (
+        tester,
+      ) async {
+        final router = _buildRouter(resolveTransition: _redirectAToC);
+        final informationProvider = _informationProviderOf(router);
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/c'));
+        await tester.pumpAndSettle();
+        informationProvider.debugReportedTypes.clear();
+
+        await informationProvider.didPushRouteInformation(
+          RouteInformation(uri: Uri(path: '/a/b')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData?.uri.path, '/a/b');
+        expect(
+          informationProvider.debugReportedTypes,
+          everyElement(isNot(RouteInformationReportingType.neglect)),
+        );
+      },
+    );
+
+    testWidgets(
+      'replaces the history entry of redirected route information when a '
+      'navigation follows in the same frame',
+      (tester) async {
+        final router = _buildRouter(
+          resolveTransition: _redirectAToC,
+          onTransitionCompleted: (router, transition) {
+            if (transition.redirects.isNotEmpty) {
+              router.routeToStatic(Uri(path: '/a/b'));
+            }
+          },
+        );
+        final informationProvider = _informationProviderOf(router);
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/'));
+        await tester.pumpAndSettle();
+        informationProvider.debugReportedTypes.clear();
+
+        await informationProvider.didPushRouteInformation(
+          RouteInformation(uri: Uri(path: '/a')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData?.uri.path, '/a/b');
+        expect(
+          informationProvider.debugReportedTypes,
+          everyElement(RouteInformationReportingType.neglect),
+        );
+      },
+    );
+  });
+
+  group('routeToStatic', () {
+    testWidgets('adds a history entry for a programmatic redirect', (
+      tester,
+    ) async {
+      final router = _buildRouter(resolveTransition: _redirectAToC);
+      final informationProvider = _informationProviderOf(router);
+
+      await _pumpRouterApp(tester, router);
+      router.routeToStatic(Uri(path: '/a/b'));
+      await tester.pumpAndSettle();
+      informationProvider.debugReportedTypes.clear();
+
+      router.routeToStatic(Uri(path: '/a'));
+      await tester.pumpAndSettle();
+
+      expect(router.nullableData?.uri.path, '/c');
+      expect(
+        informationProvider.debugReportedTypes.last,
+        isNot(RouteInformationReportingType.neglect),
+      );
+    });
+
+    testWidgets(
+      'replaces the history entry for a programmatic redirect to a replacing '
+      'route',
+      (tester) async {
+        final router = WorkingRouter(
+          buildRouteNodes: (_) => [
+            _BuilderLocation(
+              id: _Id.root,
+              build: (builder, location) {
+                builder.children = [
+                  _BuilderLocation(
+                    id: _Id.a,
+                    build: (builder, location) {
+                      builder.pathLiteral('remembered');
+                      builder.content = Content.widget(
+                        const Text('remembered'),
+                      );
+                    },
+                  ),
+                  _BuilderLocation(
+                    id: _Id.b,
+                    build: (builder, location) {
+                      builder.browserHistory = .replace;
+                      builder.pathLiteral('replaced');
+                      builder.content = Content.widget(const Text('replaced'));
+                    },
+                  ),
+                ];
+              },
+            ),
+          ],
+          noContentWidget: const SizedBox.shrink(),
+          resolveTransition: (_, request) {
+            if (request.to.uri.path == '/redirected') {
+              return RedirectTransition.toUri(Uri(path: '/replaced'));
+            }
+            return const AllowTransition();
+          },
+        );
+        final informationProvider = _informationProviderOf(router);
+
+        await _pumpRouterApp(tester, router);
+        router.routeToStatic(Uri(path: '/remembered'));
+        await tester.pumpAndSettle();
+        informationProvider.debugReportedTypes.clear();
+
+        router.routeToStatic(Uri(path: '/redirected'));
+        await tester.pumpAndSettle();
+
+        expect(router.nullableData?.uri.path, '/replaced');
+        expect(
+          informationProvider.debugReportedTypes.last,
+          RouteInformationReportingType.neglect,
+        );
+      },
+    );
+  });
+
   group('WorkingRouter canLeave', () {
     testWidgets('blocks route change when canLeave resolves false', (
       tester,
@@ -5447,6 +5697,15 @@ void main() {
 
   group('refresh', () {
     testWidgets(
+      'replaces the history entry when the resolver redirects the refreshed '
+      'route',
+      (tester) => _expectRevalidationRedirectReplacesHistoryEntry(
+        tester,
+        revalidate: (router) => router.refresh(),
+      ),
+    );
+
+    testWidgets(
       'commits the rebuilt tree and runs afterLeave without asking canLeave '
       'when the current location is removed',
       (tester) async {
@@ -5672,6 +5931,15 @@ void main() {
 
   group('revalidate', () {
     testWidgets(
+      'replaces the history entry when the resolver redirects the '
+      'revalidated route',
+      (tester) => _expectRevalidationRedirectReplacesHistoryEntry(
+        tester,
+        revalidate: (router) => router.revalidate(),
+      ),
+    );
+
+    testWidgets(
       'keeps the current route when canLeave declines a standard '
       'revalidation redirect',
       (tester) async {
@@ -5709,6 +5977,52 @@ void main() {
       },
     );
   });
+}
+
+TransitionDecision _redirectAToC(WorkingRouter _, TransitionRequest request) {
+  if (request.to.uri.path == '/a') {
+    return RedirectTransition.toUri(Uri(path: '/c'));
+  }
+  return const AllowTransition();
+}
+
+WorkingRouteInformationProvider _informationProviderOf(WorkingRouter router) {
+  return router.routeInformationProvider! as WorkingRouteInformationProvider;
+}
+
+/// Revalidates `/a/b` with [revalidate] after it became invalid, so that the
+/// resolver redirects it to `/c`, and expects that the redirect replaces the
+/// browser history entry of `/a/b`.
+Future<void> _expectRevalidationRedirectReplacesHistoryEntry(
+  WidgetTester tester, {
+  required void Function(WorkingRouter router) revalidate,
+}) async {
+  var routeIsInvalid = false;
+  final router = _buildRouter(
+    resolveTransition: (_, request) {
+      if (routeIsInvalid &&
+          request.trigger == RouteTransitionTrigger.revalidation) {
+        return RedirectTransition.toUri(Uri(path: '/c'), policy: .mandatory);
+      }
+      return const AllowTransition();
+    },
+  );
+  final informationProvider = _informationProviderOf(router);
+
+  await _pumpRouterApp(tester, router);
+  router.routeToStatic(Uri(path: '/a/b'));
+  await tester.pumpAndSettle();
+  informationProvider.debugReportedTypes.clear();
+
+  routeIsInvalid = true;
+  revalidate(router);
+  await tester.pumpAndSettle();
+
+  expect(router.nullableData?.uri.path, '/c');
+  expect(
+    informationProvider.debugReportedTypes.last,
+    RouteInformationReportingType.neglect,
+  );
 }
 
 Future<void> _pumpApp(WidgetTester tester, WorkingRouter router) async {

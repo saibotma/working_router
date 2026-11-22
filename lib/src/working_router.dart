@@ -59,6 +59,15 @@ class WorkingRouter extends ChangeNotifier
   /// starts before async `canLeave` checks complete, older requests
   /// are discarded.
   int _routingVersion = 0;
+
+  /// Whether the next route information report replaces the current browser
+  /// history entry instead of adding one.
+  ///
+  /// [WorkingRouteInformationProvider] consumes it with the report that
+  /// follows a commit, or, for route information, the report that Flutter's
+  /// [Router] makes after processing it. Commits only ever set it, so that
+  /// one report covering several commits replaces the entry if any of them
+  /// asked for it.
   bool _replaceNextBrowserHistoryReport = false;
 
   @Deprecated(
@@ -526,6 +535,17 @@ class WorkingRouter extends ChangeNotifier
       redirects: resolvedTransition.redirects,
       changed: changed,
     );
+    // Flutter's Router reports the committed route right after it processed
+    // route information: before an asynchronous leave guard completes, and
+    // also when the attempt commits nothing. For a redirect, that report must
+    // already replace the entry of the redirected URI, or it would push a new
+    // entry above it and leave the redirected URI as a back target. A later
+    // commit sets the flag again for its own report. Other attempts produce
+    // no report before they commit, so only route information sets it here.
+    if (trigger == RouteTransitionTrigger.routeInformation &&
+        transition.redirects.isNotEmpty) {
+      _replaceNextBrowserHistoryReport = true;
+    }
     if (!changed) {
       _notifyTransitionCompleted(transition);
       return;
@@ -559,12 +579,31 @@ class WorkingRouter extends ChangeNotifier
     );
   }
 
-  bool _shouldReplaceBrowserHistoryReport(
-    WorkingRouterData? oldData,
-    WorkingRouterData newData,
-  ) {
-    return (oldData?.routeNodes.replacesBrowserHistory ?? false) ||
-        newData.routeNodes.replacesBrowserHistory;
+  bool _shouldReplaceBrowserHistoryReport(RouteTransition transition) {
+    final RouteTransition(:from, :to) = transition;
+    return (from?.routeNodes.replacesBrowserHistory ?? false) ||
+        to.routeNodes.replacesBrowserHistory ||
+        _redirectReplacesBrowserHistory(transition);
+  }
+
+  /// Whether the redirects of [transition] replace the browser history entry
+  /// of the URI they redirected away from, like a server redirect does.
+  ///
+  /// Route information, such as a typed URL, a deep link, or browser back and
+  /// forward, already has its own browser history entry, and a revalidation
+  /// redirects away from the route of the current entry. Keeping those
+  /// entries would make browser back return to a URI that only redirects
+  /// again. A programmatic attempt has no entry of its own until it commits,
+  /// so its redirected-from routes never reach the history, and its final
+  /// route adds an entry as usual.
+  bool _redirectReplacesBrowserHistory(RouteTransition transition) {
+    if (transition.redirects.isEmpty) {
+      return false;
+    }
+    return switch (transition.trigger) {
+      .routeInformation || .revalidation => true,
+      .programmatic || .redirect => false,
+    };
   }
 
   bool _consumeReplaceBrowserHistoryReport() {
@@ -601,10 +640,12 @@ class WorkingRouter extends ChangeNotifier
       return;
     }
 
-    _replaceNextBrowserHistoryReport = _shouldReplaceBrowserHistoryReport(
-      oldData,
-      transition.to,
-    );
+    // Keep a pending replacement: Flutter's Router merges the commits of one
+    // frame into a single report, and a later commit in that frame, such as a
+    // navigation from onTransitionCompleted, must not turn it into a push.
+    _replaceNextBrowserHistoryReport =
+        _replaceNextBrowserHistoryReport ||
+        _shouldReplaceBrowserHistoryReport(transition);
     if (stagedRouteNodeTree != null) {
       _routeNodeTree = stagedRouteNodeTree;
     }

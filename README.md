@@ -674,6 +674,24 @@ history behavior. Use `replace` for transient routed UI such as dialog-like
 locations or panes that should be reflected in the URL but skipped by browser
 back/forward history.
 
+Redirects behave like server redirects: the redirected result never leaves the
+URI it redirected away from as a browser history entry that only redirects
+again. Which entry that is depends on what started the attempt:
+
+- **Route information**, such as a typed URL, a deep link, or browser back and
+  forward, already has a history entry for the URI the browser navigated to.
+  When the transition resolver redirects it, the final route replaces that
+  entry. This also holds when the redirect leads back to the current route.
+- **Revalidation**, from `revalidate()` or `refresh()`, redirects away from the
+  route of the current entry, such as a page whose permission was revoked. The
+  final route replaces that entry, so browser back does not return to it.
+- **Programmatic navigation**, such as `routeTo`, has no entry until it
+  commits, so the routes it redirected away from never reach the history. Its
+  final route adds an entry as usual.
+
+Attempts without a redirect keep the normal behavior, and a `replace` node
+still replaces the entry for any attempt that enters or leaves it.
+
 ## Query Filters
 
 `builder.queryFilters = [...]` makes a normal route node match only when all
