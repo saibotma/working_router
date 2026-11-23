@@ -7,11 +7,6 @@ description:
 
 # PR Description
 
-Before applying this skill, read its skill extension,
-`.agents/skill-extensions/pr-description/SKILL.md`, if it exists. It adds this
-project's facts and rules to this skill. If it does not exist, continue without
-searching for it.
-
 Check the existing title and description against the resulting net diff. Update
 stale or incomplete metadata; leave already accurate metadata unchanged. Write
 the title, description, and risk label to the PR only after the
@@ -88,14 +83,15 @@ section when it would be empty. Do not write `None` placeholders.
   confirm or reject it, as a task list item, `- [ ]`, under `#### 🟡 Decide`, as
   a question the description alone answers, `#### 🟡 Look`, with the captures to
   judge and the question about them, `#### 🟡 Try`, with what to try, where, and
-  why the agent could not, and `#### 🔴 Review`, with the files to read and what
-  to check there. Every item keeps its checkbox, and only a human's tick marks
-  it done; never mark an item as decided in its text. Under 🟡 Decide, list the
-  open decisions first, then the decisions an orchestrating agent made under
-  `##### Orchestrator decided`, each naming where it decided, such as a T3 Code
-  thread ID, or quoting the decision when no such reference exists. Under 🔴
-  Review, group the items under `#####` headings that say why they need review,
-  in this order, and omit empty groups: `Contracts`, `Dependencies`,
+  why the agent could not, `#### 🔴 Review`, with the files to read and what to
+  check there, and `#### 🔴 Code owner review`, as
+  [Code Owner Review](#code-owner-review) describes. Every item keeps its
+  checkbox, and only a human's tick marks it done; never mark an item as decided
+  in its text. Under 🟡 Decide, list the open decisions first, then the
+  decisions an orchestrating agent made under `##### Orchestrator decided`, each
+  naming where it decided, such as a T3 Code thread ID, or quoting the decision
+  when no such reference exists. Under 🔴 Review, group the items under `#####`
+  headings that say why they need review, in this order, and omit empty groups:
   `Agent decided`, `Not testable`, and `Open finding`; [Sorting](#sorting) gives
   each item's group. Each item is one decision or check and names a concrete
   failure; never group several under one item, and use plain sub-bullets only
@@ -125,8 +121,8 @@ section when it would be empty. Do not write `None` placeholders.
 
 Beyond the TL;DR, do not add a change summary, a file-by-file review guide, a
 before/after table of planned behavior, or an implementation walkthrough. The
-issue covers the plan, the reviewer reads only the files named under 🔴 Review,
-and an agent can explain the code on demand.
+issue covers the plan, the reviewer reads only the files named under 🔴 Review
+and 🔴 Code owner review, and an agent can explain the code on demand.
 
 ### Collapsed part
 
@@ -180,10 +176,10 @@ renders the Markdown inside. Omit the block when all its sections are empty.
 ## Risk Class
 
 The class says what a human has to do before merging and follows from **Needs
-your attention** and the **To-dos**: a 🔴 Review item makes it 🔴 Red, 🟡
-Decide, Look, or Try items or a to-do before merging alone make it 🟡 Yellow,
-and otherwise it is 🟢 Green. A risk label on the issue is only a planning hint;
-do not mention it in the description.
+your attention** and the **To-dos**: a 🔴 Review item or a code owner entry
+makes it 🔴 Red, 🟡 Decide, Look, or Try items or a to-do before merging alone
+make it 🟡 Yellow, and otherwise it is 🟢 Green. A risk label on the issue is
+only a planning hint; do not mention it in the description.
 
 ### Sorting
 
@@ -191,38 +187,17 @@ Sort every change, deviation, and decision by the first rule that applies. Judge
 the concrete diff, because two changes of the same kind can carry very different
 risk.
 
-1. **Updates of installed skills:** no item, even when rule 2 or rule 6 would
-   apply. The project trusts a skill's source once it installs from it:
-   `agent-stack` reviews its changes itself, and the project accepted a
-   third-party source when it installed it. This covers the installed copies
-   that `.agents/skills.lock` records. Name the update in the TL;DR. The later
-   rules still sort what the project decides itself, such as installing or
-   removing a skill, a skill from a source the project did not use before, a
-   deviation from the update procedure in the `agent-tooling` skill, and changes
-   to the project's own files, such as skill extensions or `AGENTS.md`.
-2. **Contracts and dependencies:** 🔴 Review under `Contracts` for a change in
-   the `Contracts` area of the `change-risk` skill and under `Dependencies` for
-   one in its `Dependencies` area, even when rule 4 would apply, because a human
-   wants to see these changes whether or not they were specified.
-   - For a database schema change or migration, say what happens to existing
-     data and whether a revert undoes it.
-   - Write one item per dependency, labeled with its name and `old → new`,
-     `added`, or `removed`, with a link to the release notes or changelog for
-     exactly that version range and the breaking or notable changes in one line;
-     for vendored code, say what differs from upstream and why.
-
-   Also put every file the merge risk script reports into the group of the area
-   it backs up, and a changed `.merge-risk` itself under `Contracts`. Fetch the
-   PR's target branch and run
-   `pnpm exec node .agents/skills/pr-description/scripts/merge-risk.mjs --base origin/<target branch>`
-   from the root of the PR's checkout, so stacked PRs are judged against their
-   own target. It reports the files that the project's optional `.merge-risk`
-   lists, as [Merge risk rules](references/merge-risk.md) describes, and a
-   changed `.merge-risk` itself. The file only backs up these areas for paths
-   whose every change belongs to one; a project without it relies on the areas
-   alone.
-
-3. **Visible changes:** verified as the `verification` skill describes, then
+1. **Updates of installed skills:** no item and no
+   [code owner entry](#code-owner-review), even when rule 5 would apply. The
+   project trusts a skill's source once it installs from it: `agent-stack`
+   reviews its changes itself, and the project accepted a third-party source
+   when it installed it. This covers the installed copies that
+   `.agents/skills.lock` records. Name the update in the TL;DR. The later rules
+   still sort what the project decides itself, such as installing or removing a
+   skill, a skill from a source the project did not use before, a deviation from
+   the update procedure in the `agent-tooling` skill, and changes to the
+   project's own files, such as skill extensions or `AGENTS.md`.
+2. **Visible changes:** verified as the `verification` skill describes, then
    sorted by what remains for a human. Visible changes are UI, texts and
    translations, the content and look of messages to customers such as emails
    and notifications, the look of the website or documentation site, a client
@@ -243,30 +218,34 @@ risk.
    Behavior that a test can prove exactly, such as who receives a message, when,
    or whether it is sent, is not a visible change; the later rules sort it.
 
-4. **Settled or unchanged, and proven:** no item, even when rule 6 would apply,
-   such as permission and ownership checks the issue specifies. A point is
-   settled when a human specified or decided it: the approved issue specifies
-   it, or the user decided it explicitly, in a PR, an issue comment, or the
-   conversation, or by ticking a 🟡 Decide item. Notes the agent adds to the
-   issue itself settle nothing, and neither do an orchestrating agent's
-   decisions: in a delegated task, the answers to your questions come from the
-   delegating agent, not the user, unless they quote the user's words. It is
-   proven when a targeted test proves each settled rule; name the tests under
-   **Proof**. Behavior the PR keeps unchanged, such as code moved into a shared
-   use case, is proven when existing tests that the PR does not weaken cover it;
-   name them under **Proof** as well. When a settled rule lacks a test, write
-   one. Only when a test is not reasonably possible, such as for delivery by an
-   external system or platform behavior the test setup cannot reach, add a 🔴
-   Review item under `Not testable` for that rule, saying why. Changed agent
-   instructions never get a `Not testable` item, because neither a test nor a
-   human can show what agents will do with them. A settled rule that they state
-   needs no item; name where it was settled under **Proof**. Write tests for the
-   scripts and other tooling that skills ship with like for any other code.
-5. **Open product decisions the description answers:** 🟡 Decide, such as
+3. **Settled or unchanged, and proven:** no item, even when rule 5 would apply,
+   such as permission and ownership checks the issue specifies or an API field
+   the user named and typed. A point is settled when a human specified or
+   decided it: the approved issue specifies it, or the user decided it
+   explicitly, in a PR, an issue comment, or the conversation, or by ticking a
+   🟡 Decide item. It is settled only as precisely as the human stated it: when
+   the user asked for a due date field, its name, type, and nullability are
+   still the agent's choice. Notes the agent adds to the issue itself settle
+   nothing, and neither do an orchestrating agent's decisions: in a delegated
+   task, the answers to your questions come from the delegating agent, not the
+   user, unless they quote the user's words. It is proven when a targeted test
+   proves each settled rule; name the tests under **Proof**. Behavior the PR
+   keeps unchanged, such as code moved into a shared use case, is proven when
+   existing tests that the PR does not weaken cover it; name them under
+   **Proof** as well. When a settled rule lacks a test, write one. Only when a
+   test is not reasonably possible, such as for delivery by an external system
+   or platform behavior the test setup cannot reach, add a 🔴 Review item under
+   `Not testable` for that rule, saying why. Changed agent instructions never
+   get a `Not testable` item, because neither a test nor a human can show what
+   agents will do with them. A settled rule that they state needs no item; name
+   where it was settled under **Proof**. Write tests for the scripts and other
+   tooling that skills ship with like for any other code.
+4. **Open product decisions the description answers:** 🟡 Decide, such as
    leaving out a push notification the issue does not mention; under
    `Orchestrator decided` when an orchestrating agent made the decision.
-6. **Sensitive changes:** 🔴 Review under `Agent decided`, for decisions in the
-   `Sensitive changes` area of the `change-risk` skill.
+5. **Unsettled decisions in risky areas:** 🔴 Review under `Agent decided`, for
+   decisions in the `Contracts`, `Dependencies`, and `Sensitive changes` areas
+   of the `change-risk` skill, such as the shape of an API that the agent chose.
 
    Ask only about the decision that puts the change into that area, not about
    every choice the agent made along the way. For changed agent instructions,
@@ -290,7 +269,7 @@ risk.
    whether the remaining risk is acceptable. Never ask the reviewer to verify by
    reading code what a test could show.
 
-7. **Everything else:** no item, for example refactorings, test-only changes,
+6. **Everything else:** no item, for example refactorings, test-only changes,
    documentation text, internal tooling, CI that only builds, tests, or checks
    the code, logging and metrics, and backend bug fixes that restore specified
    behavior under a regression test.
@@ -301,24 +280,60 @@ enough to judge it and under 🔴 Review in `Open finding` otherwise. A defect
 that already exists on `main` and that the PR does not worsen gets one line
 under **Risk** or **Limitations and follow-up** instead.
 
+### Code Owner Review
+
+List every change in the `Contracts` and `Dependencies` areas of the
+`change-risk` skill under `#### 🔴 Code owner review`, whoever decided it and
+even when [Sorting](#sorting) gives it no item. A revert does not undo a
+contract change, and a dependency brings in code nobody in the project wrote, so
+the code owner reviews their files even when a colleague settled the point,
+because that decision can still be wrong.
+
+Write one task list item, `- [ ]`, per change, starting with its kind as a short
+bold label, such as `**Migration:**`, `**Contract:**`, `**Billing:**`, or
+`**Dependency:**`, followed by its file links, as for items, and what it does in
+one line, without a question:
+
+- for a database schema change or migration, what happens to existing data and
+  whether a revert undoes it;
+- for an interface contract, what its consumers see change;
+- for billing, what changes for whom;
+- for a dependency, its name and `old → new`, `added`, or `removed`, a link to
+  the release notes or changelog for exactly that version range, and its
+  breaking or notable changes; for vendored code, what differs from upstream and
+  why.
+
+An item about the same change, such as an `Agent decided` one, asks its question
+without repeating the entry's facts.
+
+Also list every file the merge risk script reports, under the kind of change its
+category backs up, and a changed `.merge-risk` itself. Fetch the PR's target
+branch and run
+`pnpm exec node .agents/skills/pr-description/scripts/merge-risk.mjs --base origin/<target branch>`
+from the root of the PR's checkout, so stacked PRs are judged against their own
+target. It reports the files that the project's optional `.merge-risk` lists, as
+[Merge risk rules](references/merge-risk.md) describes, and a changed
+`.merge-risk` itself. The file only backs up these areas for paths whose every
+change belongs to one; a project without it relies on the areas alone.
+
 ### Ticks
 
-A tick on a 🟡 Look, 🟡 Try, or 🔴 Review item records only what a human has
-looked at, and a tick on a to-do only that a human did it; neither changes the
-class. A tick on a 🟡 Decide item is the user's decision: it settles the point,
-so move the item to **Decided** in the collapsed part, without its checkbox, and
-the class follows from the remaining items. When the user decides an item's
-point in their own words instead, such as by accepting it or choosing another
-approach in the conversation, treat that like a tick and record the decision
-under **Decided**. Never add or keep a 🟡 Decide item that asks the user to
-confirm a point they already decided.
+A tick on a 🟡 Look, 🟡 Try, or 🔴 Review item or on a code owner entry records
+only what a human has looked at, and a tick on a to-do only that a human did it;
+neither changes the class. A tick on a 🟡 Decide item is the user's decision: it
+settles the point, so move the item to **Decided** in the collapsed part,
+without its checkbox, and the class follows from the remaining items. When the
+user decides an item's point in their own words instead, such as by accepting it
+or choosing another approach in the conversation, treat that like a tick and
+record the decision under **Decided**. Never add or keep a 🟡 Decide item that
+asks the user to confirm a point they already decided.
 
 Read the live description right before writing it. Keep each unchanged Look,
-Try, and Review item verbatim with its tick, write an item unticked when its
-content other than its [proof line](#item-proof) or the files behind it changed
-after it was ticked, and drop items that no longer apply. To find those changes,
-end **Needs your attention** with `<!-- checklist-revision: <sha> -->`, the
-source `HEAD` the checklist describes.
+Try, and Review item and code owner entry verbatim with its tick, write an item
+unticked when its content other than its [proof line](#item-proof) or the files
+behind it changed after it was ticked, and drop items that no longer apply. To
+find those changes, end **Needs your attention** with
+`<!-- checklist-revision: <sha> -->`, the source `HEAD` the checklist describes.
 
 ### Item Proof
 
