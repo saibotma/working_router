@@ -3,7 +3,7 @@ version: 1
 sources:
   agent-stack:
     url: https://github.com/appelladev/agent-stack.git
-    commit: 592477813d255a818f41856e2ccdc888b5511416
+    commit: c7dffaa64676b0ad91db7afb176ddc662c484704
     skills:
       address-pr-comments: []
       agent-tooling: []
@@ -95,7 +95,7 @@ skills:
     hash: sha256-0a6746608a1c47739d6ff2754150503990580c8790196890382151e44992aceb
   change-risk:
     source: agent-stack
-    hash: sha256-457d063c236460bb78a6e489f5ee159d089aedcc35f228ca7abaa649fd9ebbb8
+    hash: sha256-77419c22c31815d7744555eff182147bb816d79ad05fa992ae461ddccbe6bedd
   coding:
     source: agent-stack
     hash: sha256-e6ae5dfc9733fa66d8c53fbc557eeea92ed5233e78a163a819b7686fef5b18f5
@@ -140,7 +140,7 @@ skills:
     hash: sha256-1a4eee2226c1d21dabfe408af0beb628770a68ae75547d9dd16b0e70b000bbb6
   pr-description:
     source: agent-stack
-    hash: sha256-92da0837eb157fb6d2ab6d2457017e3cddabc2c0fc550b801fbec3251fef2a6b
+    hash: sha256-ccd1eb6078b8daa39a5455454d1866a248ac9eb7422c6070ccc74f26890a6000
   pr-monitoring:
     source: agent-stack
     hash: sha256-70444fa06940f81fe0fa251a9f29b63e4f532312c29c321e56ff8840d3940f24
@@ -149,7 +149,7 @@ skills:
     hash: sha256-0ae4b7c8c91e5368177d4a1811878c3cde09bc8ed47ec0f3dd97816c3fb2f55b
   review:
     source: agent-stack
-    hash: sha256-bfac096dc8de18d4b0b7cab4ebf113c968646d213d949ea8040d8b2dca1379f1
+    hash: sha256-fcb81cea6c37f2e0f6c9dc68cf00a3dbde6727afe27aeb862a7bbc65f7fccc85
   simulators:
     source: agent-stack
     hash: sha256-efc9c88d5441c47a2c900f78d6ac4996f5394218bde814299a4d06aeca7bcffc

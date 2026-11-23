@@ -7,23 +7,26 @@ description:
 
 # Change Risk
 
-Before applying this skill, read its skill extension,
-`.agents/skill-extensions/change-risk/SKILL.md`, if it exists. It adds this
-project's facts and rules to this skill. If it does not exist, continue without
-searching for it.
-
 These areas hold the changes that need a human. The skills that use them say
 what to do with a change in each area. Judge each change by its content, not by
 its file.
 
 ## Contracts
 
+Changes that a revert does not undo:
+
 - **Database schemas:** changes to a database schema and schema or data
   migrations, because they change stored data directly.
-- **API contracts:** new or changed routes, methods, paths, public functions,
-  request or response models, argument and return types, and error codes of the
-  APIs under `APIs` in this skill's extension, even when nothing calls them yet.
-  A part copied unchanged from an already merged contract is not a change.
+- **Interface contracts:** new or changed routes, methods, paths, messages,
+  request or response models, argument and return types, and error codes of an
+  interface that consumers outside the deployment use without choosing its
+  version, such as an API that installed apps or external systems call or a
+  webhook they receive, even when nothing uses it yet. A mistake stays in those
+  consumers after a revert. An interface whose consumers choose the version they
+  build against, such as a library's public API, is not a contract here, because
+  they adopt a change themselves and a broken one fails their build; neither is
+  an interface that only code deployed together with it uses. A part copied
+  unchanged from an already merged contract is not a change.
 - **Billing:** prices, plans, subscriptions, entitlements, payments, and the
   integration with payment providers.
 
@@ -48,8 +51,9 @@ costs outside the repository. These are decisions in the following areas:
   check rather than a mirror of server enforcement;
 - changes to persisted data, possible data loss, irreversible effects such as
   sent messages, or anything a revert does not undo;
-- a producer changing an interface contract whose consumers are not deployed
-  together with it, such as installed apps or external systems;
+- behavior that consumers outside the deployment rely on and that changes
+  without failing their build, such as a value that a field of an API or a
+  library no longer reports;
 - concurrency, synchronization, or lifecycles;
 - an architecture, pattern, library, or technology the repository does not use
   yet;

@@ -2,8 +2,8 @@
 
 The merge risk script, [`scripts/merge-risk.mjs`](../scripts/merge-risk.mjs),
 reports the changed files that a project lists in an optional top-level
-`.merge-risk` file, and `pr-description` sorts them under 🔴 Review in the group
-of the `change-risk` area they back up, `Contracts` or `Dependencies`.
+`.merge-risk` file, and `pr-description` lists them under 🔴 Code owner review,
+for the `change-risk` area they back up, `Contracts` or `Dependencies`.
 `pr-description` finds the changes in these areas by their content; the file
 backs that up for paths where a missed judgement must not drop a change, such as
 migrations.
@@ -55,14 +55,14 @@ repeated category, and for a category without patterns.
 List only paths whose every change belongs to the `Contracts` or `Dependencies`
 area of `change-risk`, typically database schemas and migrations. Leave out
 paths where only some changes need a human, because each listed path turns every
-change, even a comment, into a 🔴 item:
+change, even a comment, into a 🔴 code owner entry:
 
 - dependency manifests, which also change for comments, formatting, and
   reordering; `pr-description` judges dependency changes by content;
 - CI, deployment, and application configuration, authentication code, shared
   libraries, and agent files, which `pr-description` judges by content;
-- API contracts and billing code, which `pr-description` already always reviews
-  by content.
+- API contracts and billing code, which `pr-description` already lists for code
+  owner review by content.
 
 Do not add patterns that guess a file's purpose from words in its name, such as
 `config/`; they match ordinary code and tests and only blur what the script
