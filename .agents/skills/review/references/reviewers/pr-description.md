@@ -13,11 +13,11 @@ this review. On a full review, check the whole draft against all of them and
 verify every factual claim in it against the diff, the tests, or the cited
 evidence. Also go through the net diff for changes in the `Contracts` and
 `Dependencies` areas of `change-risk` yourself, and report each one without its
-item as well as each item for a change the areas exclude, such as a comment in a
-dependency manifest. On a scoped review, which the caller requests when only the
-draft changed since the last round, judge only the text changed since then,
-claims that the change affects, and whether your earlier findings are resolved,
-and report only P0 and P1 findings.
+code owner entry as well as each entry for a change the areas exclude, such as a
+comment in a dependency manifest. On a scoped review, which the caller requests
+when only the draft changed since the last round, judge only the text changed
+since then, claims that the change affects, and whether your earlier findings
+are resolved, and report only P0 and P1 findings.
 
 Find the user's decisions yourself, because whether a point is settled decides
 how the skill sorts it. Read the conversations the caller references, such as T3
